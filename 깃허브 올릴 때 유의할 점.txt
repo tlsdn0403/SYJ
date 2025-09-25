@@ -1,0 +1,5 @@
+깃허브 올릴 때 유의할 점
+ - main, develop, feature의 브랜치로 나뉘어져 있음.
+ - 지금까지 코드짰던걸 main브랜치에 보관함. 
+ - 신기능을 추가할때 기존코드를 develop에 복제를 한후에 develop에 신기능을 추가함.
+ - develop브랜치에 신기능을 더해주고 싶을때 feature브랜치에서 개발해보고 잘되면 merge함.

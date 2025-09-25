@@ -1,3 +1,6 @@
+################################################################################
+# 기본 C/C++ / 공용 빌드 아티팩트 (요청에 있던 부분)
+################################################################################
 # Prerequisites
 *.d
 
@@ -30,3 +33,235 @@
 *.exe
 *.out
 *.app
+
+################################################################################
+# 공통: 추가 바이너리 / 심볼 / 기타
+################################################################################
+*.idb
+*.pdb
+*.ipch
+*.rsp
+*.ilk
+*.exp
+*.bsc
+*.dbg
+*.map
+*.dSYM/
+*.su
+*.gcno
+*.gcda
+*.gcov
+
+# Static / shared libs generated in sub-builds
+*.dynlib
+
+################################################################################
+# Unreal Engine (C++ 프로젝트)
+################################################################################
+# UE가 생성하는 빌드/중간/캐시 디렉터리
+Binaries/
+Build/*/Binaries/
+DerivedDataCache/
+Intermediate/
+Saved/
+# Live Coding 관련 임시
+LiveCodingModules/
+LiveCodingManifest.json
+
+# 자동 생성된 프로젝트 파일 (필요 시 재생성 가능)
+# (Visual Studio 솔루션은 공유하고 싶으면 주석 처리)
+*.xcworkspace
+*.xcodeproj/
+# Rider / JetBrains(아래 .idea 에 포함), CLion 관련
+cmake-build-*/
+CMakeFiles/
+CMakeScripts/
+CMakeCache.txt
+
+# Unreal 자동 생성된 설정 백업
+Config/*.ini.bak
+
+# 사용자별 설정 / 로그 / 임시
+Saved/*
+!Saved/Automation/  # 자동화 스크립트를 저장하는 폴더 사용 시 제외 해제 가능
+*.log
+*.tmp
+
+# Crash / Minidumps
+*.dmp
+
+# Derived Shader caches
+*.ushadercache
+*.uasset.tmp
+*.umap.tmp
+
+# Unreal Build Tool 캐시
+Engine/Intermediate/
+Engine/Saved/
+
+# (선택) 플러그인 빌드 결과
+Plugins/*/Intermediate/
+Plugins/*/Binaries/
+
+# (선택) 특정 플랫폼 빌드 산출물
+# e.g. iOS/Android 패키징 폴더 (필요시 해제)
+# iOSBuilds/
+# AndroidBuild/
+
+################################################################################
+# Unreal: 유지해야 할 것(참고 - Ignore 목록 아님)
+################################################################################
+# (주의) 아래는 무시하면 안 되는 대표 예시 (설명용, 실제 ignore 라인 아님)
+#  - *.uproject
+#  - Config/*.ini
+#  - Content/ (에셋)
+#  - Source/
+#  - Plugins/*/Source/
+# => 그러므로 별도 ignore 규칙을 넣지 않았음
+
+################################################################################
+# Visual Studio / MSBuild
+################################################################################
+.vs/
+# 기본 출력 폴더 (프로젝트 설정에 따라 다를 수 있음)
+[Dd]ebug*/
+[Dd]ebugPublic/
+[Rr]elease*/
+[Rr]eleases/
+[Rr]eleasePublic/
+[Rr]etail/
+[Rr]etail*/
+[Rr]elWithDebInfo*/
+[Mm]inSizeRel*/
+x64/
+x86/
+ARM*/
+ARM64/
+bld/
+[Bb]in/
+[Bb]uild/
+[Oo]bj/
+[Ll]og/
+
+# VS 임시/데이터베이스
+*.VC.opendb
+*.VC.db
+*.opensdf
+*.sdf
+*.cachefile
+*.tlog
+*.lastbuildstate
+
+# 사용자별/환경별 프로젝트 설정
+*.user
+*.userosscache
+*.suo
+*.profiles
+*.userprefs
+
+# 테스트 결과
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
+
+# Code Analysis / Static Analysis
+*.rulemap
+*.pgc
+*.pgd
+
+# NuGet / 패키지 (C++ 혼합 솔루션에 있을 수 있음)
+packages/
+*.nupkg
+# (패키지 소스 고정하려면 해제)
+# !packages/build/
+
+# MSBuild Binary/Intermediates
+*.metaproj
+*.metaproj.tmp
+
+################################################################################
+# CMake (VS 또는 크로스 플랫폼 빌드 시)
+################################################################################
+CMakeCache.txt
+CMakeFiles/
+CMakeScripts/
+Testing/
+Makefile
+cmake_install.cmake
+install_manifest.txt
+compile_commands.json
+CTestTestfile.cmake
+
+################################################################################
+# Visual Studio Code / JetBrains 등 IDE
+################################################################################
+# VS Code (팀 공유 원하는 세팅 있으면 해제)
+.vscode/
+# Rider / IntelliJ / CLion
+.idea/
+# 기타 편집기
+*.iml
+
+################################################################################
+# Conan / vcpkg / 패키지 매니저
+################################################################################
+.conan/
+conanbuildinfo.*
+conaninfo.txt
+.cmake-conan/
+vcpkg_installed/
+vcpkg-configuration.json.lock
+
+################################################################################
+# 확장/툴 캐시
+################################################################################
+.clangd/
+.clang-tidy
+.clang-format
+.cache/
+*.swp
+*.swo
+
+################################################################################
+# 시스템 / OS
+################################################################################
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+# Linux
+*~
+
+################################################################################
+# 압축 / 배포 산출물
+################################################################################
+*.zip
+*.tar
+*.tar.gz
+*.7z
+*.rar
+
+################################################################################
+# 로그 / 프로파일 / 트레이스
+################################################################################
+*.trace
+*.perf
+*.prof
+*.gpulog
+*.stackdump
+
+################################################################################
+# 커스텀(필요 시 추가)
+################################################################################
+# secrets / local env
+.env
+.env.*
+*.local
+
+# 임시 스크립트 출력
+tmp/
+temp/

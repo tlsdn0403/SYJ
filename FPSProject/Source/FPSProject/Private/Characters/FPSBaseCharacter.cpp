@@ -35,5 +35,40 @@ void AFPSBaseCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
+
+    // movement 바인딩을 구성
+    PlayerInputComponent->BindAxis("MoveForward", this, &AFPSBaseCharacter::MoveForward);
+    PlayerInputComponent->BindAxis("MoveRight", this, &AFPSBaseCharacter::MoveRight);
+
+    // look 바인딩을 구성
+    PlayerInputComponent->BindAxis("Turn", this, &AFPSBaseCharacter::AddControllerYawInput);
+    PlayerInputComponent->BindAxis("LookUp", this, &AFPSBaseCharacter::AddControllerPitchInput);
+
+    // action 바인딩을 구성
+    PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &AFPSBaseCharacter::StartJump);
+    PlayerInputComponent->BindAction("Jump", IE_Released, this, &AFPSBaseCharacter::StopJump);
 }
 
+void AFPSBaseCharacter::MoveForward(float Value)
+{
+    // 어디가 앞인지 찾고, 플레이어가 해당 방향으로 이동하고자 한다는 것을 기록
+    FVector Direction = FRotationMatrix(Controller->GetControlRotation()).GetScaledAxis(EAxis::X);
+    AddMovementInput(Direction, Value);
+}
+
+void AFPSBaseCharacter::MoveRight(float Value)
+{
+    // 어디가 오른쪽인지 찾고, 플레이어가 해당 방향으로 이동하고자 한다는 것을 기록
+    FVector Direction = FRotationMatrix(Controller->GetControlRotation()).GetScaledAxis(EAxis::Y);
+    AddMovementInput(Direction, Value);
+}
+
+void AFPSBaseCharacter::StartJump()
+{
+    bPressedJump = true;
+}
+
+void AFPSBaseCharacter::StopJump()
+{
+    bPressedJump = false;
+}

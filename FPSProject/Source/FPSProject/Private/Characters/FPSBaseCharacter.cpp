@@ -25,6 +25,24 @@ AFPSBaseCharacter::AFPSBaseCharacter()
 
     // 폰이 카메라 회전을 제어함
     FPSCameraComponent->bUsePawnControlRotation = true;
+
+
+    // 소유 플레이어의 일인칭 메시 컴포넌트를 생성.
+    FPSMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("FirstPersonMesh"));
+    check(FPSMesh != nullptr);
+
+    // 소유 플레이어만 이 메시를 볼 수 있도록 설정
+    FPSMesh->SetOnlyOwnerSee(true);
+
+    // FPS 메시를 FPS 카메라에 어태치합니다.
+    FPSMesh->SetupAttachment(FPSCameraComponent);
+
+    // 일부 인바이런먼트 섀도를 비활성화하여 단일 메시 같은 느낌을 보존
+    FPSMesh->bCastDynamicShadow = false;
+    FPSMesh->CastShadow = false;
+
+    // 플레이어가 자기 몸뚱아리 못보도록 설정
+    GetMesh()->SetOwnerNoSee(true);
 }
 
 // Called when the game starts or when spawned

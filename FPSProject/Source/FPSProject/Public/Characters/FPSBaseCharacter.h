@@ -47,4 +47,8 @@ public:
     // FPS 카메라
     UPROPERTY(VisibleAnywhere)
     UCameraComponent* FPSCameraComponent;
+
+    // 팔 메시로 , 플레이어만 보임
+    UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
+    USkeletalMeshComponent* FPSMesh;
 };

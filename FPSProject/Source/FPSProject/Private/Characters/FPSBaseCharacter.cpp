@@ -2,6 +2,9 @@
 
 
 #include "Characters/FPSBaseCharacter.h"
+#include "Camera/CameraComponent.h"
+#include "Components/CapsuleComponent.h"
+
 
 // Sets default values
 AFPSBaseCharacter::AFPSBaseCharacter()
@@ -9,6 +12,19 @@ AFPSBaseCharacter::AFPSBaseCharacter()
  	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
+
+    // 일인칭 카메라 컴포넌트 생성.
+    FPSCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("FirstPersonCamera"));
+    check(FPSCameraComponent != nullptr);
+
+    // 캡슐 컴포넌트에 카메라 컴포넌트 어테치
+    FPSCameraComponent->SetupAttachment(CastChecked<USceneComponent, UCapsuleComponent>(GetCapsuleComponent()));
+
+    // 카메라가 눈 약간 위에 위치하도록
+    FPSCameraComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 50.0f + BaseEyeHeight));
+
+    // 폰이 카메라 회전을 제어함
+    FPSCameraComponent->bUsePawnControlRotation = true;
 }
 
 // Called when the game starts or when spawned

@@ -6,6 +6,7 @@
 #include "GameFramework/Character.h"
 #include "FPSBaseCharacter.generated.h"
 
+class UCameraComponent;
 UCLASS()
 class FPSPROJECT_API AFPSBaseCharacter : public ACharacter
 {
@@ -27,19 +28,23 @@ public:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 
-    // 앞으로 이동 및 뒤로 이동 입력을 처리합니다.
+    // 앞으로 이동 및 뒤로 이동 입력을 처리
     UFUNCTION()
     void MoveForward(float Value);
 
-    // 오른쪽 이동 및 왼쪽 이동 입력을 처리합니다.
+    // 오른쪽 이동 및 왼쪽 이동 입력을 처리
     UFUNCTION()
     void MoveRight(float Value);
 
-    // 키가 눌릴 경우 점프 플래그를 설정합니다.
+    // 키가 눌릴 경우 점프 플래그를 설정
     UFUNCTION()
     void StartJump();
 
-    // 키가 떼어질 경우 점프 플래그를 지웁니다.
+    // 키가 떼어질 경우 점프 플래그를 지움
     UFUNCTION()
     void StopJump();
+
+    // FPS 카메라
+    UPROPERTY(VisibleAnywhere)
+    UCameraComponent* FPSCameraComponent;
 };

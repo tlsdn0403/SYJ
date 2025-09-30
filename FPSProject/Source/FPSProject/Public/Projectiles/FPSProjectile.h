@@ -6,6 +6,9 @@
 #include "GameFramework/Actor.h"
 #include "FPSProjectile.generated.h"
 
+
+class USphereComponent;
+class UProjectileMovementComponent;
 UCLASS()
 class FPSPROJECT_API AFPSProjectile : public AActor
 {
@@ -23,4 +26,23 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
+	// 스피어 콜리전 컴포넌트
+	UPROPERTY(VisibleDefaultsOnly, Category = Projectile)
+	USphereComponent* CollisionComponent;
+
+	// 발사체 이동 컴포넌트
+	UPROPERTY(VisibleAnywhere, Category = Movement)
+	UProjectileMovementComponent* ProjectileMovementComponent;
+
+
+	// 발사체 메시
+	UPROPERTY(VisibleDefaultsOnly, Category = Projectile)
+	UStaticMeshComponent* ProjectileMeshComponent;
+
+	// 발사체 머티리얼
+	UPROPERTY(VisibleDefaultsOnly, Category = Movement)
+	UMaterialInstanceDynamic* ProjectileMaterialInstance;
+
+	// 발사 방향으로의 발사체 속도를 초기화
+	void FireInDirection(const FVector& ShootDirection);
 };

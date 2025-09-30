@@ -20,6 +20,10 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
+
+    // 스폰할 발사체 클래스입니다.
+    UPROPERTY(EditDefaultsOnly, Category = Projectile)
+    TSubclassOf<class AFPSProjectile> ProjectileClass;
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -44,6 +48,9 @@ public:
     UFUNCTION()
     void StopJump();
 
+    UFUNCTION()
+    void Fire();
+
     // FPS 카메라
     UPROPERTY(VisibleAnywhere)
     UCameraComponent* FPSCameraComponent;
@@ -51,4 +58,10 @@ public:
     // 팔 메시로 , 플레이어만 보임
     UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
     USkeletalMeshComponent* FPSMesh;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
+    FVector FirePosition;
+
+
+
 };

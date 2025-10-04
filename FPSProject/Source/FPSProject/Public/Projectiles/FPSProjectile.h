@@ -45,4 +45,8 @@ public:
 
 	// 발사 방향으로의 발사체 속도를 초기화
 	void FireInDirection(const FVector& ShootDirection);
+
+	// 발사체가 충돌이 일어날 때 호출되는 함수
+	UFUNCTION()
+	void OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComponent, FVector NormalImpulse, const FHitResult& Hit);
 };

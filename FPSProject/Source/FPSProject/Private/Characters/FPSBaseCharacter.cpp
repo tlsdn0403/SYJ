@@ -42,7 +42,7 @@ AFPSBaseCharacter::AFPSBaseCharacter()
     FPSMesh->CastShadow = false;
 
     // 플레이어가 자기 몸뚱아리 못보도록 설정
-    GetMesh()->SetOwnerNoSee(true);
+   /* GetMesh()->SetOwnerNoSee(true);*/
 }
 
 // Called when the game starts or when spawned

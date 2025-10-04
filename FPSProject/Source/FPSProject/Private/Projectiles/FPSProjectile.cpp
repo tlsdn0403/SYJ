@@ -55,14 +55,14 @@ AFPSProjectile::AFPSProjectile()
         {
             ProjectileMeshComponent->SetStaticMesh(Mesh.Object);
         }
-
-        static ConstructorHelpers::FObjectFinder<UMaterial>Material(TEXT("/Script/Engine.Material'/Game/Projectiles/SphereMaterial.SphereMaterial'"));
+        //동적으로 메타리얼 적용
+        static ConstructorHelpers::FObjectFinder<UMaterial>Material(TEXT("/Script/Engine.Material'/Game/Projectiles/M_AK47.M_AK47'"));
         if (Material.Succeeded())
         {
             ProjectileMaterialInstance = UMaterialInstanceDynamic::Create(Material.Object, ProjectileMeshComponent);
         }
         ProjectileMeshComponent->SetMaterial(0, ProjectileMaterialInstance);
-        ProjectileMeshComponent->SetRelativeScale3D(FVector(0.09f, 0.09f, 0.09f));
+        ProjectileMeshComponent->SetRelativeScale3D(FVector(0.9f, 0.9f, 0.9f));
         ProjectileMeshComponent->SetupAttachment(RootComponent);
     }
 	InitialLifeSpan = 3.0f; //3초 후에 파괴되도록 생명주기 정해주는 거..?

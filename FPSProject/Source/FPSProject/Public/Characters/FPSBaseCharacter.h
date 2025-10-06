@@ -7,6 +7,7 @@
 #include "FPSBaseCharacter.generated.h"
 
 class UCameraComponent;
+class AWeaponBase;
 UCLASS()
 class FPSPROJECT_API AFPSBaseCharacter : public ACharacter
 {
@@ -30,7 +31,9 @@ public:
 
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
-
+    // 현재 장착한 무기
+    UFUNCTION(BlueprintCallable, Category = "Weapon")
+    void SetCurrentWeapon(AWeaponBase* NewWeapon) { CurrentWeapon = NewWeapon; }
 
     // 앞으로 이동 및 뒤로 이동 입력을 처리
     UFUNCTION()
@@ -62,6 +65,7 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
     FVector FirePosition;
 
-
+    UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Weapon")
+    AWeaponBase* CurrentWeapon = nullptr;
 
 };

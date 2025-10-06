@@ -1,101 +1,105 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
-
 #include "Weapon/WeaponBase.h"
-#include"Projectiles/FPSProjectile.h"
+#include "Projectiles/FPSProjectile.h"
 #include "Characters/FPSBaseCharacter.h"
 #include "Kismet/GameplayStatics.h"
 #include "Camera/CameraComponent.h"
 #include "Animation/AnimInstance.h"
 #include "Sound/SoundBase.h"
+#include "Engine/Engine.h" // 디버그 메시지 출력용
 
-// Sets default values
 AWeaponBase::AWeaponBase()
 {
-	PrimaryActorTick.bCanEverTick = true;
+    PrimaryActorTick.bCanEverTick = true;
 
-	WeaponMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("WeaponMesh"));
-	RootComponent = WeaponMesh;
+    WeaponMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("WeaponMesh"));
+    RootComponent = WeaponMesh;
 
-	MuzzleOffset = FVector(100.0f, 0.0f, 10.0f);
+    MuzzleOffset = FVector(100.0f, 0.0f, 10.0f);
+
+    AttachSocketName = TEXT("GripPoint"); // 필요에 따라 소켓명 지정 (BP에서 Override 가능)
 }
 
-// Called when the game starts or when spawned
 void AWeaponBase::BeginPlay()
 {
-	Super::BeginPlay();
+    Super::BeginPlay();
 }
 
 void AWeaponBase::AttachWeapon(AFPSBaseCharacter* TargetCharacter)
 {
-	Character = TargetCharacter;
-	if (!Character)
-	{
-		return;
-	}
+    Character = TargetCharacter;
+    if (!Character) return;
 
-	// Attach to first person mesh's socket (can be changed as needed)
-	USkeletalMeshComponent* AttachMesh = Character->GetMesh(); // 기본: 3인칭 바디
-	if (Character->FindComponentByClass<UCameraComponent>())
-	{
-		// FPS의 경우, 1인칭 메시에 붙이고 싶으면 따로 처리 필요
-		// AttachMesh = Character->GetFirstPersonMesh(); // 직접 구현 필요
-	}
-	FAttachmentTransformRules AttachmentRules(EAttachmentRule::SnapToTarget, true);
-	AttachToComponent(AttachMesh, AttachmentRules, AttachSocketName);
+    // 부착할 메쉬 선택 (여기서는 3인칭 기준, 1인칭이면 GetFirstPersonMesh() 등으로 변경)
+    USkeletalMeshComponent* AttachMesh = Character->GetMesh();
+
+    // 부착 트랜스폼 설정
+    FAttachmentTransformRules AttachmentRules(EAttachmentRule::SnapToTarget, true);
+    AttachToComponent(AttachMesh, AttachmentRules, AttachSocketName);
+
+    // 부착 후 무기 Transform(Scale, 위치, 회전) 조정
+    WeaponMesh->SetRelativeScale3D(FVector(0.3f, 0.3f, 0.3f));
+    WeaponMesh->SetRelativeLocation(FVector::ZeroVector);
+    WeaponMesh->SetRelativeRotation(FRotator::ZeroRotator);
+
+    // 캐릭터의 CurrentWeapon 업데이트
+    Character->CurrentWeapon = this;
+
+    // 확장: 입력 바인딩, 애님BP 전환 등 추가 가능
+}
+
+void AWeaponBase::DetachWeapon()
+{
+    // 무기 분리
+    DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+    Character = nullptr;
+    // 확장: 입력 언바인딩, 상태 해제 등 추가 가능
 }
 
 void AWeaponBase::Fire()
 {
-	if (!Character || !Character->GetController()) return;
+    if (!Character || !Character->GetController()) return;
+    UE_LOG(LogTemp, Log, TEXT("WeaponBase::Fire (Shooter: %s, Weapon: %s)"), *GetNameSafe(Character), *GetName());
 
-	if (ProjectileClass)
-	{
-		UWorld* World = GetWorld();
-		if (World)
-		{
-			// 카메라 위치/방향을 얻음 (1인칭/3인칭 모두 일관)
-			FVector CameraLocation;
-			FRotator CameraRotation;
-			Character->GetActorEyesViewPoint(CameraLocation, CameraRotation);
+    if (ProjectileClass)
+    {
+        UWorld* World = GetWorld();
+        if (World)
+        {
+            FVector CameraLocation;
+            FRotator CameraRotation;
+            Character->GetActorEyesViewPoint(CameraLocation, CameraRotation);
 
-			// MuzzleOffset은 카메라 기준
-			const FVector SpawnLocation = CameraLocation + CameraRotation.RotateVector(MuzzleOffset);
-			const FRotator SpawnRotation = CameraRotation;
+            const FVector SpawnLocation = CameraLocation + CameraRotation.RotateVector(MuzzleOffset);
+            const FRotator SpawnRotation = CameraRotation;
 
-			FActorSpawnParameters SpawnParams;
-			SpawnParams.Owner = this;
-			SpawnParams.Instigator = Character;
+            FActorSpawnParameters SpawnParams;
+            SpawnParams.Owner = this;
+            SpawnParams.Instigator = Character;
 
-			AFPSProjectile* Projectile = World->SpawnActor<AFPSProjectile>(ProjectileClass, SpawnLocation, SpawnRotation, SpawnParams);
-			// 필요시 발사자 정보 추가 전달
-		}
-	}
+            AFPSProjectile* Projectile = World->SpawnActor<AFPSProjectile>(ProjectileClass, SpawnLocation, SpawnRotation, SpawnParams);
+        }
+    }
 
-	// Fire sound
-	if (FireSound)
-	{
-		UGameplayStatics::PlaySoundAtLocation(this, FireSound, Character->GetActorLocation());
-	}
+    if (FireSound)
+    {
+        UGameplayStatics::PlaySoundAtLocation(this, FireSound, Character->GetActorLocation());
+    }
 
-	// Fire animation
-	if (FireAnimation)
-	{
-		USkeletalMeshComponent* AnimMesh = Character->GetMesh(); // 3인칭 Mesh
-		// 1인칭 FPS라면 Character에 GetFirstPersonMesh() 구현해서 사용 가능
-		if (AnimMesh)
-		{
-			UAnimInstance* AnimInstance = AnimMesh->GetAnimInstance();
-			if (AnimInstance)
-			{
-				AnimInstance->Montage_Play(FireAnimation, 1.f);
-			}
-		}
-	}
+    if (FireAnimation)
+    {
+        USkeletalMeshComponent* AnimMesh = Character->GetMesh();
+        if (AnimMesh)
+        {
+            UAnimInstance* AnimInstance = AnimMesh->GetAnimInstance();
+            if (AnimInstance)
+            {
+                AnimInstance->Montage_Play(FireAnimation, 1.f);
+            }
+        }
+    }
 }
 
 void AWeaponBase::Tick(float DeltaTime)
 {
-	Super::Tick(DeltaTime);
+    Super::Tick(DeltaTime);
 }
-

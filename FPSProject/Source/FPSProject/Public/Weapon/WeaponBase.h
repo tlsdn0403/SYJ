@@ -17,9 +17,6 @@ class FPSPROJECT_API AWeaponBase : public AActor
 public:
 	AWeaponBase();
 
-	/** Attach weapon to character */
-	UFUNCTION(BlueprintCallable, Category = "Weapon")
-	virtual void AttachWeapon(AFPSBaseCharacter* TargetCharacter);
 
 	/** Make the weapon fire a projectile */
 	UFUNCTION(BlueprintCallable, Category = "Weapon")
@@ -52,6 +49,13 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
 	FName AttachSocketName = TEXT("GripPoint");
 
+	// 무기를 캐릭터에 부착
+	UFUNCTION(BlueprintCallable, Category = "Weapon")
+	virtual void AttachWeapon(AFPSBaseCharacter* TargetCharacter);
+
+	// 무기를 캐릭터에서 해제
+	UFUNCTION(BlueprintCallable, Category = "Weapon")
+	virtual void DetachWeapon();
 public:
 	virtual void Tick(float DeltaTime) override;
 

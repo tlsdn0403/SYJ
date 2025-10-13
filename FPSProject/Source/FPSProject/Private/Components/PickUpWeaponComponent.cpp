@@ -43,6 +43,6 @@ void UPickUpWeaponComponent::OnSphereBeginOverlap(UPrimitiveComponent* Overlappe
 
 		OnPickUp.Broadcast(Character);
 		Character->SetCurrentWeapon(Cast<AWeaponBase>(GetOwner()));
-		OnComponentBeginOverlap.RemoveAll(this); // 한 번만 실행
+		OnComponentBeginOverlap.RemoveAll(this); // 한 번만 실행 
 	}
 }

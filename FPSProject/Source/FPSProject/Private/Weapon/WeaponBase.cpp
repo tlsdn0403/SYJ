@@ -16,7 +16,7 @@ AWeaponBase::AWeaponBase()
 
     MuzzleOffset = FVector(100.0f, 0.0f, 10.0f);
 
-    AttachSocketName = TEXT("GripPoint"); // 필요에 따라 소켓명 지정 (BP에서 Override 가능)
+    AttachSocketName = TEXT("LeftHandSocket"); // 필요에 따라 소켓명 지정 (BP에서 Override 가능)
 }
 
 void AWeaponBase::BeginPlay()

@@ -16,7 +16,7 @@ AWeaponBase::AWeaponBase()
 
     MuzzleOffset = FVector(100.0f, 0.0f, 10.0f);
 
-    AttachSocketName = TEXT("LeftHandSocket"); // 필요에 따라 소켓명 지정 (BP에서 Override 가능)
+    AttachSocketName = TEXT("Gun_socket"); // 필요에 따라 소켓명 지정
 }
 
 void AWeaponBase::BeginPlay()
@@ -29,7 +29,7 @@ void AWeaponBase::AttachWeapon(AFPSBaseCharacter* TargetCharacter)
     Character = TargetCharacter;
     if (!Character) return;
 
-    // 부착할 메쉬 선택 (여기서는 3인칭 기준, 1인칭이면 GetFirstPersonMesh() 등으로 변경)
+    // 부착할 메쉬 선택 
     USkeletalMeshComponent* AttachMesh = Character->GetMesh();
 
     // 부착 트랜스폼 설정
@@ -37,13 +37,25 @@ void AWeaponBase::AttachWeapon(AFPSBaseCharacter* TargetCharacter)
     AttachToComponent(AttachMesh, AttachmentRules, AttachSocketName);
 
     // 부착 후 무기 Transform(Scale, 위치, 회전) 조정
-    WeaponMesh->SetRelativeScale3D(FVector(0.3f, 0.3f, 0.3f));
-    WeaponMesh->SetRelativeLocation(FVector::ZeroVector);
-    WeaponMesh->SetRelativeRotation(FRotator::ZeroRotator);
+    WeaponMesh->SetRelativeScale3D(FVector(0.15f, 0.15f, 0.15f));
+    /*WeaponMesh->SetRelativeLocation(FVector::ZeroVector);
+    WeaponMesh->SetRelativeRotation(FRotator::ZeroRotator);*/
+    // 찾으신 위치 값 (X, Y, Z)
+    WeaponMesh->SetRelativeLocation(FVector(-35.209697f, 2.353551f, 0.508678f));
+
+    // 찾으신 회전 값 (Pitch, Yaw, Roll 순서)
+    WeaponMesh->SetRelativeRotation(FRotator(1.090108f, -88.966904f, -4.015320f));
 
     // 캐릭터의 CurrentWeapon 업데이트
     Character->CurrentWeapon = this;
 
+    // 애니메이션에서 탄창이 자꾸 보여서 안보이도록 
+    if (WeaponMesh)
+    {
+        // PBO_None: 물리 충돌체 업데이트는 놔두고 시각적으로만 숨김 
+        //PBO_Term → 물리 바디(충돌체)까지 완전히 해제
+        WeaponMesh->HideBoneByName(TEXT("Bone_002"), PBO_Term);
+    }
     // 확장: 입력 바인딩, 애님BP 전환 등 추가 가능
 }
 

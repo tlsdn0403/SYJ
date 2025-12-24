@@ -68,4 +68,7 @@ public:
     UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Weapon")
     AWeaponBase* CurrentWeapon = nullptr;
 
+    // ¹«±â   
+    UPROPERTY(EditDefaultsOnly, Category = "Weapon")
+	TSubclassOf<AWeaponBase> WeaponBPclass;
 };

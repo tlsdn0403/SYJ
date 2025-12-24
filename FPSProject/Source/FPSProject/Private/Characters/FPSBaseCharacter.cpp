@@ -2,6 +2,10 @@
 
 
 #include "Characters/FPSBaseCharacter.h"
+#include "Camera/CameraComponent.h"
+#include "Components/CapsuleComponent.h"
+#include "Weapon/WeaponBase.h"
+#include "Projectiles/FPSProjectile.h"
 
 // Sets default values
 AFPSBaseCharacter::AFPSBaseCharacter()
@@ -9,6 +13,37 @@ AFPSBaseCharacter::AFPSBaseCharacter()
  	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
+
+    // 일인칭 카메라 컴포넌트 생성.
+    FPSCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("FirstPersonCamera"));
+    check(FPSCameraComponent != nullptr);
+
+    // 캡슐 컴포넌트에 카메라 컴포넌트 어테치
+    FPSCameraComponent->SetupAttachment(CastChecked<USceneComponent, UCapsuleComponent>(GetCapsuleComponent()));
+
+    // 카메라가 눈 약간 위에 위치하도록
+    FPSCameraComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 50.0f + BaseEyeHeight));
+
+    // 폰이 카메라 회전을 제어함
+    FPSCameraComponent->bUsePawnControlRotation = true;
+
+
+    // 소유 플레이어의 일인칭 메시 컴포넌트를 생성.
+    FPSMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("FirstPersonMesh"));
+    check(FPSMesh != nullptr);
+
+    // 소유 플레이어만 이 메시를 볼 수 있도록 설정
+    FPSMesh->SetOnlyOwnerSee(true);
+
+    // FPS 메시를 FPS 카메라에 어태치합니다.
+    FPSMesh->SetupAttachment(FPSCameraComponent);
+
+    // 일부 인바이런먼트 섀도를 비활성화하여 단일 메시 같은 느낌을 보존
+    FPSMesh->bCastDynamicShadow = false;
+    FPSMesh->CastShadow = false;
+
+    // 플레이어가 자기 몸뚱아리 못보도록 설정
+   /* GetMesh()->SetOwnerNoSee(true);*/
 }
 
 // Called when the game starts or when spawned
@@ -47,6 +82,9 @@ void AFPSBaseCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
     // action 바인딩을 구성
     PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &AFPSBaseCharacter::StartJump);
     PlayerInputComponent->BindAction("Jump", IE_Released, this, &AFPSBaseCharacter::StopJump);
+
+	// Fire 액션 바인딩을 구성
+    PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &AFPSBaseCharacter::Fire);
 }
 
 void AFPSBaseCharacter::MoveForward(float Value)
@@ -71,4 +109,49 @@ void AFPSBaseCharacter::StartJump()
 void AFPSBaseCharacter::StopJump()
 {
     bPressedJump = false;
+}
+
+void AFPSBaseCharacter::Fire()
+{
+    // 현재 무기가 있으면 무기의 Fire 호출(총구에서 발사)
+    if (CurrentWeapon)
+    {
+        CurrentWeapon->Fire();
+        return;
+    }
+    //// 발사체 발사를 시도합니다.
+    //if (ProjectileClass)
+    //{
+    //    // 카메라 트랜스폼을 구합니다.
+    //    FVector CameraLocation;
+    //    FRotator CameraRotation;
+    //    GetActorEyesViewPoint(CameraLocation, CameraRotation);
+
+    //    // FirePosition이 카메라 살짝 앞에서 발사체를 스폰하도록 설정합니다.
+    //    FirePosition.Set(100.0f, 0.0f, 0.0f);
+
+    //    // MuzzleOffset을 카메라 스페이스에서 월드 스페이스로 변환합니다.
+    //    FVector MuzzleLocation = CameraLocation + FTransform(CameraRotation).TransformVector(FirePosition);
+
+    //    // 조준이 살짝 위를 향하도록 왜곡합니다.
+    //    FRotator MuzzleRotation = CameraRotation;
+    //    MuzzleRotation.Pitch += 10.0f;
+
+    //    UWorld* World = GetWorld();
+    //    if (World)
+    //    {
+    //        FActorSpawnParameters SpawnParams;
+    //        SpawnParams.Owner = this;
+    //        SpawnParams.Instigator = GetInstigator();
+
+    //        // 총구에 발사체를 스폰합니다.
+    //        AFPSProjectile* Projectile = World->SpawnActor<AFPSProjectile>(ProjectileClass, MuzzleLocation, MuzzleRotation, SpawnParams);
+    //        if (Projectile)
+    //        {
+    //            // 발사체의 초기 탄도를 설정합니다.
+    //            FVector LaunchDirection = MuzzleRotation.Vector();
+    //            Projectile->FireInDirection(LaunchDirection);
+    //        }
+    //    }
+    //}
 }

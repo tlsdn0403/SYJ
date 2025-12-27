@@ -14,7 +14,6 @@ AWeaponBase::AWeaponBase()
     WeaponMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("WeaponMesh"));
     RootComponent = WeaponMesh;
 
-    MuzzleOffset = FVector(100.0f, 0.0f, 10.0f);
 
     AttachSocketName = TEXT("Gun_socket"); // 필요에 따라 소켓명 지정
 }
@@ -77,19 +76,29 @@ void AWeaponBase::Fire()
         UWorld* World = GetWorld();
         if (World)
         {
+            FVector FireLocation = WeaponMesh->GetComponentLocation() +
+                WeaponMesh->GetForwardVector() * MuzzleOffset.X +
+                WeaponMesh->GetRightVector() * MuzzleOffset.Y +
+                WeaponMesh->GetUpVector() * MuzzleOffset.Z;
+
+
             FVector CameraLocation;
             FRotator CameraRotation;
             Character->GetActorEyesViewPoint(CameraLocation, CameraRotation);
 
-            const FVector SpawnLocation = CameraLocation + CameraRotation.RotateVector(MuzzleOffset);
-            const FRotator SpawnRotation = CameraRotation;
+            FRotator FireRotation = CameraRotation;  // 캐릭터 카메라 방향으로 총알 발사
 
             FActorSpawnParameters SpawnParams;
             SpawnParams.Owner = this;
             SpawnParams.Instigator = Character;
 
-            AFPSProjectile* Projectile = World->SpawnActor<AFPSProjectile>(ProjectileClass, SpawnLocation, SpawnRotation, SpawnParams);
+            AFPSProjectile* Projectile = World->SpawnActor<AFPSProjectile>(ProjectileClass, FireLocation, FireRotation, SpawnParams);
+
+            DrawDebugSphere(GetWorld(), FireLocation, 5.0f, 12, FColor::Red, false, 3.0f);
         }
+
+
+      
     }
 
     if (FireSound)

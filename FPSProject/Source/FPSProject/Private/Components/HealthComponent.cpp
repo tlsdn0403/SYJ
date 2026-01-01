@@ -30,6 +30,13 @@ void UHealthComponent::DamageTaken(AActor* DamagedActor, float Damage, const UDa
 	if (Damage <= 0.f) return;									 // 데미지가 0 이하일 때는 처리하지 않음
 
 	Health -= Damage;											 // 체력 감소
+
+	UE_LOG(LogTemp, Warning, TEXT("[HealthComponent] %s Health: %.1f"), *GetNameSafe(GetOwner()), Health);
+	if (Health <= 0.f)
+	{
+		UE_LOG(LogTemp, Error, TEXT("[HealthComponent] %s die! "), *GetNameSafe(GetOwner()));
+		// 필요시 사망 처리:  GetOwner()->Destroy(); 등
+	}
 }
 
 // Called every frame

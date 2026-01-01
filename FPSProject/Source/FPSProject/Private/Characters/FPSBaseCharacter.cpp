@@ -19,13 +19,13 @@ AFPSBaseCharacter::AFPSBaseCharacter()
     // 스프링 암 생성
     CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
     CameraBoom->SetupAttachment(RootComponent);
-    CameraBoom->TargetArmLength = 300.0f; // 캐릭터와 카메라 사이 거리. 조절 가능
-    CameraBoom->bUsePawnControlRotation = true; // 폰 컨트롤러의 회전 값을 따라감
+    CameraBoom->TargetArmLength = 300.0f;                                                               // 캐릭터와 카메라 사이 거리. 조절 가능
+    CameraBoom->bUsePawnControlRotation = true;                                                         // 폰 컨트롤러의 회전 값을 따라감
 
     // 카메라 생성 후 스프링암에 결합
     ThirdPersonCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("ThirdPersonCamera"));
     ThirdPersonCameraComponent->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
-    ThirdPersonCameraComponent->bUsePawnControlRotation = false; // 카메라자체는 컨트롤 안함. 붐이 모든 회전 제어
+    ThirdPersonCameraComponent->bUsePawnControlRotation = false;                                        // 카메라자체는 컨트롤 안함. 붐이 모든 회전 제어
 
 
     // 소유 플레이어의 일인칭 메시 컴포넌트를 생성.
@@ -50,8 +50,7 @@ void AFPSBaseCharacter::BeginPlay()
 	
 	check(GEngine != nullptr);
 
-	// 디버그 메시지를 5초간 표시합니다. 
-	// -1 '키' 값 실행인자가 메시지가 업데이트되거나 새로고침되지 않도록 방지합니다.
+	// 디버그 메시지를 5초간 표시
 	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("We are using FPSCharacter."));
 }
 

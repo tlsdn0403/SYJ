@@ -4,6 +4,7 @@
 #include "Projectiles/FPSProjectile.h"
 #include "Components/SphereComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
+#include "Kismet/GameplayStatics.h"  
 
 // Sets default values
 AFPSProjectile::AFPSProjectile()
@@ -93,6 +94,21 @@ void AFPSProjectile::FireInDirection(const FVector& ShootDirection)
 
 void AFPSProjectile::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComponent, FVector NormalImpulse, const FHitResult& Hit)
 {
+    // 자기 자신이나 발사자(Owner)는 제외
+    AActor* MyOwner = GetOwner();
+    if (OtherActor && OtherActor != this && OtherActor != MyOwner)
+    {
+        // 데미지 적용 (20. f는 데미지 양, 조정 가능)
+        UGameplayStatics::ApplyDamage(
+            OtherActor,                          // 데미지 받을 액터
+            20.f,                                // 데미지 양
+            MyOwner ? MyOwner->GetInstigatorController() : nullptr,  // 컨트롤러
+            this,                                // 데미지 원인 액터(총알)
+            nullptr                              // 데미지 타입
+        );
+
+        UE_LOG(LogTemp, Warning, TEXT("ammo damage to %s! "), *GetNameSafe(OtherActor));
+    }
 	if (OtherActor != this && OtherComponent->IsSimulatingPhysics())  // 스스로와 충돌하는 게 아니고 , 충돌한 컴포넌트가 물리 시뮬레이션을 하고 있다면
     {
 		OtherComponent->AddImpulseAtLocation(ProjectileMovementComponent->Velocity * 100.0f, Hit.ImpactPoint);  // 충돌 지점에 발사체의 속도에 비례하는 임펄스를 가함

@@ -7,7 +7,6 @@
 
 UPickUpWeaponComponent::UPickUpWeaponComponent()
 {
-
 	InitSphereRadius(32.f);
 	SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	SetCollisionResponseToAllChannels(ECR_Ignore);
@@ -24,6 +23,7 @@ void UPickUpWeaponComponent::BeginPlay()
 void UPickUpWeaponComponent::OnSphereBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
 	AFPSBaseCharacter* Character = Cast<AFPSBaseCharacter>(OtherActor);
+
 	if (Character && Character->IsPlayerControlled())
 	{
 		// 디버깅 메시지: 플레이어가 무기 장착(픽업) 트리거에 진입했는지 확인

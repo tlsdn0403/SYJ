@@ -17,7 +17,7 @@ void AAR4::AttachWeapon(AFPSBaseCharacter* TargetCharacter)
     FAttachmentTransformRules AttachmentRules(EAttachmentRule::SnapToTarget, true);
     AttachToComponent(AttachMesh, AttachmentRules, AttachSocketName);
 
-    // 부착 후 무기 Transform(Scale, 위치, 회전) 조정
+    // 부착 후 무기  위치, 회전 조정
     WeaponMesh->SetRelativeLocation(FVector(-7.640821f, 4.648937f, -1.158742f));
     WeaponMesh->SetRelativeRotation(FRotator(-6.316770f, -264.543091f, 2.009403f));
 

@@ -7,6 +7,7 @@
 #include "Sound/SoundBase.h"
 #include "Engine/Engine.h" // 디버그 메시지 출력용
 
+bool bDebug = false;
 AWeaponBase::AWeaponBase()
 {
     PrimaryActorTick.bCanEverTick = true;
@@ -82,11 +83,35 @@ void AWeaponBase::Fire()
                 WeaponMesh->GetUpVector() * MuzzleOffset.Z;
 
 
+            // 1. 카메라 위치/방향 얻기
             FVector CameraLocation;
             FRotator CameraRotation;
             Character->GetActorEyesViewPoint(CameraLocation, CameraRotation);
 
-            FRotator FireRotation = CameraRotation;  // 캐릭터 카메라 방향으로 총알 발사
+            // 2. 카메라 방향으로 Line Trace (크로스헤어 방향 검사)
+            FVector TraceStart = CameraLocation;
+            FVector TraceEnd = TraceStart + CameraRotation.Vector() * 10000.0f; // 10,000cm 거리까지 트레이스
+
+            FHitResult HitResult;
+            FCollisionQueryParams QueryParams;
+            QueryParams.AddIgnoredActor(this); // 자기 캐릭터 무시
+
+            bool bHit = World->LineTraceSingleByChannel(HitResult, TraceStart, TraceEnd, ECC_Visibility, QueryParams);
+
+            // 3. 목표 위치(타겟)는 Hit 위치 또는 TraceEnd
+            FVector TargetLocation = bHit ? HitResult.Location : TraceEnd;
+
+            // 4. 총구에서 타겟 위치로 향하는 방향
+            FVector FireDirection = (TargetLocation - FireLocation).GetSafeNormal();
+            FRotator FireRotation = FireDirection.Rotation();
+
+
+            //FVector CameraLocation;
+            //FRotator CameraRotation;
+            //Character->GetActorEyesViewPoint(CameraLocation, CameraRotation);
+
+
+            //FRotator FireRotation = CameraRotation;  // 캐릭터 카메라 방향으로 총알 발사
 
             FActorSpawnParameters SpawnParams;
             SpawnParams.Owner = this;
@@ -94,7 +119,10 @@ void AWeaponBase::Fire()
 
             AFPSProjectile* Projectile = World->SpawnActor<AFPSProjectile>(ProjectileClass, FireLocation, FireRotation, SpawnParams);
 
-            DrawDebugSphere(GetWorld(), FireLocation, 5.0f, 12, FColor::Red, false, 3.0f);
+            if (bDebug) {
+                DrawDebugSphere(GetWorld(), FireLocation, 5.0f, 12, FColor::Red, false, 3.0f);
+            }
+            
         }
 
 

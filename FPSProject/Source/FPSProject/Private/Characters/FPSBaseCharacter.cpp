@@ -7,6 +7,7 @@
 #include "Weapon/WeaponBase.h"
 #include "Projectiles/FPSProjectile.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "Components/HealthComponent.h"
 
 // Sets default values
 AFPSBaseCharacter::AFPSBaseCharacter()
@@ -37,8 +38,9 @@ AFPSBaseCharacter::AFPSBaseCharacter()
     FPSMesh->bCastDynamicShadow = false;
     FPSMesh->CastShadow = false;
 
-    // 플레이어가 자기 몸뚱아리 못보도록 설정
-   /* GetMesh()->SetOwnerNoSee(true);*/
+
+    //체력 컴포넌트 추가
+    HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComponent"));
 }
 
 // Called when the game starts or when spawned

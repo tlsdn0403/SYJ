@@ -9,6 +9,7 @@
 class UCameraComponent;
 class AWeaponBase;
 class USpringArmComponent;
+class UHealthComponent;
 UCLASS()
 class FPSPROJECT_API AFPSBaseCharacter : public ACharacter
 {
@@ -26,6 +27,10 @@ protected:
     // 스폰할 발사체 클래스입니다.
     UPROPERTY(EditDefaultsOnly, Category = Projectile)
     TSubclassOf<class AFPSProjectile> ProjectileClass;
+
+    // 체력관리 컴포넌트
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+    UHealthComponent* HealthComponent;
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;

@@ -83,12 +83,12 @@ void AWeaponBase::Fire()
                 WeaponMesh->GetUpVector() * MuzzleOffset.Z;
 
 
-            // 1. 카메라 위치/방향 얻기
+            // 카메라 위치/방향 얻기
             FVector CameraLocation;
             FRotator CameraRotation;
             Character->GetActorEyesViewPoint(CameraLocation, CameraRotation);
 
-            // 2. 카메라 방향으로 Line Trace (크로스헤어 방향 검사)
+            // 카메라 방향으로 Line Trace 
             FVector TraceStart = CameraLocation;
             FVector TraceEnd = TraceStart + CameraRotation.Vector() * 10000.0f; // 10,000cm 거리까지 트레이스
 
@@ -98,10 +98,10 @@ void AWeaponBase::Fire()
 
             bool bHit = World->LineTraceSingleByChannel(HitResult, TraceStart, TraceEnd, ECC_Visibility, QueryParams);
 
-            // 3. 목표 위치(타겟)는 Hit 위치 또는 TraceEnd
+            // 라인 트레이스 했을 때 히트한다면 히트한 위치 , 아니라면 최대 거리 위치로 총알을발사
             FVector TargetLocation = bHit ? HitResult.Location : TraceEnd;
 
-            // 4. 총구에서 타겟 위치로 향하는 방향
+            //  총구에서 타겟 위치로 향하는 방향
             FVector FireDirection = (TargetLocation - FireLocation).GetSafeNormal();
             FRotator FireRotation = FireDirection.Rotation();
 

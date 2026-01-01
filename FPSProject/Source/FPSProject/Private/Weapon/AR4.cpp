@@ -3,6 +3,7 @@
 
 #include "Weapon/AR4.h"
 #include "Characters/FPSBaseCharacter.h"
+#include "Kismet/GameplayStatics.h"
 
 void AAR4::AttachWeapon(AFPSBaseCharacter* TargetCharacter)
 {
@@ -24,4 +25,12 @@ void AAR4::AttachWeapon(AFPSBaseCharacter* TargetCharacter)
     Character->CurrentWeapon = this;
 
 
+}
+
+void AAR4::Fire()
+{
+	Super::Fire();
+
+    //각 총기마다 소켓 이름이 달라서 이렇게 처리
+    UGameplayStatics::SpawnEmitterAttached(GunParticleEffect, WeaponMesh, TEXT("b_gun_muzzleflash"));
 }

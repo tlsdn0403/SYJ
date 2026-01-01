@@ -8,6 +8,7 @@ class AFPSProjectile;
 class AFPSBaseCharacter;
 class USoundBase;
 class UAnimMontage;
+class UParticleSystem;
 
 UCLASS()
 class FPSPROJECT_API AWeaponBase : public AActor
@@ -49,6 +50,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
 	FName AttachSocketName = TEXT("GripPoint");
 
+	// 총기 발사시 이펙트
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
+	UParticleSystem* GunParticleEffect;
 
 	// 무기를 캐릭터에 부착
 	UFUNCTION(BlueprintCallable, Category = "Weapon")

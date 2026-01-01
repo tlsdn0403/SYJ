@@ -118,6 +118,8 @@ void AWeaponBase::Fire()
             }
         }
     }
+
+
 }
 
 void AWeaponBase::Tick(float DeltaTime)

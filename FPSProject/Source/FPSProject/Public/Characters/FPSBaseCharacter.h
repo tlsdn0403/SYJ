@@ -8,6 +8,7 @@
 
 class UCameraComponent;
 class AWeaponBase;
+class USpringArmComponent;
 UCLASS()
 class FPSPROJECT_API AFPSBaseCharacter : public ACharacter
 {
@@ -57,6 +58,13 @@ public:
     // FPS 카메라
     UPROPERTY(VisibleAnywhere)
     UCameraComponent* FPSCameraComponent;
+
+    // 3인칭용 카메라
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    USpringArmComponent* CameraBoom;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    UCameraComponent* ThirdPersonCameraComponent;
 
     // 팔 메시로 , 플레이어만 보임
     UPROPERTY(VisibleDefaultsOnly, Category = Mesh)

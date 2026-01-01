@@ -6,6 +6,7 @@
 #include "Components/CapsuleComponent.h"
 #include "Weapon/WeaponBase.h"
 #include "Projectiles/FPSProjectile.h"
+#include "GameFramework/SpringArmComponent.h"
 
 // Sets default values
 AFPSBaseCharacter::AFPSBaseCharacter()
@@ -14,29 +15,23 @@ AFPSBaseCharacter::AFPSBaseCharacter()
 	PrimaryActorTick.bCanEverTick = true;
 
 
-    // 일인칭 카메라 컴포넌트 생성.
-    FPSCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("FirstPersonCamera"));
-    check(FPSCameraComponent != nullptr);
+    // 스프링 암 생성
+    CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
+    CameraBoom->SetupAttachment(RootComponent);
+    CameraBoom->TargetArmLength = 300.0f; // 캐릭터와 카메라 사이 거리. 조절 가능
+    CameraBoom->bUsePawnControlRotation = true; // 폰 컨트롤러의 회전 값을 따라감
 
-    // 캡슐 컴포넌트에 카메라 컴포넌트 어테치
-    FPSCameraComponent->SetupAttachment(CastChecked<USceneComponent, UCapsuleComponent>(GetCapsuleComponent()));
-
-    // 카메라가 눈 약간 위에 위치하도록
-    FPSCameraComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 50.0f + BaseEyeHeight));
-
-    // 폰이 카메라 회전을 제어함
-    FPSCameraComponent->bUsePawnControlRotation = true;
+    // 카메라 생성 후 스프링암에 결합
+    ThirdPersonCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("ThirdPersonCamera"));
+    ThirdPersonCameraComponent->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
+    ThirdPersonCameraComponent->bUsePawnControlRotation = false; // 카메라자체는 컨트롤 안함. 붐이 모든 회전 제어
 
 
     // 소유 플레이어의 일인칭 메시 컴포넌트를 생성.
-    FPSMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("FirstPersonMesh"));
+    FPSMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("ThirdPersonMesh"));
     check(FPSMesh != nullptr);
 
-    // 소유 플레이어만 이 메시를 볼 수 있도록 설정
-    FPSMesh->SetOnlyOwnerSee(true);
 
-    // FPS 메시를 FPS 카메라에 어태치합니다.
-    FPSMesh->SetupAttachment(FPSCameraComponent);
 
     // 일부 인바이런먼트 섀도를 비활성화하여 단일 메시 같은 느낌을 보존
     FPSMesh->bCastDynamicShadow = false;

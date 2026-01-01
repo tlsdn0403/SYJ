@@ -20,4 +20,6 @@ public:
 
 protected:
 	virtual void AttachWeapon(AFPSBaseCharacter* TargetCharacter) override;
+
+	virtual void Fire() override;
 };

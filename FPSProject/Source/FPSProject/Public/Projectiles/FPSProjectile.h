@@ -9,6 +9,8 @@
 
 class USphereComponent;
 class UProjectileMovementComponent;
+class UParticleSystem;
+
 UCLASS()
 class FPSPROJECT_API AFPSProjectile : public AActor
 {
@@ -42,6 +44,11 @@ public:
 	// 발사체 머티리얼
 	UPROPERTY(VisibleDefaultsOnly, Category = Movement)
 	UMaterialInstanceDynamic* ProjectileMaterialInstance;
+
+
+	// 총알이 돌이랑 피격시 이펙트
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
+	UParticleSystem* StoneImpactEffect;
 
 	// 발사 방향으로의 발사체 속도를 초기화
 	void FireInDirection(const FVector& ShootDirection);

@@ -4,6 +4,7 @@
 #include "Projectiles/FPSProjectile.h"
 #include "Components/SphereComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
+#include "Particles/ParticleSystem.h"
 #include "Kismet/GameplayStatics.h"  
 
 // Sets default values
@@ -38,7 +39,7 @@ AFPSProjectile::AFPSProjectile()
 
     if (!ProjectileMovementComponent)
     {
-        // 이 컴포넌트를 사용하여 이 발사체의 이동을 주도합니다.
+        // 이 컴포넌트를 사용하여 이 발사체의 이동 구현.
         ProjectileMovementComponent = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileMovementComponent"));
         ProjectileMovementComponent->SetUpdatedComponent(CollisionComponent);
         ProjectileMovementComponent->InitialSpeed = 3000.0f;                    // 초기속도
@@ -48,6 +49,7 @@ AFPSProjectile::AFPSProjectile()
         ProjectileMovementComponent->Bounciness = 0.3f;
 		ProjectileMovementComponent->ProjectileGravityScale = 0.0f;             // 중력의 영향을 받지 않음
     }
+
     if (!ProjectileMeshComponent)
     {
         ProjectileMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ProjectileMeshComponent"));
@@ -66,7 +68,20 @@ AFPSProjectile::AFPSProjectile()
         ProjectileMeshComponent->SetRelativeScale3D(FVector(0.9f, 0.9f, 0.9f));
         ProjectileMeshComponent->SetupAttachment(RootComponent);
     }
+	// 피격 이펙트 로드
+    if(!StoneImpactEffect)
+    {
+        static ConstructorHelpers::FObjectFinder<UParticleSystem>ImpactEffect(TEXT("/Script/Engine.ParticleSystem'/Game/MilitaryWeapSilver/FX/P_Impact_Stone_Large_01.P_Impact_Stone_Large_01'"));
+        if (ImpactEffect.Succeeded())
+        {
+            StoneImpactEffect = ImpactEffect.Object;
+        }
+	}
+    
+    
 	InitialLifeSpan = 3.0f; //3초 후에 파괴되도록 생명주기 정해주는 거..?
+
+ 
 }
 
 // Called when the game starts or when spawned
@@ -113,6 +128,12 @@ void AFPSProjectile::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor
     {
 		OtherComponent->AddImpulseAtLocation(ProjectileMovementComponent->Velocity * 100.0f, Hit.ImpactPoint);  // 충돌 지점에 발사체의 속도에 비례하는 임펄스를 가함
     }
+
+    if(StoneImpactEffect)
+    {
+        UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), StoneImpactEffect, GetActorLocation());  // 피격 이펙트 재생
+    }
+	
     Destroy();  // 충돌처리가 되면 총알을 파괴  
 }
 

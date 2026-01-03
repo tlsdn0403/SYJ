@@ -54,6 +54,8 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
 	UParticleSystem* GunParticleEffect;
 
+
+
 	// 무기를 캐릭터에 부착
 	UFUNCTION(BlueprintCallable, Category = "Weapon")
 	virtual void AttachWeapon(AFPSBaseCharacter* TargetCharacter);

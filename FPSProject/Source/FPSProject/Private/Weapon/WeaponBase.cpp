@@ -5,6 +5,7 @@
 #include "Camera/CameraComponent.h"
 #include "Animation/AnimInstance.h"
 #include "Sound/SoundBase.h"
+#include "Particles/ParticleSystem.h"
 #include "Engine/Engine.h" // 디버그 메시지 출력용
 
 bool bDebug = false;
@@ -29,25 +30,23 @@ void AWeaponBase::AttachWeapon(AFPSBaseCharacter* TargetCharacter)
     Character = TargetCharacter;
     if (!Character) return;
 
-    // 부착할 메쉬 선택 
-    USkeletalMeshComponent* AttachMesh = Character->GetMesh();
+    USkeletalMeshComponent* AttachMesh = Character->GetMesh();                          // 부착할 메쉬 선택 
 
-    // 부착 트랜스폼 설정
-    FAttachmentTransformRules AttachmentRules(EAttachmentRule::SnapToTarget, true);
+
+
+	FAttachmentTransformRules AttachmentRules(EAttachmentRule::SnapToTarget, true);     // 부착 규칙 설정
     AttachToComponent(AttachMesh, AttachmentRules, AttachSocketName);
 
-    // 부착 후 무기 Transform(Scale, 위치, 회전) 조정
-    WeaponMesh->SetRelativeScale3D(FVector(0.15f, 0.15f, 0.15f));
-    /*WeaponMesh->SetRelativeLocation(FVector::ZeroVector);
-    WeaponMesh->SetRelativeRotation(FRotator::ZeroRotator);*/
-    // 찾으신 위치 값 (X, Y, Z)
-    WeaponMesh->SetRelativeLocation(FVector(-35.209697f, 2.353551f, 0.508678f));
+   
+    WeaponMesh->SetRelativeScale3D(FVector(0.15f, 0.15f, 0.15f));                       // 부착 후 무기 Transform(Scale, 위치, 회전) 조정
 
-    // 찾으신 회전 값 (Pitch, Yaw, Roll 순서)
-    WeaponMesh->SetRelativeRotation(FRotator(1.090108f, -88.966904f, -4.015320f));
+    //캐릭터의 올바른 위치에 총기 부착되도록
+    WeaponMesh->SetRelativeLocation(FVector(-35.209697f, 2.353551f, 0.508678f));      // 찾은 위치 값 (X, Y, Z)
+    WeaponMesh->SetRelativeRotation(FRotator(1.090108f, -88.966904f, -4.015320f));    // 찾은 회전 값 (Pitch, Yaw, Roll 순서)
 
-    // 캐릭터의 CurrentWeapon 업데이트
-    Character->CurrentWeapon = this;
+
+    Character->CurrentWeapon = this;                                                     // 캐릭터의 CurrentWeapon 업데이트
+
 
     // 애니메이션에서 탄창이 자꾸 보여서 안보이도록 
     if (WeaponMesh)
@@ -56,7 +55,7 @@ void AWeaponBase::AttachWeapon(AFPSBaseCharacter* TargetCharacter)
         //PBO_Term → 물리 바디(충돌체)까지 완전히 해제
         WeaponMesh->HideBoneByName(TEXT("Bone_002"), PBO_Term);
     }
-    // 확장: 입력 바인딩, 애님BP 전환 등 추가 가능
+
 }
 
 void AWeaponBase::DetachWeapon()
@@ -64,7 +63,7 @@ void AWeaponBase::DetachWeapon()
     // 무기 분리
     DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
     Character = nullptr;
-    // 확장: 입력 언바인딩, 상태 해제 등 추가 가능
+
 }
 
 void AWeaponBase::Fire()
@@ -90,28 +89,21 @@ void AWeaponBase::Fire()
 
             // 카메라 방향으로 Line Trace 
             FVector TraceStart = CameraLocation;
-            FVector TraceEnd = TraceStart + CameraRotation.Vector() * 10000.0f; // 10,000cm 거리까지 트레이스
+            FVector TraceEnd = TraceStart + CameraRotation.Vector() * 10000.0f;                                     // 10,000cm 거리까지 트레이스
 
             FHitResult HitResult;
             FCollisionQueryParams QueryParams;
-            QueryParams.AddIgnoredActor(this); // 자기 캐릭터 무시
+            QueryParams.AddIgnoredActor(this);                                                                      // 자기 캐릭터 무시
 
             bool bHit = World->LineTraceSingleByChannel(HitResult, TraceStart, TraceEnd, ECC_Visibility, QueryParams);
 
-            // 라인 트레이스 했을 때 히트한다면 히트한 위치 , 아니라면 최대 거리 위치로 총알을발사
-            FVector TargetLocation = bHit ? HitResult.Location : TraceEnd;
+          
+            FVector TargetLocation = bHit ? HitResult.Location : TraceEnd;                                          // 라인 트레이스 했을 때 히트한다면 히트한 위치 , 아니라면 최대 거리 위치로 총알을발사
+
 
             //  총구에서 타겟 위치로 향하는 방향
             FVector FireDirection = (TargetLocation - FireLocation).GetSafeNormal();
             FRotator FireRotation = FireDirection.Rotation();
-
-
-            //FVector CameraLocation;
-            //FRotator CameraRotation;
-            //Character->GetActorEyesViewPoint(CameraLocation, CameraRotation);
-
-
-            //FRotator FireRotation = CameraRotation;  // 캐릭터 카메라 방향으로 총알 발사
 
             FActorSpawnParameters SpawnParams;
             SpawnParams.Owner = this;
@@ -124,8 +116,6 @@ void AWeaponBase::Fire()
             }
             
         }
-
-
       
     }
 

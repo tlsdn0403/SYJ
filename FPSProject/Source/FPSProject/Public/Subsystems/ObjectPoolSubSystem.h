@@ -21,6 +21,8 @@ class FPSPROJECT_API IFPSPoolableInterface
     GENERATED_BODY()
 
 public:
+    //풀링을 쓰고싶다면 아래 3가지 함수가 있어야 한다
+  
     // 풀에서 꺼낼 때 호출
     UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Pool")
     void OnPoolActivate();
@@ -66,10 +68,8 @@ private:
     void ActivateActor(AActor* Actor);
 
     // 클래스별 사용 가능한 Actor 풀
-    UPROPERTY()
     TMap<UClass*, TArray<AActor*>> AvailablePools;
 
     // 클래스별 사용 중인 Actor 풀
-    UPROPERTY()
     TMap<UClass*, TArray<AActor*>> ActivePools;
 };

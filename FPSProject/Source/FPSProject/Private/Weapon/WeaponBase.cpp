@@ -6,6 +6,7 @@
 #include "Animation/AnimInstance.h"
 #include "Sound/SoundBase.h"
 #include "Particles/ParticleSystem.h"
+#include "Subsystems/ObjectPoolSubSystem.h"
 #include "Engine/Engine.h" // 디버그 메시지 출력용
 
 bool bDebug = false;
@@ -105,11 +106,22 @@ void AWeaponBase::Fire()
             FVector FireDirection = (TargetLocation - FireLocation).GetSafeNormal();
             FRotator FireRotation = FireDirection.Rotation();
 
-            FActorSpawnParameters SpawnParams;
-            SpawnParams.Owner = this;
-            SpawnParams.Instigator = Character;
 
-            AFPSProjectile* Projectile = World->SpawnActor<AFPSProjectile>(ProjectileClass, FireLocation, FireRotation, SpawnParams);
+            // ===== 풀링 사용 =====
+            UObjectPoolSubSystem* PoolSubsystem = World->GetSubsystem<UObjectPoolSubSystem>();
+            if (PoolSubsystem)
+            {
+                AActor* PooledActor = PoolSubsystem->SpawnFromPool(
+                    ProjectileClass, FireLocation, FireRotation);
+
+                if (AFPSProjectile* Projectile = Cast<AFPSProjectile>(PooledActor))
+                {
+                    Projectile->SetOwner(this);
+                    Projectile->SetInstigator(Character);
+                    Projectile->FireInDirection(FireDirection);
+                }
+            }
+			// ====================
 
             if (bDebug) {
                 DrawDebugSphere(GetWorld(), FireLocation, 5.0f, 12, FColor::Red, false, 3.0f);

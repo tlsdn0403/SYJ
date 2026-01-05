@@ -77,11 +77,6 @@ AFPSProjectile::AFPSProjectile()
             StoneImpactEffect = ImpactEffect.Object;
         }
 	}
-    
-    
-	InitialLifeSpan = 3.0f; //3초 후에 파괴되도록 생명주기 정해주는 거..?
-
- 
 }
 
 // Called when the game starts or when spawned
@@ -134,6 +129,72 @@ void AFPSProjectile::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor
         UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), StoneImpactEffect, GetActorLocation());  // 피격 이펙트 재생
     }
 	
-    Destroy();  // 충돌처리가 되면 총알을 파괴  
+	ReturnToPool(); // 충돌 후 풀로 반환
 }
 
+//----------------------------------------------------------------------------------------
+//  풀링 인터페이스 구현 (새로 추가)
+//----------------------------------------------------------------------------------------
+
+void AFPSProjectile::OnPoolActivate_Implementation()
+{
+    // ProjectileMovementComponent 활성화
+    if (ProjectileMovementComponent)
+    {
+        ProjectileMovementComponent->SetActive(true);
+        ProjectileMovementComponent->Velocity = FVector::ZeroVector;
+    }
+
+    // 수명 타이머 시작
+    GetWorld()->GetTimerManager().SetTimer(
+        LifetimeTimerHandle,
+        this,
+        &AFPSProjectile::ReturnToPool,
+        LifetimeSeconds,
+        false
+    );
+}
+
+void AFPSProjectile::OnPoolDeactivate_Implementation()
+{
+    // 타이머 정리
+    GetWorld()->GetTimerManager().ClearTimer(LifetimeTimerHandle);
+
+    // 이동 정지
+    if (ProjectileMovementComponent)
+    {
+        ProjectileMovementComponent->StopMovementImmediately();
+        ProjectileMovementComponent->SetActive(false);
+    }
+}
+
+void AFPSProjectile::OnPoolSpawn_Implementation(const FVector& Location, const FRotator& Rotation)
+{
+    SetActorLocation(Location);
+    SetActorRotation(Rotation);
+
+    // 속도 리셋
+    if (ProjectileMovementComponent)
+    {
+        ProjectileMovementComponent->Velocity = FVector::ZeroVector;
+    }
+}
+
+void AFPSProjectile::ReturnToPool()
+{
+    // 타이머 정리
+    GetWorld()->GetTimerManager().ClearTimer(LifetimeTimerHandle);
+
+    // Subsystem을 통해 풀에 반환
+    if (UWorld* World = GetWorld())
+    {
+        if (UObjectPoolSubSystem* PoolSubsystem = World->GetSubsystem<UObjectPoolSubSystem>())
+        {
+            PoolSubsystem->ReturnToPool(this);
+            return;
+        }
+    }
+
+    // 풀이 없으면 파괴
+    Destroy();
+}

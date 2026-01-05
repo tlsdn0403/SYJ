@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "Subsystems/ObjectPoolSubSystem.h"  // pooling
 #include "FPSProjectile.generated.h"
 
 
@@ -12,7 +13,7 @@ class UProjectileMovementComponent;
 class UParticleSystem;
 
 UCLASS()
-class FPSPROJECT_API AFPSProjectile : public AActor
+class FPSPROJECT_API AFPSProjectile : public AActor , public IFPSPoolableInterface  //풀링 인터페이스 상속 추가
 {
 	GENERATED_BODY()
 	
@@ -20,10 +21,25 @@ public:
 	// Sets default values for this actor's properties
 	AFPSProjectile();
 
+	// FPSPoolableInterface 구현  
+	virtual void OnPoolActivate_Implementation() override;
+	virtual void OnPoolDeactivate_Implementation() override;
+	virtual void OnPoolSpawn_Implementation(const FVector& Location, const FRotator& Rotation) override;
+
+	// 풀로 반환 (Destroy 대신 사용) 
+	UFUNCTION(BlueprintCallable, Category = "Pool")
+	void ReturnToPool();
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
+	// 자동 반환 타이머
+	FTimerHandle LifetimeTimerHandle;
+
+	// 총알 수명 (초)
+	UPROPERTY(EditDefaultsOnly, Category = "Pool")
+	float LifetimeSeconds = 3.0f;
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;

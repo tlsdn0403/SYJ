@@ -71,7 +71,7 @@ public:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
     UCameraComponent* ThirdPersonCameraComponent;
 
-    // 팔 메시로 , 플레이어만 보임
+    //메시 
     UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
     USkeletalMeshComponent* FPSMesh;
 

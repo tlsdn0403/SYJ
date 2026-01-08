@@ -9,6 +9,10 @@ ABaseZombie::ABaseZombie()
 {
     PrimaryActorTick.bCanEverTick = true;
 
+    // 좀비 메시 컴포넌트를 생성.
+    ZombieMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("ZombieMeshMesh"));
+    check(ZombieMesh != nullptr);
+
     HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComponent"));
 }
 

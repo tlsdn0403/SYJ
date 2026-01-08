@@ -33,6 +33,9 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Zombie")
     bool IsAlive() const { return bIsAlive; }
 
+    //좀비 매시
+    UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
+    USkeletalMeshComponent* ZombieMesh;
 protected:
     // 체력 컴포넌트 (기존 HealthComponent 재사용)
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")

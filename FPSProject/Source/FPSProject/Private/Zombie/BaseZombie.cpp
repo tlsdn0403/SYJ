@@ -4,6 +4,7 @@
 #include "Zombie/BaseZombie.h"
 #include "Components/HealthComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "Kismet/GameplayStatics.h"
 
 ABaseZombie::ABaseZombie()
 {
@@ -20,7 +21,10 @@ void ABaseZombie::BeginPlay()
 {
     Super::BeginPlay();
 
-
+    if (HealthComponent)
+    {
+		HealthComponent->OnDamaged.AddDynamic(this, &ABaseZombie::OnZombieDamaged); // 데미지 입을 때 OnZombieDamaged를 호출
+    }
 }
 
 void ABaseZombie::Tick(float DeltaTime)
@@ -40,6 +44,23 @@ void ABaseZombie::Die()
     GetMesh()->SetSimulatePhysics(true);
 
     SetLifeSpan(5.f);
+}
+
+void ABaseZombie::OnZombieDamaged(float NewHealth, float Damage)
+{
+    // 피 이펙트 재생 (충돌 위치가 넘어오면 Hit.ImpactPoint 사용, 없으면 GetActorLocation 에서 이펙트 재생)
+    FVector EffectLocation = GetActorLocation();
+
+
+    if (BloodImpactEffect)
+    {
+        UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), BloodImpactEffect, EffectLocation);
+    }
+
+    if (NewHealth <= 0.f && bIsAlive)
+    {
+        Die();
+    }
 }
 
 

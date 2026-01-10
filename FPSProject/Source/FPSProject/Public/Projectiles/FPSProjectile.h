@@ -66,6 +66,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
 	UParticleSystem* StoneImpactEffect;
 
+
+
+
 	// 발사 방향으로의 발사체 속도를 초기화
 	void FireInDirection(const FVector& ShootDirection);
 

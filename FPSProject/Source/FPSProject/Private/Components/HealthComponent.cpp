@@ -31,6 +31,8 @@ void UHealthComponent::DamageTaken(AActor* DamagedActor, float Damage, const UDa
 
 	Health -= Damage;											 // 체력 감소
 
+	  OnDamaged.Broadcast(Health, Damage);
+
 	UE_LOG(LogTemp, Warning, TEXT("[HealthComponent] %s Health: %.1f"), *GetNameSafe(GetOwner()), Health);
 	if (Health <= 0.f)
 	{

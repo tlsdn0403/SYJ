@@ -119,10 +119,12 @@ void AFPSProjectile::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor
 
         UE_LOG(LogTemp, Warning, TEXT("ammo damage to %s! "), *GetNameSafe(OtherActor));
     }
+
 	if (OtherActor != this && OtherComponent->IsSimulatingPhysics())  // 스스로와 충돌하는 게 아니고 , 충돌한 컴포넌트가 물리 시뮬레이션을 하고 있다면
     {
 		OtherComponent->AddImpulseAtLocation(ProjectileMovementComponent->Velocity * 100.0f, Hit.ImpactPoint);  // 충돌 지점에 발사체의 속도에 비례하는 임펄스를 가함
     }
+
 
     if(StoneImpactEffect)
     {

@@ -41,6 +41,13 @@ protected:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
     UHealthComponent* HealthComponent;
 
+    UFUNCTION()
+    void OnZombieDamaged(float NewHealth, float Damage);
+
+    //√—æÀ¿Ã ¡ª∫Ò∂˚ ««∞›Ω√ ¿Ã∆Â∆Æ
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Effects)
+    UParticleSystem* BloodImpactEffect;
+
     // ªÁ∏¡ ø©∫Œ
     UPROPERTY(BlueprintReadOnly, Category = "Zombie")
     bool bIsAlive = true;

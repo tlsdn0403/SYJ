@@ -135,7 +135,7 @@ void AFPSProjectile::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor
 }
 
 //----------------------------------------------------------------------------------------
-//  풀링 인터페이스 구현 (새로 추가)
+//  풀링 인터페이스 구현 
 //----------------------------------------------------------------------------------------
 
 void AFPSProjectile::OnPoolActivate_Implementation()

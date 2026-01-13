@@ -48,7 +48,7 @@ void ABaseZombie::Die()
 
 void ABaseZombie::OnZombieDamaged(float NewHealth, float Damage)
 {
-    // 피 이펙트 재생 (충돌 위치가 넘어오면 Hit.ImpactPoint 사용, 없으면 GetActorLocation 에서 이펙트 재생)
+    // 피 이펙트 재생
     FVector EffectLocation = GetActorLocation();
 
 

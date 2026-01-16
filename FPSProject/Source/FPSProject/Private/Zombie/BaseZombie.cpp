@@ -46,12 +46,10 @@ void ABaseZombie::Die()
     SetLifeSpan(5.f);
 }
 
-void ABaseZombie::OnZombieDamaged(float NewHealth, float Damage)
+
+void ABaseZombie::OnZombieDamaged(float NewHealth, float Damage, const FHitResult& Hit)
 {
-    // 피 이펙트 재생
-    FVector EffectLocation = GetActorLocation();
-
-
+    FVector EffectLocation = Hit.ImpactPoint;
     if (BloodImpactEffect)
     {
         UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), BloodImpactEffect, EffectLocation);
@@ -61,6 +59,7 @@ void ABaseZombie::OnZombieDamaged(float NewHealth, float Damage)
     {
         Die();
     }
+
 }
 
 

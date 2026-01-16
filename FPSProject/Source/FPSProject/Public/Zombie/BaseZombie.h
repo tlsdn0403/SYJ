@@ -42,7 +42,7 @@ protected:
     UHealthComponent* HealthComponent;
 
     UFUNCTION()
-    void OnZombieDamaged(float NewHealth, float Damage);
+    void OnZombieDamaged(float NewHealth, float Damage, const FHitResult& Hit); // 좀비가 총알에 데미지 입음
 
     //총알이 좀비랑 피격시 이펙트
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Effects)

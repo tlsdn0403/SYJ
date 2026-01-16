@@ -13,5 +13,12 @@ UCLASS()
 class FPSPROJECT_API ATruck : public AWheeledVehiclePawn
 {
 	GENERATED_BODY()
-	
+
+protected:
+	//트럭 이동을 위한 것.
+	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+
+	void MoveForward(float Value);
+	void MoveRight(float Value);
+	void Brake(float Value);
 };

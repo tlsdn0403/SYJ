@@ -137,6 +137,7 @@ void AFPSBaseCharacter::SetInteractableActor(AActor* NewActor)
     CurrentInteractableActor = NewActor;
 }
 
+
 void AFPSBaseCharacter::Interact()
 {
     if (CurrentInteractableActor)
@@ -145,7 +146,7 @@ void AFPSBaseCharacter::Interact()
         if (CurrentInteractableActor->GetClass()->ImplementsInterface(UInteractInterface::StaticClass()))
         {
             // 인터페이스의 Interact 함수 실행
-			IInteractInterface::Execute_Interact(CurrentInteractableActor, this); // 캐릭터를 인자로 전달
+			IInteractInterface::Execute_Interact(CurrentInteractableActor, this); 
         }
     }
 }

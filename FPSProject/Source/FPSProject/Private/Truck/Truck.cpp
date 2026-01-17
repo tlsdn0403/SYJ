@@ -53,7 +53,7 @@ void ATruck::Interact_Implementation(AFPSBaseCharacter* Character)
 
 	if (PlayerController)
 	{
-		// 2. 빙의대상을 캐릭터에서 트럭으로 변경
+		//빙의대상을 캐릭터에서 트럭으로 변경
 		PlayerController->Possess(this);
 
 

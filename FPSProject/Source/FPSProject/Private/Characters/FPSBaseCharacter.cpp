@@ -8,6 +8,7 @@
 #include "Projectiles/FPSProjectile.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Components/HealthComponent.h"
+#include "Interface/InteractInterface.h"
 
 // Sets default values
 AFPSBaseCharacter::AFPSBaseCharacter()
@@ -81,22 +82,33 @@ void AFPSBaseCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 
 	// Fire 액션 바인딩을 구성
     PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &AFPSBaseCharacter::Fire);
+
+    PlayerInputComponent->BindAction("Interact", IE_Pressed, this, &AFPSBaseCharacter::Interact); // Interact 액션 바인딩
 }
 
 
 
 void AFPSBaseCharacter::MoveForward(float Value)
 {
-    // 어디가 앞인지 찾고, 플레이어가 해당 방향으로 이동하고자 한다는 것을 기록
-    FVector Direction = FRotationMatrix(Controller->GetControlRotation()).GetScaledAxis(EAxis::X);
-    AddMovementInput(Direction, Value);
+ 
+    if (Controller != nullptr && Value != 0.0f)
+    {
+        // 어디가 앞인지 찾고, 플레이어가 해당 방향으로 이동하고자 한다는 것을 기록
+        FVector Direction = FRotationMatrix(Controller->GetControlRotation()).GetScaledAxis(EAxis::X);
+        AddMovementInput(Direction, Value);
+    }
 }
 
 void AFPSBaseCharacter::MoveRight(float Value)
 {
-    // 어디가 오른쪽인지 찾고, 플레이어가 해당 방향으로 이동하고자 한다는 것을 기록
-    FVector Direction = FRotationMatrix(Controller->GetControlRotation()).GetScaledAxis(EAxis::Y);
-    AddMovementInput(Direction, Value);
+  
+
+    if (Controller != nullptr && Value != 0.0f)
+    {
+        // 어디가 오른쪽인지 찾고, 플레이어가 해당 방향으로 이동하고자 한다는 것을 기록
+        FVector Direction = FRotationMatrix(Controller->GetControlRotation()).GetScaledAxis(EAxis::Y);
+        AddMovementInput(Direction, Value);
+    }
 }
 
 void AFPSBaseCharacter::StartJump()
@@ -116,5 +128,24 @@ void AFPSBaseCharacter::Fire()
     {
         CurrentWeapon->Fire();
         return;
+    }
+}
+
+
+void AFPSBaseCharacter::SetInteractableActor(AActor* NewActor)
+{
+    CurrentInteractableActor = NewActor;
+}
+
+void AFPSBaseCharacter::Interact()
+{
+    if (CurrentInteractableActor)
+    {
+        // 해당 액터가 인터페이스를 가지고 있는지 확인
+        if (CurrentInteractableActor->GetClass()->ImplementsInterface(UInteractInterface::StaticClass()))
+        {
+            // 인터페이스의 Interact 함수 실행
+			IInteractInterface::Execute_Interact(CurrentInteractableActor, this); // 캐릭터를 인자로 전달
+        }
     }
 }

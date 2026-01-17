@@ -10,6 +10,7 @@ class UCameraComponent;
 class AWeaponBase;
 class USpringArmComponent;
 class UHealthComponent;
+
 UCLASS()
 class FPSPROJECT_API AFPSBaseCharacter : public ACharacter
 {
@@ -84,4 +85,15 @@ public:
     // 무기   
     UPROPERTY(EditDefaultsOnly, Category = "Weapon")
 	TSubclassOf<AWeaponBase> WeaponBPclass;
+
+
+    // 현재 상호작용 가능한 액터 (트럭 등)를 저장할 변수
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Interaction")
+    AActor* CurrentInteractableActor;
+
+    // 상호작용 시도 함수
+    void Interact();
+
+    // TriggerComponent에서 호출하여 캐릭터에게 대상 설정
+    void SetInteractableActor(AActor* NewActor);
 };

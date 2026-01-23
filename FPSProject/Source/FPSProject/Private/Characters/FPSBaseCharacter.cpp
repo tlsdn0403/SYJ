@@ -87,7 +87,7 @@ void AFPSBaseCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 }
 
 
-
+// ---------------------------------- 이동 , 점프, 발사 관련 함수들 ----------------------------------
 void AFPSBaseCharacter::MoveForward(float Value)
 {
  
@@ -130,7 +130,9 @@ void AFPSBaseCharacter::Fire()
         return;
     }
 }
+//--------------------------------------------------------------------------------------------
 
+// ---------------------------------- 상호작용 관련 함수들 ----------------------------------
 
 void AFPSBaseCharacter::SetInteractableActor(AActor* NewActor)
 {
@@ -149,4 +151,46 @@ void AFPSBaseCharacter::Interact()
 			IInteractInterface::Execute_Interact(CurrentInteractableActor, this); 
         }
     }
+}
+
+//--------------------------------------------------------------------------------------------
+
+// ---------------------------------- 인벤토리 관련 함수들 ----------------------------------
+bool AFPSBaseCharacter::AddItem()
+{
+    if (CurrentItemCount >= MaxItemCount)
+    {
+        // 꽉 찼다는 알려주기? 
+        UE_LOG(LogTemp, Warning, TEXT("Inventory Full!"));
+        return false;
+    }
+
+    CurrentItemCount++;
+
+    // UI 업데이트 알림
+    if (OnInventoryUpdated.IsBound())  // IsBound() -> 바인딩 된 함수가 있는지? 
+    {
+        // 현재 인벤토리에 얼마나 찾는지 알려줌
+        OnInventoryUpdated.Broadcast(CurrentItemCount);
+    }
+
+    UE_LOG(LogTemp, Log, TEXT("Item Added. Current: %d"), CurrentItemCount);
+    return true;
+}
+
+int32 AFPSBaseCharacter::OffloadItems()
+{
+    int32 ItemsToGive = CurrentItemCount;
+    CurrentItemCount = 0;
+
+    // UI 업데이트 알림 (0개로)
+    if (OnInventoryUpdated.IsBound()) // IsBound() -> 바인딩 된 함수가 있는지?
+    {
+        // 인벤토리가 비었음을 알려줌
+        OnInventoryUpdated.Broadcast(CurrentItemCount);
+    }
+
+    UE_LOG(LogTemp, Log, TEXT("Items Offloaded: %d"), ItemsToGive);
+
+    return ItemsToGive; //아이템 트럭에 둔 개수 리턴
 }

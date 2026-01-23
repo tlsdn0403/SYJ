@@ -17,6 +17,9 @@ public:
 	// Sets default values for this actor's properties
 	ALootItemBase();
 
+	// 상호작용 범위 컴포넌트
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Interaction")
+	UInteractTriggerComponent* InteractTrigger;
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;

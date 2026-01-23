@@ -38,8 +38,25 @@ void AC_House1::OnConstruction(const FTransform& Transform)
 
 	HISM_Floor->ClearInstances();
 
-	if (HISM_Floor->GetStaticMesh())
+	if (!HISM_Floor->GetStaticMesh())
 	{
-		HISM_Floor->AddInstance(FTransform(FVector(0.0f,0.0f,1.0f)));
+		UE_LOG(LogTemp, Warning, TEXT("HISM_Floor StaticMesh is NULL"));
+		return;
 	}
+	// AddInstance 한 번마다 렌더 상태 갱신, 트리 재계산 등의 오버헤드가 발생하므로 여러번 호출은 비효율적.
+	// 따라서 여러 인스턴스를 추가할 때는 미리 ClearInstances()로 비우고 한꺼번에 추가하는 것이 효율적.
+	//근데 6개면 걍 거기서 거기래. 
+
+	TArray<FTransform> Instances;
+	Instances.Reserve(6);	//미리 메모리 할당
+
+	for (int i = 0; i < 3; ++i)
+	{
+		for(int j = 0; j < 2; ++j)
+		{
+			Instances.Add( FTransform( FVector(i * 400.f, j * 400.f, 0.f)));
+		}
+	}
+	HISM_Floor->AddInstances(Instances, false);
+
 }

@@ -34,4 +34,12 @@ protected:
 	void MoveForward(float Value);
 	void MoveRight(float Value);
 	void Brake(float Value);
+
+	// 트럭에 적재된 총 아이템 개수
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GameLogic")
+	int32 TotalLoadedItems = 0;
+
+	// 스테이지 구별용
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GameLogic")
+	bool bIsLoadingPhase = true;
 };

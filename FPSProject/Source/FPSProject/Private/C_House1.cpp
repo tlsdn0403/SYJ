@@ -18,9 +18,28 @@ AC_House1::AC_House1()
 }
 
 // Called when the game starts or when spawned
-void AC_House1::BeginPlay()
-{
-	Super::BeginPlay();
-	
-}
+//void AC_House1::BeginPlay()
+//{
+//	Super::BeginPlay();
+//
+//
+//	
+//	if (HISM_Floor->GetStaticMesh()) {
+//		HISM_Floor->AddInstance(FTransform(FVector(0.f, 0.f, 0.f)));
+//	}
+//
+//
+//}
 
+//BeginPlay()에서 하면 실행시에만 보이고 에디터상에서는 안보이기 때문에 OnConstruction()에서 처리
+void AC_House1::OnConstruction(const FTransform& Transform)		
+{
+	Super::OnConstruction(Transform);
+
+	HISM_Floor->ClearInstances();
+
+	if (HISM_Floor->GetStaticMesh())
+	{
+		HISM_Floor->AddInstance(FTransform(FVector(0.0f,0.0f,1.0f)));
+	}
+}

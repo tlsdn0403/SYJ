@@ -33,6 +33,9 @@ public:
 	UPROPERTY(VisibleAnywhere)
 	UHierarchicalInstancedStaticMeshComponent* HISM_Pillar;
 
+	UPROPERTY(EditAnywhere, Category = "Pillar")
+	TArray<FTransform> PillarOffsets;
+
 	UPROPERTY(EditAnywhere)
 	TArray<UStaticMeshComponent*> WallComponents;
 

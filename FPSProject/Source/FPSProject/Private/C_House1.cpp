@@ -72,4 +72,12 @@ void AC_House1::OnConstruction(const FTransform& Transform)
 	}
 	HISM_Floor->AddInstances(Instances, false);
 
+	Instances.Empty();
+
+	for (const FTransform& Offset : PillarOffsets)
+	{
+		Instances.Add(Offset);
+	}
+	HISM_Pillar->AddInstances(Instances, false);
+
 }

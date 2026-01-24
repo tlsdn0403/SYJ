@@ -50,25 +50,33 @@ void ATruck::Interact_Implementation(AFPSBaseCharacter* Character)
 
 	//------------------------------------ 1 Stage ------------------------------------
 	if (bIsLoadingPhase) {
-		//캐릭터가 짐을 들고 있는지 확인
 		if (Character->GetItemCount() > 0)
 		{
-			// 짐이 있으면 -> 적재 로직 실행
-			int32 ItemsReceived = Character->OffloadItems();
-			TotalLoadedItems += ItemsReceived;
+			// 짐을 받음 (배열을 통째로 받아옴)
+			TArray<EItemType> ReceivedItems = Character->OffloadItems();
 
-			// 적재 되었을 때 로직 실행
-			UE_LOG(LogTemp, Log, TEXT("Truck Loaded! Total Cargo: %d"), TotalLoadedItems);
+			// 받은 아이템 분석 (예: 종류별로 점수 계산)
+			for (EItemType Item : ReceivedItems)
+			{
+				switch (Item)
+				{
+				case EItemType::Ammo:
+					// 총알 적재 처리 
+					break;
+				case EItemType::None:
+					break;
+				case EItemType::Fuel:
+					break;
+				case EItemType::MedicalKit:
+					break;
+				}
+			}
+
+			UE_LOG(LogTemp, Log, TEXT("Offloaded %d items to Truck!"), ReceivedItems.Num());
+			// 1스테이지 임으로 트럭운전으로 넘어가지 않게
+			return;
 		}
-		//들고 온 짐이 없는 경우
-		else
-		{
-			// 짐이 없을 때의 로직 실행
-			UE_LOG(LogTemp, Log, TEXT("Bring more items! Cannot drive yet."));
-		}
-		// 1스테이지 임으로 트럭운전으로 넘어가지 않게
-		return;
- 	}
+	}
 
 	// 캐릭터를 조종하던 컨트롤러를 가져옴
 	AController* PlayerController = Character->GetController();

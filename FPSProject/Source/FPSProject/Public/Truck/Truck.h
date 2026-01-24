@@ -7,6 +7,7 @@
 #include "Components/InteractTriggerComponent.h"
 #include "Interface/InteractInterface.h"
 #include "Items/LootItemBase.h"
+#include "Components/AudioComponent.h"
 #include "Truck.generated.h"
 
 /**

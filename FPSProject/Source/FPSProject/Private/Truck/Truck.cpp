@@ -71,12 +71,14 @@ void ATruck::Interact_Implementation(AFPSBaseCharacter* Character)
 					break;
 				}
 			}
-
 			UE_LOG(LogTemp, Log, TEXT("Offloaded %d items to Truck!"), ReceivedItems.Num());
-			// 1스테이지 임으로 트럭운전으로 넘어가지 않게
-			return;
+		
+			
 		}
+		// 1스테이지 임으로 트럭운전으로 넘어가지 않게
+		return;
 	}
+
 
 	// 캐릭터를 조종하던 컨트롤러를 가져옴
 	AController* PlayerController = Character->GetController();

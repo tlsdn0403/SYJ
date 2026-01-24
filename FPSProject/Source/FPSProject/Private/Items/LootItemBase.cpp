@@ -37,7 +37,7 @@ void ALootItemBase::Interact_Implementation(AFPSBaseCharacter* Character)
     if (Character)
     {
         // 캐릭터 인벤토리에 추가 시도
-        if (Character->AddItem())
+        if (Character->AddItem(this->ItemType))
         {
             // 성공하면 아이템 삭제
             Destroy();

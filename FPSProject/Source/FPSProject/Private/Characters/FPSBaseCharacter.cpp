@@ -156,41 +156,44 @@ void AFPSBaseCharacter::Interact()
 //--------------------------------------------------------------------------------------------
 
 // ---------------------------------- 인벤토리 관련 함수들 ----------------------------------
-bool AFPSBaseCharacter::AddItem()
+
+
+bool AFPSBaseCharacter::AddItem(EItemType NewItemType)
 {
-    if (CurrentItemCount >= MaxItemCount)
+
+    if (Inventory.Num() >= MaxItemCount)
     {
         // 꽉 찼다는 알려주기? 
         UE_LOG(LogTemp, Warning, TEXT("Inventory Full!"));
         return false;
     }
 
-    CurrentItemCount++;
+    Inventory.Add(NewItemType);
 
     // UI 업데이트 알림
     if (OnInventoryUpdated.IsBound())  // IsBound() -> 바인딩 된 함수가 있는지? 
     {
         // 현재 인벤토리에 얼마나 찾는지 알려줌
-        OnInventoryUpdated.Broadcast(CurrentItemCount);
+        OnInventoryUpdated.Broadcast(Inventory);
     }
 
-    UE_LOG(LogTemp, Log, TEXT("Item Added. Current: %d"), CurrentItemCount);
+    UE_LOG(LogTemp, Log, TEXT("Item Added. Current: %d"), Inventory.Num());
     return true;
 }
 
-int32 AFPSBaseCharacter::OffloadItems()
+TArray<EItemType> AFPSBaseCharacter::OffloadItems()
 {
-    int32 ItemsToGive = CurrentItemCount;
-    CurrentItemCount = 0;
+    // 현재 가진 아이템 복사
+    TArray<EItemType> ItemsToGive = Inventory;
 
-    // UI 업데이트 알림 (0개로)
-    if (OnInventoryUpdated.IsBound()) // IsBound() -> 바인딩 된 함수가 있는지?
+    // 인벤토리 비우기
+    Inventory.Empty();
+
+    // UI 갱신 (빈 배열 전달)
+    if (OnInventoryUpdated.IsBound())
     {
-        // 인벤토리가 비었음을 알려줌
-        OnInventoryUpdated.Broadcast(CurrentItemCount);
+        OnInventoryUpdated.Broadcast(Inventory);
     }
 
-    UE_LOG(LogTemp, Log, TEXT("Items Offloaded: %d"), ItemsToGive);
-
-    return ItemsToGive; //아이템 트럭에 둔 개수 리턴
+    return ItemsToGive;
 }

@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "Items/LootItemBase.h"
 #include "FPSBaseCharacter.generated.h"
 
 class UCameraComponent;
@@ -12,7 +13,9 @@ class USpringArmComponent;
 class UHealthComponent;
 
 // 손 모양 UI를 위해서 델리게이트 선언
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnInventoryUpdated, int32, CurrentCount); 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnInventoryUpdated, const TArray<EItemType>&, CurrentInventory);
+
+
 
 UCLASS()
 class FPSPROJECT_API AFPSBaseCharacter : public ACharacter
@@ -36,12 +39,14 @@ protected:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
     UHealthComponent* HealthComponent;
 
-	// 인벤토리 관련 변수
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory")
-    int32 CurrentItemCount = 0;
+
+	//--------------------인벤토리 ----------------------------------------------------------
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory")
+    TArray<EItemType> Inventory;
 
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory")
     int32 MaxItemCount = 5;
+
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -109,13 +114,13 @@ public:
 
     //--------------- 인벤토리 관련 함수들--------------------------------------------
     UFUNCTION(BlueprintCallable, Category = "Inventory")
-    bool AddItem(); // 아이템 획득 시도 (꽉 찼으면 false)
+    bool AddItem(EItemType NewItemType);
 
     UFUNCTION(BlueprintCallable, Category = "Inventory")
-    int32 OffloadItems(); // 가진 아이템을 모두 반환(트럭에 넣을 때)
+    TArray<EItemType> OffloadItems(); // 가진 아이템을 모두 반환(트럭에 넣을 때)
 
     UFUNCTION(BlueprintPure, Category = "Inventory")
-    int32 GetItemCount() const { return CurrentItemCount; }
+    int32 GetItemCount() const { return Inventory.Num(); }
 
     // UI 업데이트를 위한 델리게이트 (손모양 UI 갱신용)
     UPROPERTY(BlueprintAssignable, Category = "Inventory")

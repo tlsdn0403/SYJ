@@ -6,11 +6,13 @@
 #include "WheeledVehiclePawn.h"
 #include "Components/InteractTriggerComponent.h"
 #include "Interface/InteractInterface.h"
+#include "Items/LootItemBase.h"
 #include "Truck.generated.h"
 
 /**
  * 
  */
+
 
 UCLASS()
 class FPSPROJECT_API ATruck : public AWheeledVehiclePawn, public IInteractInterface

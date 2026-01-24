@@ -23,11 +23,23 @@ protected:
 	virtual void OnConstruction(const FTransform& Transform) override;
 
 public:	
+
 	UPROPERTY(VisibleAnywhere)
 	USceneComponent* Root;
 
 	UPROPERTY(VisibleAnywhere)
 	UHierarchicalInstancedStaticMeshComponent* HISM_Floor;
 	
+	UPROPERTY(VisibleAnywhere)
+	UHierarchicalInstancedStaticMeshComponent* HISM_Pillar;
+
+	UPROPERTY(EditAnywhere)
+	TArray<UStaticMeshComponent*> WallComponents;
+
+	UPROPERTY(EditAnywhere)
+	TArray<UStaticMeshComponent*> RoofComponents;
+
+	UPROPERTY(EditAnywhere)
+	TArray<UStaticMeshComponent*> EtcComponents;
 
 };

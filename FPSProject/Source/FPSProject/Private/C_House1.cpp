@@ -15,21 +15,34 @@ AC_House1::AC_House1()
 	HISM_Floor = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISM_Floor"));
 	HISM_Floor->SetupAttachment(Root);
 
-}
+	HISM_Pillar = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISM_Pillar"));
+	HISM_Pillar->SetupAttachment(Root);
 
-// Called when the game starts or when spawned
-//void AC_House1::BeginPlay()
-//{
-//	Super::BeginPlay();
-//
-//
-//	
-//	if (HISM_Floor->GetStaticMesh()) {
-//		HISM_Floor->AddInstance(FTransform(FVector(0.f, 0.f, 0.f)));
-//	}
-//
-//
-//}
+	for (int32 i = 0; i < 8; ++i)
+	{
+		UStaticMeshComponent* Wall =
+			CreateDefaultSubobject<UStaticMeshComponent>(*FString::Printf(TEXT("Wall_%d"), i));
+
+		Wall->SetupAttachment(Root);
+		WallComponents.Add(Wall);
+	}
+	for (int32 i = 0; i < 4; ++i)
+	{
+		UStaticMeshComponent* Roof =
+			CreateDefaultSubobject<UStaticMeshComponent>(*FString::Printf(TEXT("Roof_%d"), i));
+
+		Roof->SetupAttachment(Root);
+		RoofComponents.Add(Roof);
+	}
+	for (int32 i = 0; i < 3; ++i)
+	{
+		UStaticMeshComponent* Etc =
+			CreateDefaultSubobject<UStaticMeshComponent>(*FString::Printf(TEXT("Etc_%d"), i));
+
+		Etc->SetupAttachment(Root);
+		EtcComponents.Add(Etc);
+	}
+}
 
 //BeginPlay()에서 하면 실행시에만 보이고 에디터상에서는 안보이기 때문에 OnConstruction()에서 처리
 void AC_House1::OnConstruction(const FTransform& Transform)		

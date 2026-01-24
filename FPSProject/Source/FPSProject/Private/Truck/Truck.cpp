@@ -4,6 +4,8 @@
 #include "Truck/Truck.h"
 #include "ChaosWheeledVehicleMovementComponent.h"
 #include "GameFramework/PlayerController.h"
+#include "Kismet/GameplayStatics.h"
+#include "Sound/SoundBase.h"
 
 ATruck::ATruck()
 {
@@ -11,7 +13,49 @@ ATruck::ATruck()
 	InteractTrigger = CreateDefaultSubobject<UInteractTriggerComponent>(TEXT("InteractTrigger"));
 	InteractTrigger->SetupAttachment(RootComponent);
 	InteractTrigger->InitSphereRadius(200.0f); // 범위 설정
+
+	//오디오 컴포넌트 생성 및 부착
+	EngineAudioComponent = CreateDefaultSubobject<UAudioComponent>(TEXT("EngineAudio"));
+	EngineAudioComponent->SetupAttachment(RootComponent);
+	EngineAudioComponent->bAutoActivate = false; // 처음엔 꺼둠 (탑승 시 켤 예정)
 }
+
+void ATruck::BeginPlay()
+{
+	Super::BeginPlay();
+
+	// 엔진 사운드 설정이 되어있다면 컴포넌트에 할당
+	if (EngineSoundCue)
+	{
+		EngineAudioComponent->SetSound(EngineSoundCue);
+	}
+}
+
+void ATruck::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+	if (IsPlayerControlled())
+	{
+		// 엔진 소리가 꺼져있다면 켬 (시동)
+		if (!EngineAudioComponent->IsPlaying())
+		{
+			EngineAudioComponent->Play();
+		}
+
+		UpdateEngineSound();
+		UpdateBrakeSound();
+	}
+	else
+	{
+		// 내리면 엔진 소리 끔
+		if (EngineAudioComponent->IsPlaying())
+		{
+			EngineAudioComponent->Stop();
+		}
+	}
+}
+
 void ATruck::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	PlayerInputComponent->BindAxis("Throttle", this, &ATruck::MoveForward);   // 가속/후진
@@ -40,6 +84,24 @@ void ATruck::Brake(float Value)
 	if (auto* MoveComp = Cast<UChaosWheeledVehicleMovementComponent>(GetVehicleMovement()))
 	{
 		MoveComp->SetBrakeInput(Value);
+
+		// 브레이크 소리 로직
+		// 속도가 좀 있고(시속 10km 이상), 브레이크를 밟았고, 소리가 안 나는 중이면 재생
+		float Speed = GetVelocity().Size();
+		if (Value > 0.5f && Speed > 300.0f && !bIsBrakingSoundPlaying)
+		{
+			if (BrakeSound)
+			{
+				// 소리 재생
+				UGameplayStatics::PlaySoundAtLocation(this, BrakeSound, GetActorLocation());
+				bIsBrakingSoundPlaying = true;
+
+				FTimerHandle Handle;
+				GetWorld()->GetTimerManager().SetTimer(Handle, [this]() {
+					bIsBrakingSoundPlaying = false;
+					}, 1.0f, false);
+			}
+		}
 	}
 }
 
@@ -91,4 +153,26 @@ void ATruck::Interact_Implementation(AFPSBaseCharacter* Character)
 
 		UE_LOG(LogTemp, Log, TEXT("Truck Possessed!"));
 	}
+}
+
+void ATruck::UpdateEngineSound()
+{
+	auto* MoveComp = Cast<UChaosWheeledVehicleMovementComponent>(GetVehicleMovement());
+	if (MoveComp)
+	{
+		// 현재 엔진 회전수(RPM) 가져오기
+		float CurrentRPM = MoveComp->GetEngineRotationSpeed();
+
+		// Sound Cue에서 만든 "RPM" 파라미터 값 업데이트
+		EngineAudioComponent->SetFloatParameter(TEXT("RPM"), CurrentRPM);
+	}
+}
+
+void ATruck::UpdateBrakeSound()
+{
+	auto* MoveComp = Cast<UChaosWheeledVehicleMovementComponent>(GetVehicleMovement());
+	if (!MoveComp) return;
+
+	// 속도가 어느정도 있을 때
+	bool bIsMoving = FMath::Abs(GetVelocity().Size()) > 100.0f;
 }

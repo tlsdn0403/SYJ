@@ -8,22 +8,61 @@
 #include "CoreMacro.h"
 #include "ThreadManager.h"
 
-CoreGlobal core;
+#include <vector>
 
-void ThreadMain()
+bool IsPrime(int number)
 {
-	while (true)
+	if (number <= 1)
+		return false;
+	if (number == 2 || number == 3)
+		return true;
+
+	for (int i = 2; i < number; i++)
 	{
-		cout << "Hello I am thread... " << LThreadId << endl;
-		this_thread::sleep_for(1s);
+		if ((number % i) == 0)
+			return false;
 	}
+
+	return true;
+}
+
+int CountPrime(int start, int end)
+{
+	int count = 0;
+
+	for (int number = start; number <= end; number++)
+	{
+		if (IsPrime(number))
+			count++;
+	}
+
+	return count;
 }
 
 int main()
 {	
-	for (int32 i = 0; i < 5; ++i)
+	const int MAX_NUMBER = 100'0000;
+
+	vector<thread> threads;
+
+	int coreCount = thread::hardware_concurrency();
+	int jobCount = (MAX_NUMBER / coreCount) + 1;
+
+	atomic<int> primeCount = 0;
+
+	for (int i = 0; i < coreCount; i++)
 	{
-		GThreadManager->Launch(ThreadMain);
+		int start = (i * jobCount) + 1;
+		int end = min(MAX_NUMBER, ((i + 1) * jobCount));
+
+		threads.push_back(thread([start, end, &primeCount]()
+			{
+				primeCount += CountPrime(start, end);
+			}));
 	}
-	GThreadManager->Join();
+
+	for (thread& t : threads)
+		t.join();
+
+	cout << primeCount << endl;
 }

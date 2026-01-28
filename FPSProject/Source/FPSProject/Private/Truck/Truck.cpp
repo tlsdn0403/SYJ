@@ -65,6 +65,7 @@ void ATruck::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 
 void ATruck::MoveForward(float Value)
 {
+	 UE_LOG(LogTemp, Warning, TEXT("Throttle Input: %f"), Value);
 	if (auto* MoveComp = Cast<UChaosWheeledVehicleMovementComponent>(GetVehicleMovement()))
 	{
 		MoveComp->SetThrottleInput(Value);
@@ -163,6 +164,7 @@ void ATruck::UpdateEngineSound()
 		// 현재 엔진 회전수(RPM) 가져오기
 		float CurrentRPM = MoveComp->GetEngineRotationSpeed();
 
+		UE_LOG(LogTemp, Warning, TEXT("CurrentRPM: %f"), CurrentRPM);
 		// Sound Cue에서 만든 "RPM" 파라미터 값 업데이트
 		EngineAudioComponent->SetFloatParameter(TEXT("RPM"), CurrentRPM);
 	}

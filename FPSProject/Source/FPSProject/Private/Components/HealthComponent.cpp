@@ -34,6 +34,7 @@ void UHealthComponent::PointDamageTaken(AActor* DamagedActor, float Damage, ACon
 
 	FHitResult DummyHit;
 	DummyHit.ImpactPoint = HitLocation;
+	DummyHit.BoneName = BoneName;
 	OnDamaged.Broadcast(Health, Damage, DummyHit);
 }
 

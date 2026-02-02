@@ -4,6 +4,8 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "Components/HierarchicalInstancedStaticMeshComponent.h"
+
 #include "C_HouseBase.generated.h"
 
 UCLASS()
@@ -16,11 +18,24 @@ public:
 	AC_HouseBase();
 
 protected:
-	// Called when the game starts or when spawned
-	virtual void BeginPlay() override;
+	virtual void OnConstruction(const FTransform& Transform) override;
 
-public:	
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
+public:
 
+	UPROPERTY(VisibleAnywhere)
+	USceneComponent* Root;
+
+	UPROPERTY(VisibleAnywhere)
+	UHierarchicalInstancedStaticMeshComponent* HISM_Floor;
+
+	UPROPERTY(VisibleAnywhere)
+	UHierarchicalInstancedStaticMeshComponent* HISM_Pillar;
+
+	UPROPERTY(EditAnywhere, Category = "Pillar")
+	TArray<FTransform> PillarOffsets;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MySettings")
+	int32 Fwidth = 3;	//¹Ù´Ú °¡·ÎÄ­¼ö
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MySettings")
+	int32 Flength = 1;	//¹Ù´Ú ¼¼·ÎÄ­¼ö
 };

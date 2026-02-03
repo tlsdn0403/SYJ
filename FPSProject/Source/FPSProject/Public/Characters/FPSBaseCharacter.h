@@ -4,12 +4,19 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "Items/LootItemBase.h"
 #include "FPSBaseCharacter.generated.h"
 
 class UCameraComponent;
 class AWeaponBase;
 class USpringArmComponent;
 class UHealthComponent;
+
+// 손 모양 UI를 위해서 델리게이트 선언
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnInventoryUpdated, const TArray<EItemType>&, CurrentInventory);
+
+
+
 UCLASS()
 class FPSPROJECT_API AFPSBaseCharacter : public ACharacter
 {
@@ -24,13 +31,22 @@ protected:
 	virtual void BeginPlay() override;
 
 
-    // 스폰할 발사체 클래스입니다.
+    // 스폰할 발사체 클래스.
     UPROPERTY(EditDefaultsOnly, Category = Projectile)
     TSubclassOf<class AFPSProjectile> ProjectileClass;
 
     // 체력관리 컴포넌트
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
     UHealthComponent* HealthComponent;
+
+
+	//--------------------인벤토리 ----------------------------------------------------------
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory")
+    TArray<EItemType> Inventory;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory")
+    int32 MaxItemCount = 5;
+
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -84,4 +100,31 @@ public:
     // 무기   
     UPROPERTY(EditDefaultsOnly, Category = "Weapon")
 	TSubclassOf<AWeaponBase> WeaponBPclass;
+
+
+    // 현재 상호작용 가능한 액터 저장 변수
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Interaction")
+    AActor* CurrentInteractableActor;
+
+    // 상호작용 시도 함수
+    void Interact();
+
+    // TriggerComponent에서 호출하여 캐릭터에게 대상 설정
+    void SetInteractableActor(AActor* NewActor);
+
+    //--------------- 인벤토리 관련 함수들--------------------------------------------
+    UFUNCTION(BlueprintCallable, Category = "Inventory")
+    bool AddItem(EItemType NewItemType);
+
+    UFUNCTION(BlueprintCallable, Category = "Inventory")
+    TArray<EItemType> OffloadItems(); // 가진 아이템을 모두 반환(트럭에 넣을 때)
+
+    UFUNCTION(BlueprintPure, Category = "Inventory")
+    int32 GetItemCount() const { return Inventory.Num(); }
+
+    // UI 업데이트를 위한 델리게이트 (손모양 UI 갱신용)
+    UPROPERTY(BlueprintAssignable, Category = "Inventory")
+    FOnInventoryUpdated OnInventoryUpdated;
+
+    //--------------------------------------------------------------------------------
 };

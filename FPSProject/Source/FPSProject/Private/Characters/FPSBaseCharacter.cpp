@@ -8,6 +8,7 @@
 #include "Projectiles/FPSProjectile.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Components/HealthComponent.h"
+#include "Interface/InteractInterface.h"
 
 // Sets default values
 AFPSBaseCharacter::AFPSBaseCharacter()
@@ -81,20 +82,33 @@ void AFPSBaseCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 
 	// Fire 액션 바인딩을 구성
     PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &AFPSBaseCharacter::Fire);
+
+    PlayerInputComponent->BindAction("Interact", IE_Pressed, this, &AFPSBaseCharacter::Interact); // Interact 액션 바인딩
 }
 
+
+// ---------------------------------- 이동 , 점프, 발사 관련 함수들 ----------------------------------
 void AFPSBaseCharacter::MoveForward(float Value)
 {
-    // 어디가 앞인지 찾고, 플레이어가 해당 방향으로 이동하고자 한다는 것을 기록
-    FVector Direction = FRotationMatrix(Controller->GetControlRotation()).GetScaledAxis(EAxis::X);
-    AddMovementInput(Direction, Value);
+ 
+    if (Controller != nullptr && Value != 0.0f)
+    {
+        // 어디가 앞인지 찾고, 플레이어가 해당 방향으로 이동하고자 한다는 것을 기록
+        FVector Direction = FRotationMatrix(Controller->GetControlRotation()).GetScaledAxis(EAxis::X);
+        AddMovementInput(Direction, Value);
+    }
 }
 
 void AFPSBaseCharacter::MoveRight(float Value)
 {
-    // 어디가 오른쪽인지 찾고, 플레이어가 해당 방향으로 이동하고자 한다는 것을 기록
-    FVector Direction = FRotationMatrix(Controller->GetControlRotation()).GetScaledAxis(EAxis::Y);
-    AddMovementInput(Direction, Value);
+  
+
+    if (Controller != nullptr && Value != 0.0f)
+    {
+        // 어디가 오른쪽인지 찾고, 플레이어가 해당 방향으로 이동하고자 한다는 것을 기록
+        FVector Direction = FRotationMatrix(Controller->GetControlRotation()).GetScaledAxis(EAxis::Y);
+        AddMovementInput(Direction, Value);
+    }
 }
 
 void AFPSBaseCharacter::StartJump()
@@ -115,4 +129,71 @@ void AFPSBaseCharacter::Fire()
         CurrentWeapon->Fire();
         return;
     }
+}
+//--------------------------------------------------------------------------------------------
+
+// ---------------------------------- 상호작용 관련 함수들 ----------------------------------
+
+void AFPSBaseCharacter::SetInteractableActor(AActor* NewActor)
+{
+    CurrentInteractableActor = NewActor;
+}
+
+
+void AFPSBaseCharacter::Interact()
+{
+    if (CurrentInteractableActor)
+    {
+        // 해당 액터가 인터페이스를 가지고 있는지 확인
+        if (CurrentInteractableActor->GetClass()->ImplementsInterface(UInteractInterface::StaticClass()))
+        {
+            // 인터페이스의 Interact 함수 실행
+			IInteractInterface::Execute_Interact(CurrentInteractableActor, this); 
+        }
+    }
+}
+
+//--------------------------------------------------------------------------------------------
+
+// ---------------------------------- 인벤토리 관련 함수들 ----------------------------------
+
+
+bool AFPSBaseCharacter::AddItem(EItemType NewItemType)
+{
+
+    if (Inventory.Num() >= MaxItemCount)
+    {
+        // 꽉 찼다는 알려주기? 
+        UE_LOG(LogTemp, Warning, TEXT("Inventory Full!"));
+        return false;
+    }
+
+    Inventory.Add(NewItemType);
+
+    // UI 업데이트 알림
+    if (OnInventoryUpdated.IsBound())  // IsBound() -> 바인딩 된 함수가 있는지? 
+    {
+        // 현재 인벤토리에 얼마나 찾는지 알려줌
+        OnInventoryUpdated.Broadcast(Inventory);
+    }
+
+    UE_LOG(LogTemp, Log, TEXT("Item Added. Current: %d"), Inventory.Num());
+    return true;
+}
+
+TArray<EItemType> AFPSBaseCharacter::OffloadItems()
+{
+    // 현재 가진 아이템 복사
+    TArray<EItemType> ItemsToGive = Inventory;
+
+    // 인벤토리 비우기
+    Inventory.Empty();
+
+    // UI 갱신 (빈 배열 전달)
+    if (OnInventoryUpdated.IsBound())
+    {
+        OnInventoryUpdated.Broadcast(Inventory);
+    }
+
+    return ItemsToGive;
 }

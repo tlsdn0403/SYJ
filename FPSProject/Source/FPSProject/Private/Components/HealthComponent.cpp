@@ -21,24 +21,21 @@ void UHealthComponent::BeginPlay()
 	Super::BeginPlay();
 
 	// ...
-	GetOwner()->OnTakeAnyDamage.AddDynamic(this, &UHealthComponent::DamageTaken); //이 컴포넌트를 장착하고 있는 엑터가 데미지를 받았을 때 DamageTaken 함수를 호출하도록 설정
+	
+	GetOwner()->OnTakePointDamage.AddDynamic(this, &UHealthComponent::PointDamageTaken);
 }
 
 
-void UHealthComponent::DamageTaken(AActor* DamagedActor, float Damage, const UDamageType* DamageType, AController* Instigater, AActor* DamageCauser)
+void UHealthComponent::PointDamageTaken(AActor* DamagedActor, float Damage, AController* InstigatedBy, FVector HitLocation, UPrimitiveComponent* FHitComponent, FName BoneName, FVector ShotFromDirection, const UDamageType* DamageType, AActor* DamageCauser)
 {
-	if (Damage <= 0.f) return;									 // 데미지가 0 이하일 때는 처리하지 않음
+	if (Damage <= 0.f) return;
+	Health -= Damage;
 
-	Health -= Damage;											 // 체력 감소
 
-	OnDamaged.Broadcast(Health, Damage);
-
-	UE_LOG(LogTemp, Warning, TEXT("[HealthComponent] %s Health: %.1f"), *GetNameSafe(GetOwner()), Health);
-	if (Health <= 0.f)
-	{
-		UE_LOG(LogTemp, Error, TEXT("[HealthComponent] %s die! "), *GetNameSafe(GetOwner()));
-		// 필요시 사망 처리:  GetOwner()->Destroy(); 등
-	}
+	FHitResult DummyHit;
+	DummyHit.ImpactPoint = HitLocation;
+	DummyHit.BoneName = BoneName;
+	OnDamaged.Broadcast(Health, Damage, DummyHit);
 }
 
 // Called every frame

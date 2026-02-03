@@ -31,7 +31,7 @@ public:
 	UPROPERTY(VisibleAnywhere)
 	UHierarchicalInstancedStaticMeshComponent* HISM_Pillar;
 
-	UPROPERTY(EditAnywhere, Category = "Pillar")
+	UPROPERTY(EditAnywhere, Category = "MySettings")
 	TArray<FTransform> PillarOffsets;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MySettings")

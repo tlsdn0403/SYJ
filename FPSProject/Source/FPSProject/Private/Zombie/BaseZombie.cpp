@@ -175,10 +175,12 @@ void ABaseZombie::DismemberLimb(FName BoneName, FVector Impulse, FVector HitLoca
         // 1. 제약 조건 파괴 (뼈를 물리적으로 분리)
         MeshComp->BreakConstraint(Impulse, HitLocation, BoneName);
 
+        MeshComp->HideBoneByName(BoneName, EPhysBodyOp::PBO_None);
         // 2. 잘린 부위가 물리 시뮬레이션을 하도록 설정
         // 이 설정이 없으면 잘린 팔이 공중에 둥둥 떠다니며 애니메이션을 계속 따라합니다.
         // SetAllBodiesBelowSimulatePhysics: 해당 뼈 아래쪽 모든 뼈를 물리 시뮬레이션으로 전환
         MeshComp->SetAllBodiesBelowSimulatePhysics(BoneName, true, true);
+		
 
         // 3. 물리 충격 가하기 (잘려나갈 때 튕겨나가도록)
         MeshComp->AddImpulse(Impulse, BoneName, true);
@@ -204,3 +206,4 @@ void ABaseZombie::Die()
     GetMesh()->SetAllBodiesBelowSimulatePhysics(FName("pelvis"), true, true);
     SetLifeSpan(5.f);
 }
+

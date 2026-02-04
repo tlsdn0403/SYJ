@@ -73,4 +73,6 @@ protected:
     // »ç¸Á Ã³¸®
     UFUNCTION(BlueprintCallable, Category = "Zombie")
     void Die();
+
+
 };

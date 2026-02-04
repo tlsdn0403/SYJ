@@ -7,6 +7,14 @@ void AAIZombieController::BeginPlay()
 {
 	Super::BeginPlay();
 
-	APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(GetWorld(),0.f);
+	PlayerPawn = UGameplayStatics::GetPlayerPawn(GetWorld(),0.f);
 	SetFocus(PlayerPawn);
+}
+
+void AAIZombieController::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+
+	PlayerPawn = UGameplayStatics::GetPlayerPawn(GetWorld(), 0.f);
+	MoveToActor(PlayerPawn, 150.f);
 }

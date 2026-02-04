@@ -16,4 +16,10 @@ class FPSPROJECT_API AAIZombieController : public AAIController
 	
 protected:
 	virtual void BeginPlay() override;
+
+	virtual void Tick(float DeltaSeconds) override;
+
+
+public:
+	APawn* PlayerPawn;
 };

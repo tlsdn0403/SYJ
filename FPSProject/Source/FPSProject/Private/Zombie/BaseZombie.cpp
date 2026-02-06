@@ -155,7 +155,14 @@ void ABaseZombie::ProcessBoneDamage(FName BoneName, float Damage, FVector Impact
             // 충격량 계산 (총알 방향 * 힘)
             FVector Impulse = ImpactDirection * 300.0f; // 힘 조절 필요
             DismemberLimb(BoneName, Impulse, ImpactPoint);
+
+            // 하체가 분리되었으면 크롤링 상태로 전환
+            if (IsLegBone(BoneName) && MovementState == EZombieMovementState::Normal)
+            {
+                StartCrawling();
+            }
         }
+       
     }
 }
 
@@ -187,6 +194,54 @@ void ABaseZombie::DismemberLimb(FName BoneName, FVector Impulse, FVector HitLoca
 
         UE_LOG(LogTemp, Warning, TEXT("Dismembered: %s"), *BoneName.ToString());
     }
+}
+
+void ABaseZombie::StartCrawling()
+{
+    if (MovementState == EZombieMovementState::Crawling) return;
+
+    MovementState = EZombieMovementState::Crawling;
+
+    UE_LOG(LogTemp, Warning, TEXT("Zombie %s is now CRAWLING!"), *GetName());
+
+    //  좀비가 바닥에 눕도록 캡슐 크기 줄이기
+    UCapsuleComponent* Capsule = GetCapsuleComponent();
+    if (Capsule)
+    {
+        Capsule->SetCapsuleHalfHeight(CrawlingCapsuleHalfHeight);
+        Capsule->SetCapsuleRadius(CrawlingCapsuleRadius);
+    }
+
+    //  이동 속도 줄이기
+    UCharacterMovementComponent* MoveComp = GetCharacterMovement();
+    if (MoveComp)
+    {
+        MoveComp->MaxWalkSpeed = CrawlingMaxSpeed;
+
+        // 바닥에서 움직일 수 있도록
+        MoveComp->SetMovementMode(MOVE_Walking);
+
+        // NavMesh 기반 이동이라면 높이 오프셋 조정
+        MoveComp->bOrientRotationToMovement = true;
+    }
+
+    // 캡슐이 줄었으니 매쉬를 아래로
+    USkeletalMeshComponent* MeshComp = GetMesh();
+    if (MeshComp)
+    {
+        // 기존 메시 위치에서 아래로 내리기
+        FVector CurrentOffset = MeshComp->GetRelativeLocation();
+        MeshComp->SetRelativeLocation(FVector(CurrentOffset.X, CurrentOffset.Y, -CrawlingCapsuleHalfHeight));
+    }
+}
+
+bool ABaseZombie::IsLegBone(FName BoneName) const
+{
+    static TArray<FName> LegBones = {
+       FName("thigh_l"), FName("thigh_r"),
+       FName("calf_l"), FName("calf_r")
+    };
+    return LegBones.Contains(BoneName);
 }
 
 

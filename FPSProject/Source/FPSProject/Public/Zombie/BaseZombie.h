@@ -8,6 +8,16 @@
 
 class UHealthComponent;
 
+// 좀비 상태를 나타내는 enum
+UENUM(BlueprintType)
+enum class EZombieMovementState : uint8
+{
+    Normal     UMETA(DisplayName = "Normal"),
+    Crawling   UMETA(DisplayName = "Crawling"),
+    Dead       UMETA(DisplayName = "Dead")
+};
+
+
 UCLASS()
 class FPSPROJECT_API ABaseZombie : public ACharacter
 {
@@ -31,6 +41,14 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Zombie")
     bool IsAlive() const { return bIsAlive; }
 
+    // 현재 이동 상태 (AnimBP에서 사용)
+    UFUNCTION(BlueprintCallable, Category = "Zombie")
+    EZombieMovementState GetMovementState() const { return MovementState; }
+
+    // 크롤링 중인지 확인 (AnimBP에서 사용)
+    UFUNCTION(BlueprintCallable, Category = "Zombie")
+    bool IsCrawling() const { return MovementState == EZombieMovementState::Crawling; }
+
     //좀비 매시
     UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
     USkeletalMeshComponent* ZombieMesh;
@@ -49,6 +67,12 @@ protected:
     // 사망 여부
     UPROPERTY(BlueprintReadOnly, Category = "Zombie")
     bool bIsAlive = true;
+
+
+    // 이동 상태
+    UPROPERTY(BlueprintReadOnly, Category = "Zombie")
+    EZombieMovementState MovementState = EZombieMovementState::Normal;
+
 
     //--------------------- 좀비 신체 분해 시스템 ---------------------
 
@@ -69,6 +93,25 @@ protected:
 
     // 실제 분해 실행 
     void DismemberLimb(FName BoneName, FVector Impulse, FVector HitLocation);
+
+
+
+    // 크롤링 전환
+    void StartCrawling();
+
+    // 하체 뼈인지 확인
+    bool IsLegBone(FName BoneName) const;
+
+    // --------------------- 크롤링 관련 설정 ---------------------
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zombie|Crawling")
+    float CrawlingMaxSpeed = 100.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zombie|Crawling")
+    float CrawlingCapsuleHalfHeight = 30.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zombie|Crawling")
+    float CrawlingCapsuleRadius = 30.0f;
+
 
     // 사망 처리
     UFUNCTION(BlueprintCallable, Category = "Zombie")

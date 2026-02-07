@@ -198,11 +198,13 @@ void ABaseZombie::DismemberLimb(FName BoneName, FVector Impulse, FVector HitLoca
 
 void ABaseZombie::StartCrawling()
 {
+    
     if (MovementState == EZombieMovementState::Crawling) return;
 
+    // 좀비의 상태 기어다니는 상태로 변경
     MovementState = EZombieMovementState::Crawling;
 
-    UE_LOG(LogTemp, Warning, TEXT("Zombie %s is now CRAWLING!"), *GetName());
+    UE_LOG(LogTemp, Warning, TEXT("Zombie %s is now CRAWLING"), *GetName());
 
     //  좀비가 바닥에 눕도록 캡슐 크기 줄이기
     UCapsuleComponent* Capsule = GetCapsuleComponent();

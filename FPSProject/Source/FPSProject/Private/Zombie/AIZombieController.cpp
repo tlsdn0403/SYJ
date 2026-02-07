@@ -3,6 +3,8 @@
 
 #include "Zombie/AIZombieController.h"
 #include "Kismet/GameplayStatics.h"
+
+
 void AAIZombieController::BeginPlay()
 {
 	Super::BeginPlay();

@@ -18,6 +18,12 @@ ATruck::ATruck()
 	EngineAudioComponent = CreateDefaultSubobject<UAudioComponent>(TEXT("EngineAudio"));
 	EngineAudioComponent->SetupAttachment(RootComponent);
 	EngineAudioComponent->bAutoActivate = false; // 처음엔 꺼둠 (탑승 시 켤 예정)
+
+	// 짐칸 기준점 생성
+	CargoOrigin = CreateDefaultSubobject<USceneComponent>(TEXT("CargoOrigin"));
+	CargoOrigin->SetupAttachment(RootComponent);
+	// 트럭 뒷부분 짐칸 위치로 설정 (에디터에서 미세 조정 )
+	CargoOrigin->SetRelativeLocation(FVector(-120.0f, 0.0f, 80.0f));
 }
 
 void ATruck::BeginPlay()
@@ -106,6 +112,89 @@ void ATruck::Brake(float Value)
 	}
 }
 
+// -------------------------------트럭 아이템 적재 시각화 --------------------------------
+// 
+// 적재 위치 계산
+FVector ATruck::CalculateCargoPosition(int32 ItemIndex) const
+{
+	// 층 (Layer), 행 (Row), 열 (Column) 계산
+	int32 Layer = ItemIndex / ItemsPerLayer;        // 몇 번째 층인지
+	int32 IndexInLayer = ItemIndex % ItemsPerLayer; // 해당 층에서 몇 번째인지
+	int32 Row = IndexInLayer / ItemsPerRow;         // 행
+	int32 Col = IndexInLayer % ItemsPerRow;         // 열
+
+	// 간격 계산
+	float ColSpacing = CargoWidth / FMath::Max(ItemsPerRow - 1, 1);
+	float RowSpacing = CargoDepth / FMath::Max((ItemsPerLayer / ItemsPerRow) - 1, 1);
+
+	// 중심 기준으로 좌우, 앞뒤 오프셋
+	float X = -Row * RowSpacing + (CargoDepth * 0.5f);    // 앞뒤 (트럭 길이 방향)
+	float Y = Col * ColSpacing - (CargoWidth * 0.5f);     // 좌우
+	float Z = Layer * ItemHeight;                          // 높이 (쌓기)
+
+	return FVector(X, Y, Z);
+}
+
+//  아이템 시각적 적재
+void ATruck::AddCargoVisual(EItemType ItemType)
+{
+	// 아이템 타입에 맞는 메시 선택
+	UStaticMesh* ItemMesh = nullptr;
+	switch (ItemType)
+	{
+	case EItemType::Ammo:
+		ItemMesh = AmmoBoxMesh;
+		break;
+	case EItemType::Fuel:
+		ItemMesh = FuelCanMesh;
+		break;
+	case EItemType::MedicalKit:
+		ItemMesh = MedKitMesh;
+		break;
+	default:
+		ItemMesh = AmmoBoxMesh; // 기본값
+		break;
+	}
+
+	if (!ItemMesh)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("No mesh assigned for item type %d"), (int32)ItemType);
+		return;
+	}
+
+	// 새 StaticMeshComponent 생성
+	UStaticMeshComponent* NewMeshComp = NewObject<UStaticMeshComponent>(this);
+	if (NewMeshComp)
+	{
+		NewMeshComp->SetStaticMesh(ItemMesh);
+		NewMeshComp->SetupAttachment(CargoOrigin);
+		NewMeshComp->RegisterComponent();
+
+		// 위치 계산 (약간의 랜덤 회전으로 자연스럽게)
+		FVector Position = CalculateCargoPosition(LoadedItemVisuals.Num());
+		NewMeshComp->SetRelativeLocation(Position);
+
+		// 약간의 랜덤 회전 (자연스럽게 쌓인 느낌)
+		float RandomYaw = FMath::RandRange(-15.0f, 15.0f);
+		float RandomPitch = FMath::RandRange(-3.0f, 3.0f);
+		NewMeshComp->SetRelativeRotation(FRotator(RandomPitch, RandomYaw, 0.0f));
+
+		// 충돌 비활성화 (시각적 용도만)
+		NewMeshComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+		// 목록에 추가
+		FLoadedItemVisual Visual;
+		Visual.MeshComponent = NewMeshComp;
+		Visual.ItemType = ItemType;
+		LoadedItemVisuals.Add(Visual);
+
+		UE_LOG(LogTemp, Log, TEXT("Cargo visual added: Type=%d, Position=(%s), Total=%d"),
+			(int32)ItemType, *Position.ToString(), LoadedItemVisuals.Num());
+	}
+}
+// -------------------------------------------------------------------------------------
+
+// -------------------------------인터랙션 구현 --------------------------------
 
 void ATruck::Interact_Implementation(AFPSBaseCharacter* Character)
 {
@@ -121,16 +210,24 @@ void ATruck::Interact_Implementation(AFPSBaseCharacter* Character)
 			// 받은 아이템 분석 (예: 종류별로 점수 계산)
 			for (EItemType Item : ReceivedItems)
 			{
+				TotalLoadedItems++;
+
+				// 시각적 적재
+				AddCargoVisual(Item);
+
+				// 아이템별 처리
 				switch (Item)
 				{
 				case EItemType::Ammo:
-					// 총알 적재 처리 
-					break;
-				case EItemType::None:
+					UE_LOG(LogTemp, Log, TEXT("Loaded Ammo box"));
 					break;
 				case EItemType::Fuel:
+					UE_LOG(LogTemp, Log, TEXT("Loaded Fuel can"));
 					break;
 				case EItemType::MedicalKit:
+					UE_LOG(LogTemp, Log, TEXT("Loaded Medical Kit"));
+					break;
+				default:
 					break;
 				}
 			}
@@ -138,6 +235,13 @@ void ATruck::Interact_Implementation(AFPSBaseCharacter* Character)
 		
 			
 		}
+		// 적재 사운드 재생
+		if (LoadItemSound)
+		{
+			UGameplayStatics::PlaySoundAtLocation(this, LoadItemSound, GetActorLocation());
+		}
+
+
 		// 1스테이지 임으로 트럭운전으로 넘어가지 않게
 		return;
 	}

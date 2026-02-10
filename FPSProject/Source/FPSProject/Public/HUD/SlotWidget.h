@@ -21,12 +21,15 @@ class FPSPROJECT_API USlotWidget : public UUserWidget
 protected:
 	virtual void NativeConstruct() override;
 
-protected:
-	// 슬롯 이미지 (손이나 아이템 아이콘 들어감)
-	/*UPROPERTY(meta = (BindWidget), Category = "MySetting")
-	UImage* ItemIcon;*/
+public:
+	// 슬롯 이미지 (손이나 아이템 아이콘 들어감)	meta = (BindWidget)
+	UPROPERTY(meta = (BindWidget))
+	UImage* ItemIcon;
+
+	/*UPROPERTY()
+	UTexture2D* BaseTexture;*/
 
 	void SetItem(UTexture2D* IconTexture);
-	void ClearSlot();	//
+	//void ClearSlot() {};	//
 
 };

@@ -11,7 +11,7 @@ void UInventoryWidget::NativeConstruct()
 {
     Super::NativeConstruct();
 
-    SlotWidgets.Empty();
+  //  SlotWidgets.Empty();
 
     //// 5Ä­ »ý¼º
     //for (int i = 0; i < 5; i++)
@@ -26,9 +26,9 @@ void UInventoryWidget::NativeConstruct()
     //}
 }
 
-void UInventoryWidget::SetItem(int32 Index, UTexture2D* IconTexture)
-{
-    if (!SlotWidgets.IsValidIndex(Index)) return;
-
-   // SlotWidgets[Index]->SetItem(IconTexture);
-}
+//void UInventoryWidget::SetItem(int32 Index, UTexture2D* IconTexture)
+//{
+//    if (!SlotWidgets.IsValidIndex(Index)) return;
+//
+//   // SlotWidgets[Index]->SetItem(IconTexture);
+//}

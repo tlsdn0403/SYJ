@@ -23,12 +23,12 @@ void UInventoryWidget::NativeConstruct()
     // 5Ä­ »ý¼º
     for (int i = 0; i < 5; i++)
     {
-        USlotWidget* Slot = Cast<USlotWidget>(CreateWidget(GetWorld(), SlotWidgetClass));
+        USlotWidget* SlotW = Cast<USlotWidget>(CreateWidget(GetWorld(), SlotWidgetClass));
 
-        if (Slot)
+        if (SlotW)
         {
-            SlotBox->AddChildToHorizontalBox(Slot);
-            SlotWidgets.Add(Slot);
+            SlotBox->AddChildToHorizontalBox(SlotW);
+            SlotWidgets.Add(SlotW);
         }
     }
 }

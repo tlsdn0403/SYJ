@@ -36,8 +36,8 @@ public:
 	TArray<USlotWidget*> SlotWidgets;
 
 	
-	UPROPERTY()
-	USlotWidget* SlotW;
+	/*UPROPERTY()
+	USlotWidget* SlotW;*/
 
 	//void SetItem(int32 SlotIndex, UTexture2D* IconTexture);
 };

@@ -58,7 +58,6 @@ void AFPSBaseCharacter::BeginPlay()
     {
         InventoryWidget = Cast<UInventoryWidget>(CreateWidget(GetWorld(), InventoryClass));
         InventoryWidget->AddToViewport();
-        //GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("일단 ui코드 들어옴"));
 
     }
 }

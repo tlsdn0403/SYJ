@@ -11,20 +11,26 @@ void UInventoryWidget::NativeConstruct()
 {
     Super::NativeConstruct();
 
-   // SlotWidgets.Empty();
+    SlotWidgets.Empty();
 
+  /*  InventoryWidget = Cast<UInventoryWidget>(CreateWidget(GetWorld(), InventoryClass));
+    InventoryWidget->AddToViewport();*/
 
-    //// 5沫 积己
-    //for (int i = 0; i < 5; i++)
-    //{
-    //    USlotWidget* Slot = CreateWidget<USlotWidget>(GetWorld(), USlotWidget::StaticClass());
+	if (!SlotWidgetClass) return;
 
-    //    if (Slot)
-    //    {
-    //        SlotBox->AddChildToHorizontalBox(Slot);
-    //        SlotWidgets.Add(Slot);
-    //    }
-    //}
+   /* SlotW = Cast<USlotWidget>(CreateWidget(GetWorld(), SlotWidgetClass));
+    SlotBox->AddChildToHorizontalBox(SlotW);*/
+    // 5沫 积己
+    for (int i = 0; i < 5; i++)
+    {
+        SlotW = Cast<USlotWidget>(CreateWidget(GetWorld(), SlotWidgetClass));
+
+        if (SlotW)
+        {
+            SlotBox->AddChildToHorizontalBox(SlotW);
+            SlotWidgets.Add(SlotW);
+        }
+    }
 }
 
 //void UInventoryWidget::SetItem(int32 Index, UTexture2D* IconTexture)

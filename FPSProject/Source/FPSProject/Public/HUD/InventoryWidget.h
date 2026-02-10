@@ -23,17 +23,21 @@ protected:
 
 public:
 
-	//// 슬롯들을 담을 박스
-	//UPROPERTY(meta = (BindWidget))	//
-	//UHorizontalBox* SlotBox;	//UHorizontalBox = UI 위젯들을 “가로로 자동 정렬해서 담아주는 컨테이너(상자)” 객체
+	// 슬롯들을 담을 박스
+	UPROPERTY(meta = (BindWidget))	//
+	UHorizontalBox* SlotBox;	//UHorizontalBox = UI 위젯들을 “가로로 자동 정렬해서 담아주는 컨테이너(상자)” 객체
 
-	//// 슬롯 위젯 배열
-	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory")
-	//TSubclassOf<USlotWidget> SlotWidgetClass;
+	// 슬롯 위젯 배열
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory")
+	TSubclassOf<USlotWidget> SlotWidgetClass;
 
-	//UPROPERTY()
-	//TArray<USlotWidget*> SlotWidgets;
 
+	UPROPERTY()
+	TArray<USlotWidget*> SlotWidgets;
+
+	
+	UPROPERTY()
+	USlotWidget* SlotW;
 
 	//void SetItem(int32 SlotIndex, UTexture2D* IconTexture);
 };

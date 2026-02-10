@@ -26,10 +26,12 @@ public:
 	UPROPERTY(meta = (BindWidget))
 	UImage* ItemIcon;
 
-	/*UPROPERTY()
-	UTexture2D* BaseTexture;*/
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Slot")
+	UTexture2D* BaseTexture;	// 이건 UMG에서 그래프 속성 들어가야 뜨는 변수.
 
 	void SetItem(UTexture2D* IconTexture);
-	//void ClearSlot() {};	//
+	void ClearSlot();	// 빈칸으로 돌리기
+
+
 
 };

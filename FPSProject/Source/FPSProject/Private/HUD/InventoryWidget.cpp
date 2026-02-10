@@ -11,7 +11,8 @@ void UInventoryWidget::NativeConstruct()
 {
     Super::NativeConstruct();
 
-  //  SlotWidgets.Empty();
+   // SlotWidgets.Empty();
+
 
     //// 5Ä­ »ý¼º
     //for (int i = 0; i < 5; i++)

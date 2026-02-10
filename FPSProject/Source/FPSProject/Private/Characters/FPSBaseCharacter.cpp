@@ -8,6 +8,7 @@
 #include "Projectiles/FPSProjectile.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Components/HealthComponent.h"
+#include "HUD/InventoryWidget.h"
 
 // Sets default values
 AFPSBaseCharacter::AFPSBaseCharacter()
@@ -52,6 +53,14 @@ void AFPSBaseCharacter::BeginPlay()
 
 	// 디버그 메시지를 5초간 표시
 	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("We are using FPSCharacter."));
+  
+    if (InventoryClass)
+    {
+        InventoryWidget = Cast<UInventoryWidget>(CreateWidget(GetWorld(), InventoryClass));
+        InventoryWidget->AddToViewport();
+        //GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("일단 ui코드 들어옴"));
+
+    }
 }
 
 // Called every frame

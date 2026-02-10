@@ -10,6 +10,8 @@ class UCameraComponent;
 class AWeaponBase;
 class USpringArmComponent;
 class UHealthComponent;
+class UInventoryWidget;
+
 UCLASS()
 class FPSPROJECT_API AFPSBaseCharacter : public ACharacter
 {
@@ -84,4 +86,11 @@ public:
     // 무기   
     UPROPERTY(EditDefaultsOnly, Category = "Weapon")
 	TSubclassOf<AWeaponBase> WeaponBPclass;
+
+    //위젯
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
+    TSubclassOf<UInventoryWidget> InventoryClass; //어떤 위젯 사용할것인지에 대한 변수
+
+    UPROPERTY()
+    UInventoryWidget* InventoryWidget;
 };

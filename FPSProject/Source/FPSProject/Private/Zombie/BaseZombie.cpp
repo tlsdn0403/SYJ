@@ -37,6 +37,7 @@ void ABaseZombie::BeginPlay()
 void ABaseZombie::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
+
 }
 
 

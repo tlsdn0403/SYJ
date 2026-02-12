@@ -8,4 +8,8 @@
 void AHUD_Base::BeginPlay()
 {
 	Super::BeginPlay();
+
+	/*InventoryWidget = CreateWidget<UInventoryWidget>(GetWorld()->Getplayerpawn, InventoryClass);
+	InventoryWidget->AddToViewport();*/
+
 }

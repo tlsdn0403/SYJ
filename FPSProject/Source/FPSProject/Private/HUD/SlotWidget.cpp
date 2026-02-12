@@ -28,3 +28,11 @@ void USlotWidget::ClearSlot()
 	ItemIcon->SetBrushFromTexture(BaseTexture, true);
 
 }
+
+void USlotWidget::PlayAni_Select()
+{
+	if (SelectAni)
+	{
+		PlayAnimation(SelectAni);
+	}
+}

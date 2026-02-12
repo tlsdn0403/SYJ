@@ -62,6 +62,9 @@ public:
     UFUNCTION()
     void Fire();
 
+    UFUNCTION()
+    void OnPress1();
+
     // FPS Ä«¸Þ¶ó
     UPROPERTY(VisibleAnywhere)
     UCameraComponent* FPSCameraComponent;

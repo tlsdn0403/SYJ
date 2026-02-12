@@ -11,25 +11,41 @@ void UInventoryWidget::NativeConstruct()
 {
     Super::NativeConstruct();
 
-    SlotWidgets.Empty();
-
-  /*  InventoryWidget = Cast<UInventoryWidget>(CreateWidget(GetWorld(), InventoryClass));
-    InventoryWidget->AddToViewport();*/
-
 	if (!SlotWidgetClass) return;
 
-   /* SlotW = Cast<USlotWidget>(CreateWidget(GetWorld(), SlotWidgetClass));
-    SlotBox->AddChildToHorizontalBox(SlotW);*/
-    // 5Ä­ »ý¼º
-    for (int i = 0; i < 5; i++)
+    SlotWidgets =
     {
-        USlotWidget* SlotW = Cast<USlotWidget>(CreateWidget(GetWorld(), SlotWidgetClass));
+        Slot1,
+        Slot2,
+        Slot3,
+        Slot4,
+        Slot5
+    };
+}
 
-        if (SlotW)
-        {
-            SlotBox->AddChildToHorizontalBox(SlotW);
-            SlotWidgets.Add(SlotW);
-        }
+void UInventoryWidget:: PlayAin_Slot(int32 SlotIndex)
+{
+	USlotWidget* TargetSlotWidget = nullptr;
+    switch (SlotIndex) {
+        case 0:
+			TargetSlotWidget = SlotWidgets[0];
+		break;
+		case 1:
+			TargetSlotWidget = SlotWidgets[1];
+			break;
+		case 2:     
+			TargetSlotWidget = SlotWidgets[2];
+			break;
+		case 3:
+			TargetSlotWidget = SlotWidgets[3];
+			break;
+		case 4:
+			TargetSlotWidget = SlotWidgets[4];
+			break;
+    }
+    if (TargetSlotWidget)
+    {
+        TargetSlotWidget->PlayAni_Select();
     }
 }
 

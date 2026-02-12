@@ -30,12 +30,26 @@ public:
 	// ½½·Ô À§Á¬ ¹è¿­
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory")
 	TSubclassOf<USlotWidget> SlotWidgetClass;
+	
+	UPROPERTY(meta = (BindWidget))
+	USlotWidget* Slot1;
 
+	UPROPERTY(meta = (BindWidget))
+	USlotWidget* Slot2;
+
+	UPROPERTY(meta = (BindWidget))
+	USlotWidget* Slot3;
+
+	UPROPERTY(meta = (BindWidget))
+	USlotWidget* Slot4;
+
+	UPROPERTY(meta = (BindWidget))
+	USlotWidget* Slot5;
 
 	UPROPERTY()
 	TArray<USlotWidget*> SlotWidgets;
 
-	
+	void PlayAin_Slot(int32 SlotIndex);
 	/*UPROPERTY()
 	USlotWidget* SlotW;*/
 

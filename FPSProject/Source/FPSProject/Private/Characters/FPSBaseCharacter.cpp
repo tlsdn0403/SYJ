@@ -89,6 +89,8 @@ void AFPSBaseCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 
 	// Fire 액션 바인딩을 구성
     PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &AFPSBaseCharacter::Fire);
+
+    PlayerInputComponent->BindKey(EKeys::One, IE_Pressed, this, &AFPSBaseCharacter::OnPress1);
 }
 
 void AFPSBaseCharacter::MoveForward(float Value)
@@ -122,5 +124,13 @@ void AFPSBaseCharacter::Fire()
     {
         CurrentWeapon->Fire();
         return;
+    }
+}
+
+void AFPSBaseCharacter::OnPress1()
+{
+    if (InventoryWidget)
+    {
+        InventoryWidget->PlayAin_Slot(0); // 0번 슬롯
     }
 }

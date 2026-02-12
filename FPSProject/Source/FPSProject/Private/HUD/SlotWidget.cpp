@@ -10,6 +10,7 @@
 void USlotWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
+	UE_LOG(LogTemp, Warning, TEXT("REAL SLOT CREATED %p"), this);
 }
 
 void USlotWidget::SetItem(UTexture2D* IconTexture)
@@ -18,6 +19,7 @@ void USlotWidget::SetItem(UTexture2D* IconTexture)
 
 	ItemIcon->SetBrushFromTexture(IconTexture, true); //true: 이미지 크기를 텍스처 크기에 맞춤
 	//false: 텍스처를 이미지 크기에 맞춤
+
 
 }
 
@@ -31,6 +33,8 @@ void USlotWidget::ClearSlot()
 
 void USlotWidget::PlayAni_Select()
 {
+	UE_LOG(LogTemp, Warning, TEXT("PlayAni_Select Called"));
+	UE_LOG(LogTemp, Warning, TEXT("ANIMATION SLOT %p"), this);
 	if (SelectAni)
 	{
 		PlayAnimation(SelectAni);

@@ -56,7 +56,7 @@ void AFPSBaseCharacter::BeginPlay()
   
     if (InventoryClass)
     {
-        InventoryWidget = Cast<UInventoryWidget>(CreateWidget(GetWorld(), InventoryClass));
+        InventoryWidget = Cast<UInventoryWidget>(CreateWidget(GetWorld(), InventoryClass)); //월드 기준으로 생성됨. 이 부분이 문제.
         InventoryWidget->AddToViewport();
 
     }

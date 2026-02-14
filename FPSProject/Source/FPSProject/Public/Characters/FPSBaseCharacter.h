@@ -37,8 +37,10 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
-	// Called to bind functionality to input
-	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+	//// Called to bind functionality to input
+	//virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+ //   
+    
     // 현재 장착한 무기
     UFUNCTION(BlueprintCallable, Category = "Weapon")
     void SetCurrentWeapon(AWeaponBase* NewWeapon) { CurrentWeapon = NewWeapon; }
@@ -62,8 +64,8 @@ public:
     UFUNCTION()
     void Fire();
 
-    UFUNCTION()
-    void OnPress1();
+ /*   UFUNCTION()
+    void OnPress1();*/
 
     // FPS 카메라
     UPROPERTY(VisibleAnywhere)
@@ -90,10 +92,10 @@ public:
     UPROPERTY(EditDefaultsOnly, Category = "Weapon")
 	TSubclassOf<AWeaponBase> WeaponBPclass;
 
-    //위젯
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
-    TSubclassOf<UInventoryWidget> InventoryClass; //어떤 위젯 사용할것인지에 대한 변수
+    ////위젯
+    //UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
+    //TSubclassOf<UInventoryWidget> InventoryClass; //어떤 위젯 사용할것인지에 대한 변수
 
-    UPROPERTY()
-    UInventoryWidget* InventoryWidget;
+    //UPROPERTY()
+    //UInventoryWidget* InventoryWidget;
 };

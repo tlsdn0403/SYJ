@@ -54,12 +54,12 @@ void AFPSBaseCharacter::BeginPlay()
 	// 디버그 메시지를 5초간 표시
 	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("We are using FPSCharacter."));
   
-    if (InventoryClass)
-    {
-        InventoryWidget = Cast<UInventoryWidget>(CreateWidget(GetWorld(), InventoryClass)); //월드 기준으로 생성됨. 이 부분이 문제.
-        InventoryWidget->AddToViewport();
+    //if (InventoryClass)
+    //{
+    //    InventoryWidget = Cast<UInventoryWidget>(CreateWidget(GetWorld(), InventoryClass)); //월드 기준으로 생성됨. 이 부분이 문제.
+    //    InventoryWidget->AddToViewport();
 
-    }
+    //}
 }
 
 // Called every frame
@@ -69,29 +69,29 @@ void AFPSBaseCharacter::Tick(float DeltaTime)
 
 }
 
-// Called to bind functionality to input
-void AFPSBaseCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
-{
-	Super::SetupPlayerInputComponent(PlayerInputComponent);
-
-
-    // movement 바인딩을 구성
-    PlayerInputComponent->BindAxis("MoveForward", this, &AFPSBaseCharacter::MoveForward);
-    PlayerInputComponent->BindAxis("MoveRight", this, &AFPSBaseCharacter::MoveRight);
-
-    // look 바인딩을 구성
-    PlayerInputComponent->BindAxis("Turn", this, &AFPSBaseCharacter::AddControllerYawInput);
-    PlayerInputComponent->BindAxis("LookUp", this, &AFPSBaseCharacter::AddControllerPitchInput);
-
-    // action 바인딩을 구성
-    PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &AFPSBaseCharacter::StartJump);
-    PlayerInputComponent->BindAction("Jump", IE_Released, this, &AFPSBaseCharacter::StopJump);
-
-	// Fire 액션 바인딩을 구성
-    PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &AFPSBaseCharacter::Fire);
-
-    PlayerInputComponent->BindKey(EKeys::One, IE_Pressed, this, &AFPSBaseCharacter::OnPress1);
-}
+//// Called to bind functionality to input
+//void AFPSBaseCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
+//{
+//	Super::SetupPlayerInputComponent(PlayerInputComponent);
+//
+//
+//    // movement 바인딩을 구성
+//    PlayerInputComponent->BindAxis("MoveForward", this, &AFPSBaseCharacter::MoveForward);
+//    PlayerInputComponent->BindAxis("MoveRight", this, &AFPSBaseCharacter::MoveRight);
+//
+//    // look 바인딩을 구성
+//    PlayerInputComponent->BindAxis("Turn", this, &AFPSBaseCharacter::AddControllerYawInput);
+//    PlayerInputComponent->BindAxis("LookUp", this, &AFPSBaseCharacter::AddControllerPitchInput);
+//
+//    // action 바인딩을 구성
+//    PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &AFPSBaseCharacter::StartJump);
+//    PlayerInputComponent->BindAction("Jump", IE_Released, this, &AFPSBaseCharacter::StopJump);
+//
+//	// Fire 액션 바인딩을 구성
+//    PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &AFPSBaseCharacter::Fire);
+//
+//    PlayerInputComponent->BindKey(EKeys::One, IE_Pressed, this, &AFPSBaseCharacter::OnPress1);
+//}
 
 void AFPSBaseCharacter::MoveForward(float Value)
 {
@@ -124,13 +124,5 @@ void AFPSBaseCharacter::Fire()
     {
         CurrentWeapon->Fire();
         return;
-    }
-}
-
-void AFPSBaseCharacter::OnPress1()
-{
-    if (InventoryWidget)
-    {
-        InventoryWidget->PlayAin_Slot(0); // 0번 슬롯
     }
 }

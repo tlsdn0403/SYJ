@@ -17,6 +17,18 @@ void AAIZombieController::Tick(float DeltaSeconds)
 
 	bool IsLineOfSightTo = LineOfSightTo(PlayerPawn);
 
+	FVector Forward = GetPawn()->GetActorForwardVector();
+	FVector TargetDir = (PlayerPawn->GetActorLocation() - GetPawn()->GetActorLocation()).GetSafeNormal();
+
+	// 두 벡터의 내적 계산
+	float DotProduct = FVector::DotProduct(Forward, TargetDir);
+
+	// 시야각이 90도 이상인 경우 0.707이 90도에서의 내적값이므로, 0.7로 약간 여유를 둠
+	if (DotProduct < 0.7f) 
+	{
+		IsLineOfSightTo = false;
+	}
+
 	if (IsLineOfSightTo)
 	{
 		MoveToActor(PlayerPawn, 150.f);

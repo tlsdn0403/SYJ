@@ -170,16 +170,16 @@ void ATruck::AddCargoVisual(EItemType ItemType)
 		NewMeshComp->SetupAttachment(CargoOrigin);
 		NewMeshComp->RegisterComponent();
 
-		// 위치 계산 (약간의 랜덤 회전으로 자연스럽게)
+		// 위치 계산 
 		FVector Position = CalculateCargoPosition(LoadedItemVisuals.Num());
 		NewMeshComp->SetRelativeLocation(Position);
 
-		// 약간의 랜덤 회전 (자연스럽게 쌓인 느낌)
+		// 약간의 랜덤 회전 (자연스럽게 쌓이도록?)
 		float RandomYaw = FMath::RandRange(-15.0f, 15.0f);
 		float RandomPitch = FMath::RandRange(-3.0f, 3.0f);
 		NewMeshComp->SetRelativeRotation(FRotator(RandomPitch, RandomYaw, 0.0f));
 
-		// 충돌 비활성화 (시각적 용도만)
+		// 충돌 비활성화 
 		NewMeshComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
 		// 목록에 추가

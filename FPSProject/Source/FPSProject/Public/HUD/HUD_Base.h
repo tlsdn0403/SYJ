@@ -20,6 +20,7 @@ class FPSPROJECT_API AHUD_Base : public AHUD
 public:
 	virtual void BeginPlay() override;
 private:
+
     //인벤토리 위젯
     UPROPERTY(EditAnywhere, Category = "UI")
     TSubclassOf<UInventoryWidget> InventoryClass; //어떤 위젯 사용할것인지에 대한 변수

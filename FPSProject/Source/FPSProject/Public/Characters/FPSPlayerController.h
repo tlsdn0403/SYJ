@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
+#include "InputActionValue.h"
 #include "FPSPlayerController.generated.h"
 
 /**
@@ -11,12 +12,18 @@
  */
 
 class UInventoryWidget;
+
+class UInputMappingContext;
+class UInputAction;
+
 UCLASS()
 class FPSPROJECT_API AFPSPlayerController : public APlayerController
 {
 	GENERATED_BODY()
+
 protected:
 	virtual void BeginPlay() override;
+	virtual void SetupInputComponent() override;
 public:
 	// 슬롯 위젯 배열
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory")
@@ -24,5 +31,18 @@ public:
 
 	UPROPERTY()
 	UInventoryWidget* InventoryW;
+
+
+	// 입력 액션
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
+	UInputMappingContext* PlayerMappingContext;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
+	UInputAction* IA_SelectSlot1;
+
+
+	// 실제 실행 함수
+	UFUNCTION()
+	void Pressed1(const FInputActionValue& InputValue);
 };
 

@@ -9,6 +9,7 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "Components/HealthComponent.h"
 #include "HUD/InventoryWidget.h"
+#include "Characters/FPSPlayerController.h"
 
 // Sets default values
 AFPSBaseCharacter::AFPSBaseCharacter()
@@ -60,6 +61,14 @@ void AFPSBaseCharacter::BeginPlay()
     //    InventoryWidget->AddToViewport();
 
     //}
+    AFPSPlayerController* PC = Cast<AFPSPlayerController>(GetController());
+    if (PC)
+    {
+        if (PC->InventoryW)
+        {
+            PC->InventoryW->AddToViewport();
+        }
+    }
 }
 
 // Called every frame

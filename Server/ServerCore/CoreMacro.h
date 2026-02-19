@@ -13,16 +13,16 @@
 #define WRITE_LOCK_IDX(idx)		WriteLockGuard writeLockGuard_##idx(_locks[idx], typeid(this).name());
 #define WRITE_LOCK				WRITE_LOCK_IDX(0)
 
-//----------------------
-//      Crash
-//----------------------
+/*----------------------
+		Crash
+----------------------*/
 
 #define CRASH(cause)						\
 {											\
 	uint32* crash = nullptr;				\
 	__analysis_assume(crash != nullptr);	\
 	*crash = 0xDEADBEEF;					\
-}											\
+}											
 
 #define ASSERT_CRASH(expr)					\
 {											\
@@ -31,4 +31,4 @@
 		CRASH("ASSERT_CRASH");				\
 		__analysis_assume(expr);			\
 	}										\
-}											\
+}											

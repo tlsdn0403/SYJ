@@ -45,7 +45,7 @@ void Lock::WriteUnlock(const char* name)
 	GDeadLockProfiler->PopLock(name);
 #endif
 
-	// ReadLock 다 풀기전에는 WriteUnlock 불가능.
+	// ReadLock 다 풀기 전에는 WriteUnlock 불가능.
 	if ((_lockFlag.load() & READ_COUNT_MASK) != 0)
 		CRASH("INVALID_UNLOCK_ORDER");
 

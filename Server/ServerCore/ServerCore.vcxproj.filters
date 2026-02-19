@@ -8,13 +8,13 @@
       <UniqueIdentifier>{5611ae26-ddbb-4c46-a11d-5ffeed4cc983}</UniqueIdentifier>
     </Filter>
     <Filter Include="Main">
-      <UniqueIdentifier>{42e1dfec-4a8c-4959-9e44-264dfe8a9d58}</UniqueIdentifier>
+      <UniqueIdentifier>{1e5ab6df-310f-49dc-834f-408b0477c6ef}</UniqueIdentifier>
     </Filter>
     <Filter Include="Thread">
-      <UniqueIdentifier>{10565c86-b083-4b51-9777-cebc766a67a5}</UniqueIdentifier>
+      <UniqueIdentifier>{7ddfdd3a-cb00-453f-87eb-43ec4a651ce7}</UniqueIdentifier>
     </Filter>
     <Filter Include="Memory">
-      <UniqueIdentifier>{dda6bca1-0cc6-4338-ace6-c76d6aa4062c}</UniqueIdentifier>
+      <UniqueIdentifier>{2aaa39c6-05d8-42af-a86a-b50eb8bf2bf8}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -39,13 +39,37 @@
     <ClInclude Include="ThreadManager.h">
       <Filter>Thread</Filter>
     </ClInclude>
-    <ClInclude Include="DeadLockProfiler.h">
-      <Filter>Thread</Filter>
-    </ClInclude>
     <ClInclude Include="Lock.h">
       <Filter>Thread</Filter>
     </ClInclude>
+    <ClInclude Include="DeadLockProfiler.h">
+      <Filter>Thread</Filter>
+    </ClInclude>
+    <ClInclude Include="RefCounting.h">
+      <Filter>Memory</Filter>
+    </ClInclude>
+    <ClInclude Include="Allocator.h">
+      <Filter>Memory</Filter>
+    </ClInclude>
+    <ClInclude Include="Memory.h">
+      <Filter>Memory</Filter>
+    </ClInclude>
+    <ClInclude Include="Container.h">
+      <Filter>Memory</Filter>
+    </ClInclude>
+    <ClInclude Include="MemoryPool.h">
+      <Filter>Memory</Filter>
+    </ClInclude>
+    <ClInclude Include="ObjectPool.h">
+      <Filter>Memory</Filter>
+    </ClInclude>
+    <ClInclude Include="TypeCast.h">
+      <Filter>Memory</Filter>
+    </ClInclude>
     <ClInclude Include="NetAddress.h">
+      <Filter>Network</Filter>
+    </ClInclude>
+    <ClInclude Include="SocketUtils.h">
       <Filter>Network</Filter>
     </ClInclude>
     <ClInclude Include="IocpCore.h">
@@ -60,29 +84,8 @@
     <ClInclude Include="Session.h">
       <Filter>Network</Filter>
     </ClInclude>
-    <ClInclude Include="SocketUtils.h">
+    <ClInclude Include="Service.h">
       <Filter>Network</Filter>
-    </ClInclude>
-    <ClInclude Include="Allocator.h">
-      <Filter>Memory</Filter>
-    </ClInclude>
-    <ClInclude Include="Container.h">
-      <Filter>Memory</Filter>
-    </ClInclude>
-    <ClInclude Include="Memory.h">
-      <Filter>Memory</Filter>
-    </ClInclude>
-    <ClInclude Include="MemoryPool.h">
-      <Filter>Memory</Filter>
-    </ClInclude>
-    <ClInclude Include="ObjectPool.h">
-      <Filter>Memory</Filter>
-    </ClInclude>
-    <ClInclude Include="RefCounting.h">
-      <Filter>Memory</Filter>
-    </ClInclude>
-    <ClInclude Include="TypeCast.h">
-      <Filter>Memory</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -101,13 +104,28 @@
     <ClCompile Include="ThreadManager.cpp">
       <Filter>Thread</Filter>
     </ClCompile>
-    <ClCompile Include="DeadLockProfiler.cpp">
-      <Filter>Thread</Filter>
-    </ClCompile>
     <ClCompile Include="Lock.cpp">
       <Filter>Thread</Filter>
     </ClCompile>
+    <ClCompile Include="DeadLockProfiler.cpp">
+      <Filter>Thread</Filter>
+    </ClCompile>
+    <ClCompile Include="RefCounting.cpp">
+      <Filter>Memory</Filter>
+    </ClCompile>
+    <ClCompile Include="Allocator.cpp">
+      <Filter>Memory</Filter>
+    </ClCompile>
+    <ClCompile Include="Memory.cpp">
+      <Filter>Memory</Filter>
+    </ClCompile>
+    <ClCompile Include="MemoryPool.cpp">
+      <Filter>Memory</Filter>
+    </ClCompile>
     <ClCompile Include="NetAddress.cpp">
+      <Filter>Network</Filter>
+    </ClCompile>
+    <ClCompile Include="SocketUtils.cpp">
       <Filter>Network</Filter>
     </ClCompile>
     <ClCompile Include="IocpCore.cpp">
@@ -122,20 +140,8 @@
     <ClCompile Include="Session.cpp">
       <Filter>Network</Filter>
     </ClCompile>
-    <ClCompile Include="SocketUtils.cpp">
+    <ClCompile Include="Service.cpp">
       <Filter>Network</Filter>
-    </ClCompile>
-    <ClCompile Include="Allocator.cpp">
-      <Filter>Memory</Filter>
-    </ClCompile>
-    <ClCompile Include="Memory.cpp">
-      <Filter>Memory</Filter>
-    </ClCompile>
-    <ClCompile Include="MemoryPool.cpp">
-      <Filter>Memory</Filter>
-    </ClCompile>
-    <ClCompile Include="RefCounting.cpp">
-      <Filter>Memory</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

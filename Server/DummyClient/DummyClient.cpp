@@ -87,10 +87,10 @@ int main()
 
 		this_thread::sleep_for(1s);
 	}
-
+	
 	// 소켓 리소스 반환
 	::closesocket(clientSocket);
-
+ 
 	// 윈속 종료
 	::WSACleanup();
 }

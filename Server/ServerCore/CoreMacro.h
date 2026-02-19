@@ -3,7 +3,7 @@
 #define OUT
 
 /*----------------------
-		  Lock
+          Lock
 ----------------------*/
 
 #define USE_MANY_LOCKS(count)	Lock _locks[count];
@@ -14,7 +14,7 @@
 #define WRITE_LOCK				WRITE_LOCK_IDX(0)
 
 /*----------------------
-		Crash
+        Crash
 ----------------------*/
 
 #define CRASH(cause)						\

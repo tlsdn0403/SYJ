@@ -5,9 +5,9 @@
 #include "DeadLockProfiler.h"
 #include "SocketUtils.h"
 
-ThreadManager* GThreadManager = nullptr;
-Memory* GMemory = nullptr;
-DeadLockProfiler* GDeadLockProfiler = nullptr;
+ThreadManager*		GThreadManager = nullptr;
+Memory*				GMemory = nullptr;
+DeadLockProfiler*	GDeadLockProfiler = nullptr;
 
 class CoreGlobal
 {

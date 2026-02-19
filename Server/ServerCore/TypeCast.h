@@ -13,7 +13,7 @@ struct TypeList<T, U>
 };
 
 template<typename T, typename... U>
-struct TypeList<T, U...>
+struct TypeList<T, U...>	
 {
 	using Head = T;
 	using Tail = TypeList<U...>;

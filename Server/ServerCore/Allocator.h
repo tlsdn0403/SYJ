@@ -17,7 +17,7 @@ public:
 
 class StompAllocator
 {
-	enum { PAGE_SIZE = 0x1000 };
+	enum {PAGE_SIZE = 0x1000 };
 public:
 	static void* Alloc(int32 size);
 	static void Release(void* ptr);
@@ -44,7 +44,7 @@ class StlAllocator
 public:
 	using value_type = T;
 
-	StlAllocator() {}
+	StlAllocator(){}
 
 	template<typename Other>
 	StlAllocator(const StlAllocator<Other>&) {}

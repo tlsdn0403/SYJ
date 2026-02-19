@@ -8,7 +8,7 @@
 void DeadLockProfiler::PushLock(const char* name)
 {
 	LockGuard guard(_lock);
-
+	
 	// 아이디를 찾거나 발급한다.
 	int32 lockId = 0;
 

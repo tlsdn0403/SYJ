@@ -35,7 +35,7 @@ template<typename T>
 class TSharedPtr
 {
 public:
-	TSharedPtr() {}
+	TSharedPtr(){} 
 	TSharedPtr(T* ptr) { Set(ptr); }
 
 	// บนป็

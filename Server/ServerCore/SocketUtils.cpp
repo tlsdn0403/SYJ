@@ -30,7 +30,7 @@ void SocketUtils::Clear()
 bool SocketUtils::BindWindowsFunction(SOCKET socket, GUID guid, LPVOID* fn)
 {
 	DWORD bytes = 0;
-	return SOCKET_ERROR != ::WSAIoctl(socket, SIO_GET_EXTENSION_FUNCTION_POINTER, &guid,
+	return SOCKET_ERROR != ::WSAIoctl(socket, SIO_GET_EXTENSION_FUNCTION_POINTER, &guid, 
 		sizeof(guid), fn, sizeof(*fn), OUT & bytes, NULL, NULL);
 }
 

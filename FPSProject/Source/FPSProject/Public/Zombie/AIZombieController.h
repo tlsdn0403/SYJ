@@ -22,4 +22,8 @@ protected:
 
 public:
 	APawn* PlayerPawn;
+
+private:
+	UPROPERTY(EditAnyWhere)
+	class UBehaviorTree* AIBhaviorTree;
 };

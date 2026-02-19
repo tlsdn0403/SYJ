@@ -2,18 +2,31 @@
 
 
 #include "Zombie/AIZombieController.h"
+#include "BehaviorTree/BehaviorTree.h"
+#include "BehaviorTree/BlackboardComponent.h"
 #include "Kismet/GameplayStatics.h"
 
 
 void AAIZombieController::BeginPlay()
 {
 	Super::BeginPlay();
+	PlayerPawn = UGameplayStatics::GetPlayerPawn(GetWorld(), 0.f);
+
+	if(AIBhaviorTree)
+	{
+		RunBehaviorTree(AIBhaviorTree);
+	}
+	// 플레이어 위치정보 키값에 저장
+	GetBlackboardComponent()->SetValueAsVector(TEXT("PlayerLocation"),PlayerPawn->GetActorLocation());
+
+	// 좀비 위치정보 키값에 저장
+	GetBlackboardComponent()->SetValueAsVector(TEXT("PawnLocation"), GetPawn()->GetActorLocation());
+
 }
 
 void AAIZombieController::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
-	PlayerPawn = UGameplayStatics::GetPlayerPawn(GetWorld(), 0.f);
 
 	bool IsLineOfSightTo = LineOfSightTo(PlayerPawn);
 
@@ -31,12 +44,13 @@ void AAIZombieController::Tick(float DeltaSeconds)
 
 	if (IsLineOfSightTo)
 	{
-		MoveToActor(PlayerPawn, 150.f);
+		GetBlackboardComponent()->SetValueAsVector(TEXT("PlayerLocation"), PlayerPawn->GetActorLocation());
+
 		SetFocus(PlayerPawn);
 	}
 	else
 	{
-		ClearFocus(EAIFocusPriority::Gameplay);
+		GetBlackboardComponent()->ClearValue(TEXT("PlayerLocation"));
 		StopMovement();
 	}
 	

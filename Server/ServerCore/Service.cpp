@@ -3,19 +3,18 @@
 #include "Session.h"
 #include "Listener.h"
 
-/*-------------------
-	   Service
--------------------*/
+/*-------------
+	Service
+--------------*/
 
 Service::Service(ServiceType type, NetAddress address, IocpCoreRef core, SessionFactory factory, int32 maxSessionCount)
-	:_type(type), _netAddress(address), _iocpCore(core), _sessionFactory(factory), _maxSessionCount(maxSessionCount)
+	: _type(type), _netAddress(address), _iocpCore(core), _sessionFactory(factory), _maxSessionCount(maxSessionCount)
 {
 
 }
 
 Service::~Service()
 {
-
 }
 
 void Service::CloseService()
@@ -48,27 +47,33 @@ void Service::ReleaseSession(SessionRef session)
 	_sessionCount--;
 }
 
-/*-------------------
-	 ClientService
--------------------*/
+/*-----------------
+	ClientService
+------------------*/
 
 ClientService::ClientService(NetAddress targetAddress, IocpCoreRef core, SessionFactory factory, int32 maxSessionCount)
-	:Service(ServiceType::Client, targetAddress, core, factory, maxSessionCount)
+	: Service(ServiceType::Client, targetAddress, core, factory, maxSessionCount)
 {
 }
 
 bool ClientService::Start()
 {
-	// TODO
+	if (CanStart() == false)
+		return false;
+
+	const int32 sessionCount = GetMaxSessionCount();
+	for (int32 i = 0; i < sessionCount; i++)
+	{
+		SessionRef session = CreateSession();
+		if (session->Connect() == false)
+			return false;
+	}
+
 	return true;
 }
 
-/*-------------------
-	ServerService
--------------------*/
-
 ServerService::ServerService(NetAddress address, IocpCoreRef core, SessionFactory factory, int32 maxSessionCount)
-	:Service(ServiceType::Server, address, core, factory, maxSessionCount)
+	: Service(ServiceType::Server, address, core, factory, maxSessionCount)
 {
 }
 
@@ -91,5 +96,6 @@ bool ServerService::Start()
 void ServerService::CloseService()
 {
 	// TODO
+
 	Service::CloseService();
 }

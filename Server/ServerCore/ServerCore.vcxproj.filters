@@ -2,19 +2,19 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <Filter Include="Network">
-      <UniqueIdentifier>{96610226-b0ff-4b3a-859b-f94e4beec0d1}</UniqueIdentifier>
+      <UniqueIdentifier>{44015ff7-f5fe-4ecb-9510-ba792e92d6c2}</UniqueIdentifier>
     </Filter>
     <Filter Include="Utils">
-      <UniqueIdentifier>{5611ae26-ddbb-4c46-a11d-5ffeed4cc983}</UniqueIdentifier>
+      <UniqueIdentifier>{1c94faf8-d38f-44b3-b3f3-39ba3c6951e1}</UniqueIdentifier>
     </Filter>
     <Filter Include="Main">
-      <UniqueIdentifier>{1e5ab6df-310f-49dc-834f-408b0477c6ef}</UniqueIdentifier>
+      <UniqueIdentifier>{c0b75513-7471-4500-a833-2626c5040f9c}</UniqueIdentifier>
     </Filter>
     <Filter Include="Thread">
-      <UniqueIdentifier>{7ddfdd3a-cb00-453f-87eb-43ec4a651ce7}</UniqueIdentifier>
+      <UniqueIdentifier>{0a8a1a96-3bcc-4f5b-ac25-3388457fad31}</UniqueIdentifier>
     </Filter>
     <Filter Include="Memory">
-      <UniqueIdentifier>{2aaa39c6-05d8-42af-a86a-b50eb8bf2bf8}</UniqueIdentifier>
+      <UniqueIdentifier>{903143c9-12f7-436d-8004-490b4f0d31bf}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -87,6 +87,9 @@
     <ClInclude Include="Service.h">
       <Filter>Network</Filter>
     </ClInclude>
+    <ClInclude Include="RecvBuffer.h">
+      <Filter>Network</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="CorePch.cpp">
@@ -141,6 +144,9 @@
       <Filter>Network</Filter>
     </ClCompile>
     <ClCompile Include="Service.cpp">
+      <Filter>Network</Filter>
+    </ClCompile>
+    <ClCompile Include="RecvBuffer.cpp">
       <Filter>Network</Filter>
     </ClCompile>
   </ItemGroup>

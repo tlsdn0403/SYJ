@@ -2,9 +2,9 @@
 #include "Memory.h"
 #include "MemoryPool.h"
 
-/*------------------
-	   Memory
-------------------*/
+/*-------------
+	Memory
+---------------*/
 
 Memory::Memory()
 {
@@ -71,10 +71,11 @@ void* Memory::Allocate(int32 size)
 	}
 	else
 	{
-		// 메모리풀에서 꺼내온다
+		// 메모리 풀에서 꺼내온다
 		header = _poolTable[allocSize]->Pop();
 	}
-#endif
+#endif	
+
 	return MemoryHeader::AttachHeader(header, allocSize);
 }
 
@@ -98,5 +99,5 @@ void Memory::Release(void* ptr)
 		// 메모리 풀에 반납한다
 		_poolTable[allocSize]->Push(header);
 	}
-#endif
+#endif	
 }

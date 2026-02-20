@@ -1,18 +1,16 @@
 ﻿#include "pch.h"
-#include <iostream>
-#include "CorePch.h"
-#include <atomic>
-#include <mutex>
-#include <Windows.h>
-#include <future>
 #include "ThreadManager.h"
-
 #include "Service.h"
 #include "Session.h"
 
 class GameSession : public Session
 {
 public:
+	~GameSession()
+	{
+		cout << "~GameSession" << endl;
+	}
+
 	virtual int32 OnRecv(BYTE* buffer, int32 len) override
 	{
 		// Echo
@@ -22,7 +20,7 @@ public:
 	}
 
 	virtual void OnSend(int32 len) override
-	{
+	{ 
 		cout << "OnSend Len = " << len << endl;
 	}
 };
@@ -30,9 +28,9 @@ public:
 int main()
 {
 	ServerServiceRef service = MakeShared<ServerService>(
-		NetAddress(L"127.0.0.1", 7777), 
+		NetAddress(L"127.0.0.1", 7777),
 		MakeShared<IocpCore>(),
-		MakeShared<GameSession>,	// TODO : SessionManager 등
+		MakeShared<GameSession>, // TODO : SessionManager 등
 		100);
 
 	ASSERT_CRASH(service->Start());
@@ -44,9 +42,9 @@ int main()
 				while (true)
 				{
 					service->GetIocpCore()->Dispatch();
-				}
+				}				
 			});
-	}
+	}	
 
 	GThreadManager->Join();
 }

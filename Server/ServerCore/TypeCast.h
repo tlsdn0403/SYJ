@@ -13,7 +13,7 @@ struct TypeList<T, U>
 };
 
 template<typename T, typename... U>
-struct TypeList<T, U...>	
+struct TypeList<T, U...>
 {
 	using Head = T;
 	using Tail = TypeList<U...>;
@@ -54,7 +54,7 @@ struct TypeAt<TypeList<Head, Tail...>, index>
 };
 #pragma endregion
 
-#pragma region IndexOf
+#pragma  region IndexOf
 template<typename TL, typename T>
 struct IndexOf;
 
@@ -102,6 +102,7 @@ public:
 #pragma endregion
 
 #pragma region TypeCast
+
 template<int32 v>
 struct Int2Type
 {
@@ -174,6 +175,7 @@ To TypeCast(From* ptr)
 	return nullptr;
 }
 
+
 template<typename To, typename From>
 shared_ptr<To> TypeCast(shared_ptr<From> ptr)
 {
@@ -198,6 +200,7 @@ bool CanCast(From* ptr)
 	return TypeConversion<TL>::CanConvert(ptr->_typeId, IndexOf<TL, remove_pointer_t<To>>::value);
 }
 
+
 template<typename To, typename From>
 bool CanCast(shared_ptr<From> ptr)
 {
@@ -207,7 +210,8 @@ bool CanCast(shared_ptr<From> ptr)
 	using TL = typename From::TL;
 	return TypeConversion<TL>::CanConvert(ptr->_typeId, IndexOf<TL, remove_pointer_t<To>>::value);
 }
+
 #pragma endregion
 
-#define DECLARE_TL using TL = TL; int32 _typeId;
-#define INIT_TL(Type) _typeId = IndexOf<TL, Type>::value;
+#define DECLARE_TL		using TL = TL; int32 _typeId;
+#define INIT_TL(Type)	_typeId = IndexOf<TL, Type>::value;

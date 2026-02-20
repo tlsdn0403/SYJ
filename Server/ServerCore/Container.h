@@ -36,10 +36,11 @@ template<typename Type, typename Container = Vector<Type>, typename Pred = less<
 using PriorityQueue = priority_queue<Type, Container, Pred>;
 
 using String = basic_string<char, char_traits<char>, StlAllocator<char>>;
+
 using WString = basic_string<wchar_t, char_traits<wchar_t>, StlAllocator<wchar_t>>;
 
 template<typename Key, typename Type, typename Hasher = hash<Key>, typename KeyEq = equal_to<Key>>
 using HashMap = unordered_map<Key, Type, Hasher, KeyEq, StlAllocator<pair<const Key, Type>>>;
 
-template<typename Key, typename Type, typename Hasher = hash<Key>, typename KeyEq = equal_to<Key>>
+template<typename Key, typename Hasher = hash<Key>, typename KeyEq = equal_to<Key>>
 using HashSet = unordered_set<Key, Hasher, KeyEq, StlAllocator<Key>>;

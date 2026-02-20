@@ -1,14 +1,14 @@
 #include "pch.h"
 #include "DeadLockProfiler.h"
 
-/*-----------------------
+/*--------------------
 	DeadLockProfiler
-------------------------*/
+---------------------*/
 
 void DeadLockProfiler::PushLock(const char* name)
 {
 	LockGuard guard(_lock);
-	
+
 	// 아이디를 찾거나 발급한다.
 	int32 lockId = 0;
 
@@ -24,10 +24,10 @@ void DeadLockProfiler::PushLock(const char* name)
 		lockId = findIt->second;
 	}
 
-	// 잡고 있는 락이 있었다면 
+	// 잡고 있는 락이 있었다면
 	if (_lockStack.empty() == false)
 	{
-		// 기존에 발견되지 않은 케이스라면 데드락 여부 다시 확인한다. 
+		// 기존에 발견되지 않은 케이스라면 데드락 여부 다시 확인한다.
 		const int32 prevId = _lockStack.top();
 		if (lockId != prevId)
 		{
@@ -48,7 +48,7 @@ void DeadLockProfiler::PopLock(const char* name)
 	LockGuard guard(_lock);
 
 	if (_lockStack.empty())
-		CRASH("MULTIPLE_UNLOCK_");
+		CRASH("MULTIPLE_UNLOCK");
 
 	int32 lockId = _nameToId[name];
 	if (_lockStack.top() != lockId)
@@ -104,7 +104,7 @@ void DeadLockProfiler::Dfs(int32 here)
 		if (_discoveredOrder[here] < _discoveredOrder[there])
 			continue;
 
-		// 순방향 아니고, Dfs(there)가 아직 종료하지 않았다면, there는 here의 선조이다. (역방향 간선)
+		// 순방향이 아니고, Dfs(there)가 아직 종료하지 않았다면, there는 here의 선조이다. (역방향 간선)
 		if (_finished[there] == false)
 		{
 			printf("%s -> %s\n", _idToName[here], _idToName[there]);
@@ -118,9 +118,9 @@ void DeadLockProfiler::Dfs(int32 here)
 					break;
 			}
 
-			CRASH("DEADLOCK_DETECTED")
+			CRASH("DEADLOCK_DETECTED");
 		}
-
-		_finished[here] = true;
 	}
+
+	_finished[here] = true;
 }

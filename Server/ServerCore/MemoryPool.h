@@ -5,9 +5,9 @@ enum
 	SLIST_ALIGNMENT = 16
 };
 
-/*---------------------
-	  MemoryHeader
----------------------*/
+/*-----------------
+	MemoryHeader
+------------------*/
 
 DECLSPEC_ALIGN(SLIST_ALIGNMENT)
 struct MemoryHeader : public SLIST_ENTRY
@@ -17,7 +17,7 @@ struct MemoryHeader : public SLIST_ENTRY
 
 	static void* AttachHeader(MemoryHeader* header, int32 size)
 	{
-		new(header)MemoryHeader(size);	// placement new
+		new(header)MemoryHeader(size); // placement new
 		return reinterpret_cast<void*>(++header);
 	}
 
@@ -31,9 +31,9 @@ struct MemoryHeader : public SLIST_ENTRY
 	// TODO : 필요한 추가 정보
 };
 
-/*---------------------
-	  MemoryPool
----------------------*/
+/*-----------------
+	MemoryPool
+------------------*/
 
 DECLSPEC_ALIGN(SLIST_ALIGNMENT)
 class MemoryPool
@@ -42,8 +42,8 @@ public:
 	MemoryPool(int32 allocSize);
 	~MemoryPool();
 
-	void Push(MemoryHeader* ptr);
-	MemoryHeader* Pop();
+	void			Push(MemoryHeader* ptr);
+	MemoryHeader*	Pop();
 
 private:
 	SLIST_HEADER	_header;

@@ -5,9 +5,9 @@
 #include "Session.h"
 #include "Service.h"
 
-/*----------------
-	 Listener
-----------------*/
+/*--------------
+	Listener
+---------------*/
 
 Listener::~Listener()
 {
@@ -65,7 +65,6 @@ void Listener::CloseSocket()
 
 HANDLE Listener::GetHandle()
 {
-
 	return reinterpret_cast<HANDLE>(_socket);
 }
 
@@ -84,12 +83,12 @@ void Listener::RegisterAccept(AcceptEvent* acceptEvent)
 	acceptEvent->session = session;
 
 	DWORD bytesReceived = 0;
-	if (false == SocketUtils::AcceptEx(_socket, session->GetSocket(), session->_recvBuffer, 0, sizeof(SOCKADDR_IN) + 16, sizeof(SOCKADDR_IN) + 16, OUT & bytesReceived,	static_cast<LPOVERLAPPED>(acceptEvent)))
+	if (false == SocketUtils::AcceptEx(_socket, session->GetSocket(), session->_recvBuffer.WritePos(), 0, sizeof(SOCKADDR_IN) + 16, sizeof(SOCKADDR_IN) + 16, OUT & bytesReceived, static_cast<LPOVERLAPPED>(acceptEvent)))
 	{
 		const int32 errorCode = ::WSAGetLastError();
 		if (errorCode != WSA_IO_PENDING)
 		{
-			// 일단 다시 걸어준다
+			// 일단 다시 Accept 걸어준다
 			RegisterAccept(acceptEvent);
 		}
 	}
@@ -99,7 +98,7 @@ void Listener::ProcessAccept(AcceptEvent* acceptEvent)
 {
 	SessionRef session = acceptEvent->session;
 
-	if (false == SocketUtils::SetUpdateAccpetSocket(session->GetSocket(), _socket))
+	if (false == SocketUtils::SetUpdateAcceptSocket(session->GetSocket(), _socket))
 	{
 		RegisterAccept(acceptEvent);
 		return;

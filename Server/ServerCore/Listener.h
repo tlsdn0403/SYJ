@@ -5,9 +5,9 @@
 class AcceptEvent;
 class ServerService;
 
-/*----------------
-	 Listener
-----------------*/
+/*--------------
+	Listener
+---------------*/
 
 class Listener : public IocpObject
 {
@@ -26,7 +26,7 @@ public:
 	virtual void Dispatch(class IocpEvent* iocpEvent, int32 numOfBytes = 0) override;
 
 private:
-	/* 수신관련 */
+	/* 수신 관련 */
 	void RegisterAccept(AcceptEvent* acceptEvent);
 	void ProcessAccept(AcceptEvent* acceptEvent);
 
@@ -35,3 +35,4 @@ protected:
 	Vector<AcceptEvent*> _acceptEvents;
 	ServerServiceRef _service;
 };
+

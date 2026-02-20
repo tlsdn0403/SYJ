@@ -2,9 +2,9 @@
 #include "Allocator.h"
 #include "Memory.h"
 
-/*------------------------
+/*-------------------
 	BaseAllocator
-------------------------*/
+-------------------*/
 
 void* BaseAllocator::Alloc(int32 size)
 {
@@ -16,9 +16,9 @@ void BaseAllocator::Release(void* ptr)
 	::free(ptr);
 }
 
-/*------------------------
-	  StompAllocator
-------------------------*/
+/*-------------------
+	StompAllocator
+-------------------*/
 
 void* StompAllocator::Alloc(int32 size)
 {
@@ -35,9 +35,9 @@ void StompAllocator::Release(void* ptr)
 	::VirtualFree(reinterpret_cast<void*>(baseAddress), 0, MEM_RELEASE);
 }
 
-/*------------------------
-	  PoolAllocator
-------------------------*/
+/*-------------------
+	PoolAllocator
+-------------------*/
 
 void* PoolAllocator::Alloc(int32 size)
 {

@@ -1,14 +1,14 @@
 #pragma once
 
-/*--------------------
-	RefCountable
---------------------*/
+/*---------------
+   RefCountable
+----------------*/
 
 class RefCountable
 {
 public:
-	RefCountable() : _refCount(1) {}
-	virtual ~RefCountable() {}
+	RefCountable() : _refCount(1) { }
+	virtual ~RefCountable() { }
 
 	int32 GetRefCount() { return _refCount; }
 
@@ -16,7 +16,7 @@ public:
 	int32 ReleaseRef()
 	{
 		int32 refCount = --_refCount;
-		if (_refCount == 0)
+		if (refCount == 0)
 		{
 			delete this;
 		}
@@ -27,15 +27,15 @@ protected:
 	atomic<int32> _refCount;
 };
 
-/*--------------------
-	   SharedPtr
---------------------*/
+/*---------------
+   SharedPtr
+----------------*/
 
 template<typename T>
 class TSharedPtr
 {
 public:
-	TSharedPtr(){} 
+	TSharedPtr() { }
 	TSharedPtr(T* ptr) { Set(ptr); }
 
 	// 복사
@@ -52,7 +52,8 @@ public:
 	// 복사 연산자
 	TSharedPtr& operator=(const TSharedPtr& rhs)
 	{
-		if (_ptr != rhs._ptr) {
+		if (_ptr != rhs._ptr)
+		{
 			Release();
 			Set(rhs._ptr);
 		}
@@ -68,16 +69,16 @@ public:
 		return *this;
 	}
 
-	bool operator==(const TSharedPtr& rhs) const { return _ptr == rhs._ptr; }
-	bool operator==(T* ptr) const { return _ptr == ptr; }
-	bool operator!=(const TSharedPtr& rhs) const { return _ptr == rhs._ptr; }
-	bool operator!=(T* ptr) const { return _ptr == ptr; }
-	bool operator<(const TSharedPtr& rhs) const { return _ptr < rhs._ptr; }
-	T* operator*() { return _ptr; }
-	const T* operator*() const { return _ptr; }
-	operator T* () const { return _ptr; }
-	T* operator->() { return _ptr; }
-	const T* operator->() const { return _ptr; }
+	bool		operator==(const TSharedPtr& rhs) const { return _ptr == rhs._ptr; }
+	bool		operator==(T* ptr) const { return _ptr == ptr; }
+	bool		operator!=(const TSharedPtr& rhs) const { return _ptr != rhs._ptr; }
+	bool		operator!=(T* ptr) const { return _ptr != ptr; }
+	bool		operator<(const TSharedPtr& rhs) const { return _ptr < rhs._ptr; }
+	T*			operator*() { return _ptr; }
+	const T*	operator*() const { return _ptr; }
+				operator T* () const { return _ptr; }
+	T*			operator->() { return _ptr; }
+	const T*	operator->() const { return _ptr; }
 
 	bool IsNull() { return _ptr == nullptr; }
 

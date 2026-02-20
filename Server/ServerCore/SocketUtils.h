@@ -1,9 +1,9 @@
 #pragma once
 #include "NetAddress.h"
 
-/*---------------------
-	  SocketUtils
----------------------*/
+/*----------------
+	SocketUtils
+-----------------*/
 
 class SocketUtils
 {
@@ -24,7 +24,7 @@ public:
 	static bool SetRecvBufferSize(SOCKET socket, int32 size);
 	static bool SetSendBufferSize(SOCKET socket, int32 size);
 	static bool SetTcpNoDelay(SOCKET socket, bool flag);
-	static bool SetUpdateAccpetSocket(SOCKET socket, SOCKET listenSocket);
+	static bool SetUpdateAcceptSocket(SOCKET socket, SOCKET listenSocket);
 
 	static bool Bind(SOCKET socket, NetAddress netAddr);
 	static bool BindAnyAddress(SOCKET socket, uint16 port);

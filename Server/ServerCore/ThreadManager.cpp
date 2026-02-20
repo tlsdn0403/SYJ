@@ -5,7 +5,7 @@
 
 /*------------------
 	ThreadManager
-------------------*/
+-------------------*/
 
 ThreadManager::ThreadManager()
 {
@@ -32,7 +32,7 @@ void ThreadManager::Launch(function<void(void)> callback)
 
 void ThreadManager::Join()
 {
-	for (std::thread& t : _threads)
+	for (thread& t : _threads)
 	{
 		if (t.joinable())
 			t.join();
@@ -50,4 +50,3 @@ void ThreadManager::DestroyTLS()
 {
 
 }
-

@@ -3,9 +3,9 @@
 
 class MemoryPool;
 
-/*------------------
-	   Memory
-------------------*/
+/*-------------
+	Memory
+---------------*/
 
 class Memory
 {
@@ -20,22 +20,23 @@ public:
 	Memory();
 	~Memory();
 
-	void* Allocate(int32 size);
-	void Release(void* ptr);
+	void*	Allocate(int32 size);
+	void	Release(void* ptr);
 
 private:
 	vector<MemoryPool*> _pools;
 
 	// 메모리 크기 <-> 메모리 풀
-	// 0(1) 빠르게 찾기 위한 테이블
+	// O(1) 빠르게 찾기 위한 테이블
 	MemoryPool* _poolTable[MAX_ALLOC_SIZE + 1];
 };
+
 
 template<typename Type, typename... Args>
 Type* xnew(Args&&... args)
 {
 	Type* memory = static_cast<Type*>(PoolAllocator::Alloc(sizeof(Type)));
-	new(memory)Type(forward<Args>(args)...);	// placement new
+	new(memory)Type(forward<Args>(args)...); // placement new
 	return memory;
 }
 
@@ -49,5 +50,5 @@ void xdelete(Type* obj)
 template<typename Type, typename... Args>
 shared_ptr<Type> MakeShared(Args&&... args)
 {
-	return shared_ptr<Type>{xnew<Type>(forward<Args>(args)...), xdelete<Type>};
+	return shared_ptr<Type>{ xnew<Type>(forward<Args>(args)...), xdelete<Type> };
 }

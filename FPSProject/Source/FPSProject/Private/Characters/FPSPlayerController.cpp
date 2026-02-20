@@ -35,6 +35,10 @@ void AFPSPlayerController::SetupInputComponent()
 	if (EnhancedInput)
 	{
 		EnhancedInput->BindAction(IA_SelectSlot1, ETriggerEvent::Started, this, &AFPSPlayerController::Pressed1);
+		EnhancedInput->BindAction(IA_SelectSlot2, ETriggerEvent::Started, this, &AFPSPlayerController::Pressed2);
+		EnhancedInput->BindAction(IA_SelectSlot3, ETriggerEvent::Started, this, &AFPSPlayerController::Pressed3);
+		EnhancedInput->BindAction(IA_SelectSlot4, ETriggerEvent::Started, this, &AFPSPlayerController::Pressed4);
+		EnhancedInput->BindAction(IA_SelectSlot5, ETriggerEvent::Started, this, &AFPSPlayerController::Pressed5);
 	}
 }
 
@@ -44,4 +48,36 @@ void AFPSPlayerController::Pressed1(const FInputActionValue& Value)
 
 	// 여기서 인벤토리 / 무기 변경 / 슬롯 선택 처리
 	InventoryW->SelectSlot(0); // 예시로 슬롯 1 선택
+}
+
+void AFPSPlayerController::Pressed2(const FInputActionValue& Value)
+{
+	UE_LOG(LogTemp, Warning, TEXT("2 Key Pressed"));
+
+	// 여기서 인벤토리 / 무기 변경 / 슬롯 선택 처리
+	InventoryW->SelectSlot(1); // 예시로 슬롯 1 선택
+}
+
+void AFPSPlayerController::Pressed3(const FInputActionValue& Value)
+{
+	UE_LOG(LogTemp, Warning, TEXT("1 Key Pressed"));
+
+	// 여기서 인벤토리 / 무기 변경 / 슬롯 선택 처리
+	InventoryW->SelectSlot(2); // 예시로 슬롯 1 선택
+}
+
+void AFPSPlayerController::Pressed4(const FInputActionValue& Value)
+{
+	UE_LOG(LogTemp, Warning, TEXT("1 Key Pressed"));
+
+	// 여기서 인벤토리 / 무기 변경 / 슬롯 선택 처리
+	InventoryW->SelectSlot(3); // 예시로 슬롯 1 선택
+}
+
+void AFPSPlayerController::Pressed5(const FInputActionValue& Value)
+{
+	UE_LOG(LogTemp, Warning, TEXT("1 Key Pressed"));
+
+	// 여기서 인벤토리 / 무기 변경 / 슬롯 선택 처리
+	InventoryW->SelectSlot(4); // 예시로 슬롯 1 선택
 }

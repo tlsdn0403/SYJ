@@ -71,14 +71,15 @@ void UInventoryWidget::SelectSlot(int32 slotnum)
 		{
 			if (i == slotnum)
 			{
-				SlotWidgets[i]->Selected=true;
-				SlotWidgets[i]->PlayAni_Select();
+				SlotWidgets[i]->Selected= !SlotWidgets[i]->Selected;
+				//SlotWidgets[i]->PlayAni_Select();
 			}
 			else
 			{
 				SlotWidgets[i]->Selected = false;
-				SlotWidgets[i]->ClearSlot();
+				//SlotWidgets[i]->ClearSlot();
 			}
+				SlotWidgets[i]->PlayAni_Select();
 		}
 	}
 }

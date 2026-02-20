@@ -40,9 +40,33 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
 	UInputAction* IA_SelectSlot1;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
+	UInputAction* IA_SelectSlot2;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
+	UInputAction* IA_SelectSlot3;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
+	UInputAction* IA_SelectSlot4;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
+	UInputAction* IA_SelectSlot5;
+
 
 	// 실제 실행 함수
 	UFUNCTION()
 	void Pressed1(const FInputActionValue& InputValue);
+
+	UFUNCTION()
+	void Pressed2(const FInputActionValue& InputValue);
+
+	UFUNCTION()
+	void Pressed3(const FInputActionValue& InputValue);
+
+	UFUNCTION()
+	void Pressed4(const FInputActionValue& InputValue);
+
+	UFUNCTION()
+	void Pressed5(const FInputActionValue& InputValue);
 };
 

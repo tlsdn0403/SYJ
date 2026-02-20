@@ -39,5 +39,5 @@ public:
 	void ClearSlot();	// ºóÄ­À¸·Î µ¹¸®±â
 
 	void PlayAni_Select();
-
+	void StopAni_Select();
 };

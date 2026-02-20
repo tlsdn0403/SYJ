@@ -35,8 +35,10 @@ void USlotWidget::PlayAni_Select()
 {
 	UE_LOG(LogTemp, Warning, TEXT("PlayAni_Select Called"));
 	UE_LOG(LogTemp, Warning, TEXT("ANIMATION SLOT %p"), this);
-	if (SelectAni)
-	{
-		PlayAnimation(SelectAni);
-	}
+		PlayAnimation(SelectAni,0.f,0);
+}
+
+void USlotWidget::StopAni_Select()
+{
+	PlayAnimation(SelectAni);
 }

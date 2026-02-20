@@ -43,4 +43,5 @@ void AFPSPlayerController::Pressed1(const FInputActionValue& Value)
 	UE_LOG(LogTemp, Warning, TEXT("1 Key Pressed"));
 
 	// 여기서 인벤토리 / 무기 변경 / 슬롯 선택 처리
+	InventoryW->SelectSlot(0); // 예시로 슬롯 1 선택
 }

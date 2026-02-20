@@ -62,3 +62,23 @@ void UInventoryWidget:: PlayAin_Slot(int32 SlotIndex)
 //
 //   // SlotWidgets[Index]->SetItem(IconTexture);
 //}
+
+void UInventoryWidget::SelectSlot(int32 slotnum)
+{
+	for (int32 i = 0; i < SlotWidgets.Num(); ++i)
+	{
+		if (SlotWidgets.IsValidIndex(i) && IsValid(SlotWidgets[i]))
+		{
+			if (i == slotnum)
+			{
+				SlotWidgets[i]->Selected=true;
+				SlotWidgets[i]->PlayAni_Select();
+			}
+			else
+			{
+				SlotWidgets[i]->Selected = false;
+				SlotWidgets[i]->ClearSlot();
+			}
+		}
+	}
+}

@@ -33,6 +33,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Slot")
 	UTexture2D* BaseTexture;	// 이건 UMG에서 그래프 속성 들어가야 뜨는 변수.
 
+	bool Selected{ false };
+
 	void SetItem(UTexture2D* IconTexture);
 	void ClearSlot();	// 빈칸으로 돌리기
 

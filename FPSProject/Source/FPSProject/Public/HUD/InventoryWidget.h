@@ -49,6 +49,7 @@ public:
 	UPROPERTY()
 	TArray<USlotWidget*> SlotWidgets;
 
+	void SelectSlot(int32 slotnum);	// 슬롯 초기화 함수
 	void PlayAin_Slot(int32 SlotIndex);
 	/*UPROPERTY()
 	USlotWidget* SlotW;*/

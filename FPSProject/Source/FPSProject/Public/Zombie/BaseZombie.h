@@ -49,9 +49,18 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Zombie")
     bool IsCrawling() const { return MovementState == EZombieMovementState::Crawling; }
 
+    // 공격 중인지 (AnimBP에서 사용)
+    UFUNCTION(BlueprintCallable, Category = "Zombie")
+    bool IsAttacking() const { return bIsAttacking; }
+
     //좀비 매시
     UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
     USkeletalMeshComponent* ZombieMesh;
+
+    // 좀비 공격
+    void Attack();
+
+
 protected:
     // 체력 컴포넌트 (기존 HealthComponent 재사용)
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
@@ -102,7 +111,10 @@ protected:
     // 하체 뼈인지 확인
     bool IsLegBone(FName BoneName) const;
 
-    // --------------------- 크롤링 관련 설정 ---------------------
+    //---------------------------------------------------------------------------------------------------------
+    // 크롤링 관련 설정 
+    //---------------------------------------------------------------------------------------------------------
+
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zombie|Crawling")
     float CrawlingMaxSpeed = 100.0f;
 
@@ -112,10 +124,31 @@ protected:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zombie|Crawling")
     float CrawlingCapsuleRadius = 30.0f;
 
+    //---------------------------------------------------------------------------------------------------------
+    // 좀비 공격 관련
+    //---------------------------------------------------------------------------------------------------------
 
+    UPROPERTY(BlueprintReadOnly, Category = "Zombie|Attack")
+    bool bIsAttacking = false;
+
+    // 공격 데미지
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zombie|Attack")
+    float AttackDamage = 15.0f;
+
+    // 공격 사거리
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zombie|Attack")
+    float AttackRange = 200.0f;
+
+    // 공격 애니메이션 몽타주 (에디터에서 할당)
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zombie|Attack")
+    UAnimMontage* AttackMontage;
+
+    // 몽타주 끝났을 때 호출
+    UFUNCTION()
+    void OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);
     // 사망 처리
     UFUNCTION(BlueprintCallable, Category = "Zombie")
     void Die();
 
-
+ 
 };

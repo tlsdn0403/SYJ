@@ -40,7 +40,76 @@ void ABaseZombie::Tick(float DeltaTime)
 
 }
 
+void ABaseZombie::Attack()
+{
+    if (!bIsAlive || bIsAttacking) return;
 
+    bIsAttacking = true;
+
+    UE_LOG(LogTemp, Warning, TEXT("Zombie %s Attack!"), *GetName());
+
+    // --- 1. 공격 애니메이션 재생 ---
+    UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+    if (AnimInstance && AttackMontage)
+    {
+        AnimInstance->Montage_Play(AttackMontage, 1.0f);
+
+        // 몽타주 끝나면 OnAttackMontageEnded 호출
+        FOnMontageEnded EndDelegate;
+        EndDelegate.BindUObject(this, &ABaseZombie::OnAttackMontageEnded);
+        AnimInstance->Montage_SetEndDelegate(EndDelegate, AttackMontage);
+    }
+    else
+    {
+        // 몽타주 없으면 바로 데미지 주고 끝
+        // --- 2. 플레이어에게 데미지 ---
+        APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(GetWorld(), 0);
+        if (PlayerPawn)
+        {
+            float Distance = FVector::Dist(GetActorLocation(), PlayerPawn->GetActorLocation());
+            if (Distance <= AttackRange)
+            {
+                UHealthComponent* PlayerHealth = PlayerPawn->FindComponentByClass<UHealthComponent>();
+                if (PlayerHealth)
+                {
+                    PlayerHealth->ApplyDamage(AttackDamage);
+                    UE_LOG(LogTemp, Warning, TEXT("Zombie dealt %f damage!"), AttackDamage);
+                }
+            }
+        }
+        bIsAttacking = false;
+    }
+}
+
+
+void ABaseZombie::OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)
+{
+    // 몽타주가 끝나는 시점에 데미지 적용
+    if (!bInterrupted) // 중단되지 않았으면
+    {
+        APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(GetWorld(), 0);
+        if (PlayerPawn)
+        {
+            float Distance = FVector::Dist(GetActorLocation(), PlayerPawn->GetActorLocation());
+            if (Distance <= AttackRange)
+            {
+                UHealthComponent* PlayerHealth = PlayerPawn->FindComponentByClass<UHealthComponent>();
+                if (PlayerHealth)
+                {
+                    PlayerHealth->ApplyDamage(AttackDamage);
+                    UE_LOG(LogTemp, Warning, TEXT("Zombie dealt %f damage!"), AttackDamage);
+                }
+            }
+            else
+            {
+                UE_LOG(LogTemp, Log, TEXT("Attack missed - player moved away"));
+            }
+        }
+    }
+
+    bIsAttacking = false;
+    UE_LOG(LogTemp, Log, TEXT("Attack Montage Ended"));
+}
 
 
 void ABaseZombie::OnZombieDamaged(float NewHealth, float Damage, const FHitResult& Hit)

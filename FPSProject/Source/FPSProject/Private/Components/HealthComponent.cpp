@@ -38,6 +38,19 @@ void UHealthComponent::PointDamageTaken(AActor* DamagedActor, float Damage, ACon
 	OnDamaged.Broadcast(Health, Damage, DummyHit);
 }
 
+// HitResult 넘겨주지 않는 데미지 함수.
+void UHealthComponent::ApplyDamage(float Damage)
+{
+	if (Damage <= 0.f) return;
+
+	Health -= Damage;
+	Health = FMath::Max(Health, 0.f);  	// 체력 음수 방지
+
+	UE_LOG(LogTemp, Warning, TEXT("ApplyDamage: %f, Remaining Health: %f"), Damage, Health);
+
+	// OnHealthChanged만 호출 
+	OnHealthChanged.Broadcast(Health, Damage);
+}
 // Called every frame
 void UHealthComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {

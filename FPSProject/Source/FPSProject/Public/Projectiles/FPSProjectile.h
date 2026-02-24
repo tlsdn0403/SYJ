@@ -75,4 +75,6 @@ public:
 	// 발사체가 충돌이 일어날 때 호출되는 함수
 	UFUNCTION()
 	void OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComponent, FVector NormalImpulse, const FHitResult& Hit);
+
+
 };

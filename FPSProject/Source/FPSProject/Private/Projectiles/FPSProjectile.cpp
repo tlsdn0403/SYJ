@@ -108,13 +108,15 @@ void AFPSProjectile::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor
     AActor* MyOwner = GetOwner();
     if (OtherActor && OtherActor != this && OtherActor != MyOwner)
     {
-        // 데미지 적용 (20. f는 데미지 양, 조정 가능)
-        UGameplayStatics::ApplyDamage(
-            OtherActor,                          // 데미지 받을 액터
-            20.f,                                // 데미지 양
+
+        UGameplayStatics::ApplyPointDamage(
+            OtherActor,            // Damage 대상 (좀비)
+            20.f,                   // 데미지 값
+            ProjectileMovementComponent->Velocity.GetSafeNormal(),  // 발사 방향(혹은 ShotDirection)
+            Hit,                   // !!! 여기서 실제 충돌 FHitResult 전체 넘김
             MyOwner ? MyOwner->GetInstigatorController() : nullptr,  // 컨트롤러
-            this,                                // 데미지 원인 액터(총알)
-            nullptr                              // 데미지 타입
+            this,                  // 데미지 소스(총알 자신)
+            nullptr                // DamageType
         );
 
         UE_LOG(LogTemp, Warning, TEXT("ammo damage to %s! "), *GetNameSafe(OtherActor));

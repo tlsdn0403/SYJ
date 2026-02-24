@@ -47,12 +47,16 @@ void AAIZombieController::Tick(float DeltaSeconds)
 
         if (bCanSee)
         {
+            //플레이어에게 시선 고정.
+            SetFocus(PlayerPawn);
             // 플레이어를 블랙보드에 저장 → 행동트리가 이걸 보고 추적/공격
             GetBlackboardComponent()->SetValueAsObject(TargetPlayerKey, PlayerPawn);
 			GetBlackboardComponent()->SetValueAsVector(FName("PlayerLocation"), PlayerPawn->GetActorLocation());
+            
         }
         else
         {
+			ClearFocus(EAIFocusPriority::Gameplay);
             // 시야 밖이면 타겟 지우기 → 행동트리가 대기 상태
             GetBlackboardComponent()->ClearValue(TargetPlayerKey);
         }

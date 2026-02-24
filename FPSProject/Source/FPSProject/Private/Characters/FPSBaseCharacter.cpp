@@ -9,6 +9,7 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "Components/HealthComponent.h"
 #include "HUD/InventoryWidget.h"
+#include "HUD/BaseUI.h"
 #include "Characters/FPSPlayerController.h"
 
 // Sets default values
@@ -55,18 +56,13 @@ void AFPSBaseCharacter::BeginPlay()
 	// 디버그 메시지를 5초간 표시
 	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("We are using FPSCharacter."));
   
-    //if (InventoryClass)
-    //{
-    //    InventoryWidget = Cast<UInventoryWidget>(CreateWidget(GetWorld(), InventoryClass)); //월드 기준으로 생성됨. 이 부분이 문제.
-    //    InventoryWidget->AddToViewport();
-
-    //}
     AFPSPlayerController* PC = Cast<AFPSPlayerController>(GetController());
     if (PC)
     {
         if (PC->InventoryW)
         {
             PC->InventoryW->AddToViewport();
+            PC->TimerW->AddToViewport();
         }
     }
 }

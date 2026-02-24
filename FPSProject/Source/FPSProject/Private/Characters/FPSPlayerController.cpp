@@ -4,6 +4,7 @@
 
 #include "Characters/FPSPlayerController.h"
 #include "HUD/InventoryWidget.h"
+#include "HUD/BaseUI.h"
 #include "EnhancedInputSubsystems.h"
 #include "EnhancedInputComponent.h"
 
@@ -11,9 +12,10 @@
 void AFPSPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
-	if (!InvenWidgetClass) return;
+	if (!InvenWidgetClass||!TimerWidgetClass) return;
 
 	InventoryW = CreateWidget<UInventoryWidget>(this, InvenWidgetClass);
+	TimerW = CreateWidget<UBaseUI>(this, TimerWidgetClass);
 	//여기서 위젯 생성 후 플레이어에서 뷰포트에 추가함. 여기서 뷰포트 추가하면 순서때문에 화면에 안그려짐. 
 
 	//입력 시스템 등록 

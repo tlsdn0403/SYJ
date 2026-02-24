@@ -12,7 +12,7 @@
  */
 
 class UInventoryWidget;
-
+class UBaseUI;
 class UInputMappingContext;
 class UInputAction;
 
@@ -25,7 +25,8 @@ protected:
 	virtual void BeginPlay() override;
 	virtual void SetupInputComponent() override;
 public:
-	// 슬롯 위젯 배열
+
+	// 인벤토리 위젯
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory")
 	TSubclassOf<UInventoryWidget> InvenWidgetClass;
 
@@ -33,6 +34,15 @@ public:
 	UInventoryWidget* InventoryW;
 
 
+	// 타이머 위젯
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory")
+	TSubclassOf<UBaseUI> TimerWidgetClass;
+
+	UPROPERTY()
+	UBaseUI* TimerW;
+
+
+public:
 	// 입력 액션
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
 	UInputMappingContext* PlayerMappingContext;
@@ -68,5 +78,6 @@ public:
 
 	UFUNCTION()
 	void Pressed5(const FInputActionValue& InputValue);
+
 };
 

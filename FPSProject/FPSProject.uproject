@@ -10,7 +10,7 @@
 			"LoadingPhase": "Default",
 			"AdditionalDependencies": [
 				"Engine",
-				"UMG"
+				"UMG",
 				"ChaosVehicles",
 				"AIModule"
 			]
@@ -30,9 +30,10 @@
 		},
 		{
 			"Name": "PCGGeometryScriptInterop",
-
+			"Enabled": true
+		},
+		{
 			"Name": "ChaosVehiclesPlugin",
-
 			"Enabled": true
 		}
 	]

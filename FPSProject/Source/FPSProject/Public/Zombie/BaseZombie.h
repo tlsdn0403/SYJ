@@ -91,6 +91,8 @@ private:
 
     UPROPERTY(BlueprintReadOnly, Category = "Zombie", meta = (AllowPrivateAccess = "true"))
     EZombieMovementState MovementState;
+
+
     // 1πŸ¿Ã∆Æ 
     UPROPERTY(BlueprintReadOnly, Category = "Zombie", meta = (AllowPrivateAccess = "true"))
     bool bIsAlive = true;

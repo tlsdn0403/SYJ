@@ -17,10 +17,15 @@ class FPSPROJECT_API UBTTask_ChaseHuman : public UBTTask_BlackboardBase
 	
 public:
 	UBTTask_ChaseHuman();
+
 	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
 
+	virtual void TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;
 private:
-	// Blackboard Ű
+	// 공격 범위 (이 거리 이하면 공격으로 전환)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI", meta = (AllowPrivateAccess = "true"))
+	float StopDistance = 150.0f;
+	// Blackboard 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI", meta = (AllowPrivateAccess = "true"))
 	FBlackboardKeySelector TargetPlayerKey;
 };

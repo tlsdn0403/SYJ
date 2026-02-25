@@ -25,33 +25,8 @@ public:
     AFPSBaseCharacter();
 
     // --- 인터페이스 섹션 (Public) ---
-    virtual void Tick(float DeltaTime) override;
-    virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
-
-
-    // 스폰할 발사체 클래스.
-    UPROPERTY(EditDefaultsOnly, Category = Projectile)
-    TSubclassOf<class AFPSProjectile> ProjectileClass;
-
-    // 체력관리 컴포넌트
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-    UHealthComponent* HealthComponent;
-
-
-	//--------------------인벤토리 ----------------------------------------------------------
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory")
-    TArray<EItemType> Inventory;
-
-    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory")
-    int32 MaxItemCount = 5;
-
-public:	
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
-
-	//// Called to bind functionality to input
-	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
-
+    virtual void Tick(float DeltaTime) override;                                                   
+    virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;   
 
     /** 무기 및 상호작용 */
     UFUNCTION(BlueprintCallable, Category = "FPS|Weapon")
@@ -74,10 +49,9 @@ public:
     UPROPERTY(BlueprintAssignable, Category = "FPS|Inventory")
     FOnInventoryUpdated OnInventoryUpdated;
 
-	AWeaponBase* GetCurrentWeapon() const { return CurrentWeapon; }
-	AActor* GetCurrentInteractableActor() const { return CurrentInteractableActor; }
+    AWeaponBase* GetCurrentWeapon() const { return CurrentWeapon; }
+    AActor* GetCurrentInteractableActor() const { return CurrentInteractableActor; }
 
-    
 protected:
     virtual void BeginPlay() override;
 
@@ -101,12 +75,11 @@ protected:
     UPROPERTY(VisibleDefaultsOnly, Category = "FPS|Mesh")
     USkeletalMeshComponent* FPSMesh;
 
+    // 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FPS|Components")
     UHealthComponent* HealthComponent;
 
 private:
-
-    // 8바이트, 포인터 및 컨테이너
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FPS|Weapon", meta = (AllowPrivateAccess = "true"))
     AWeaponBase* CurrentWeapon = nullptr;
 
@@ -116,18 +89,18 @@ private:
     UPROPERTY(EditDefaultsOnly, Category = "FPS|Weapon")
     TSubclassOf<AWeaponBase> WeaponBPclass;
 
+    // 
     UPROPERTY(EditDefaultsOnly, Category = "FPS|Projectile")
     TSubclassOf<AFPSProjectile> ProjectileClass;
 
+    //
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FPS|Inventory", meta = (AllowPrivateAccess = "true"))
     TArray<EItemType> Inventory;
 
-    // 12바이트 float*3 구조체
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FPS|Gameplay", meta = (AllowPrivateAccess = "true"))
     FVector FirePosition;
 
-    // 4바이트 영역 int32, float
+    // 
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "FPS|Inventory", meta = (AllowPrivateAccess = "true"))
     int32 MaxItemCount = 5;
-
 };

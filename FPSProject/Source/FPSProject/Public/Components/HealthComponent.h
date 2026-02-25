@@ -6,8 +6,11 @@
 #include "Components/ActorComponent.h"
 #include "HealthComponent.generated.h"
 
-
+// 좀비 분해를 위해 피격 정보를 알려주는 델리게이트
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnDamagedByBullet, float, Health, float, Damage, const FHitResult&, HitResult);
+// 그냥 데미지를 넘겨주는 델리게이트
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnHealthChanged, float, NewHealth, float, Damage);
+
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class UHealthComponent : public UActorComponent
@@ -18,8 +21,13 @@ public:
 	// Sets default values for this component's properties
 	UHealthComponent();
 
-
+	// 외부에서 직접 데미지를 주는 함수 (좀비 공격용)
+	UFUNCTION(BlueprintCallable, Category = "Health")
+	void ApplyDamage(float Damage);
 	
+	// 체력 Getter
+	UFUNCTION(BlueprintPure, Category = "Health")
+	float GetHealth() const { return Health; }
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
@@ -40,4 +48,8 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Hit")
 	FOnDamagedByBullet OnDamaged;
 	
+
+	// 체력 변동 이벤트 (UI 등)
+	UPROPERTY(BlueprintAssignable, Category = "Health")
+	FOnHealthChanged OnHealthChanged;
 };

@@ -19,7 +19,13 @@ protected:
 
 	virtual void Tick(float DeltaSeconds) override;
 
+	UPROPERTY(EditAnyWhere)
+	class UBehaviorTree* ZombieBehaviorTree;
+
+	// 블랙보드 키 이름
+	static const FName TargetPlayerKey;
 
 public:
 	APawn* PlayerPawn;
+
 };

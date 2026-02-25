@@ -2,42 +2,63 @@
 
 
 #include "Zombie/AIZombieController.h"
+#include "BehaviorTree/BehaviorTree.h"
+#include "BehaviorTree/BlackboardComponent.h"
 #include "Kismet/GameplayStatics.h"
+
+
+const FName AAIZombieController::TargetPlayerKey = FName("TargetPlayer");
 
 
 void AAIZombieController::BeginPlay()
 {
 	Super::BeginPlay();
+	PlayerPawn = UGameplayStatics::GetPlayerPawn(GetWorld(), 0.f);
+
+	if(ZombieBehaviorTree)
+	{
+		RunBehaviorTree(ZombieBehaviorTree);
+	}
+
 }
 
 void AAIZombieController::Tick(float DeltaSeconds)
 {
-	Super::Tick(DeltaSeconds);
-	PlayerPawn = UGameplayStatics::GetPlayerPawn(GetWorld(), 0.f);
+    Super::Tick(DeltaSeconds);
 
-	bool IsLineOfSightTo = LineOfSightTo(PlayerPawn);
+    // 매 프레임 플레이어를 찾아서 Blackboard에 저장
+    PlayerPawn = UGameplayStatics::GetPlayerPawn(GetWorld(), 0);
 
-	FVector Forward = GetPawn()->GetActorForwardVector();
-	FVector TargetDir = (PlayerPawn->GetActorLocation() - GetPawn()->GetActorLocation()).GetSafeNormal();
+    if (PlayerPawn && GetBlackboardComponent())
+    {
+        // 시야 체크 
+        bool bCanSee = LineOfSightTo(PlayerPawn);
 
-	// 두 벡터의 내적 계산
-	float DotProduct = FVector::DotProduct(Forward, TargetDir);
+        if (bCanSee && GetPawn())
+        {
+            FVector Forward = GetPawn()->GetActorForwardVector();
+            FVector TargetDir = (PlayerPawn->GetActorLocation() - GetPawn()->GetActorLocation()).GetSafeNormal();
+            float DotProduct = FVector::DotProduct(Forward, TargetDir);
+            if (DotProduct < 0.7f)
+            {
+                bCanSee = false;
+            }
+        }
 
-	// 시야각이 90도 이상인 경우 0.707이 90도에서의 내적값이므로, 0.7로 약간 여유를 둠
-	if (DotProduct < 0.7f) 
-	{
-		IsLineOfSightTo = false;
-	}
-
-	if (IsLineOfSightTo)
-	{
-		MoveToActor(PlayerPawn, 150.f);
-		SetFocus(PlayerPawn);
-	}
-	else
-	{
-		ClearFocus(EAIFocusPriority::Gameplay);
-		StopMovement();
-	}
-	
+        if (bCanSee)
+        {
+            //플레이어에게 시선 고정.
+            SetFocus(PlayerPawn);
+            // 플레이어를 블랙보드에 저장 → 행동트리가 이걸 보고 추적/공격
+            GetBlackboardComponent()->SetValueAsObject(TargetPlayerKey, PlayerPawn);
+			GetBlackboardComponent()->SetValueAsVector(FName("PlayerLocation"), PlayerPawn->GetActorLocation());
+            
+        }
+        else
+        {
+			ClearFocus(EAIFocusPriority::Gameplay);
+            // 시야 밖이면 타겟 지우기 → 행동트리가 대기 상태
+            GetBlackboardComponent()->ClearValue(TargetPlayerKey);
+        }
+    }
 }

@@ -79,7 +79,6 @@ protected:
     UHealthComponent* HealthComponent;
 
 private:
-    // --- 데이터 멤버 섹션 (Private, 메모리 정렬 순 배치) ---
 
     // 8바이트, 포인터 및 컨테이너
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FPS|Weapon", meta = (AllowPrivateAccess = "true"))

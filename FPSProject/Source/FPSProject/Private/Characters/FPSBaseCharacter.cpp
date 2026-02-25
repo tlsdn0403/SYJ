@@ -137,9 +137,9 @@ void AFPSBaseCharacter::StopJump()
 void AFPSBaseCharacter::Fire()
 {
     // 현재 무기가 있으면 무기의 Fire 호출(총구에서 발사)
-    if (CurrentWeapon)
+    if (GetCurrentWeapon())
     {
-        CurrentWeapon->Fire();
+        GetCurrentWeapon()->Fire();
         return;
     }
 }

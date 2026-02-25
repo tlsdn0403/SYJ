@@ -22,7 +22,7 @@ void AAR4::AttachWeapon(AFPSBaseCharacter* TargetCharacter)
     WeaponMesh->SetRelativeRotation(FRotator(-6.316770f, -264.543091f, 2.009403f));
 
     // 캐릭터의 CurrentWeapon 업데이트
-    Character->CurrentWeapon = this;
+    Character->SetCurrentWeapon(this);
 
 
 }

@@ -2,7 +2,7 @@
 
 
 #include "Zombie/BTTask_Attack.h"
-#include "Characters/FPSBaseCharacter.h"
+#include "AIController.h"
 #include "Zombie/BaseZombie.h"
 
 UBTTask_Attack::UBTTask_Attack()
@@ -25,5 +25,7 @@ EBTNodeResult::Type UBTTask_Attack::ExecuteTask(UBehaviorTreeComponent& OwnerCom
 	{
 		return EBTNodeResult::Failed;
 	}
+	Zombie->Attack();
+
 	return EBTNodeResult::Type();
 }

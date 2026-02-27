@@ -188,11 +188,6 @@ void ATruck::AddCargoVisual(EItemType ItemType)
 		TargetSlot->SetVisibility(true);
 		UE_LOG(LogTemp, Log, TEXT("Cargo loaded visually at slot. Type: %d"), (int32)ItemType);
 	}
-	else
-	{
-		// 준비해둔 슬롯보다 아이템을 많이 넣었을 경우
-		UE_LOG(LogTemp, Warning, TEXT("No empty slots left for item type %d!"), (int32)ItemType);
-	}
 }
 
 // -------------------------------------------------------------------------------------

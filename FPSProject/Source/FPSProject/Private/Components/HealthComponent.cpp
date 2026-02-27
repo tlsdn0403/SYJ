@@ -48,9 +48,9 @@ void UHealthComponent::ApplyDamage(float Damage)
 
 	UE_LOG(LogTemp, Warning, TEXT("ApplyDamage: %f, Remaining Health: %f"), Damage, Health);
 
-	// OnHealthChanged∏∏ »£√‚ 
 	OnHealthChanged.Broadcast(Health, Damage);
 }
+
 // Called every frame
 void UHealthComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {

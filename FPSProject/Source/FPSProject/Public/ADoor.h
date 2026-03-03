@@ -11,6 +11,7 @@
 //상호작용이 있을때만 활동할 것이라 그 외 이벤트가 필요없
 
 class UInteractTriggerComponent;
+class AFPSBaseCharacter;
 
 UCLASS()
 class FPSPROJECT_API AADoor : public AActor, public IInteractInterface
@@ -23,16 +24,16 @@ public:
 
 protected:
 	// Called when the game starts or when spawned
-	//virtual void BeginPlay() override;
-
-
+	virtual void BeginPlay() override;
 
 public:	
 	// Called every frame
-	//virtual void Tick(float DeltaTime) override;
+	virtual void Tick(float DeltaTime) override;
+
+
 	USceneComponent* SceneRoot;	//여러 컴포넌트를 묶어주는 역할, 위젯도 추가될 것이기에 추가.
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-	UStaticMeshComponent* StaticMeshComp;
+	UStaticMeshComponent* DoorMeshComp;
 
 	// 상호작용 범위 컴포넌트
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Interaction")
@@ -40,4 +41,13 @@ public:
 
 	// 인터페이스 함수 오버라이드 (F키 눌렀을 때 실행될 내용)
 	virtual void Interact_Implementation(AFPSBaseCharacter* Character) override;
+
+	bool bOpen = false;
+	FRotator OriginalRotation;
+
+	void OpenDoor();
+
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "setting")
+	FRotator Target = FRotator(0.f, 90.f, 0.f);
 };

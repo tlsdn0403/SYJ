@@ -47,4 +47,10 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "setting")
 	FRotator Target = FRotator(0.f, 90.f, 0.f);	//Pitch - Y  ,Yaw - Z , Roll - X
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "setting")
+	FRotator MoveDir = FRotator(0.f, -90.f, 0.f);	//Pitch - Y  ,Yaw - Z , Roll - X
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "setting")
+	float MoveTime = 3.f;
 };

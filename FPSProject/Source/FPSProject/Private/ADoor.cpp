@@ -39,7 +39,7 @@ void AADoor::Tick(float DeltaTime)
 
 	FRotator Current = DoorMeshComp->GetRelativeRotation();
 
-	FRotator NewRot = FMath::RInterpTo(Current, Target, DeltaTime, 3.f);
+	FRotator NewRot = FMath::RInterpTo(Current, Target, DeltaTime, MoveTime);
 	DoorMeshComp->SetRelativeRotation(NewRot);
 }
 
@@ -51,7 +51,7 @@ void AADoor::Interact_Implementation(AFPSBaseCharacter* Character)
 
 	if (bOpen)
 	{
-		Target = OriginalRotation + FRotator(0.f, -90.f, 0.f);
+		Target = OriginalRotation + MoveDir;
 	}
 	else
 	{

@@ -45,9 +45,6 @@ public:
 	bool bOpen = false;
 	FRotator OriginalRotation;
 
-	void OpenDoor();
-
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "setting")
-	FRotator Target = FRotator(0.f, 90.f, 0.f);
+	FRotator Target = FRotator(0.f, 90.f, 0.f);	//Pitch - Y  ,Yaw - Z , Roll - X
 };

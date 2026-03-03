@@ -64,7 +64,7 @@ void ABaseZombie::Attack()
     else
     {
         // 몽타주 없으면 바로 데미지 주고 끝
-        // --- 2. 플레이어에게 데미지 ---
+        // ---  플레이어에게 데미지 ---
         APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(GetWorld(), 0);
         if (PlayerPawn)
         {

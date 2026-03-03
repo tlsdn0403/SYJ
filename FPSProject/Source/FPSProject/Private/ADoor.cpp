@@ -22,47 +22,39 @@ AADoor::AADoor()
 	InteractTrigger->SetupAttachment(SceneRoot);
 	InteractTrigger->InitSphereRadius(200.0f); // 범위 설정
 
-	//상호작용 문 생성중. 범위설정 저거 박스로 변경가능한지 파악하기.
-
 }
 
 // Called when the game starts or when spawned
 void AADoor::BeginPlay()
 {
 	Super::BeginPlay();
-	OriginalRotation = GetActorRotation(); //문이 처음에 어떤 방향을 향하고 있는지 저장
+	OriginalRotation = DoorMeshComp->GetRelativeRotation(); //문이 처음에 어떤 방향을 향하고 있는지 저장
+	Target = OriginalRotation; // 처음 목표도 원래 각도
 }
 
 // Called every frame
 void AADoor::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-	if (bOpen)//문 열기
-	{
-		//OpenDoor();
-		FRotator Current = DoorMeshComp->GetRelativeRotation();
 
-		FRotator NewRot = FMath::RInterpTo(Current, Target, DeltaTime, 3.f);
-		DoorMeshComp->SetRelativeRotation(NewRot);
-	}
-	else //문 닫기
-	{
+	FRotator Current = DoorMeshComp->GetRelativeRotation();
 
-	}
+	FRotator NewRot = FMath::RInterpTo(Current, Target, DeltaTime, 3.f);
+	DoorMeshComp->SetRelativeRotation(NewRot);
 }
 
 void AADoor::Interact_Implementation(AFPSBaseCharacter* Character)
 {
-	if (Character)
+	if (!Character) return;
+
+	bOpen = !bOpen;
+
+	if (bOpen)
 	{
-	bOpen = !bOpen; //문 상태 토글
-		if (bOpen)//문 열기
-		{
-			Target = FRotator(0.f, 90.f, 0.f);
-		}
-		else //문 닫기
-		{
-			Target = FRotator(0.f, 90.f, 0.f);
-		}
+		Target = OriginalRotation + FRotator(0.f, -90.f, 0.f);
+	}
+	else
+	{
+		Target = OriginalRotation;
 	}
 }

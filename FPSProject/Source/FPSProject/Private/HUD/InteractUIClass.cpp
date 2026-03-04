@@ -5,5 +5,9 @@
 
 void UInteractUIClass::PlayAni_PopUp()
 {
-	if (PopUp) PlayAnimation(PopUp);
+	if (PopUp) 
+	{
+		PlayAnimation(PopUp);
+		UE_LOG(LogTemp, Warning, TEXT("¹®¿­¸²!!"));
+	}
 }

@@ -2,6 +2,7 @@
 
 
 #include "ADoor.h"
+#include "HUD/InteractUIClass.h"
 #include "Components/WidgetComponent.h"
 #include "Components/InteractTriggerComponent.h"
 #include "Characters/FPSBaseCharacter.h"
@@ -19,8 +20,8 @@ AADoor::AADoor()
 	DoorMeshComp = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("StaticMesh"));
 	DoorMeshComp->SetupAttachment(SceneRoot);
 
-	InteractWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("WidgetComp"));
-	InteractWidget->SetupAttachment(SceneRoot);
+	WidgetComp = CreateDefaultSubobject<UWidgetComponent>(TEXT("WidgetComp"));
+	WidgetComp->SetupAttachment(SceneRoot);
 
 	// 트리거 컴포넌트 생성 및 부착
 	InteractTrigger = CreateDefaultSubobject<UInteractTriggerComponent>(TEXT("InteractTrigger"));
@@ -72,7 +73,10 @@ void AADoor::Interact_Implementation(AFPSBaseCharacter* Character)
 void AADoor::WidgetStart(AActor* OtherActor)
 {
 	if (!Cast<AFPSBaseCharacter>(OtherActor)) return;
-
+	if (UInteractUIClass* UI = Cast<UInteractUIClass>(WidgetComp->GetUserWidgetObject()))
+	{
+		UI->PlayAni_PopUp(); // 위젯 클래스에 만든 함수
+	}
 }
 
 void AADoor::WidgetEnd(AActor* OtherActor)

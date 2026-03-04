@@ -3,6 +3,7 @@
 
 #include "Components/InteractTriggerComponent.h"
 #include "Characters/FPSBaseCharacter.h"
+#include "GameFramework/Actor.h"
 
 void UInteractTriggerComponent::BeginPlay()
 {
@@ -20,6 +21,10 @@ void UInteractTriggerComponent::OnOverlapBegin(UPrimitiveComponent* OverlappedCo
 		// 캐릭터에게 나랑 상호작용 가능하다고 알림
 		Character->SetInteractableActor(GetOwner());
 	}
+	if (!OtherActor || OtherActor == GetOwner()) return;
+
+	// 델리게이트 이벤트 발생 (문이 AddDynamic으로 듣고 있어야 함)
+	OnEnter.Broadcast(OtherActor);
 }
 
 void UInteractTriggerComponent::OnOverlapEnd(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
@@ -32,5 +37,9 @@ void UInteractTriggerComponent::OnOverlapEnd(UPrimitiveComponent* OverlappedComp
 		{
 			Character->SetInteractableActor(nullptr);
 		}
+		if (!OtherActor || OtherActor == GetOwner()) return;
+
+		// 델리게이트 이벤트 발생
+		OnExit.Broadcast(OtherActor);
 	}
 }

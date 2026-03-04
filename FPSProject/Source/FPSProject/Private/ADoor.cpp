@@ -2,6 +2,7 @@
 
 
 #include "ADoor.h"
+#include "Components/WidgetComponent.h"
 #include "Components/InteractTriggerComponent.h"
 
 // Sets default values
@@ -16,6 +17,9 @@ AADoor::AADoor()
 	// Static Mesh Component를 생성하고 Scene Component에 Attach
 	DoorMeshComp = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("StaticMesh"));
 	DoorMeshComp->SetupAttachment(SceneRoot);
+
+	InteractWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("WidgetComp"));
+	InteractWidget->SetupAttachment(SceneRoot);
 
 	// 트리거 컴포넌트 생성 및 부착
 	InteractTrigger = CreateDefaultSubobject<UInteractTriggerComponent>(TEXT("InteractTrigger"));

@@ -10,6 +10,7 @@
 
 //상호작용이 있을때만 활동할 것이라 그 외 이벤트가 필요없
 
+class UWidgetComponent;
 class UInteractTriggerComponent;
 class AFPSBaseCharacter;
 
@@ -38,6 +39,10 @@ public:
 	// 상호작용 범위 컴포넌트
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Interaction")
 	UInteractTriggerComponent* InteractTrigger;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Interaction")
+	UWidgetComponent* InteractWidget;
+
 
 	// 인터페이스 함수 오버라이드 (F키 눌렀을 때 실행될 내용)
 	virtual void Interact_Implementation(AFPSBaseCharacter* Character) override;

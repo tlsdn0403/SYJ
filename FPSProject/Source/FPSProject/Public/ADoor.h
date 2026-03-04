@@ -43,7 +43,6 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Interaction")
 	UWidgetComponent* InteractWidget;
 
-
 	// 인터페이스 함수 오버라이드 (F키 눌렀을 때 실행될 내용)
 	virtual void Interact_Implementation(AFPSBaseCharacter* Character) override;
 

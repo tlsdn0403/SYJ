@@ -4,6 +4,7 @@
 #include "ADoor.h"
 #include "Components/WidgetComponent.h"
 #include "Components/InteractTriggerComponent.h"
+#include "Characters/FPSBaseCharacter.h"
 
 // Sets default values
 AADoor::AADoor()
@@ -34,6 +35,9 @@ void AADoor::BeginPlay()
 	Super::BeginPlay();
 	OriginalRotation = DoorMeshComp->GetRelativeRotation(); //문이 처음에 어떤 방향을 향하고 있는지 저장
 	Target = OriginalRotation; // 처음 목표도 원래 각도
+	//델리게이트 바인딩 (트리거 컴포넌트의 OnEnter 이벤트를 듣도록 설정)
+	InteractTrigger->OnEnter.AddDynamic(this, &AADoor::WidgetStart);
+	InteractTrigger->OnExit.AddDynamic(this, &AADoor::WidgetEnd);
 }
 
 // Called every frame
@@ -51,6 +55,7 @@ void AADoor::Interact_Implementation(AFPSBaseCharacter* Character)
 {
 	if (!Character) return;
 
+
 	bOpen = !bOpen;
 
 	if (bOpen)
@@ -61,4 +66,17 @@ void AADoor::Interact_Implementation(AFPSBaseCharacter* Character)
 	{
 		Target = OriginalRotation;
 	}
+}
+
+
+void AADoor::WidgetStart(AActor* OtherActor)
+{
+	if (!Cast<AFPSBaseCharacter>(OtherActor)) return;
+
+}
+
+void AADoor::WidgetEnd(AActor* OtherActor)
+{
+	if (!Cast<AFPSBaseCharacter>(OtherActor)) return;
+
 }

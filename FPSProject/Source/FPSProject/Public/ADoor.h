@@ -31,7 +31,7 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
-
+	UPROPERTY(VisibleAnywhere, Category = "Components")
 	USceneComponent* SceneRoot;	//여러 컴포넌트를 묶어주는 역할, 위젯도 추가될 것이기에 추가.
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	UStaticMeshComponent* DoorMeshComp;
@@ -57,4 +57,11 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "setting")
 	float MoveTime = 3.f;
+
+	//델리게이트 함수 (트리거 컴포넌트의 이벤트에 바인딩 될 함수)
+	UFUNCTION()
+	void WidgetStart(AActor* OtherActor);
+
+	UFUNCTION()
+	void WidgetEnd(AActor* OtherActor);
 };

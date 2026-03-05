@@ -8,7 +8,8 @@ void UInteractUIClass::NativeConstruct()
 {
 	Super::NativeConstruct();
 	// 애니메이션이랑 텍스트 블록이 제대로 바인딩 되었는지 확인
-	InteractText->SetIsEnabled(false);	//상호작용 안되게
+	InteractText->SetIsEnabled(true);
+	//InteractText->SetColorAndOpacity(FSlateColor(FLinearColor(1.f, 1.f, 1.f, 1.f)));
 	InteractText->SetText(FText::FromString(TEXT("Open")));
 }
 void UInteractUIClass::PlayAni_PopUp(bool bOpen)
@@ -29,5 +30,6 @@ void UInteractUIClass::RePlayAni_PopUp() // 범위 벗어나서 사라짐.
 
 void UInteractUIClass::SetDoorInteractText(const bool bOpen)
 {
+	//InteractText->SetColorAndOpacity(FSlateColor(FLinearColor(1.f, 1.f, 1.f, 1.f)));
 	InteractText->SetText(FText::FromString(bOpen ? TEXT("Close") : TEXT("Open")));
 }

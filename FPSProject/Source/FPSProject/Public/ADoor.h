@@ -13,6 +13,7 @@
 class UWidgetComponent;
 class UInteractTriggerComponent;
 class AFPSBaseCharacter;
+class UMaterialInterface;
 
 UCLASS()
 class FPSPROJECT_API AADoor : public AActor, public IInteractInterface
@@ -64,4 +65,7 @@ public:
 
 	UFUNCTION()
 	void WidgetEnd(AActor* OtherActor);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "setting")
+	UMaterialInterface* OverlayMaterial;	//오버레이 메터리얼
 };

@@ -21,7 +21,9 @@ AADoor::AADoor()
 	DoorMeshComp->SetupAttachment(SceneRoot);
 
 	WidgetComp = CreateDefaultSubobject<UWidgetComponent>(TEXT("WidgetComp"));
-	WidgetComp->SetupAttachment(SceneRoot);
+	WidgetComp->SetupAttachment(DoorMeshComp);
+	WidgetComp->SetTwoSided(true);
+	WidgetComp->SetWidgetSpace(EWidgetSpace::World);
 
 	// 트리거 컴포넌트 생성 및 부착
 	InteractTrigger = CreateDefaultSubobject<UInteractTriggerComponent>(TEXT("InteractTrigger"));
@@ -34,6 +36,23 @@ AADoor::AADoor()
 void AADoor::BeginPlay()
 {
 	Super::BeginPlay();
+
+	//UE_LOG(LogTemp, Warning, TEXT("WidgetComp valid: %d"), IsValid(WidgetComp));
+
+	//if (WidgetComp)
+	//{
+	//	UE_LOG(LogTemp, Warning, TEXT("WidgetClass: %s"),
+	//		*GetNameSafe(WidgetComp->GetWidgetClass()));
+
+	//	UUserWidget* Obj = WidgetComp->GetUserWidgetObject();
+	//	UE_LOG(LogTemp, Warning, TEXT("UserWidgetObject: %s"), *GetNameSafe(Obj));
+
+	//	// 강제로 생성/갱신 (중요)
+	//	WidgetComp->InitWidget();
+	//	Obj = WidgetComp->GetUserWidgetObject();
+	//	UE_LOG(LogTemp, Warning, TEXT("After InitWidget UserWidgetObject: %s"), *GetNameSafe(Obj));
+	//}
+
 	OriginalRotation = DoorMeshComp->GetRelativeRotation(); //문이 처음에 어떤 방향을 향하고 있는지 저장
 	Target = OriginalRotation; // 처음 목표도 원래 각도
 	//델리게이트 바인딩 (트리거 컴포넌트의 OnEnter 이벤트를 듣도록 설정)

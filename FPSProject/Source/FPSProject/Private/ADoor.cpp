@@ -74,6 +74,10 @@ void AADoor::Interact_Implementation(AFPSBaseCharacter* Character)
 	{
 		Target = OriginalRotation;
 	}
+	if (UInteractUIClass* UI = Cast<UInteractUIClass>(WidgetComp->GetUserWidgetObject()))
+	{
+		UI->SetDoorInteractText(bOpen);
+	}
 
 }
 

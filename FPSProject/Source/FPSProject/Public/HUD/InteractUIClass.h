@@ -32,10 +32,8 @@ public:
 
     UPROPERTY(BlueprintReadOnly, meta = (BindWidget, AllowPrivateAccess = "true"))
     UTextBlock* InteractText;
- /*   UPROPERTY(meta = (BindWidget))
-    UTextBlock* InteractText;*/
 
-    UFUNCTION(BlueprintCallable)
-    void SetDoorOpenState(bool bIsOpen);
+   // UFUNCTION(BlueprintCallable)
+    void SetDoorInteractText(const bool bOpen);
 	
 };

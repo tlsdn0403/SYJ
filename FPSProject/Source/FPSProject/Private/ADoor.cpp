@@ -6,6 +6,7 @@
 #include "Components/WidgetComponent.h"
 #include "Components/InteractTriggerComponent.h"
 #include "Characters/FPSBaseCharacter.h"
+#include "Materials/MaterialInterface.h"
 
 // Sets default values
 AADoor::AADoor()
@@ -58,6 +59,8 @@ void AADoor::BeginPlay()
 	//델리게이트 바인딩 (트리거 컴포넌트의 OnEnter 이벤트를 듣도록 설정)
 	InteractTrigger->OnEnter.AddDynamic(this, &AADoor::WidgetStart);
 	InteractTrigger->OnExit.AddDynamic(this, &AADoor::WidgetEnd);
+
+	
 }
 
 // Called every frame
@@ -96,10 +99,19 @@ void AADoor::WidgetStart(AActor* OtherActor)
 	{
 		UI->PlayAni_PopUp(); // 위젯 클래스에 만든 함수
 	}
+
+	if (DoorMeshComp && OverlayMaterial)
+	{
+		DoorMeshComp->SetOverlayMaterial(OverlayMaterial);
+	}
 }
 
 void AADoor::WidgetEnd(AActor* OtherActor)
 {
 	if (!Cast<AFPSBaseCharacter>(OtherActor)) return;
 
+	if (DoorMeshComp && OverlayMaterial)
+	{
+		DoorMeshComp->SetOverlayMaterial(nullptr);
+	}
 }

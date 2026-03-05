@@ -11,17 +11,31 @@
  */
 
 class UWidgetAnimation;
+class UTextBlock;
 
 UCLASS()
 class FPSPROJECT_API UInteractUIClass : public UUserWidget
 {
 	GENERATED_BODY()
+protected:
+	virtual void NativeConstruct() override;
+
 public:
    
     UPROPERTY(meta = (BindWidgetAnim), Transient)
     UWidgetAnimation* PopUp;
 
     UFUNCTION(BlueprintCallable)
-    void PlayAni_PopUp();
+    void PlayAni_PopUp(bool bOpen);
+    UFUNCTION(BlueprintCallable)
+    void RePlayAni_PopUp();
+
+    UPROPERTY(BlueprintReadOnly, meta = (BindWidget, AllowPrivateAccess = "true"))
+    UTextBlock* InteractText;
+ /*   UPROPERTY(meta = (BindWidget))
+    UTextBlock* InteractText;*/
+
+    UFUNCTION(BlueprintCallable)
+    void SetDoorOpenState(bool bIsOpen);
 	
 };

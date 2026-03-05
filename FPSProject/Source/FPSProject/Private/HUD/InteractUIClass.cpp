@@ -9,5 +9,6 @@ void UInteractUIClass::PlayAni_PopUp()
 	{
 		PlayAnimation(PopUp);
 		UE_LOG(LogTemp, Warning, TEXT("¹®¿­¸²!!"));
+		//PauseAnimation(PopUp);
 	}
 }

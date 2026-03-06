@@ -2,7 +2,7 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>c298d8c6-e4bf-4526-93f1-3c595f510f90</ProjectGuid>
+    <ProjectGuid>7fda1f6f-fc72-427f-91c9-44f70f409e91</ProjectGuid>
     <ProjectHome>.</ProjectHome>
     <StartupFile>PacketGenerator.py</StartupFile>
     <SearchPath>
@@ -22,13 +22,17 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="PacketGenerator.py" />
-    <Compile Include="ProtoParser.py" />
+    <Compile Include="ProtoParser.py">
+      <SubType>Code</SubType>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Templates\" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="Templates\PacketHandler.h" />
+    <Content Include="Templates\PacketHandler.h">
+      <SubType>Code</SubType>
+    </Content>
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in

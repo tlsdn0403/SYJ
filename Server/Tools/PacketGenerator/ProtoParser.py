@@ -1,35 +1,36 @@
+
 class ProtoParser():
-    def __init__(self, start_id, recv_prefix, send_prefix):
-        self.recv_pkt = [] # ¼ö½Å ÆĞÅ¶ ¸ñ·Ï
-        self.send_pkt = [] # ¼Û½Å ÆĞÅ¶ ¸ñ·Ï
-        self.total_pkt = [] # ¸ğµç ÆĞÅ¶ ¸ñ·Ï
-        self.start_id = start_id
-        self.id = start_id
-        self.recv_prefix = recv_prefix
-        self.send_prefix = send_prefix
+	def __init__(self, start_id, recv_prefix, send_prefix):
+		self.recv_pkt = []	# ìˆ˜ì‹  íŒ¨í‚· ëª©ë¡
+		self.send_pkt = [] # ì†¡ì‹  íŒ¨í‚· ëª©ë¡
+		self.total_pkt = [] # ëª¨ë“  íŒ¨í‚· ëª©ë¡
+		self.start_id = start_id
+		self.id = start_id
+		self.recv_prefix = recv_prefix
+		self.send_prefix = send_prefix
 
-    def parse_proto(self, path):
-        f = open(path, 'r')
-        lines = f.readlines()
+	def parse_proto(self, path):
+		f = open(path, 'r')
+		lines = f.readlines()
 
-        for line in lines:
-            if line.startswith('message') == False:
-                continue
+		for line in lines:
+			if line.startswith('message') == False:
+				continue
 
-            pkt_name = line.split()[1].upper()
-            if pkt_name.startswith(self.recv_prefix):
-                self.recv_pkt.append(Packet(pkt_name, self.id))
-            elif pkt_name.startswith(self.send_prefix):
-                self.send_pkt.append(Packet(pkt_name, self.id))
-            else:
-                continue
+			pkt_name = line.split()[1].upper()
+			if pkt_name.startswith(self.recv_prefix):
+				self.recv_pkt.append(Packet(pkt_name, self.id))
+			elif pkt_name.startswith(self.send_prefix):
+				self.send_pkt.append(Packet(pkt_name, self.id))
+			else:
+				continue
 
-            self.total_pkt.append(Packet(pkt_name, self.id))
-            self.id += 1
+			self.total_pkt.append(Packet(pkt_name, self.id))
+			self.id += 1
 
-        f.close()
+		f.close()
 
 class Packet:
-    def __init__(self, name, id):
-        self.name = name
-        self.id = id
+	def __init__(self, name, id):
+		self.name = name
+		self.id = id

@@ -3,10 +3,10 @@
 
 /*----------------
 	SendBuffer
-----------------*/
+-----------------*/
 
 SendBuffer::SendBuffer(SendBufferChunkRef owner, BYTE* buffer, uint32 allocSize)
-	:_owner(owner), _buffer(buffer), _allocSize(allocSize)
+	: _owner(owner), _buffer(buffer), _allocSize(allocSize)
 {
 }
 
@@ -21,9 +21,9 @@ void SendBuffer::Close(uint32 writeSize)
 	_owner->Close(writeSize);
 }
 
-/*----------------------
+/*--------------------
 	SendBufferChunk
-----------------------*/
+--------------------*/
 
 SendBufferChunk::SendBufferChunk()
 {
@@ -58,35 +58,32 @@ void SendBufferChunk::Close(uint32 writeSize)
 	_usedSize += writeSize;
 }
 
-/*-----------------------
+/*---------------------
 	SendBufferManager
------------------------*/
+----------------------*/
 
 SendBufferRef SendBufferManager::Open(uint32 size)
 {
 	if (LSendBufferChunk == nullptr)
 	{
-		LSendBufferChunk = Pop();	// WRITE_LOCK
+		LSendBufferChunk = Pop(); // WRITE_LOCK
 		LSendBufferChunk->Reset();
-	}
+	}		
 
 	ASSERT_CRASH(LSendBufferChunk->IsOpen() == false);
 
 	// 다 썼으면 버리고 새거로 교체
 	if (LSendBufferChunk->FreeSize() < size)
 	{
-		LSendBufferChunk = Pop();	// WRITE_LOCK
+		LSendBufferChunk = Pop(); // WRITE_LOCK
 		LSendBufferChunk->Reset();
 	}
-
-	cout << "FREE : " << LSendBufferChunk->FreeSize() << endl;
 
 	return LSendBufferChunk->Open(size);
 }
 
 SendBufferChunkRef SendBufferManager::Pop()
 {
-	cout << "Pop SENDBUFFERCHUNK" << endl;
 	{
 		WRITE_LOCK;
 		if (_sendBufferChunks.empty() == false)

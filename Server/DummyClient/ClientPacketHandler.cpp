@@ -1,41 +1,45 @@
 #include "pch.h"
 #include "ClientPacketHandler.h"
 #include "BufferReader.h"
-#include "Protocol.pb.h"
 
-void ClientPacketHandler::HandlePacket(BYTE* buffer, int32 len)
+PacketHandlerFunc GPacketHandler[UINT16_MAX];
+
+bool Handle_INVALID(PacketSessionRef& session, BYTE* buffer, int32 len)
 {
-	BufferReader br(buffer, len);
-
-	PacketHeader header;
-	br >> header;
-
-	switch (header.id)
-	{
-	case S_TEST:
-		Handle_S_TEST(buffer, len);
-		break;
-	}	
+	return false;
 }
 
-void ClientPacketHandler::Handle_S_TEST(BYTE* buffer, int32 len)
+bool Handle_S_LOGIN(PacketSessionRef& session, Protocol::S_LOGIN& pkt)
 {
-	Protocol::S_TEST pkt;
+	return true;
+}
 
-	ASSERT_CRASH(pkt.ParseFromArray(buffer + sizeof(PacketHeader), len - sizeof(PacketHeader)));
+bool Handle_S_ENTER_GAME(PacketSessionRef& session, Protocol::S_ENTER_GAME& pkt)
+{
+	return true;
+}
 
-	cout << pkt.id() << " " << pkt.hp() << " " << pkt.attack() << endl;
+bool Handle_S_LEAVE_GAME(PacketSessionRef& session, Protocol::S_LEAVE_GAME& pkt)
+{
+	return true;
+}
 
-	cout << "BUFSIZE : " << pkt.buffs_size() << endl;
+bool Handle_S_SPAWN(PacketSessionRef& session, Protocol::S_SPAWN& pkt)
+{
+	return true;
+}
 
-	for (auto& buf : pkt.buffs())
-	{
-		cout << "BUFINFO : " << buf.buffid() << " " << buf.remaintime() << endl;
-		cout << "VICTIMS : " << buf.victims_size() << endl;
-		for (auto& vic : buf.victims())
-		{
-			cout << vic << " ";
-		}
-		cout << endl;
-	}
+bool Handle_S_DESPAWN(PacketSessionRef& session, Protocol::S_DESPAWN& pkt)
+{
+	return true;
+}
+
+bool Handle_S_MOVE(PacketSessionRef& session, Protocol::S_MOVE& pkt)
+{
+	return true;
+}
+
+bool Handle_S_CHAT(PacketSessionRef& session, Protocol::S_CHAT& pkt)
+{
+	return true;
 }

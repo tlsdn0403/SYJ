@@ -46,7 +46,7 @@ protected:
 	NetAddress			_netAddress = {};
 	IocpCoreRef			_iocpCore;
 
-	Set<SessionRef>		_sessions;
+	set<SessionRef>		_sessions;
 	int32				_sessionCount = 0;
 	int32				_maxSessionCount = 0;
 	SessionFactory		_sessionFactory;

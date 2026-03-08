@@ -91,7 +91,7 @@ bool ServerService::Start()
 	if (CanStart() == false)
 		return false;
 
-	_listener = MakeShared<Listener>();
+	_listener = make_shared<Listener>();
 	if (_listener == nullptr)
 		return false;
 

@@ -32,10 +32,10 @@ void Session::Send(SendBufferRef sendBuffer)
 
 		if (_sendRegistered.exchange(true) == false)
 			registerSend = true;
+
+		if (registerSend)
+			RegisterSend();
 	}
-	
-	if (registerSend)
-		RegisterSend();
 }
 
 bool Session::Connect()
@@ -165,7 +165,7 @@ void Session::RegisterSend()
 
 	// 보낼 데이터를 sendEvent에 등록
 	{
-		WRITE_LOCK;
+		//WRITE_LOCK;
 
 		int32 writeSize = 0;
 		while (_sendQueue.empty() == false)
@@ -181,7 +181,7 @@ void Session::RegisterSend()
 	}
 
 	// Scatter-Gather (흩어져 있는 데이터들을 모아서 한 방에 보낸다)
-	Vector<WSABUF> wsaBufs;
+	vector<WSABUF> wsaBufs;
 	wsaBufs.reserve(_sendEvent.sendBuffers.size());
 	for (SendBufferRef sendBuffer : _sendEvent.sendBuffers)
 	{
@@ -275,6 +275,7 @@ void Session::ProcessSend(int32 numOfBytes)
 	OnSend(numOfBytes);
 
 	WRITE_LOCK;
+
 	if (_sendQueue.empty())
 		_sendRegistered.store(false);
 	else

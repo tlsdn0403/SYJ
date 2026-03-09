@@ -35,7 +35,7 @@ USING_SHARED_PTR(PacketSession);
 USING_SHARED_PTR(SendBuffer);
 
 #include "ClientPacketHandler.h"
-//#include "FPSProjectGameInstance.h"
+#include "FPSProjectGameInstance.h"
 #include "Kismet/GameplayStatics.h"
 #include "Engine/World.h"
 

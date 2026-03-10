@@ -63,26 +63,25 @@ private:
 
 protected:
 						/* 컨텐츠 코드에서 재정의 */
-	virtual void		OnConnected() {}
+	virtual void		OnConnected() { }
 	virtual int32		OnRecv(BYTE* buffer, int32 len) { return len; }
-	virtual void		OnSend(int32 len) {}
-	virtual void		OnDisconnected() {}
+	virtual void		OnSend(int32 len) { }
+	virtual void		OnDisconnected() { }
 
 private:
 	weak_ptr<Service>	_service;
 	SOCKET				_socket = INVALID_SOCKET;
 	NetAddress			_netAddress = {};
-	Atomic<bool>		_connected = false;
+	atomic<bool>		_connected = false;
 
 private:
 	USE_LOCK;
-
 							/* 수신 관련 */
 	RecvBuffer				_recvBuffer;
 
 							/* 송신 관련 */
-	Queue<SendBufferRef>	_sendQueue;
-	Atomic<bool>			_sendRegistered = false;
+	queue<SendBufferRef>	_sendQueue;
+	atomic<bool>			_sendRegistered = false;
 
 private:
 						/* IocpEvent 재사용 */
@@ -92,14 +91,14 @@ private:
 	SendEvent			_sendEvent;
 };
 
-/*-------------------
+/*-----------------
 	PacketSession
--------------------*/
+------------------*/
 
 struct PacketHeader
 {
 	uint16 size;
-	uint16 id;	// 프로토콜 ID (ex. 1=로그인, 2=이동요청)
+	uint16 id; // 프로토콜ID (ex. 1=로그인, 2=이동요청)
 };
 
 class PacketSession : public Session
@@ -108,9 +107,9 @@ public:
 	PacketSession();
 	virtual ~PacketSession();
 
-	PacketSessionRef GetPacketSessionRef() { return static_pointer_cast<PacketSession>(shared_from_this()); }
+	PacketSessionRef	GetPacketSessionRef() { return static_pointer_cast<PacketSession>(shared_from_this()); }
 
 protected:
-	virtual int32 OnRecv(BYTE* buffer, int32 len) sealed;
-	virtual int32 OnRecvPacket(BYTE* buffer, int32 len) abstract;
+	virtual int32		OnRecv(BYTE* buffer, int32 len) sealed;
+	virtual void		OnRecvPacket(BYTE* buffer, int32 len) abstract;
 };

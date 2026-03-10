@@ -33,7 +33,7 @@ void UInteractTriggerComponent::OnOverlapEnd(UPrimitiveComponent* OverlappedComp
 	if (Character && Character->IsPlayerControlled())
 	{
 		// 범위 밖으로 나가면 상호작용 대상 해제
-		if (Character->CurrentInteractableActor == GetOwner())
+		if (Character->GetCurrentInteractableActor() == GetOwner())
 		{
 			Character->SetInteractableActor(nullptr);
 		}

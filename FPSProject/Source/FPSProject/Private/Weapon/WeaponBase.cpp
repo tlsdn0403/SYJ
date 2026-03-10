@@ -46,7 +46,7 @@ void AWeaponBase::AttachWeapon(AFPSBaseCharacter* TargetCharacter)
     WeaponMesh->SetRelativeRotation(FRotator(1.090108f, -88.966904f, -4.015320f));    // 찾은 회전 값 (Pitch, Yaw, Roll 순서)
 
 
-    Character->CurrentWeapon = this;                                                     // 캐릭터의 CurrentWeapon 업데이트
+    Character->SetCurrentWeapon(this);                                                     // 캐릭터의 CurrentWeapon 업데이트
 
 
     // 애니메이션에서 탄창이 자꾸 보여서 안보이도록 

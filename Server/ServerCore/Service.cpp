@@ -22,6 +22,15 @@ void Service::CloseService()
 	// TODO
 }
 
+void Service::Broadcast(SendBufferRef sendBuffer)
+{
+	WRITE_LOCK;
+	for (const auto& session : _sessions)
+	{
+		session->Send(sendBuffer);
+	}
+}
+
 SessionRef Service::CreateSession()
 {
 	SessionRef session = _sessionFactory();
@@ -82,7 +91,7 @@ bool ServerService::Start()
 	if (CanStart() == false)
 		return false;
 
-	_listener = MakeShared<Listener>();
+	_listener = make_shared<Listener>();
 	if (_listener == nullptr)
 		return false;
 

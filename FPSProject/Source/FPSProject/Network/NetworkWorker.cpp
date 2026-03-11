@@ -133,15 +133,13 @@ uint32 SendWorker::Run()
 	{
 		SendBufferRef SendBuffer;
 
-		/*if (TSharedPtr<PacketSession> Session = SessionRef.Pin())
+		if (TSharedPtr<PacketSession> Session = SessionRef.Pin())
 		{
 			if (Session->SendPacketQueue.Dequeue(OUT SendBuffer))
 			{
 				SendPacket(SendBuffer);
 			}
-		}*/
-
-		// Sleep?
+		}
 	}
 
 	return 0;

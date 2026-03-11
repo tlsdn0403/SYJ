@@ -6,6 +6,7 @@
 #include "Common/TcpSocketBuilder.h"
 #include "Serialization/ArrayWriter.h"
 #include "SocketSubsystem.h"
+#include "PacketSession.h"
 #include "Protocol.pb.h"
 #include "ClientPacketHandler.h"
 
@@ -28,9 +29,9 @@ void UFPSProjectGameInstance::ConnectToGameServer()
 	{
 		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("Connection Success")));
 
-		//// Session
-		//GameServerSession = MakeShared<PacketSession>(Socket);
-		//GameServerSession->Run();
+		// Session
+		GameServerSession = MakeShared<PacketSession>(Socket);
+		GameServerSession->Run();
 
 		// TEMP : Lobby에서 캐릭터 선택창 등
 		{
@@ -66,7 +67,7 @@ void UFPSProjectGameInstance::HandleRecvPackets()
 	if (Socket == nullptr || GameServerSession == nullptr)
 		return;
 
-	//GameServerSession->HandleRecvPackets();
+	GameServerSession->HandleRecvPackets();
 }
 
 void UFPSProjectGameInstance::SendPacket(SendBufferRef SendBuffer)
@@ -74,7 +75,7 @@ void UFPSProjectGameInstance::SendPacket(SendBufferRef SendBuffer)
 	if (Socket == nullptr || GameServerSession == nullptr)
 		return;
 
-	//GameServerSession->SendPacket(SendBuffer);
+	GameServerSession->SendPacket(SendBuffer);
 }
 
 void UFPSProjectGameInstance::HandleSpawn(const Protocol::ObjectInfo& ObjectInfo, bool IsMine)

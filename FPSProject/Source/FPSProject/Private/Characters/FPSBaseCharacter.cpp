@@ -103,25 +103,29 @@ void AFPSBaseCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 // ---------------------------------- 이동 , 점프, 발사 관련 함수들 ----------------------------------
 void AFPSBaseCharacter::MoveForward(float Value)
 {
- 
     if (Controller != nullptr && Value != 0.0f)
     {
         // 어디가 앞인지 찾고, 플레이어가 해당 방향으로 이동하고자 한다는 것을 기록
-        FVector Direction = FRotationMatrix(Controller->GetControlRotation()).GetScaledAxis(EAxis::X);
+        const FRotator ControlRot = Controller->GetControlRotation();
+        const FRotator YawRot(0.0f, ControlRot.Yaw, 0.0f);
+
+        const FVector Direction = FRotationMatrix(YawRot).GetUnitAxis(EAxis::X);
         AddMovementInput(Direction, Value);
     }
 }
 
 void AFPSBaseCharacter::MoveRight(float Value)
 {
-  
-
     if (Controller != nullptr && Value != 0.0f)
     {
         // 어디가 오른쪽인지 찾고, 플레이어가 해당 방향으로 이동하고자 한다는 것을 기록
-        FVector Direction = FRotationMatrix(Controller->GetControlRotation()).GetScaledAxis(EAxis::Y);
+        const FRotator ControlRot = Controller->GetControlRotation();
+        const FRotator YawRot(0.0f, ControlRot.Yaw, 0.0f);
+
+        const FVector Direction = FRotationMatrix(YawRot).GetUnitAxis(EAxis::Y);
         AddMovementInput(Direction, Value);
     }
+
 }
 
 void AFPSBaseCharacter::StartJump()

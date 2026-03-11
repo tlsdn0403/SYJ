@@ -72,42 +72,26 @@ protected:
 	//  짐칸 기준점 (트럭 뒷부분, 에디터에서 위치 조정)
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Cargo")
 	USceneComponent* CargoOrigin;
+	// 에디터에서 예쁘게 배치해둔 메시 컴포넌트들을 담을 배열
+	// 배열의 순서대로 아이템이 채워집니다 (인덱스 0번부터 차례대로 표시됨)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cargo|Slots")
+	TArray<UStaticMeshComponent*> AmmoSlots;
 
-	// 아이템별 메시 매핑
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cargo")
-	UStaticMesh* AmmoBoxMesh;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cargo|Slots")
+	TArray<UStaticMeshComponent*> FuelSlots;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cargo")
-	UStaticMesh* FuelCanMesh;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cargo|Slots")
+	TArray<UStaticMeshComponent*> MedKitSlots;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cargo")
-	UStaticMesh* MedKitMesh;
+	// 현재 각 아이템이 몇 개 실렸는지 추적
+	int32 CurrentAmmoCount = 0;
+	int32 CurrentFuelCount = 0;
+	int32 CurrentMedKitCount = 0;
 
-	//  적재된 아이템 시각 목록
-	UPROPERTY()
-	TArray<FLoadedItemVisual> LoadedItemVisuals;
 
-	//  짐칸 크기 설정 (에디터에서 조정 가능)
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cargo")
-	float CargoWidth = 100.0f;   // 좌우 폭
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cargo")
-	float CargoDepth = 150.0f;   // 앞뒤 깊이
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cargo")
-	float ItemHeight = 25.0f;    // 아이템 한 개 높이
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cargo")
-	int32 ItemsPerRow = 3;       // 한 줄에 몇 개
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cargo")
-	int32 ItemsPerLayer = 6;     // 한 층에 몇 개 (행 x 열)
 
 	//  아이템 적재 함수
 	void AddCargoVisual(EItemType ItemType);
-
-	//  적재 위치 계산
-	FVector CalculateCargoPosition(int32 ItemIndex) const;
 
 
 	// -------------------------------사운드 관련 컴포넌트 및 변수들--------------------------------

@@ -9,6 +9,10 @@
 /**
  * 
  */
+//델리게이트 선언  (상호작용 ui띄우기 위해, 오버랩 시작, 끝에 이벤트 발생)
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnInteractEnter, AActor*, OtherActor);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnInteractExit, AActor*, OtherActor);
+
 UCLASS()
 class FPSPROJECT_API UInteractTriggerComponent : public USphereComponent
 {
@@ -22,4 +26,11 @@ protected:
 
 	UFUNCTION()
 	void OnOverlapEnd(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
+
+public:
+	UPROPERTY(BlueprintAssignable)
+	FOnInteractEnter OnEnter;
+
+	UPROPERTY(BlueprintAssignable)
+	FOnInteractExit OnExit;
 };

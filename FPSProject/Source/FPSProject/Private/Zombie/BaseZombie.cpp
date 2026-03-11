@@ -52,8 +52,10 @@ void ABaseZombie::Attack()
     UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
     if (AnimInstance && AttackMontage)
     {
+        //1.0배속으로 애니메이션 몽타주 재생
         AnimInstance->Montage_Play(AttackMontage, 1.0f);
 
+        UE_LOG(LogTemp, Warning, TEXT("Zombie %s Montage!"), *GetName());
         // 몽타주 끝나면 OnAttackMontageEnded 호출
         FOnMontageEnded EndDelegate;
         EndDelegate.BindUObject(this, &ABaseZombie::OnAttackMontageEnded);
@@ -62,7 +64,7 @@ void ABaseZombie::Attack()
     else
     {
         // 몽타주 없으면 바로 데미지 주고 끝
-        // --- 2. 플레이어에게 데미지 ---
+        // ---  플레이어에게 데미지 ---
         APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(GetWorld(), 0);
         if (PlayerPawn)
         {

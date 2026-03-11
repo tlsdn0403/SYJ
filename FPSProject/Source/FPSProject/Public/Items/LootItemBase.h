@@ -34,6 +34,9 @@ public:
 	// 에디터에서 이 아이템이 뭔지 설정할 변수
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item Properties")
 	EItemType ItemType = EItemType::None; // 기본값 None
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "My setting")
+	FText ItemName; // 기본값 None
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;

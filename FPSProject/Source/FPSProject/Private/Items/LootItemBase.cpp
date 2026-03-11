@@ -2,6 +2,8 @@
 
 
 #include "Items/LootItemBase.h"
+#include "Characters/FPSBaseCharacter.h"
+#include "Engine/Engine.h" // GEngine 사용을 위한 헤더
 
 // Sets default values
 ALootItemBase::ALootItemBase()
@@ -22,7 +24,12 @@ ALootItemBase::ALootItemBase()
 void ALootItemBase::BeginPlay()
 {
 	Super::BeginPlay();
-	
+    GEngine->AddOnScreenDebugMessage(   //한글 출력되는지 확인용 코드
+        -1,         // 메시지 ID (-1이면 계속 새로 생성)
+        5.f,        // 화면에 표시 시간 (초)
+        FColor::Yellow,
+		ItemName.ToString()
+    );
 }
 
 // Called every frame

@@ -28,8 +28,6 @@ EBTNodeResult::Type UBTTask_ChaseHuman::ExecuteTask(UBehaviorTreeComponent& Owne
         return EBTNodeResult::Failed; // 하나라도 없으면 실패 반환
     }
 
-    // 좀비를 플레이어 쪽으로 이동시키기 (AIMoveTo 사용)
-    AIController->MoveToActor(TargetActor, 100.0f); // 100cm 거리까지 접근
 
     UE_LOG(LogTemp, Warning, TEXT("Zombie chasing player at location: %s"), *TargetActor->GetActorLocation().ToString());
 

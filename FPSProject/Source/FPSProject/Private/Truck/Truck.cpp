@@ -24,6 +24,35 @@ ATruck::ATruck()
 	CargoOrigin->SetupAttachment(RootComponent);
 	// 트럭 뒷부분 짐칸 위치로 설정 (에디터에서 미세 조정 )
 	CargoOrigin->SetRelativeLocation(FVector(-120.0f, 0.0f, 80.0f));
+
+
+
+	// AmmoSlots 
+	for (int32 i = 0; i < 3; i++)
+	{
+		FName SlotName = FName(*FString::Printf(TEXT("AmmoSlot_%d"), i));
+		UStaticMeshComponent* NewSlot = CreateDefaultSubobject<UStaticMeshComponent>(SlotName);
+		NewSlot->SetupAttachment(CargoOrigin);
+		AmmoSlots.Add(NewSlot);
+	}
+
+	// FuelSlots 
+	for (int32 i = 0; i < 3; i++)
+	{
+		FName SlotName = FName(*FString::Printf(TEXT("FuelSlot_%d"), i));
+		UStaticMeshComponent* NewSlot = CreateDefaultSubobject<UStaticMeshComponent>(SlotName);
+		NewSlot->SetupAttachment(CargoOrigin);
+		FuelSlots.Add(NewSlot);
+	}
+
+	// MedKitSlots
+	for (int32 i = 0; i < 3; i++)
+	{
+		FName SlotName = FName(*FString::Printf(TEXT("MedKitSlot_%d"), i));
+		UStaticMeshComponent* NewSlot = CreateDefaultSubobject<UStaticMeshComponent>(SlotName);
+		NewSlot->SetupAttachment(CargoOrigin);
+		MedKitSlots.Add(NewSlot);
+	}
 }
 
 void ATruck::BeginPlay()
@@ -35,6 +64,12 @@ void ATruck::BeginPlay()
 	{
 		EngineAudioComponent->SetSound(EngineSoundCue);
 	}
+
+
+	// 게임 시작 시, 미리 배치된 모든 짐을 일단 숨깁니다.
+	for (UStaticMeshComponent* Slot : AmmoSlots) { if (Slot) Slot->SetVisibility(false); }
+	for (UStaticMeshComponent* Slot : FuelSlots) { if (Slot) Slot->SetVisibility(false); }
+	for (UStaticMeshComponent* Slot : MedKitSlots) { if (Slot) Slot->SetVisibility(false); }
 }
 
 void ATruck::Tick(float DeltaTime)
@@ -114,84 +149,47 @@ void ATruck::Brake(float Value)
 
 // -------------------------------트럭 아이템 적재 시각화 --------------------------------
 // 
-// 적재 위치 계산
-FVector ATruck::CalculateCargoPosition(int32 ItemIndex) const
-{
-	// 층 (Layer), 행 (Row), 열 (Column) 계산
-	int32 Layer = ItemIndex / ItemsPerLayer;        // 몇 번째 층인지
-	int32 IndexInLayer = ItemIndex % ItemsPerLayer; // 해당 층에서 몇 번째인지
-	int32 Row = IndexInLayer / ItemsPerRow;         // 행
-	int32 Col = IndexInLayer % ItemsPerRow;         // 열
-
-	// 간격 계산
-	float ColSpacing = CargoWidth / FMath::Max(ItemsPerRow - 1, 1);
-	float RowSpacing = CargoDepth / FMath::Max((ItemsPerLayer / ItemsPerRow) - 1, 1);
-
-	// 중심 기준으로 좌우, 앞뒤 오프셋
-	float X = -Row * RowSpacing + (CargoDepth * 0.5f);    // 앞뒤 (트럭 길이 방향)
-	float Y = Col * ColSpacing - (CargoWidth * 0.5f);     // 좌우
-	float Z = Layer * ItemHeight;                          // 높이 (쌓기)
-
-	return FVector(X, Y, Z);
-}
-
-//  아이템 시각적 적재
+// 아이템 시각적 적재
 void ATruck::AddCargoVisual(EItemType ItemType)
 {
-	// 아이템 타입에 맞는 메시 선택
-	UStaticMesh* ItemMesh = nullptr;
+	UStaticMeshComponent* TargetSlot = nullptr;
+
+	// 어떤 아이템인지 확인하고, 해당 배열에서 빈 슬롯(숨겨진 메시)을 찾습니다.
 	switch (ItemType)
 	{
 	case EItemType::Ammo:
-		ItemMesh = AmmoBoxMesh;
+		if (CurrentAmmoCount < AmmoSlots.Num())
+		{
+			TargetSlot = AmmoSlots[CurrentAmmoCount];
+			CurrentAmmoCount++;
+		}
 		break;
+
 	case EItemType::Fuel:
-		ItemMesh = FuelCanMesh;
+		if (CurrentFuelCount < FuelSlots.Num())
+		{
+			TargetSlot = FuelSlots[CurrentFuelCount];
+			CurrentFuelCount++;
+		}
 		break;
+
 	case EItemType::MedicalKit:
-		ItemMesh = MedKitMesh;
-		break;
-	default:
-		ItemMesh = AmmoBoxMesh; // 기본값
+		if (CurrentMedKitCount < MedKitSlots.Num())
+		{
+			TargetSlot = MedKitSlots[CurrentMedKitCount];
+			CurrentMedKitCount++;
+		}
 		break;
 	}
 
-	if (!ItemMesh)
+	// 빈 슬롯을 찾았다면 화면에 보이게 켭니다!
+	if (TargetSlot)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("No mesh assigned for item type %d"), (int32)ItemType);
-		return;
-	}
-
-	// 새 StaticMeshComponent 생성
-	UStaticMeshComponent* NewMeshComp = NewObject<UStaticMeshComponent>(this);
-	if (NewMeshComp)
-	{
-		NewMeshComp->SetStaticMesh(ItemMesh);
-		NewMeshComp->SetupAttachment(CargoOrigin);
-		NewMeshComp->RegisterComponent();
-
-		// 위치 계산 
-		FVector Position = CalculateCargoPosition(LoadedItemVisuals.Num());
-		NewMeshComp->SetRelativeLocation(Position);
-
-		// 약간의 랜덤 회전 (자연스럽게 쌓이도록?)
-		float RandomYaw = FMath::RandRange(-15.0f, 15.0f);
-		float RandomPitch = FMath::RandRange(-3.0f, 3.0f);
-		NewMeshComp->SetRelativeRotation(FRotator(RandomPitch, RandomYaw, 0.0f));
-
-		// 충돌 비활성화 
-		NewMeshComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-
-		// 목록에 추가
-		FLoadedItemVisual Visual;
-		Visual.MeshComponent = NewMeshComp;
-		Visual.ItemType = ItemType;
-		LoadedItemVisuals.Add(Visual);
-
-		UE_LOG(LogTemp, Log, TEXT("Cargo visual added: Type=%d, Position=(%s), Total=%d"),
-			(int32)ItemType, *Position.ToString(), LoadedItemVisuals.Num());
+		TargetSlot->SetVisibility(true);
+		UE_LOG(LogTemp, Log, TEXT("Cargo loaded visually at slot. Type: %d"), (int32)ItemType);
 	}
 }
+
 // -------------------------------------------------------------------------------------
 
 // -------------------------------인터랙션 구현 --------------------------------

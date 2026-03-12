@@ -37,7 +37,7 @@ int main()
 	ServerPacketHandler::Init();
 
 	ServerServiceRef service = make_shared<ServerService>(
-		NetAddress(L"127.0.0.1", 7777),
+		NetAddress(L"0.0.0.0", 7777),
 		make_shared<IocpCore>(),
 		[=]() { return make_shared<GameSession>(); }, // TODO : SessionManager 등
 		100);
@@ -59,11 +59,11 @@ int main()
 
 	while (true)
 	{
-		Protocol::S_CHAT pkt;
+		/*Protocol::S_CHAT pkt;
 		pkt.set_msg("HelloWorld");
-		auto sendBuffer = ServerPacketHandler::MakeSendBuffer(pkt);
+		auto sendBuffer = ServerPacketHandler::MakeSendBuffer(pkt);*/
 
-		GSessionManager.Broadcast(sendBuffer);
+		/*GSessionManager.Broadcast(sendBuffer);*/
 		this_thread::sleep_for(0.1s);
 	}
 

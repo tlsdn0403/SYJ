@@ -87,6 +87,9 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <PreBuildEvent>
+      <Command>CALL "$(SolutionDir)Common\protoc-21.12-win64\bin\GenPackets.bat</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -103,6 +106,9 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <PreBuildEvent>
+      <Command>CALL "$(SolutionDir)Common\protoc-21.12-win64\bin\GenPackets.bat</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -121,7 +127,7 @@
       <AdditionalLibraryDirectories>$(SolutionDir)Libraries\Libs\;</AdditionalLibraryDirectories>
     </Link>
     <PreBuildEvent>
-      <Command>CALL $(SolutionDir)Common\protoc-21.12-win64\bin\GenPackets.bat</Command>
+      <Command>CALL "$(SolutionDir)Common\protoc-21.12-win64\bin\GenPackets.bat</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -145,7 +151,7 @@
       <AdditionalLibraryDirectories>$(SolutionDir)Libraries\Libs\;</AdditionalLibraryDirectories>
     </Link>
     <PreBuildEvent>
-      <Command>CALL $(SolutionDir)Common\protoc-21.12-win64\bin\GenPackets.bat</Command>
+      <Command>CALL "$(SolutionDir)Common\protoc-21.12-win64\bin\GenPackets.bat</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>

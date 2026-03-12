@@ -18,7 +18,6 @@ def main():
 
 	template = env.get_template('PacketHandler.h')
 	output = template.render(parser=parser, output=args.output)
-	output = output.replace('#include "S1.h"', '#include "FPSProject.h"')
 
 	f = open(args.output+'.h', 'w+')
 	f.write(output)

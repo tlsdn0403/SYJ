@@ -82,9 +82,6 @@ bool Handle_S_MOVE(PacketSessionRef& session, Protocol::S_MOVE& pkt)
 bool Handle_S_CHAT(PacketSessionRef& session, Protocol::S_CHAT& pkt)
 {
 	auto Msg = pkt.msg();
-	FString ChatMsg = UTF8_TO_TCHAR(Msg.c_str()); // Protobuf std::string을 FString으로 변환
-
-	UE_LOG(LogTemp, Warning, TEXT("Chat Received: %s"), *ChatMsg);
 
 	return true;
 }

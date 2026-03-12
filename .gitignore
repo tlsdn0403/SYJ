@@ -265,3 +265,17 @@ $RECYCLE.BIN/
 # 임시 스크립트 출력
 tmp/
 temp/
+
+# =========================
+# Protobuf required files
+# =========================
+
+# allow protoc binaries
+!Server/Common/protoc-21.12-win64/
+!Server/Common/protoc-21.12-win64/bin/
+!Server/Common/protoc-21.12-win64/bin/**
+
+# allow protobuf libs used by FPSProject
+!FPSProject/Source/ProtobufCore/
+!FPSProject/Source/ProtobufCore/Lib/
+!FPSProject/Source/ProtobufCore/Lib/**

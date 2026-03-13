@@ -138,6 +138,37 @@ void AFPSBaseCharacter::StopJump()
     bPressedJump = false;
 }
 
+//--------------------------------------------------------------------------------------------
+
+// ---------------------------------- 총기 관련 함수들 ----------------------------------
+
+void AFPSBaseCharacter::SetCurrentWeapon(AWeaponBase* NewWeapon)
+{
+    CurrentWeapon = NewWeapon;
+
+    if (!GetMesh()) return;
+
+    if (CurrentWeapon != nullptr)
+    {
+        if (ArmedAnimClass)
+        {
+            GetMesh()->SetAnimInstanceClass(ArmedAnimClass);
+        }
+    }
+    else
+    {
+        if (UnarmedAnimClass)
+        {
+            GetMesh()->SetAnimInstanceClass(UnarmedAnimClass);
+        }
+    }
+}
+
+void AFPSBaseCharacter::ClearCurrentWeapon()
+{
+    SetCurrentWeapon(nullptr);
+}
+
 void AFPSBaseCharacter::Fire()
 {
     // 현재 무기가 있으면 무기의 Fire 호출(총구에서 발사)
@@ -155,6 +186,8 @@ void AFPSBaseCharacter::SetInteractableActor(AActor* NewActor)
 {
     CurrentInteractableActor = NewActor;
 }
+
+
 
 
 void AFPSBaseCharacter::Interact()

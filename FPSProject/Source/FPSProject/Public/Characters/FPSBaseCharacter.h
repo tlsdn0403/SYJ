@@ -12,6 +12,7 @@ class USpringArmComponent;
 class UHealthComponent;
 class AFPSProjectile;
 class UInventoryWidget;
+class UAnimInstance;
 
 /** 인벤토리 업데이트 알림을 위한 델리게이트 */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnInventoryUpdated, const TArray<EItemType>&, CurrentInventory);
@@ -30,7 +31,10 @@ public:
 
     /** 무기 및 상호작용 */
     UFUNCTION(BlueprintCallable, Category = "FPS|Weapon")
-    void SetCurrentWeapon(AWeaponBase* NewWeapon) { CurrentWeapon = NewWeapon; }
+    void SetCurrentWeapon(AWeaponBase* NewWeapon);
+
+    UFUNCTION(BlueprintCallable, Category = "FPS|Weapon")
+    void ClearCurrentWeapon();
 
     void Interact();
     void SetInteractableActor(AActor* NewActor);
@@ -93,10 +97,20 @@ private:
     UPROPERTY(EditDefaultsOnly, Category = "FPS|Projectile")
     TSubclassOf<AFPSProjectile> ProjectileClass;
 
-    //
+
+    // 애니메이션
+    UPROPERTY(EditDefaultsOnly, Category = "FPS|Animation")
+    TSubclassOf<UAnimInstance> UnarmedAnimClass;
+
+    UPROPERTY(EditDefaultsOnly, Category = "FPS|Animation")
+    TSubclassOf<UAnimInstance> ArmedAnimClass;
+
+
+    // 인벤토리
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FPS|Inventory", meta = (AllowPrivateAccess = "true"))
     TArray<EItemType> Inventory;
 
+    // 총알 발사 포지션
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FPS|Gameplay", meta = (AllowPrivateAccess = "true"))
     FVector FirePosition;
 

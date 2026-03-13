@@ -45,9 +45,9 @@ public:
 	TSharedPtr<class PacketSession> GameServerSession;
 
 public:
-	/*UPROPERTY(EditAnywhere)
-	TSubclassOf<AS1Player> OtherPlayerClass;
+	UPROPERTY(EditAnywhere)
+	TSubclassOf<AActor> OtherPlayerClass;
 
-	AS1Player* MyPlayer;
-	TMap<uint64, AS1Player*> Players;*/
+	//AFPSProjectPlayer* MyPlayer;
+	TMap<uint64, AActor*> Players;
 };

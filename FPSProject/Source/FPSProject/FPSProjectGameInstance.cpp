@@ -87,12 +87,15 @@ void UFPSProjectGameInstance::HandleSpawn(const Protocol::ObjectInfo& ObjectInfo
 	if (World == nullptr)
 		return;
 
-	//// 吝汗 贸府 眉农
-	//const uint64 ObjectId = ObjectInfo.object_id();
-	//if (Players.Find(ObjectId) != nullptr)
-	//	return;
+	// 吝汗 贸府 眉农
+	const uint64 ObjectId = ObjectInfo.object_id();
+	if (Players.Find(ObjectId) != nullptr)
+		return;
 
-	//FVector SpawnLocation(ObjectInfo.pos_info().x(), ObjectInfo.pos_info().y(), ObjectInfo.pos_info().z());
+	FVector SpawnLocation(ObjectInfo.pos_info().x(), ObjectInfo.pos_info().y(), ObjectInfo.pos_info().z());
+	AActor* Actor = World->SpawnActor(OtherPlayerClass, &SpawnLocation);
+
+	Players.Add(ObjectInfo.object_id(), Actor);
 
 	//if (IsMine)
 	//{

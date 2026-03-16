@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "Items/LootItemBase.h"
+#include "Protocol.pb.h"
 #include "FPSBaseCharacter.generated.h"
 
 // 전방 선언 
@@ -24,6 +25,7 @@ class FPSPROJECT_API AFPSBaseCharacter : public ACharacter
 
 public:
     AFPSBaseCharacter();
+    virtual ~AFPSBaseCharacter();
 
     // --- 인터페이스 섹션 (Public) ---
     virtual void Tick(float DeltaTime) override;                                                   
@@ -117,4 +119,19 @@ private:
     // 
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "FPS|Inventory", meta = (AllowPrivateAccess = "true"))
     int32 MaxItemCount = 5;
+
+public:
+    void SetPlayerInfo(const Protocol::PosInfo& Info);
+    void SetDestInfo(const Protocol::PosInfo& Info);
+
+    Protocol::PosInfo* GetPlayerInfo() { return PlayerInfo; }
+
+protected:
+    Protocol::PosInfo* PlayerInfo; // 현재 위치
+    Protocol::PosInfo* DestInfo; // 목적지
+
+    const float MOVE_PACKET_SEND_DELAY = 0.05f; // (초당 20번 전송으로 약간 줄여서 부드럽게)
+    float MovePacketSendTimer = 0.f;
+
+    void SendMovePacket();
 };

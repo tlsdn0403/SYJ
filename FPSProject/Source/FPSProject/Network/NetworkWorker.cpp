@@ -87,7 +87,12 @@ bool RecvWorker::ReceivePacket(TArray<uint8>& OutPacket)
 
 bool RecvWorker::ReceiveDesiredBytes(uint8* Results, int32 Size)
 {
-	uint32 PendingDataSize;
+	// 방어 코드 추가!
+	if (Socket == nullptr)
+		return false;
+
+	uint32 PendingDataSize = 0;
+
 	if (Socket->HasPendingData(PendingDataSize) == false || PendingDataSize <= 0)
 		return false;
 

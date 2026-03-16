@@ -1,7 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-
 #include "Characters/FPSBaseCharacter.h"
+#include "Protocol.pb.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Weapon/WeaponBase.h"
@@ -12,6 +12,8 @@
 #include "HUD/BaseUI.h"
 #include "Characters/FPSPlayerController.h"
 #include "Interface/InteractInterface.h"
+#include "GameFramework/CharacterMovementComponent.h"
+#include "ClientPacketHandler.h"
 
 // Sets default values
 AFPSBaseCharacter::AFPSBaseCharacter()
@@ -45,6 +47,17 @@ AFPSBaseCharacter::AFPSBaseCharacter()
 
     //체력 컴포넌트 추가
     HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComponent"));
+
+    PlayerInfo = new Protocol::PosInfo();
+    DestInfo = new Protocol::PosInfo();
+
+    GetCharacterMovement()->bRunPhysicsWithNoController = true;
+}
+
+AFPSBaseCharacter::~AFPSBaseCharacter()
+{
+    delete PlayerInfo;
+    delete DestInfo;
 }
 
 // Called when the game starts or when spawned
@@ -73,6 +86,68 @@ void AFPSBaseCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+    // 1. 내 캐릭터인 경우
+    if (IsLocallyControlled())
+    {
+        MovePacketSendTimer += DeltaTime;
+        if (MovePacketSendTimer >= MOVE_PACKET_SEND_DELAY)
+        {
+            MovePacketSendTimer = 0.f;
+            SendMovePacket();
+        }
+    }
+    // 2. 남의 캐릭터인 경우
+    else
+    {
+        const Protocol::MoveState State = PlayerInfo->state();
+
+        FVector CurrentLocation = GetActorLocation();
+        FVector TargetLocation = FVector(DestInfo->x(), DestInfo->y(), DestInfo->z());
+        float DistToDest2D = FVector::Dist2D(CurrentLocation, TargetLocation);
+
+        FRotator TargetRot(0.f, DestInfo->yaw(), 0.f);
+        SetActorRotation(FMath::RInterpTo(GetActorRotation(), TargetRot, DeltaTime, 10.f));
+
+        // [A] 점프 상태
+        if (State == Protocol::MOVE_STATE_JUMP)
+        {
+            if (!GetCharacterMovement()->IsFalling())
+            {
+                Jump();
+            }
+
+            // 점프 중 이동 입력
+            FVector MoveDir = TargetLocation - CurrentLocation;
+            MoveDir.Z = 0.f;
+            if (MoveDir.Size() > 10.f)
+            {
+                MoveDir.Normalize();
+                AddMovementInput(MoveDir);
+            }
+        }
+        // [B] 달리기 상태
+        else if (State == Protocol::MOVE_STATE_RUN)
+        {
+            if (DistToDest2D > 10.0f)
+            {
+                FVector MoveDir = TargetLocation - CurrentLocation;
+                MoveDir.Z = 0.f;
+                MoveDir.Normalize();
+                AddMovementInput(MoveDir);
+            }
+        }
+        // [C] 가만히 있는 상태 (IDLE)
+        else
+        {
+            if (DistToDest2D > 5.0f)
+            {
+                TargetLocation.Z = CurrentLocation.Z;
+                SetActorLocation(TargetLocation);
+            }
+            // IDLE일 때는 회전을 즉시 맞춤
+            SetActorRotation(FRotator(0.f, DestInfo->yaw(), 0.f));
+        }
+    }
 }
 
 // Called to bind functionality to input
@@ -130,11 +205,14 @@ void AFPSBaseCharacter::MoveRight(float Value)
 
 void AFPSBaseCharacter::StartJump()
 {
+    Jump();
     bPressedJump = true;
+    SendMovePacket();
 }
 
 void AFPSBaseCharacter::StopJump()
 {
+    StopJumping();
     bPressedJump = false;
 }
 
@@ -178,6 +256,64 @@ void AFPSBaseCharacter::Fire()
         return;
     }
 }
+
+void AFPSBaseCharacter::SetPlayerInfo(const Protocol::PosInfo& Info)
+{
+    if (PlayerInfo->object_id() != 0 && PlayerInfo->object_id() != Info.object_id())
+        return;
+
+    PlayerInfo->CopyFrom(Info);
+    DestInfo->CopyFrom(Info);
+}
+
+void AFPSBaseCharacter::SetDestInfo(const Protocol::PosInfo& Info)
+{
+    if (PlayerInfo->object_id() != 0 && PlayerInfo->object_id() != Info.object_id())
+        return;
+    DestInfo->CopyFrom(Info);
+    SetPlayerInfo(Info);
+}
+
+void AFPSBaseCharacter::SendMovePacket()
+{
+    Protocol::C_MOVE MovePkt;
+    Protocol::PosInfo* Info = MovePkt.mutable_info();
+
+    // 내 ID 설정
+    Info->set_object_id(PlayerInfo->object_id());
+
+    // 내 위치, 회전값 설정
+    Info->set_x(GetActorLocation().X);
+    Info->set_y(GetActorLocation().Y);
+    Info->set_z(GetActorLocation().Z);
+    Info->set_yaw(GetControlRotation().Yaw);
+
+    // 현재 내가 이동중인지 판단하여 State 설정
+    if (GetCharacterMovement()->IsFalling())
+    {
+        Info->set_state(Protocol::MOVE_STATE_JUMP);
+    }
+    else if (GetVelocity().Size() > 0.f)
+    {
+        Info->set_state(Protocol::MOVE_STATE_RUN);
+    }
+    else
+    {
+        Info->set_state(Protocol::MOVE_STATE_IDLE);
+    }
+
+    // 상태가 바뀔 때 로그를 찍어보세요.
+    static Protocol::MoveState LastState = Protocol::MOVE_STATE_IDLE;
+    if (LastState != Info->state())
+    {
+        // UE_LOG(LogTemp, Warning, TEXT("State Changed: %d"), Info->state());
+        LastState = Info->state();
+    }
+
+    // 버퍼에 담아서 서버로 전송
+    SEND_PACKET(MovePkt);
+}
+
 //--------------------------------------------------------------------------------------------
 
 // ---------------------------------- 상호작용 관련 함수들 ----------------------------------

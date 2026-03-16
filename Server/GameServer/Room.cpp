@@ -35,7 +35,7 @@ bool Room::EnterRoom(ObjectRef object, bool randPos /*= true*/)
 	{
 		Protocol::S_ENTER_GAME enterGamePkt;
 		enterGamePkt.set_success(success);
-
+		
 		Protocol::ObjectInfo* playerInfo = new Protocol::ObjectInfo();
 		playerInfo->CopyFrom(*object->objectInfo);
 		enterGamePkt.set_allocated_player(playerInfo);
@@ -146,7 +146,7 @@ void Room::HandleMove(Protocol::C_MOVE pkt)
 
 void Room::UpdateTick()
 {
-	cout << "Update Room" << endl;
+	//cout << "Update Room" << endl;
 
 	DoTimer(100, &Room::UpdateTick);
 }

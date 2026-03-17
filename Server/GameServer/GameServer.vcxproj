@@ -82,15 +82,11 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpplatest</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
-    <PreBuildEvent>
-      <Command>CALL "$(SolutionDir)Common\protoc-21.12-win64\bin\GenPackets.bat</Command>
-    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -100,7 +96,6 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpplatest</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -108,9 +103,6 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
-    <PreBuildEvent>
-      <Command>CALL "$(SolutionDir)Common\protoc-21.12-win64\bin\GenPackets.bat</Command>
-    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -121,7 +113,7 @@
       <AdditionalIncludeDirectories>$(SolutionDir)ServerCore\;$(SolutionDir)Libraries\Include\;</AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <LanguageStandard>stdcpplatest</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -129,7 +121,7 @@
       <AdditionalLibraryDirectories>$(SolutionDir)Libraries\Libs\;</AdditionalLibraryDirectories>
     </Link>
     <PreBuildEvent>
-      <Command>CALL "$(SolutionDir)Common\protoc-21.12-win64\bin\GenPackets.bat</Command>
+      <Command>CALL $(SolutionDir)Common\protoc-21.12-win64\bin\GenPackets.bat</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -143,7 +135,7 @@
       <AdditionalIncludeDirectories>$(SolutionDir)ServerCore\;$(SolutionDir)Libraries\Include\;</AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <LanguageStandard>stdcpplatest</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -153,7 +145,7 @@
       <AdditionalLibraryDirectories>$(SolutionDir)Libraries\Libs\;</AdditionalLibraryDirectories>
     </Link>
     <PreBuildEvent>
-      <Command>CALL "$(SolutionDir)Common\protoc-21.12-win64\bin\GenPackets.bat</Command>
+      <Command>CALL $(SolutionDir)Common\protoc-21.12-win64\bin\GenPackets.bat</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>

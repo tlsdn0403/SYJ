@@ -53,6 +53,8 @@ ATruck::ATruck()
 		NewSlot->SetupAttachment(CargoOrigin);
 		MedKitSlots.Add(NewSlot);
 	}
+
+
 }
 
 void ATruck::BeginPlay()
@@ -198,6 +200,7 @@ void ATruck::Interact_Implementation(AFPSBaseCharacter* Character)
 {
 	if (!Character) return;
 
+
 	//------------------------------------ 1 Stage ------------------------------------
 	if (bIsLoadingPhase) {
 		if (Character->GetItemCount() > 0)
@@ -244,18 +247,25 @@ void ATruck::Interact_Implementation(AFPSBaseCharacter* Character)
 		return;
 	}
 
+	if (Character->GetCurrentTruckInteractType() == ETruckInteractType::DriverSeat) {
+		// 캐릭터를 조종하던 컨트롤러를 가져옴
+		AController* PlayerController = Character->GetController();
 
-	// 캐릭터를 조종하던 컨트롤러를 가져옴
-	AController* PlayerController = Character->GetController();
-
-	if (PlayerController)
-	{
-		//	빙의대상을 캐릭터에서 트럭으로 변경
-		PlayerController->Possess(this);
+		if (PlayerController)
+		{
+			//	빙의대상을 캐릭터에서 트럭으로 변경
+			PlayerController->Possess(this);
 
 
-		UE_LOG(LogTemp, Log, TEXT("Truck Possessed!"));
+			UE_LOG(LogTemp, Log, TEXT("Driver Seat!"));
+		}
 	}
+	else if (Character->GetCurrentTruckInteractType() == ETruckInteractType::CargoSeat) {
+
+		UE_LOG(LogTemp, Log, TEXT("Cargo Seat!"));
+
+	}
+
 }
 
 void ATruck::UpdateEngineSound()

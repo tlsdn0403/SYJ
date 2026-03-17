@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "Items/LootItemBase.h"
+#include "Components/InteractTriggerComponent.h"
 #include "FPSBaseCharacter.generated.h"
 
 // 전방 선언 
@@ -56,6 +57,10 @@ public:
     AWeaponBase* GetCurrentWeapon() const { return CurrentWeapon; }
     AActor* GetCurrentInteractableActor() const { return CurrentInteractableActor; }
 
+
+    // 인터렉트 정보
+    void SetCurrentTruckInteractType(ETruckInteractType NewType) { CurrentTruckInteractType = NewType; }
+    ETruckInteractType GetCurrentTruckInteractType() const { return CurrentTruckInteractType; }
 protected:
     virtual void BeginPlay() override;
 
@@ -87,8 +92,14 @@ private:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FPS|Weapon", meta = (AllowPrivateAccess = "true"))
     AWeaponBase* CurrentWeapon = nullptr;
 
+
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FPS|Interaction", meta = (AllowPrivateAccess = "true"))
     AActor* CurrentInteractableActor = nullptr;
+
+    UPROPERTY()
+    ETruckInteractType CurrentTruckInteractType = ETruckInteractType::None;
+
+   
 
     UPROPERTY(EditDefaultsOnly, Category = "FPS|Weapon")
     TSubclassOf<AWeaponBase> WeaponBPclass;

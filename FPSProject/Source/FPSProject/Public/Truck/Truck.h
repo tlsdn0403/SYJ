@@ -14,6 +14,7 @@
  * 
  */
 
+
  // 적재된 아이템 시각 정보
 USTRUCT(BlueprintType)
 struct FLoadedItemVisual
@@ -46,6 +47,9 @@ public:
 
 	void UpdateEngineSound();
 	void UpdateBrakeSound();
+
+
+
 protected:
 	virtual void Tick(float DeltaTime) override; // RPM 체크를 위해 필요
 	//트럭 이동을 위한 것.

@@ -6,9 +6,16 @@
 #include "Components/SphereComponent.h"
 #include "InteractTriggerComponent.generated.h"
 
-/**
- * 
- */
+
+UENUM(BlueprintType)
+enum class ETruckInteractType : uint8
+{
+	None,
+	LoadCargo,   // 1스테이지 적재
+	DriverSeat,  // 운전석 탑승
+	CargoSeat    // 적재함 탑승
+};
+ 
 //델리게이트 선언  (상호작용 ui띄우기 위해, 오버랩 시작, 끝에 이벤트 발생)
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnInteractEnter, AActor*, OtherActor);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnInteractExit, AActor*, OtherActor);
@@ -33,4 +40,8 @@ public:
 
 	UPROPERTY(BlueprintAssignable)
 	FOnInteractExit OnExit;
+
+	// 이 트리거가 어떤 탑승 역할인지
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interaction")
+	ETruckInteractType InteractType = ETruckInteractType::None;
 };

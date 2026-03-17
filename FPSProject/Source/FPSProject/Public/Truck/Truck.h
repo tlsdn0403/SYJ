@@ -38,9 +38,22 @@ public:
 
 	void BeginPlay();
 
-	// 상호작용 범위 컴포넌트
+	// --------------------- 상호작용 범위 컴포넌트 -------------------------------
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Interaction")
-	UInteractTriggerComponent* InteractTrigger;
+	UInteractTriggerComponent* DriverSeatInteractTrigger;
+
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Interaction")
+	UInteractTriggerComponent* CargoSeatInteractTrigger;
+
+	// --------------------- 트렁크에 캐릭터 타고 내리는 포지션 --------------------------------------
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Cargo|Ride")
+	USceneComponent* CargoRidePoint;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Cargo|Ride")
+	USceneComponent* CargoExitPoint;
+
+
 
 	// 인터페이스 함수 오버라이드 (F키 눌렀을 때 실행될 내용)
 	virtual void Interact_Implementation(class AFPSBaseCharacter* Character) override;
@@ -49,6 +62,15 @@ public:
 	void UpdateBrakeSound();
 
 
+	// 트렁크 포지션 게터
+	UFUNCTION(BlueprintCallable, Category = "Cargo|Ride")
+	FVector GetCargoRideLocation() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Cargo|Ride")
+	FRotator GetCargoRideRotation() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Cargo|Ride")
+	FVector GetCargoExitLocation() const;
 
 protected:
 	virtual void Tick(float DeltaTime) override; // RPM 체크를 위해 필요

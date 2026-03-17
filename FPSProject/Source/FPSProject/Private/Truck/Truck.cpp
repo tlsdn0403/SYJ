@@ -10,9 +10,22 @@
 ATruck::ATruck()
 {
 	// 트리거 컴포넌트 생성 및 부착
-	InteractTrigger = CreateDefaultSubobject<UInteractTriggerComponent>(TEXT("InteractTrigger"));
-	InteractTrigger->SetupAttachment(RootComponent);
-	InteractTrigger->InitSphereRadius(200.0f); // 범위 설정
+	DriverSeatInteractTrigger = CreateDefaultSubobject<UInteractTriggerComponent>(TEXT("DriverSeatInteractTrigger"));
+	DriverSeatInteractTrigger->SetupAttachment(RootComponent);
+	DriverSeatInteractTrigger->InitSphereRadius(200.0f); // 범위 설정
+
+	// 짐칸쪽 트리거 컴포넌트
+	CargoSeatInteractTrigger = CreateDefaultSubobject<UInteractTriggerComponent>(TEXT("CargoSeatInteractTrigger"));
+	CargoSeatInteractTrigger->SetupAttachment(RootComponent);
+	CargoSeatInteractTrigger->InitSphereRadius(200.0f); // 범위 설정
+
+	// 차량 타고내리는 포지션
+	CargoRidePoint = CreateDefaultSubobject<USceneComponent>(TEXT("CargoRidePoint"));
+	CargoRidePoint->SetupAttachment(RootComponent);
+
+	CargoExitPoint = CreateDefaultSubobject<USceneComponent>(TEXT("CargoExitPoint"));
+	CargoExitPoint->SetupAttachment(RootComponent);
+
 
 	//오디오 컴포넌트 생성 및 부착
 	EngineAudioComponent = CreateDefaultSubobject<UAudioComponent>(TEXT("EngineAudio"));
@@ -24,7 +37,6 @@ ATruck::ATruck()
 	CargoOrigin->SetupAttachment(RootComponent);
 	// 트럭 뒷부분 짐칸 위치로 설정 (에디터에서 미세 조정 )
 	CargoOrigin->SetRelativeLocation(FVector(-120.0f, 0.0f, 80.0f));
-
 
 
 	// AmmoSlots 
@@ -97,6 +109,21 @@ void ATruck::Tick(float DeltaTime)
 			EngineAudioComponent->Stop();
 		}
 	}
+}
+
+FVector ATruck::GetCargoRideLocation() const
+{
+	return CargoRidePoint ? CargoRidePoint->GetComponentLocation() : GetActorLocation();
+}
+
+FRotator ATruck::GetCargoRideRotation() const
+{
+	return CargoRidePoint ? CargoRidePoint->GetComponentRotation() : GetActorRotation();
+}
+
+FVector ATruck::GetCargoExitLocation() const
+{
+	return CargoExitPoint ? CargoExitPoint->GetComponentLocation() : GetActorLocation() + GetActorRightVector() * 200.f;
 }
 
 void ATruck::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)

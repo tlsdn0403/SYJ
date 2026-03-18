@@ -21,9 +21,10 @@ void UInteractTriggerComponent::OnOverlapBegin(UPrimitiveComponent* OverlappedCo
 		// 캐릭터에게 나랑 상호작용 가능하다고 알림
 		Character->SetInteractableActor(GetOwner());
 
-		if(Character->GetCurrentTruckInteractType())
-		// 인터렉트 컴포넌트 타입
+
 		Character->SetCurrentTruckInteractType(InteractType);
+
+		
 	}
 	if (!OtherActor || OtherActor == GetOwner()) return;
 

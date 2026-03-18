@@ -12,6 +12,8 @@
 #include "HUD/BaseUI.h"
 #include "Characters/FPSPlayerController.h"
 #include "Interface/InteractInterface.h"
+#include "Truck/Truck.h"
+#include "GameFramework/CharacterMovementComponent.h"
 
 // Sets default values
 AFPSBaseCharacter::AFPSBaseCharacter()
@@ -97,6 +99,56 @@ void AFPSBaseCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
     PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &AFPSBaseCharacter::Fire);
 
     PlayerInputComponent->BindAction("Interact", IE_Pressed, this, &AFPSBaseCharacter::Interact); // Interact 액션 바인딩
+}
+
+// ---------------------------- 트럭 탑승, 하차 ----------------------------------
+void AFPSBaseCharacter::EnterTruckCargo(ATruck* Truck)
+{
+    if (!Truck || bIsOnTruckCargo)
+    {
+        return;
+    }
+
+    bIsOnTruckCargo = true;
+    CurrentTruck = Truck;
+
+    // 적재함 위치로 이동
+    SetActorLocationAndRotation(
+        Truck->GetCargoRideLocation(),
+        Truck->GetCargoRideRotation()
+    );
+
+    // 트럭에 부착
+    AttachToActor(Truck, FAttachmentTransformRules::KeepWorldTransform);
+
+    // 1차 단계에서는 올라타는 것만 확인하기 위해 이동 막기
+    if (GetCharacterMovement())
+    {
+        GetCharacterMovement()->StopMovementImmediately();
+        GetCharacterMovement()->DisableMovement();
+    }
+}
+
+
+void AFPSBaseCharacter::ExitTruckCargo()
+{
+    if (!bIsOnTruckCargo || !CurrentTruck)
+    {
+        return;
+    }
+
+    ATruck* Truck = CurrentTruck;
+
+    DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+    SetActorLocation(Truck->GetCargoExitLocation());
+
+    if (GetCharacterMovement())
+    {
+        GetCharacterMovement()->SetMovementMode(MOVE_Walking);
+    }
+
+    bIsOnTruckCargo = false;
+    CurrentTruck = nullptr;
 }
 
 
@@ -192,6 +244,13 @@ void AFPSBaseCharacter::SetInteractableActor(AActor* NewActor)
 
 void AFPSBaseCharacter::Interact()
 {
+
+    if (bIsOnTruckCargo)
+    {
+        // 탑승중이면 내리도록
+        ExitTruckCargo();
+        return;
+    }
     if (CurrentInteractableActor)
     {
         // 해당 액터가 인터페이스를 가지고 있는지 확인

@@ -290,7 +290,10 @@ void ATruck::Interact_Implementation(AFPSBaseCharacter* Character)
 	else if (Character->GetCurrentTruckInteractType() == ETruckInteractType::CargoSeat) {
 
 		UE_LOG(LogTemp, Log, TEXT("Cargo Seat!"));
-
+		if (!Character->IsOnTruckCargo())
+		{
+			Character->EnterTruckCargo(this);
+		}
 	}
 
 }

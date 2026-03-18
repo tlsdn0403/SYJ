@@ -14,6 +14,7 @@ class UHealthComponent;
 class AFPSProjectile;
 class UInventoryWidget;
 class UAnimInstance;
+class ATruck;
 
 /** 인벤토리 업데이트 알림을 위한 델리게이트 */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnInventoryUpdated, const TArray<EItemType>&, CurrentInventory);
@@ -61,6 +62,24 @@ public:
     // 인터렉트 정보
     void SetCurrentTruckInteractType(ETruckInteractType NewType) { CurrentTruckInteractType = NewType; }
     ETruckInteractType GetCurrentTruckInteractType() const { return CurrentTruckInteractType; }
+
+
+
+    // ------------------------- 캐릭터 트럭 관련 ----------------------------------
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Truck")
+    bool bIsOnTruckCargo = false;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Truck")
+    ATruck* CurrentTruck = nullptr;
+
+    UFUNCTION(BlueprintCallable, Category = "Truck")
+    void EnterTruckCargo(ATruck* Truck);
+
+    UFUNCTION(BlueprintCallable, Category = "Truck")
+    void ExitTruckCargo();
+
+    UFUNCTION(BlueprintCallable, Category = "Truck")
+    bool IsOnTruckCargo() const { return bIsOnTruckCargo; }
 protected:
     virtual void BeginPlay() override;
 

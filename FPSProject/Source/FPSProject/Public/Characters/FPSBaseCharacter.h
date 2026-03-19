@@ -129,6 +129,8 @@ public:
 protected:
     Protocol::PosInfo* PlayerInfo; // 현재 위치
     Protocol::PosInfo* DestInfo; // 목적지
+    // 상대방 캐릭터의 이전 상태를 기억하기 위한 변수(점프가 두번되는 문제를 막기 위함)
+    Protocol::MoveState RemoteLastState = Protocol::MOVE_STATE_IDLE;
 
     const float MOVE_PACKET_SEND_DELAY = 0.05f; // (초당 20번 전송으로 약간 줄여서 부드럽게)
     float MovePacketSendTimer = 0.f;

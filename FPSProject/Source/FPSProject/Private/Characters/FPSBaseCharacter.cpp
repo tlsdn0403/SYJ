@@ -108,14 +108,21 @@ void AFPSBaseCharacter::Tick(float DeltaTime)
         FRotator TargetRot(0.f, DestInfo->yaw(), 0.f);
         SetActorRotation(FMath::RInterpTo(GetActorRotation(), TargetRot, DeltaTime, 10.f));
 
-        // [A] 점프 상태
-        if (State == Protocol::MOVE_STATE_JUMP)
+        // 이전 상태가 JUMP가 아니었는데, 지금 JUMP로 바뀌었다면 딱 한 번만 점프!
+        if (State == Protocol::MOVE_STATE_JUMP && RemoteLastState != Protocol::MOVE_STATE_JUMP)
         {
             if (!GetCharacterMovement()->IsFalling())
             {
                 Jump();
             }
+        }
 
+        // 이번 프레임의 상태를 '이전 상태'로 저장해 둡니다. (다음 프레임에서 비교하기 위해)
+        RemoteLastState = State;
+
+        // [A] 점프 상태
+        if (State == Protocol::MOVE_STATE_JUMP)
+        {
             // 점프 중 이동 입력
             FVector MoveDir = TargetLocation - CurrentLocation;
             MoveDir.Z = 0.f;

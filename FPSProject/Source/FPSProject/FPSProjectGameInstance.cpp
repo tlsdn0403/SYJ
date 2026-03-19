@@ -12,12 +12,16 @@
 #include "Characters/FPSBaseCharacter.h"
 #include "Kismet/GameplayStatics.h"
 
-void UFPSProjectGameInstance::ConnectToGameServer()
+void UFPSProjectGameInstance::ConnectToGameServer(const FString& IPAddress)
 {
-	Socket = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->CreateSocket(TEXT("Stream"), TEXT("Client Socket"));
-
 	FIPv4Address Ip;
-	FIPv4Address::Parse(IpAddress, Ip);
+	if (FIPv4Address::Parse(IPAddress, Ip) == false)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("Connection Failed : 잘못된 IP 주소 형식입니다."));
+		return; // 이상한 IP면 여기서 함수를 바로 종료해서 크래시를 막습니다!
+	}
+
+	Socket = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->CreateSocket(TEXT("Stream"), TEXT("Client Socket"));
 
 	TSharedRef<FInternetAddr> InternetAddr = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->CreateInternetAddr();
 	InternetAddr->SetIp(Ip.Value);
@@ -111,6 +115,7 @@ void UFPSProjectGameInstance::HandleSpawn(const Protocol::ObjectInfo& ObjectInfo
 			if (MyPlayer)
 			{
 				MyPlayer->SetPlayerInfo(ObjectInfo.pos_info()); // 내 고유 ID와 위치 정보 세팅
+				MyPlayer->SetActorLocation(SpawnLocation);
 				Players.Add(ObjectId, MyPlayer);               // 맵에 등록
 			}
 		}

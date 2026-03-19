@@ -16,8 +16,8 @@ class FPSPROJECT_API UFPSProjectGameInstance : public UGameInstance
 	GENERATED_BODY()
 
 public:
-	UFUNCTION(BlueprintCallable)
-	void ConnectToGameServer();
+	UFUNCTION(BlueprintCallable, Category = "Network")
+	void ConnectToGameServer(const FString& IPAddress);
 
 	UFUNCTION(BlueprintCallable)
 	void DisconnectFromGameServer();

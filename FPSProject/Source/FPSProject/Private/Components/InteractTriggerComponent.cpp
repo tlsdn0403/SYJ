@@ -22,8 +22,9 @@ void UInteractTriggerComponent::OnOverlapBegin(UPrimitiveComponent* OverlappedCo
 		Character->SetInteractableActor(GetOwner());
 
 
+		// 인터렉트 컴포넌트 타입
 		Character->SetCurrentTruckInteractType(InteractType);
-
+		
 		
 	}
 	if (!OtherActor || OtherActor == GetOwner()) return;
@@ -41,6 +42,10 @@ void UInteractTriggerComponent::OnOverlapEnd(UPrimitiveComponent* OverlappedComp
 		if (Character->GetCurrentInteractableActor() == GetOwner())
 		{
 			Character->SetInteractableActor(nullptr);
+		}
+		if (Character->GetCurrentTruckInteractType() != ETruckInteractType::None) {
+			// 인터렉트 컴포넌트 타입
+			Character->SetCurrentTruckInteractType(ETruckInteractType::None);
 		}
 		if (!OtherActor || OtherActor == GetOwner()) return;
 

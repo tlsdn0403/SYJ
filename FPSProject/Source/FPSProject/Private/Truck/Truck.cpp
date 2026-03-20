@@ -4,6 +4,8 @@
 #include "Truck/Truck.h"
 #include "ChaosWheeledVehicleMovementComponent.h"
 #include "GameFramework/PlayerController.h"
+#include "Characters/FPSBaseCharacter.h"
+#include "Components/BoxComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Sound/SoundBase.h"
 
@@ -38,6 +40,11 @@ ATruck::ATruck()
 	// 트럭 뒷부분 짐칸 위치로 설정 (에디터에서 미세 조정 )
 	CargoOrigin->SetRelativeLocation(FVector(-120.0f, 0.0f, 80.0f));
 
+	// 짐칸에서 움직일 수 있는 범위 박스 컴포넌트 생성
+	CargoMoveBounds = CreateDefaultSubobject<UBoxComponent>(TEXT("CargoMoveBounds"));
+	CargoMoveBounds->SetupAttachment(RootComponent);
+	CargoMoveBounds->SetCollisionEnabled(ECollisionEnabled::NoCollision);          // 범위 계산용이라 충돌처리 X
+	CargoMoveBounds->SetBoxExtent(FVector(120.f, 80.f, 100.f));
 
 	// AmmoSlots 
 	for (int32 i = 0; i < 3; i++)
@@ -124,6 +131,19 @@ FRotator ATruck::GetCargoRideRotation() const
 FVector ATruck::GetCargoExitLocation() const
 {
 	return CargoExitPoint ? CargoExitPoint->GetComponentLocation() : GetActorLocation() + GetActorRightVector() * 200.f;
+}
+
+FBox ATruck::GetCargoWorldBounds() const
+{
+	if (!CargoMoveBounds)
+	{
+		return FBox(EForceInit::ForceInitToZero);
+	}
+
+	const FVector Center = CargoMoveBounds->GetComponentLocation();
+	const FVector Extent = CargoMoveBounds->GetScaledBoxExtent();
+
+	return FBox(Center - Extent, Center + Extent);
 }
 
 void ATruck::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)

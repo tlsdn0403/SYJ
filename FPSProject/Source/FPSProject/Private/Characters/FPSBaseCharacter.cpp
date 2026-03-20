@@ -203,11 +203,11 @@ void AFPSBaseCharacter::EnterTruckCargo(ATruck* Truck)
     // 트럭에 부착
     AttachToActor(Truck, FAttachmentTransformRules::KeepWorldTransform);
 
-    // 1차 단계에서는 올라타는 것만 확인하기 위해 이동 막기
+	// 캐릭터 움직임 멈추고, 걷기 모드로 설정 (점프나 낙하 방지)
     if (GetCharacterMovement())
     {
         GetCharacterMovement()->StopMovementImmediately();
-        GetCharacterMovement()->DisableMovement();
+        GetCharacterMovement()->SetMovementMode(MOVE_Walking);
     }
 }
 

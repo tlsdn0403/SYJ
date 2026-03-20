@@ -16,8 +16,8 @@ class FPSPROJECT_API UFPSProjectGameInstance : public UGameInstance
 	GENERATED_BODY()
 
 public:
-	UFUNCTION(BlueprintCallable)
-	void ConnectToGameServer();
+	UFUNCTION(BlueprintCallable, Category = "Network")
+	void ConnectToGameServer(const FString& IPAddress);
 
 	UFUNCTION(BlueprintCallable)
 	void DisconnectFromGameServer();
@@ -38,6 +38,9 @@ public:
 	void HandleMove(const Protocol::S_MOVE& MovePkt);
 
 public:
+	virtual void Shutdown() override;
+
+public:
 	// GameServer
 	class FSocket* Socket;
 	FString IpAddress = TEXT("127.0.0.1");
@@ -45,9 +48,8 @@ public:
 	TSharedPtr<class PacketSession> GameServerSession;
 
 public:
-	UPROPERTY(EditAnywhere)
-	TSubclassOf<AActor> OtherPlayerClass;
-
-	//AFPSProjectPlayer* MyPlayer;
-	TMap<uint64, AActor*> Players;
+	UPROPERTY(EditAnywhere, Category = "Network")
+	TSubclassOf<class AFPSBaseCharacter> OtherPlayerClass;
+	class AFPSBaseCharacter* MyPlayer;
+	TMap<uint64, class AFPSBaseCharacter*> Players;
 };

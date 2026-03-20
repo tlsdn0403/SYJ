@@ -6,6 +6,8 @@
 #include "GameSession.h"
 #include "GameSessionManager.h"
 #include <tchar.h>
+#include<chrono>
+#include<thread>
 #include "Job.h"
 #include "Protocol.pb.h"
 #include "Room.h"
@@ -64,7 +66,7 @@ int main()
 		auto sendBuffer = ServerPacketHandler::MakeSendBuffer(pkt);
 
 		GSessionManager.Broadcast(sendBuffer);
-		this_thread::sleep_for(0.1s);
+		std::this_thread::sleep_for(0.1s);
 	}
 
 	GThreadManager->Join();

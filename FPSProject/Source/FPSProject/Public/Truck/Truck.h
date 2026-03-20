@@ -52,8 +52,9 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Cargo|Ride")
 	USceneComponent* CargoExitPoint;
-
-
+	// 차량에서 움직임 범위
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Cargo|Ride")
+	class UBoxComponent* CargoMoveBounds;
 
 	// 인터페이스 함수 오버라이드 (F키 눌렀을 때 실행될 내용)
 	virtual void Interact_Implementation(class AFPSBaseCharacter* Character) override;
@@ -71,6 +72,10 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Cargo|Ride")
 	FVector GetCargoExitLocation() const;
+
+	// 움직임 범위 계산
+	UFUNCTION(BlueprintCallable, Category = "Cargo|Ride")
+	FBox GetCargoWorldBounds() const;
 
 protected:
 	virtual void Tick(float DeltaTime) override; // RPM 체크를 위해 필요

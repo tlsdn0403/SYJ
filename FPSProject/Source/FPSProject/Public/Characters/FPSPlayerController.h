@@ -15,6 +15,7 @@ class UInventoryWidget;
 class UBaseUI;
 class UInputMappingContext;
 class UInputAction;
+class UStartScreenClass;
 
 UCLASS()
 class FPSPROJECT_API AFPSPlayerController : public APlayerController
@@ -26,6 +27,13 @@ protected:
 	virtual void SetupInputComponent() override;
 public:
 
+	// 시작화면 위젯
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "StartScreen")
+	TSubclassOf<UStartScreenClass> StartScreenWidgetClass;
+
+	UPROPERTY()
+	UStartScreenClass* StartSW;
+
 	// 인벤토리 위젯
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory")
 	TSubclassOf<UInventoryWidget> InvenWidgetClass;
@@ -35,12 +43,14 @@ public:
 
 
 	// 타이머 위젯
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Timer")
 	TSubclassOf<UBaseUI> TimerWidgetClass;
 
 	UPROPERTY()
 	UBaseUI* TimerW;
 
+	UFUNCTION()
+	void StartGame();
 
 public:
 	// 입력 액션

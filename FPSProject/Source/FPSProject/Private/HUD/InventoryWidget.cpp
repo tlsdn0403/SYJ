@@ -52,7 +52,7 @@ void UInventoryWidget:: PlayAin_Slot(int32 SlotIndex)
 
 	if (SlotWidgets.IsValidIndex(SlotIndex) && IsValid(SlotWidgets[SlotIndex]))
 	{
-		SlotWidgets[SlotIndex]->PlayAni_Select();
+		SlotWidgets[SlotIndex]->PlayAni_Start();
 	}
 }
 
@@ -79,7 +79,7 @@ void UInventoryWidget::SelectSlot(int32 slotnum)
 				SlotWidgets[i]->Selected = false;
 				//SlotWidgets[i]->ClearSlot();
 			}
-				SlotWidgets[i]->PlayAni_Select();
+				SlotWidgets[i]->PlayAni_Start();
 		}
 	}
 }

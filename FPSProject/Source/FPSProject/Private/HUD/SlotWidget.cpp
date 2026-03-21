@@ -31,7 +31,7 @@ void USlotWidget::ClearSlot()
 
 }
 
-void USlotWidget::PlayAni_Select()
+void USlotWidget::PlayAni_Start()
 {
 	UE_LOG(LogTemp, Warning, TEXT("PlayAni_Select Called"));
 	UE_LOG(LogTemp, Warning, TEXT("ANIMATION SLOT %p"), this);

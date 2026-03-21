@@ -53,7 +53,10 @@ AFPSBaseCharacter::AFPSBaseCharacter()
     PlayerInfo = new Protocol::PosInfo();
     DestInfo = new Protocol::PosInfo();
 
+	// 캐릭터가 컨트롤러 없이도 물리 시뮬레이션을 계속하도록 설정
     GetCharacterMovement()->bRunPhysicsWithNoController = true;
+    // 임시방편으로 캐릭터가 미는 거 막기
+    GetCharacterMovement()->bEnablePhysicsInteraction = false;
 }
 
 AFPSBaseCharacter::~AFPSBaseCharacter()

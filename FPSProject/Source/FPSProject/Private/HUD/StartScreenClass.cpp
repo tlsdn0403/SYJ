@@ -11,5 +11,5 @@ void UStartScreenClass::NativeConstruct()
 
 void UStartScreenClass::PlayAni_Start()
 {
-		StopAnimation(StartPop);
+	PlayAnimation(StartPop);
 }

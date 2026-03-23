@@ -31,8 +31,6 @@ public:
 	UImage* LogoImage;
 
 	void PlayAni_Start();
-	void StopAni_Select();
-
 	
 };
 

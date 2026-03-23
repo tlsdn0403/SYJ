@@ -21,16 +21,26 @@ class FPSPROJECT_API UStartScreenClass : public UUserWidget
 
 protected:
 	virtual void NativeConstruct() override;
+	//virtual bool Initialize() override;		//마우스 입력 받는 용
+
 
 	UPROPERTY(meta = (BindWidgetAnim), Transient)
 	UWidgetAnimation* StartPop;
 
-public:
-	// 슬롯 이미지 (손이나 아이템 아이콘 들어감)	meta = (BindWidget)
+	UPROPERTY(meta = (BindWidgetAnim), Transient)
+	UWidgetAnimation* Click;
+
 	UPROPERTY(meta = (BindWidget))
 	UImage* LogoImage;
 
+public:
+
+	/*UPROPERTY(meta = (BindWidget))
+	class UButton* LoginButton;*/
+	UFUNCTION()
 	void PlayAni_Start();
-	
+	UFUNCTION()
+	void PlayAni_Click();
+	//void OnClickLogin();
 };
 

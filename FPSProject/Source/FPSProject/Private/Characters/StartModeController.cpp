@@ -8,6 +8,12 @@ void AStartModeController::BeginPlay() {
 		Super::BeginPlay();
 	if ( !StartScreenWidgetClass) return;
 
+	bShowMouseCursor = true;
+
+	FInputModeUIOnly InputMode;
+	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+	SetInputMode(InputMode);
+
 	StartSW = CreateWidget<UStartScreenClass>(this, StartScreenWidgetClass);
 	StartGame();
 }

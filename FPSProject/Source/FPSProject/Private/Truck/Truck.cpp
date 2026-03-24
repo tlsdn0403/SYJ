@@ -73,6 +73,7 @@ ATruck::ATruck()
 		MedKitSlots.Add(NewSlot);
 	}
 
+	// 트렁크쪽 충돌 박스 생성자
 	CargoFloorCollision = CreateDefaultSubobject<UBoxComponent>(TEXT("CargoFloorCollision"));
 	CargoFloorCollision->SetupAttachment(RootComponent);
 

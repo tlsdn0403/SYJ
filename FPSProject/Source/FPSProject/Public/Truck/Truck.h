@@ -56,6 +56,24 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Cargo|Ride")
 	class UBoxComponent* CargoMoveBounds;
 
+	// ----------------------- 트렁크 충돌 박스 ------------------------------------
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Cargo|Collision")
+	class UBoxComponent* CargoFloorCollision;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Cargo|Collision")
+	class UBoxComponent* CargoLeftWallCollision;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Cargo|Collision")
+	class UBoxComponent* CargoRightWallCollision;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Cargo|Collision")
+	class UBoxComponent* CargoFrontWallCollision;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Cargo|Collision")
+	class UBoxComponent* CargoBackWallCollision;
+
+
+
 	// 인터페이스 함수 오버라이드 (F키 눌렀을 때 실행될 내용)
 	virtual void Interact_Implementation(class AFPSBaseCharacter* Character) override;
 

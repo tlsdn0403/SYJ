@@ -73,6 +73,34 @@ ATruck::ATruck()
 		MedKitSlots.Add(NewSlot);
 	}
 
+	CargoFloorCollision = CreateDefaultSubobject<UBoxComponent>(TEXT("CargoFloorCollision"));
+	CargoFloorCollision->SetupAttachment(RootComponent);
+
+	CargoLeftWallCollision = CreateDefaultSubobject<UBoxComponent>(TEXT("CargoLeftWallCollision"));
+	CargoLeftWallCollision->SetupAttachment(RootComponent);
+
+	CargoRightWallCollision = CreateDefaultSubobject<UBoxComponent>(TEXT("CargoRightWallCollision"));
+	CargoRightWallCollision->SetupAttachment(RootComponent);
+
+	CargoFrontWallCollision = CreateDefaultSubobject<UBoxComponent>(TEXT("CargoFrontWallCollision"));
+	CargoFrontWallCollision->SetupAttachment(RootComponent);
+
+	CargoBackWallCollision = CreateDefaultSubobject<UBoxComponent>(TEXT("CargoBackWallCollision"));
+	CargoBackWallCollision->SetupAttachment(RootComponent);
+
+	auto SetupCargoCollision = [](UBoxComponent* Box)
+		{
+			Box->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+			Box->SetCollisionResponseToAllChannels(ECR_Ignore);
+			Box->SetCollisionResponseToChannel(ECC_Pawn, ECR_Block);
+			Box->SetGenerateOverlapEvents(false);
+		};
+
+	SetupCargoCollision(CargoFloorCollision);
+	SetupCargoCollision(CargoLeftWallCollision);
+	SetupCargoCollision(CargoRightWallCollision);
+	SetupCargoCollision(CargoFrontWallCollision);
+	SetupCargoCollision(CargoBackWallCollision);
 
 }
 

@@ -7,7 +7,7 @@
 void UInteractUIClass::NativeConstruct()
 {
 	Super::NativeConstruct();
-	// ¾Ö´Ï¸ÞÀÌ¼ÇÀÌ¶û ÅØ½ºÆ® ºí·ÏÀÌ Á¦´ë·Î ¹ÙÀÎµù µÇ¾ú´ÂÁö È®ÀÎ
+	// ì• ë‹ˆë©”ì´ì…˜ì´ëž‘ í…ìŠ¤íŠ¸ ë¸”ë¡ì´ ì œëŒ€ë¡œ ë°”ì¸ë”© ë˜ì—ˆëŠ”ì§€ í™•ì¸
 	InteractText->SetIsEnabled(true);
 	//InteractText->SetColorAndOpacity(FSlateColor(FLinearColor(1.f, 1.f, 1.f, 1.f)));
 	InteractText->SetText(FText::FromString(TEXT("Open")));
@@ -17,14 +17,22 @@ void UInteractUIClass::PlayAni_PopUp(bool bOpen)
 	if (!PopUp) return;
 	PlayAnimation(PopUp);
 
-	//¾Ö´Ï¸ÞÀÌ¼ÇÀÇ ¸¶Áö¸· ÇÁ·¹ÀÓÀÌ ¶ç¿öÁ®ÀÖ±â¶§¹®¿¡ ¾Ë¾Æ¼­ À¯Áö°¡ µÊ.
+	//ì• ë‹ˆë©”ì´ì…˜ì˜ ë§ˆì§€ë§‰ í”„ë ˆìž„ì´ ë„ì›Œì ¸ìžˆê¸°ë•Œë¬¸ì— ì•Œì•„ì„œ ìœ ì§€ê°€ ë¨.
 }
 
-void UInteractUIClass::RePlayAni_PopUp() // ¹üÀ§ ¹þ¾î³ª¼­ »ç¶óÁü.
+void UInteractUIClass::RePlayAni_PopUp() // ë²”ìœ„ ë²—ì–´ë‚˜ì„œ ì‚¬ë¼ì§.
 {
 	if (PopUp)
 	{
-		PlayAnimation(PopUp, 0.f, 1, EUMGSequencePlayMode::Reverse); //¾Ö´Ï¸ÞÀÌ¼Ç ´Ý±â
+		PlayAnimation(PopUp, 0.f, 1, EUMGSequencePlayMode::Reverse); //ì• ë‹ˆë©”ì´ì…˜ ë‹«ê¸°
+	}
+}
+
+void UInteractUIClass::SetInteractText(const FText& NewText)
+{
+	if (InteractText)
+	{
+		InteractText->SetText(NewText);
 	}
 }
 

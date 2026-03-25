@@ -3,6 +3,9 @@
 #include "GameFramework/PlayerController.h"
 #include "Characters/FPSBaseCharacter.h"
 #include "Components/BoxComponent.h"
+#include "Components/WidgetComponent.h"
+#include "Blueprint/UserWidget.h"
+#include "HUD/InteractUIClass.h"
 #include "Kismet/GameplayStatics.h"
 #include "Sound/SoundBase.h"
 #include "Weapon/MountedMachineGun.h"
@@ -37,6 +40,15 @@ ATruck::ATruck()
 	TurretMountPoint = CreateDefaultSubobject<USceneComponent>(TEXT("TurretMountPoint"));
 	TurretMountPoint->SetupAttachment(RootComponent);
 	TurretMountPoint->SetRelativeLocation(FVector(-120.0f, 0.0f, 200.0f));
+
+	TurretCameraPoint = CreateDefaultSubobject<USceneComponent>(TEXT("TurretCameraPoint"));
+	TurretCameraPoint->SetupAttachment(RootComponent);
+	TurretCameraPoint->SetRelativeLocation(FVector(-110.0f, 0.0f, 210.0f));
+
+	TurretInteractWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("TurretInteractWidget"));
+	TurretInteractWidget->SetupAttachment(TurretSeatInteractTrigger);
+	TurretInteractWidget->SetTwoSided(true);
+	TurretInteractWidget->SetWidgetSpace(EWidgetSpace::Screen);
 
 	EngineAudioComponent = CreateDefaultSubobject<UAudioComponent>(TEXT("EngineAudio"));
 	EngineAudioComponent->SetupAttachment(RootComponent);
@@ -115,6 +127,12 @@ ATruck::ATruck()
 	{
 		MountedWeaponClass = MountedWeaponBP.Class;
 	}
+
+	static ConstructorHelpers::FClassFinder<UUserWidget> TurretWidgetBP(TEXT("/Game/Item/WBP_Interact"));
+	if (TurretInteractWidget && TurretWidgetBP.Succeeded())
+	{
+		TurretInteractWidget->SetWidgetClass(TurretWidgetBP.Class);
+	}
 }
 
 void ATruck::BeginPlay()
@@ -124,6 +142,17 @@ void ATruck::BeginPlay()
 	if (EngineSoundCue)
 	{
 		EngineAudioComponent->SetSound(EngineSoundCue);
+	}
+
+	if (TurretInteractWidget)
+	{
+		TurretInteractWidget->InitWidget();
+	}
+
+	if (TurretSeatInteractTrigger)
+	{
+		TurretSeatInteractTrigger->OnEnter.AddDynamic(this, &ATruck::OnTurretInteractEnter);
+		TurretSeatInteractTrigger->OnExit.AddDynamic(this, &ATruck::OnTurretInteractExit);
 	}
 
 	for (UStaticMeshComponent* Slot : AmmoSlots) { if (Slot) Slot->SetVisibility(false); }
@@ -198,6 +227,16 @@ FVector ATruck::GetTurretSeatLocation() const
 FRotator ATruck::GetTurretSeatRotation() const
 {
 	return TurretSeatPoint ? TurretSeatPoint->GetComponentRotation() : GetActorRotation();
+}
+
+FVector ATruck::GetTurretCameraLocation() const
+{
+	return TurretCameraPoint ? TurretCameraPoint->GetComponentLocation() : GetActorLocation();
+}
+
+FRotator ATruck::GetTurretCameraRotation() const
+{
+	return TurretCameraPoint ? TurretCameraPoint->GetComponentRotation() : GetActorRotation();
 }
 
 FBox ATruck::GetCargoWorldBounds() const
@@ -391,6 +430,33 @@ void ATruck::EndMountedWeaponUse(AFPSBaseCharacter* Character)
 		}
 
 		MountedWeaponUser = nullptr;
+	}
+}
+
+void ATruck::OnTurretInteractEnter(AActor* OtherActor)
+{
+	if (!Cast<AFPSBaseCharacter>(OtherActor) || !TurretInteractWidget)
+	{
+		return;
+	}
+
+	if (UInteractUIClass* UI = Cast<UInteractUIClass>(TurretInteractWidget->GetUserWidgetObject()))
+	{
+		UI->SetInteractText(FText::FromString(TEXT("Use Machine Gun")));
+		UI->PlayAni_PopUp(false);
+	}
+}
+
+void ATruck::OnTurretInteractExit(AActor* OtherActor)
+{
+	if (!Cast<AFPSBaseCharacter>(OtherActor) || !TurretInteractWidget)
+	{
+		return;
+	}
+
+	if (UInteractUIClass* UI = Cast<UInteractUIClass>(TurretInteractWidget->GetUserWidgetObject()))
+	{
+		UI->RePlayAni_PopUp();
 	}
 }
 

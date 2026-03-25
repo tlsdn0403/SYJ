@@ -28,6 +28,11 @@ AFPSBaseCharacter::AFPSBaseCharacter()
     ThirdPersonCameraComponent->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
     ThirdPersonCameraComponent->bUsePawnControlRotation = false;
 
+    FPSCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("FPSCamera"));
+    FPSCameraComponent->SetupAttachment(RootComponent);
+    FPSCameraComponent->bUsePawnControlRotation = true;
+    FPSCameraComponent->SetActive(false);
+
     FPSMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("ThirdPersonMesh"));
     check(FPSMesh != nullptr);
 
@@ -74,6 +79,11 @@ void AFPSBaseCharacter::Tick(float DeltaTime)
     if (bIsUsingMountedWeapon && CurrentMountedWeapon)
     {
         CurrentMountedWeapon->UpdateAim(GetControlRotation());
+
+        if (CurrentTruck && FPSCameraComponent)
+        {
+            FPSCameraComponent->SetWorldLocation(CurrentTruck->GetTurretCameraLocation());
+        }
     }
 
     if (IsLocallyControlled())
@@ -207,6 +217,7 @@ void AFPSBaseCharacter::EnterMountedWeapon(ATruck* Truck, AMountedMachineGun* Mo
     }
 
     bIsUsingMountedWeapon = true;
+    bIsOnTruckCargo = false;
     CurrentTruck = Truck;
     CurrentMountedWeapon = MountedWeapon;
     CurrentMountedWeapon->SetWeaponUser(this);
@@ -226,6 +237,21 @@ void AFPSBaseCharacter::EnterMountedWeapon(ATruck* Truck, AMountedMachineGun* Mo
 
     GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
     GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+    if (ThirdPersonCameraComponent)
+    {
+        ThirdPersonCameraComponent->SetActive(false);
+    }
+    if (FPSCameraComponent)
+    {
+        FPSCameraComponent->SetWorldLocation(Truck->GetTurretCameraLocation());
+        FPSCameraComponent->SetActive(true);
+    }
+
+    if (Controller)
+    {
+        Controller->SetControlRotation(Truck->GetTurretCameraRotation());
+    }
 }
 
 void AFPSBaseCharacter::ExitMountedWeapon()
@@ -243,7 +269,11 @@ void AFPSBaseCharacter::ExitMountedWeapon()
     }
 
     DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
-    SetActorLocation(Truck->GetCargoExitLocation());
+    SetActorLocationAndRotation(
+        Truck->GetCargoRideLocation(),
+        Truck->GetCargoRideRotation()
+    );
+    AttachToActor(Truck, FAttachmentTransformRules::KeepWorldTransform);
 
     if (GetCharacterMovement())
     {
@@ -253,10 +283,25 @@ void AFPSBaseCharacter::ExitMountedWeapon()
     GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
     GetMesh()->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 
+    if (FPSCameraComponent)
+    {
+        FPSCameraComponent->SetActive(false);
+    }
+    if (ThirdPersonCameraComponent)
+    {
+        ThirdPersonCameraComponent->SetActive(true);
+    }
+
     Truck->EndMountedWeaponUse(this);
     CurrentMountedWeapon = nullptr;
-    CurrentTruck = nullptr;
     bIsUsingMountedWeapon = false;
+    bIsOnTruckCargo = true;
+}
+
+bool AFPSBaseCharacter::CanInteractWithMountedWeapon() const
+{
+    return CurrentInteractableActor != nullptr
+        && CurrentTruckInteractType == ETruckInteractType::TurretSeat;
 }
 
 void AFPSBaseCharacter::MoveForward(float Value)
@@ -414,6 +459,15 @@ void AFPSBaseCharacter::Interact()
     if (bIsUsingMountedWeapon)
     {
         ExitMountedWeapon();
+        return;
+    }
+
+    if (CanInteractWithMountedWeapon())
+    {
+        if (CurrentInteractableActor->GetClass()->ImplementsInterface(UInteractInterface::StaticClass()))
+        {
+            IInteractInterface::Execute_Interact(CurrentInteractableActor, this);
+        }
         return;
     }
 

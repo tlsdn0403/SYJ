@@ -15,6 +15,7 @@ class UBoxComponent;
 class USceneComponent;
 class UStaticMeshComponent;
 class USoundBase;
+class UWidgetComponent;
 
 USTRUCT(BlueprintType)
 struct FLoadedItemVisual
@@ -59,6 +60,12 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Turret")
 	USceneComponent* TurretMountPoint;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Turret")
+	USceneComponent* TurretCameraPoint;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Turret")
+	UWidgetComponent* TurretInteractWidget;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Cargo|Ride")
 	UBoxComponent* CargoMoveBounds;
 
@@ -97,6 +104,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Turret")
 	FRotator GetTurretSeatRotation() const;
 
+	UFUNCTION(BlueprintCallable, Category = "Turret")
+	FVector GetTurretCameraLocation() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Turret")
+	FRotator GetTurretCameraRotation() const;
+
 	UFUNCTION(BlueprintCallable, Category = "Cargo|Ride")
 	FBox GetCargoWorldBounds() const;
 
@@ -104,6 +117,12 @@ public:
 	AMountedMachineGun* GetMountedWeapon() const { return MountedWeapon; }
 
 	void EndMountedWeaponUse(AFPSBaseCharacter* Character);
+
+	UFUNCTION()
+	void OnTurretInteractEnter(AActor* OtherActor);
+
+	UFUNCTION()
+	void OnTurretInteractExit(AActor* OtherActor);
 
 protected:
 	virtual void Tick(float DeltaTime) override;

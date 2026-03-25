@@ -85,6 +85,9 @@ public:
     void ExitMountedWeapon();
 
     UFUNCTION(BlueprintCallable, Category = "Truck")
+    bool CanInteractWithMountedWeapon() const;
+
+    UFUNCTION(BlueprintCallable, Category = "Truck")
     bool IsOnTruckCargo() const { return bIsOnTruckCargo; }
 
     UFUNCTION(BlueprintCallable, Category = "Truck")

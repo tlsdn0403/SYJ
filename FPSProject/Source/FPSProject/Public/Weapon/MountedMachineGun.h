@@ -43,6 +43,9 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Mounted Gun")
 	USceneComponent* MuzzlePoint;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mounted Gun")
+	FName MuzzleSocketName = TEXT("Muzzle");
+
 	UPROPERTY(EditDefaultsOnly, Category = "Mounted Gun")
 	TSubclassOf<AFPSProjectile> ProjectileClass;
 

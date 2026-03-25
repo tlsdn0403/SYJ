@@ -26,8 +26,8 @@ AMountedMachineGun::AMountedMachineGun()
 	GunMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
 	MuzzlePoint = CreateDefaultSubobject<USceneComponent>(TEXT("MuzzlePoint"));
-	MuzzlePoint->SetupAttachment(PitchPivot);
-	MuzzlePoint->SetRelativeLocation(FVector(150.0f, 0.0f, 0.0f));
+	MuzzlePoint->SetupAttachment(GunMesh);
+
 }
 
 void AMountedMachineGun::BeginPlay()
@@ -70,11 +70,24 @@ void AMountedMachineGun::Fire()
 	FCollisionQueryParams QueryParams;
 	QueryParams.AddIgnoredActor(this);
 	QueryParams.AddIgnoredActor(CurrentUser);
+	if (CurrentUser->CurrentTruck)
+	{
+		QueryParams.AddIgnoredActor(CurrentUser->CurrentTruck);
+	}
 
 	const bool bHit = GetWorld()->LineTraceSingleByChannel(HitResult, TraceStart, TraceEnd, ECC_Visibility, QueryParams);
 	const FVector TargetLocation = bHit ? HitResult.Location : TraceEnd;
 
-	const FVector FireLocation = MuzzlePoint ? MuzzlePoint->GetComponentLocation() : GetActorLocation();
+	FVector FireLocation = GetActorLocation();
+	if (GunMesh && MuzzleSocketName != NAME_None && GunMesh->DoesSocketExist(MuzzleSocketName))
+	{
+		FireLocation = GunMesh->GetSocketLocation(MuzzleSocketName);
+	}
+	else if (MuzzlePoint)
+	{
+		FireLocation = MuzzlePoint->GetComponentLocation();
+	}
+
 	const FVector FireDirection = (TargetLocation - FireLocation).GetSafeNormal();
 	const FRotator FireRotation = FireDirection.Rotation();
 
@@ -82,20 +95,38 @@ void AMountedMachineGun::Fire()
 	{
 		if (AActor* PooledActor = PoolSubsystem->SpawnFromPool(ProjectileClass, FireLocation, FireRotation))
 		{
-			if (AFPSProjectile* Projectile = Cast<AFPSProjectile>(PooledActor))
-			{
-				Projectile->SetOwner(this);
-				Projectile->SetInstigator(CurrentUser);
-				Projectile->FireInDirection(FireDirection);
+				if (AFPSProjectile* Projectile = Cast<AFPSProjectile>(PooledActor))
+				{
+					Projectile->SetOwner(CurrentUser);
+					Projectile->SetInstigator(CurrentUser);
+					if (Projectile->CollisionComponent)
+					{
+						Projectile->CollisionComponent->IgnoreActorWhenMoving(this, true);
+						Projectile->CollisionComponent->IgnoreActorWhenMoving(CurrentUser, true);
+						if (CurrentUser->CurrentTruck)
+						{
+							Projectile->CollisionComponent->IgnoreActorWhenMoving(CurrentUser->CurrentTruck, true);
+						}
+					}
+					Projectile->FireInDirection(FireDirection);
+				}
 			}
-		}
 	}
 	else
 	{
 		if (AFPSProjectile* Projectile = GetWorld()->SpawnActor<AFPSProjectile>(ProjectileClass, FireLocation, FireRotation))
 		{
-			Projectile->SetOwner(this);
+			Projectile->SetOwner(CurrentUser);
 			Projectile->SetInstigator(CurrentUser);
+			if (Projectile->CollisionComponent)
+			{
+				Projectile->CollisionComponent->IgnoreActorWhenMoving(this, true);
+				Projectile->CollisionComponent->IgnoreActorWhenMoving(CurrentUser, true);
+				if (CurrentUser->CurrentTruck)
+				{
+					Projectile->CollisionComponent->IgnoreActorWhenMoving(CurrentUser->CurrentTruck, true);
+				}
+			}
 			Projectile->FireInDirection(FireDirection);
 		}
 	}

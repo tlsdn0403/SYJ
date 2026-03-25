@@ -66,3 +66,15 @@ message S_CHAT
 	uint64 playerId = 1;
 	string msg = 2;
 }
+
+message C_EQUIP_WEAPON
+{
+	uint64 itemObjectId = 1; 
+}
+
+message S_EQUIP_WEAPON
+{
+	uint64 playerId = 1;       // 누가 주웠는지 (이 사람 손에 총을 붙여야 함)
+	uint64 itemObjectId = 2;   // 맵에 떨어져 있던 어떤 아이템을 주웠는지 (주웠으니 맵에서 지워야 함)
+	int32 weaponType = 3;      // 그 아이템이 무슨 총인지 (어떤 모델링을 띄울지 결정)
+}

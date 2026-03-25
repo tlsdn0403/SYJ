@@ -37,13 +37,15 @@ public:
 
 	void HandleMove(const Protocol::S_MOVE& MovePkt);
 
+	void HandleEquipWeapon(const Protocol::S_EQUIP_WEAPON& pkt);
+
 public:
 	virtual void Shutdown() override;
 
 public:
 	// GameServer
 	class FSocket* Socket;
-	FString IpAddress = TEXT("127.0.0.1");
+	//FString IpAddress = TEXT("127.0.0.1");
 	int16 Port = 7777;
 	TSharedPtr<class PacketSession> GameServerSession;
 
@@ -52,4 +54,8 @@ public:
 	TSubclassOf<class AFPSBaseCharacter> OtherPlayerClass;
 	class AFPSBaseCharacter* MyPlayer;
 	TMap<uint64, class AFPSBaseCharacter*> Players;
+
+	// [추가] 바닥에 떨어진 아이템(총기 등)들을 ID로 관리하기 위한 맵
+	UPROPERTY()
+	TMap<uint64, AActor*> FieldItems;
 };

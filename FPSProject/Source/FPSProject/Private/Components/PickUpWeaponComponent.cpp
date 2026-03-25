@@ -4,6 +4,8 @@
 #include "Characters/FPSBaseCharacter.h"
 #include "Weapon/WeaponBase.h"
 #include "Engine/Engine.h" // 디버그 메시지 출력용
+#include "ClientPacketHandler.h"
+#include "Protocol.pb.h"
 
 UPickUpWeaponComponent::UPickUpWeaponComponent()
 {
@@ -24,7 +26,7 @@ void UPickUpWeaponComponent::OnSphereBeginOverlap(UPrimitiveComponent* Overlappe
 {
 	AFPSBaseCharacter* Character = Cast<AFPSBaseCharacter>(OtherActor);
 
-	if (Character && Character->IsPlayerControlled())
+	if (Character && Character->IsLocallyControlled())
 	{
 		// 디버깅 메시지: 플레이어가 무기 장착(픽업) 트리거에 진입했는지 확인
 		UE_LOG(LogTemp, Log, TEXT("[PickUpWeaponComponent] '%s'  (Owner: '%s')."),
@@ -44,5 +46,12 @@ void UPickUpWeaponComponent::OnSphereBeginOverlap(UPrimitiveComponent* Overlappe
 		OnPickUp.Broadcast(Character);
 		Character->SetCurrentWeapon(Cast<AWeaponBase>(GetOwner()));
 		OnComponentBeginOverlap.RemoveAll(this); // 한 번만 실행 
+
+		// 내 캐릭터가 무기를 주웠으니 서버로 패킷 전송!
+		Protocol::C_EQUIP_WEAPON EquipPkt;
+		EquipPkt.set_itemobjectid(1); // (나중에 맵 아이템 ID로 교체할 부분)
+		SEND_PACKET(EquipPkt);
+
+		UE_LOG(LogTemp, Error, TEXT("======== C_EQUIP_WEAPON 서버로 전송 완료! ========"));
 	}
 }

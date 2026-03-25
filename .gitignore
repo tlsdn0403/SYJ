@@ -279,3 +279,8 @@ temp/
 !FPSProject/Source/ProtobufCore/
 !FPSProject/Source/ProtobufCore/Lib/
 !FPSProject/Source/ProtobufCore/Lib/**
+
+# server libraries (NEW)
+!Server/Libraries/
+!Server/Libraries/Libs/
+!Server/Libraries/Libs/**

@@ -388,6 +388,7 @@ class ObjectInfo final :
     kPosInfoFieldNumber = 3,
     kObjectIdFieldNumber = 1,
     kObjectTypeFieldNumber = 2,
+    kWeaponTypeFieldNumber = 4,
   };
   // .Protocol.PosInfo pos_info = 3;
   bool has_pos_info() const;
@@ -425,6 +426,15 @@ class ObjectInfo final :
   void _internal_set_object_type(::Protocol::ObjectType value);
   public:
 
+  // int32 weapon_type = 4;
+  void clear_weapon_type();
+  int32_t weapon_type() const;
+  void set_weapon_type(int32_t value);
+  private:
+  int32_t _internal_weapon_type() const;
+  void _internal_set_weapon_type(int32_t value);
+  public:
+
   // @@protoc_insertion_point(class_scope:Protocol.ObjectInfo)
  private:
   class _Internal;
@@ -436,6 +446,7 @@ class ObjectInfo final :
     ::Protocol::PosInfo* pos_info_;
     uint64_t object_id_;
     int object_type_;
+    int32_t weapon_type_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   };
   union { Impl_ _impl_; };
@@ -704,6 +715,26 @@ inline void ObjectInfo::set_allocated_pos_info(::Protocol::PosInfo* pos_info) {
   }
   _impl_.pos_info_ = pos_info;
   // @@protoc_insertion_point(field_set_allocated:Protocol.ObjectInfo.pos_info)
+}
+
+// int32 weapon_type = 4;
+inline void ObjectInfo::clear_weapon_type() {
+  _impl_.weapon_type_ = 0;
+}
+inline int32_t ObjectInfo::_internal_weapon_type() const {
+  return _impl_.weapon_type_;
+}
+inline int32_t ObjectInfo::weapon_type() const {
+  // @@protoc_insertion_point(field_get:Protocol.ObjectInfo.weapon_type)
+  return _internal_weapon_type();
+}
+inline void ObjectInfo::_internal_set_weapon_type(int32_t value) {
+  
+  _impl_.weapon_type_ = value;
+}
+inline void ObjectInfo::set_weapon_type(int32_t value) {
+  _internal_set_weapon_type(value);
+  // @@protoc_insertion_point(field_set:Protocol.ObjectInfo.weapon_type)
 }
 
 #ifdef __GNUC__

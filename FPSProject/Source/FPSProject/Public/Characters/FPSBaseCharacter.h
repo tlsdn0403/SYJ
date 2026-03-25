@@ -109,6 +109,10 @@ protected:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FPS|Components")
     UHealthComponent* HealthComponent;
 
+    // 에디터에서 설정할 무기 블루프린트 클래스 (BP_Weapon)
+    UPROPERTY(EditAnywhere, Category = "Weapon")
+    TSubclassOf<class AWeaponBase> WeaponClass;
+
 private:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FPS|Weapon", meta = (AllowPrivateAccess = "true"))
     AWeaponBase* CurrentWeapon = nullptr;
@@ -151,8 +155,12 @@ private:
     int32 MaxItemCount = 5;
 
 public:
+    // 플레이어 이동 관련 함수
     void SetPlayerInfo(const Protocol::PosInfo& Info);
     void SetDestInfo(const Protocol::PosInfo& Info);
+
+    // 서버로부터 무기 장착 명령을 받았을 때 호출될 함수
+    void EquipWeaponFromField(AWeaponBase* Weapon);
 
     Protocol::PosInfo* GetPlayerInfo() { return PlayerInfo; }
 

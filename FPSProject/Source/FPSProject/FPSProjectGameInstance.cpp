@@ -7,6 +7,7 @@
 #include "Serialization/ArrayWriter.h"
 #include "SocketSubsystem.h"
 #include "PacketSession.h"
+#include "Weapon/WeaponBase.h"
 #include "Protocol.pb.h"
 #include "ClientPacketHandler.h"
 #include "Characters/FPSBaseCharacter.h"
@@ -212,6 +213,34 @@ void UFPSProjectGameInstance::HandleMove(const Protocol::S_MOVE& MovePkt)
 	// 이렇게 갱신해주면 AFPSBaseCharacter::Tick 함수에서 이걸 보고 자연스럽게 걸어갑니다.
 	const Protocol::PosInfo& Info = MovePkt.info();
 	Player->SetDestInfo(Info);
+}
+
+void UFPSProjectGameInstance::HandleEquipWeapon(const Protocol::S_EQUIP_WEAPON& pkt)
+{
+	uint64 PlayerId = pkt.playerid();
+	uint64 ItemId = pkt.itemobjectid();
+
+	// 1. 누가 주웠는지 찾기
+	AFPSBaseCharacter* TargetPlayer = Players.Contains(PlayerId) ? Players[PlayerId] : nullptr;
+
+	// 2. 바닥에 있는 총 찾기 (우리가 FieldItems 맵에 등록해둔 것)
+	if (FieldItems.Contains(ItemId))
+	{
+		AWeaponBase* WeaponActor = Cast<AWeaponBase>(FieldItems[ItemId]);
+
+		if (TargetPlayer && WeaponActor)
+		{
+			// 내 캐릭터라면 이미 로컬에서 처리가 되었겠지만, 
+			// 혹시 모를 동기화를 위해 남의 캐릭터(Proxy)일 때만 실행해줍니다.
+			if (!TargetPlayer->IsLocallyControlled())
+			{
+				TargetPlayer->EquipWeaponFromField(WeaponActor);
+			}
+
+			// 3. 이제 바닥에 없으니 관리 목록에서 제거!
+			FieldItems.Remove(ItemId);
+		}
+	}
 }
 
 void UFPSProjectGameInstance::Shutdown()

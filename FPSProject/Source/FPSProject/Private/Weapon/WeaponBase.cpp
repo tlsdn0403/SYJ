@@ -1,4 +1,5 @@
 #include "Weapon/WeaponBase.h"
+#include "FPSProjectGameInstance.h"
 #include "Projectiles/FPSProjectile.h"
 #include "Characters/FPSBaseCharacter.h"
 #include "Kismet/GameplayStatics.h"
@@ -24,6 +25,15 @@ AWeaponBase::AWeaponBase()
 void AWeaponBase::BeginPlay()
 {
     Super::BeginPlay();
+
+    // 게임 인스턴스를 찾아서 나를 등록함
+    if (auto* GI = Cast<UFPSProjectGameInstance>(GetGameInstance()))
+    {
+        if (ObjectId != 0) // ID가 설정된 경우에만
+        {
+            GI->FieldItems.Add(ObjectId, this);
+        }
+    }
 }
 
 void AWeaponBase::AttachWeapon(AFPSBaseCharacter* TargetCharacter)

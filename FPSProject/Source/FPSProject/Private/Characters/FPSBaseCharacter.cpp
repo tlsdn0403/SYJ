@@ -333,6 +333,31 @@ void AFPSBaseCharacter::SetDestInfo(const Protocol::PosInfo& Info)
     SetPlayerInfo(Info);
 }
 
+void AFPSBaseCharacter::EquipWeaponFromField(AWeaponBase* Weapon)
+{
+    if (Weapon == nullptr) return;
+
+    // 1. 바닥에 고정되어 있던 물리나 충돌을 끕니다. (손에 붙어야 하니까요!)
+    Weapon->SetActorEnableCollision(false);
+    // 만약 총에 물리(Simulate Physics)가 켜져 있다면 그것도 꺼줘야 합니다.
+    // Weapon->GetRootComponent()->SetSimulatePhysics(false);
+
+    // 2. 소켓에 부착 (SnapToTarget을 써야 소켓 위치로 순간이동합니다.)
+    const FName SocketName = TEXT("Gun_socket");
+    Weapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, SocketName);
+
+    // 3. [회전 문제 해결의 핵심] 상대적 위치와 회전을 0으로 초기화!!
+    // 이렇게 해야 소켓이 바라보는 방향과 총의 방향이 1:1로 일치하게 됩니다.
+    Weapon->SetActorRelativeLocation(FVector(15.0f, 0.0f, 5.0f));
+
+    Weapon->SetActorRelativeRotation(FRotator(0.0f, -90.0f, 0.0f));
+
+    // 4. 캐릭터 변수 업데이트 (애니메이션 등 처리)
+    SetCurrentWeapon(Weapon);
+
+    UE_LOG(LogTemp, Log, TEXT("[Network] %s가 바닥에 있던 무기(%s)를 장착했습니다."), *GetName(), *Weapon->GetName());
+}
+
 void AFPSBaseCharacter::SendMovePacket()
 {
     Protocol::C_MOVE MovePkt;
@@ -381,9 +406,6 @@ void AFPSBaseCharacter::SetInteractableActor(AActor* NewActor)
 {
     CurrentInteractableActor = NewActor;
 }
-
-
-
 
 void AFPSBaseCharacter::Interact()
 {

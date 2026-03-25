@@ -91,3 +91,21 @@ bool Handle_C_CHAT(PacketSessionRef& session, Protocol::C_CHAT& pkt)
 {
 	return true;
 }
+
+bool Handle_C_EQUIP_WEAPON(PacketSessionRef& session, Protocol::C_EQUIP_WEAPON& pkt)
+{
+	GameSessionRef gameSession = static_pointer_cast<GameSession>(session);
+	PlayerRef player = gameSession->player.load();
+	if (player == nullptr)
+		return false;
+
+	// 2. 플레이어가 속한 방(Room)을 찾음
+	RoomRef room = player->room.load().lock();
+	if (room == nullptr)
+		return false;
+
+	// 3. 방(Room)에게 넘길 때 임시 객체로 확실하게 캐스팅(복사)해서 넘겨줍니다!
+	room->DoAsync(&Room::HandleEquipWeapon, player, Protocol::C_EQUIP_WEAPON(pkt));
+
+	return true;
+}

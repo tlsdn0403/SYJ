@@ -7,6 +7,7 @@
 #include "Sound/SoundBase.h"
 #include "Subsystems/ObjectPoolSubSystem.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "GameFramework/SpringArmComponent.h"
 
 AMountedMachineGun::AMountedMachineGun()
 {
@@ -28,6 +29,15 @@ AMountedMachineGun::AMountedMachineGun()
 	MuzzlePoint = CreateDefaultSubobject<USceneComponent>(TEXT("MuzzlePoint"));
 	MuzzlePoint->SetupAttachment(GunMesh);
 
+	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
+	CameraBoom->SetupAttachment(PitchPivot);
+	CameraBoom->TargetArmLength = 0.0f;
+	CameraBoom->bDoCollisionTest = false;
+	CameraBoom->bUsePawnControlRotation = false;
+	CameraBoom->SocketOffset = CameraSocketOffset;
+
+	CameraPoint = CreateDefaultSubobject<USceneComponent>(TEXT("CameraPoint"));
+	CameraPoint->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
 }
 
 void AMountedMachineGun::BeginPlay()
@@ -43,6 +53,16 @@ void AMountedMachineGun::Tick(float DeltaTime)
 void AMountedMachineGun::SetWeaponUser(AFPSBaseCharacter* NewUser)
 {
 	CurrentUser = NewUser;
+}
+
+FVector AMountedMachineGun::GetCameraLocation() const
+{
+	return CameraPoint ? CameraPoint->GetComponentLocation() : GetActorLocation();
+}
+
+FRotator AMountedMachineGun::GetCameraRotation() const
+{
+	return CameraPoint ? CameraPoint->GetComponentRotation() : GetActorRotation();
 }
 
 void AMountedMachineGun::Fire()
@@ -156,5 +176,10 @@ void AMountedMachineGun::UpdateAim(const FRotator& ControlRotation)
 	if (PitchPivot)
 	{
 		PitchPivot->SetRelativeRotation(FRotator(RelativePitch, 0.0f, 0.0f));
+	}
+
+	if (CameraBoom)
+	{
+		CameraBoom->SocketOffset = CameraSocketOffset;
 	}
 }

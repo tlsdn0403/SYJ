@@ -10,6 +10,7 @@ class UParticleSystem;
 class USceneComponent;
 class USkeletalMeshComponent;
 class USoundBase;
+class USpringArmComponent;
 
 UCLASS()
 class FPSPROJECT_API AMountedMachineGun : public AActor
@@ -24,6 +25,8 @@ public:
 	void SetWeaponUser(AFPSBaseCharacter* NewUser);
 	void Fire();
 	void UpdateAim(const FRotator& ControlRotation);
+	FVector GetCameraLocation() const;
+	FRotator GetCameraRotation() const;
 
 protected:
 	virtual void BeginPlay() override;
@@ -43,8 +46,17 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Mounted Gun")
 	USceneComponent* MuzzlePoint;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Mounted Gun")
+	USpringArmComponent* CameraBoom;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Mounted Gun")
+	USceneComponent* CameraPoint;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mounted Gun")
 	FName MuzzleSocketName = TEXT("Muzzle");
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mounted Gun")
+	FVector CameraSocketOffset = FVector(-20.0f, 0.0f, 6.0f);
 
 	UPROPERTY(EditDefaultsOnly, Category = "Mounted Gun")
 	TSubclassOf<AFPSProjectile> ProjectileClass;

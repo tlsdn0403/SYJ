@@ -68,7 +68,8 @@ public:
 
 protected:
 	/** The character holding this weapon */
-	UPROPERTY()
+	//UPROPERTY()
+	UPROPERTY(EditAnywhere, Category = "Network")
+	uint64 ObjectId = 0;
 	AFPSBaseCharacter* Character;
-
 };

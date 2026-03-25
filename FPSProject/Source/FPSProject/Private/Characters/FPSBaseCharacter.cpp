@@ -80,9 +80,12 @@ void AFPSBaseCharacter::Tick(float DeltaTime)
     {
         CurrentMountedWeapon->UpdateAim(GetControlRotation());
 
-        if (CurrentTruck && FPSCameraComponent)
+        if (FPSCameraComponent)
         {
-            FPSCameraComponent->SetWorldLocation(CurrentTruck->GetTurretCameraLocation());
+            FPSCameraComponent->SetWorldLocationAndRotation(
+                CurrentMountedWeapon->GetCameraLocation(),
+                CurrentMountedWeapon->GetCameraRotation()
+            );
         }
     }
 
@@ -244,13 +247,16 @@ void AFPSBaseCharacter::EnterMountedWeapon(ATruck* Truck, AMountedMachineGun* Mo
     }
     if (FPSCameraComponent)
     {
-        FPSCameraComponent->SetWorldLocation(Truck->GetTurretCameraLocation());
+        FPSCameraComponent->SetWorldLocationAndRotation(
+            MountedWeapon->GetCameraLocation(),
+            MountedWeapon->GetCameraRotation()
+        );
         FPSCameraComponent->SetActive(true);
     }
 
     if (Controller)
     {
-        Controller->SetControlRotation(Truck->GetTurretCameraRotation());
+        Controller->SetControlRotation(MountedWeapon->GetCameraRotation());
     }
 }
 

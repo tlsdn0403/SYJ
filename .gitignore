@@ -279,3 +279,7 @@ temp/
 !FPSProject/Source/ProtobufCore/
 !FPSProject/Source/ProtobufCore/Lib/
 !FPSProject/Source/ProtobufCore/Lib/**
+
+# Local .NET SDK cache/tooling
+.dotnet/
+**/.dotnet/

@@ -116,7 +116,7 @@ protected:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FPS|Components")
     UHealthComponent* HealthComponent;
 
-    // ¿¡µðÅÍ¿¡¼­ ¼³Á¤ÇÒ ¹«±â ºí·çÇÁ¸°Æ® Å¬·¡½º (BP_Weapon)
+    // ï¿½ï¿½ï¿½ï¿½ï¿½Í¿ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Æ® Å¬ï¿½ï¿½ï¿½ï¿½ (BP_Weapon)
     UPROPERTY(EditAnywhere, Category = "Weapon")
     TSubclassOf<class AWeaponBase> WeaponClass;
 
@@ -152,11 +152,11 @@ private:
     int32 MaxItemCount = 5;
 
 public:
-    // ÇÃ·¹ÀÌ¾î ÀÌµ¿ °ü·Ã ÇÔ¼ö
+    // ï¿½Ã·ï¿½ï¿½Ì¾ï¿½ ï¿½Ìµï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Ô¼ï¿½
     void SetPlayerInfo(const Protocol::PosInfo& Info);
     void SetDestInfo(const Protocol::PosInfo& Info);
 
-    // ¼­¹ö·ÎºÎÅÍ ¹«±â ÀåÂø ¸í·ÉÀ» ¹Þ¾ÒÀ» ¶§ È£ÃâµÉ ÇÔ¼ö
+    // ï¿½ï¿½ï¿½ï¿½ï¿½Îºï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Þ¾ï¿½ï¿½ï¿½ ï¿½ï¿½ È£ï¿½ï¿½ï¿½ ï¿½Ô¼ï¿½
     void EquipWeaponFromField(AWeaponBase* Weapon);
 
     Protocol::PosInfo* GetPlayerInfo() { return PlayerInfo; }

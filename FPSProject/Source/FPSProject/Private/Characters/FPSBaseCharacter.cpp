@@ -426,25 +426,25 @@ void AFPSBaseCharacter::EquipWeaponFromField(AWeaponBase* Weapon)
 {
     if (Weapon == nullptr) return;
 
-    // 1. ¹Ù´Ú¿¡ °íÁ¤µÇ¾î ÀÖ´ø ¹°¸®³ª Ãæµ¹À» ²ô±â
+    // 1. ï¿½Ù´Ú¿ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ç¾ï¿½ ï¿½Ö´ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½æµ¹ï¿½ï¿½ ï¿½ï¿½ï¿½
     Weapon->SetActorEnableCollision(false);
 
-    // 2. ¼ÒÄÏ¿¡ ºÎÂø (SnapToTargetÀ» ½á¾ß ¼ÒÄÏ À§Ä¡·Î ¼ø°£ÀÌµ¿ÇÕ´Ï´Ù.)
+    // 2. ï¿½ï¿½ï¿½Ï¿ï¿½ ï¿½ï¿½ï¿½ï¿½ (SnapToTargetï¿½ï¿½ ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½Ä¡ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ìµï¿½ï¿½Õ´Ï´ï¿½.)
     const FName SocketName = TEXT("Gun_socket");
     Weapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, SocketName);
-    // 3. À§Ä¡ Á¶Á¤ (Location)
+    // 3. ï¿½ï¿½Ä¡ ï¿½ï¿½ï¿½ï¿½ (Location)
     Weapon->SetActorRelativeLocation(FVector(-35.209697f, 2.353551f, 0.508678f));
 
-    // È¸Àü Á¶Á¤ (Rotation - Pitch, Yaw, Roll ¼ø¼­)
+    // È¸ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ (Rotation - Pitch, Yaw, Roll ï¿½ï¿½ï¿½ï¿½)
     Weapon->SetActorRelativeRotation(FRotator(1.090108f, -88.966904f, -4.015320f));
 
-    // ½ºÄÉÀÏ Á¶Á¤ (Scale) - ÃÑÀÌ 0.15¹è·Î ÀÛ¾ÆÁ®¾ß ÇÏ´Ï±î!
+    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ (Scale) - ï¿½ï¿½ï¿½ï¿½ 0.15ï¿½ï¿½ï¿½ ï¿½Û¾ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ï´Ï±ï¿½!
     Weapon->SetActorRelativeScale3D(FVector(0.15f, 0.15f, 0.15f));
 
-    // 4. Ä³¸¯ÅÍ º¯¼ö ¾÷µ¥ÀÌÆ® ¹× ¾Ö´Ï¸ÞÀÌ¼ÇInstance º¯°æ
+    // 4. Ä³ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Æ® ï¿½ï¿½ ï¿½Ö´Ï¸ï¿½ï¿½Ì¼ï¿½Instance ï¿½ï¿½ï¿½ï¿½
     SetCurrentWeapon(Weapon);
 
-    UE_LOG(LogTemp, Log, TEXT("[Network] %s°¡ ¹Ù´Ú¿¡ ÀÖ´ø ¹«±â(%s)¸¦ ÀåÂøÇß½À´Ï´Ù."), *GetName(), *Weapon->GetName());
+    UE_LOG(LogTemp, Log, TEXT("[Network] %sï¿½ï¿½ ï¿½Ù´Ú¿ï¿½ ï¿½Ö´ï¿½ ï¿½ï¿½ï¿½ï¿½(%s)ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ß½ï¿½ï¿½Ï´ï¿½."), *GetName(), *Weapon->GetName());
 }
 
 void AFPSBaseCharacter::SendMovePacket()

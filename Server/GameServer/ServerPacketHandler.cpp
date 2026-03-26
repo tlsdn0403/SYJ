@@ -99,12 +99,12 @@ bool Handle_C_EQUIP_WEAPON(PacketSessionRef& session, Protocol::C_EQUIP_WEAPON& 
 	if (player == nullptr)
 		return false;
 
-	// 2. 플레이어가 속한 방(Room)을 찾음
+	// 플레이어가 속한 방(Room)을 찾음
 	RoomRef room = player->room.load().lock();
 	if (room == nullptr)
 		return false;
 
-	// 3. 방(Room)에게 넘길 때 임시 객체로 확실하게 캐스팅(복사)해서 넘겨줍니다!
+	// 방에 넘길 때 임시 객체로 복사
 	room->DoAsync(&Room::HandleEquipWeapon, player, Protocol::C_EQUIP_WEAPON(pkt));
 
 	return true;

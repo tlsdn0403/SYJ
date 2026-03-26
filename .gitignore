@@ -284,3 +284,7 @@ temp/
 !Server/Libraries/
 !Server/Libraries/Libs/
 !Server/Libraries/Libs/**
+=======
+# Local .NET SDK cache/tooling
+.dotnet/
+**/.dotnet/

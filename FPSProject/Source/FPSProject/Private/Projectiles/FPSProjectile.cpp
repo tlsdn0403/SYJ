@@ -21,33 +21,33 @@ AFPSProjectile::AFPSProjectile()
 
     if (!CollisionComponent)
     {
-        // ½ºÇÇ¾î¸¦ ´Ü¼ø Äİ¸®Àü Ç¥ÇöÀ¸·Î »ç¿ë
+        // ìŠ¤í”¼ì–´ë¥¼ ë‹¨ìˆœ ì½œë¦¬ì „ í‘œí˜„ìœ¼ë¡œ ì‚¬ìš©
         CollisionComponent = CreateDefaultSubobject<USphereComponent>(TEXT("SphereComponent"));
 
-        // ½ºÇÇ¾îÀÇ Äİ¸®Àü ¹İ°æÀ» ¼³Á¤
+        // ìŠ¤í”¼ì–´ì˜ ì½œë¦¬ì „ ë°˜ê²½ì„ ì„¤ì •
         CollisionComponent->InitSphereRadius(15.0f);
 
-        // Ãæµ¹Ã³¸® Ã¤³Î¿¡ µî·Ï..? 
-		CollisionComponent->BodyInstance.SetCollisionProfileName(TEXT("Projectile")); // Äİ¸®Àü ÇÁ·ÎÆÄÀÏ ¼³Á¤
+        // ì¶©ëŒì²˜ë¦¬ ì±„ë„ì— ë“±ë¡..? 
+		CollisionComponent->BodyInstance.SetCollisionProfileName(TEXT("Projectile")); // ì½œë¦¬ì „ í”„ë¡œíŒŒì¼ ì„¤ì •
 
-        // ÄÄÆ÷³ÍÆ®°¡ ¾îµò°¡¿¡ ºÎµúÈú ¶§ È£ÃâµÇ´Â ÀÌº¥Æ®
+        // ì»´í¬ë„ŒíŠ¸ê°€ ì–´ë”˜ê°€ì— ë¶€ë”ªí ë•Œ í˜¸ì¶œë˜ëŠ” ì´ë²¤íŠ¸
         CollisionComponent->OnComponentHit.AddDynamic(this, &AFPSProjectile::OnHit);
 
-        // ·çÆ® ÄÄÆ÷³ÍÆ®°¡ Äİ¸®Àü ÄÄÆ÷³ÍÆ®°¡ µÇµµ·Ï ¼³Á¤
+        // ë£¨íŠ¸ ì»´í¬ë„ŒíŠ¸ê°€ ì½œë¦¬ì „ ì»´í¬ë„ŒíŠ¸ê°€ ë˜ë„ë¡ ì„¤ì •
         RootComponent = CollisionComponent;
     }
 
     if (!ProjectileMovementComponent)
     {
-        // ÀÌ ÄÄÆ÷³ÍÆ®¸¦ »ç¿ëÇÏ¿© ÀÌ ¹ß»çÃ¼ÀÇ ÀÌµ¿ ±¸Çö.
+        // ì´ ì»´í¬ë„ŒíŠ¸ë¥¼ ì‚¬ìš©í•˜ì—¬ ì´ ë°œì‚¬ì²´ì˜ ì´ë™ êµ¬í˜„.
         ProjectileMovementComponent = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileMovementComponent"));
         ProjectileMovementComponent->SetUpdatedComponent(CollisionComponent);
-        ProjectileMovementComponent->InitialSpeed = 3000.0f;                    // ÃÊ±â¼Óµµ
-        ProjectileMovementComponent->MaxSpeed = 3000.0f;                        // ÃÖ´ë ¼Óµµ
-		ProjectileMovementComponent->bRotationFollowsVelocity = true;           // ¼Óµµ¿¡ µû¶ó È¸Àü
-		ProjectileMovementComponent->bShouldBounce = true;                      // ¹Ù¿î½º È°¼ºÈ­
+        ProjectileMovementComponent->InitialSpeed = 3000.0f;                    // ì´ˆê¸°ì†ë„
+        ProjectileMovementComponent->MaxSpeed = 3000.0f;                        // ìµœëŒ€ ì†ë„
+		ProjectileMovementComponent->bRotationFollowsVelocity = true;           // ì†ë„ì— ë”°ë¼ íšŒì „
+		ProjectileMovementComponent->bShouldBounce = true;                      // ë°”ìš´ìŠ¤ í™œì„±í™”
         ProjectileMovementComponent->Bounciness = 0.3f;
-		ProjectileMovementComponent->ProjectileGravityScale = 0.0f;             // Áß·ÂÀÇ ¿µÇâÀ» ¹ŞÁö ¾ÊÀ½
+		ProjectileMovementComponent->ProjectileGravityScale = 0.0f;             // ì¤‘ë ¥ì˜ ì˜í–¥ì„ ë°›ì§€ ì•ŠìŒ
     }
 
     if (!ProjectileMeshComponent)
@@ -58,7 +58,7 @@ AFPSProjectile::AFPSProjectile()
         {
             ProjectileMeshComponent->SetStaticMesh(Mesh.Object);
         }
-        //µ¿ÀûÀ¸·Î ¸ŞÅ¸¸®¾ó Àû¿ë
+        //ë™ì ìœ¼ë¡œ ë©”íƒ€ë¦¬ì–¼ ì ìš©
         static ConstructorHelpers::FObjectFinder<UMaterial>Material(TEXT("/Script/Engine.Material'/Game/Projectiles/M_AK47.M_AK47'"));
         if (Material.Succeeded())
         {
@@ -68,7 +68,7 @@ AFPSProjectile::AFPSProjectile()
         ProjectileMeshComponent->SetRelativeScale3D(FVector(0.9f, 0.9f, 0.9f));
         ProjectileMeshComponent->SetupAttachment(RootComponent);
     }
-	// ÇÇ°İ ÀÌÆåÆ® ·Îµå
+	// í”¼ê²© ì´í™íŠ¸ ë¡œë“œ
     if(!StoneImpactEffect)
     {
         static ConstructorHelpers::FObjectFinder<UParticleSystem>ImpactEffect(TEXT("/Script/Engine.ParticleSystem'/Game/MilitaryWeapSilver/FX/P_Impact_Stone_Large_01.P_Impact_Stone_Large_01'"));
@@ -97,59 +97,60 @@ void AFPSProjectile::FireInDirection(const FVector& ShootDirection)
 {
     if (ProjectileMovementComponent)
     {
-        //¹ß»çÃ¼ÀÇ ¼Óµµ°¡ ProjectileMovementComponent ¿¡ ÀÇÇØ Á¤ÀÇµÇ±â ¶§¹®¿¡ ¹ß»ç ¹æÇâ¸¸ Á¦°øÇÏ¸é µÊ
+        //ë°œì‚¬ì²´ì˜ ì†ë„ê°€ ProjectileMovementComponent ì— ì˜í•´ ì •ì˜ë˜ê¸° ë•Œë¬¸ì— ë°œì‚¬ ë°©í–¥ë§Œ ì œê³µí•˜ë©´ ë¨
         ProjectileMovementComponent->Velocity = ShootDirection * ProjectileMovementComponent->InitialSpeed;
 	}
 }
 
 void AFPSProjectile::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComponent, FVector NormalImpulse, const FHitResult& Hit)
 {
-    // ÀÚ±â ÀÚ½ÅÀÌ³ª ¹ß»çÀÚ(Owner)´Â Á¦¿Ü
+    // ìê¸° ìì‹ ì´ë‚˜ ë°œì‚¬ì(Owner)ëŠ” ì œì™¸
     AActor* MyOwner = GetOwner();
-    if (OtherActor && OtherActor != this && OtherActor != MyOwner)
+    AActor* InstigatorActor = GetInstigator();
+    if (OtherActor && OtherActor != this && OtherActor != MyOwner && OtherActor != InstigatorActor)
     {
 
         UGameplayStatics::ApplyPointDamage(
-            OtherActor,            // Damage ´ë»ó (Á»ºñ)
-            20.f,                   // µ¥¹ÌÁö °ª
-            ProjectileMovementComponent->Velocity.GetSafeNormal(),  // ¹ß»ç ¹æÇâ(È¤Àº ShotDirection)
-            Hit,                   // !!! ¿©±â¼­ ½ÇÁ¦ Ãæµ¹ FHitResult ÀüÃ¼ ³Ñ±è
-            MyOwner ? MyOwner->GetInstigatorController() : nullptr,  // ÄÁÆ®·Ñ·¯
-            this,                  // µ¥¹ÌÁö ¼Ò½º(ÃÑ¾Ë ÀÚ½Å)
+            OtherActor,            // Damage ëŒ€ìƒ (ì¢€ë¹„)
+            20.f,                   // ë°ë¯¸ì§€ ê°’
+            ProjectileMovementComponent->Velocity.GetSafeNormal(),  // ë°œì‚¬ ë°©í–¥(í˜¹ì€ ShotDirection)
+            Hit,                   // !!! ì—¬ê¸°ì„œ ì‹¤ì œ ì¶©ëŒ FHitResult ì „ì²´ ë„˜ê¹€
+            GetInstigatorController(),  // ì»¨íŠ¸ë¡¤ëŸ¬
+            this,                  // ë°ë¯¸ì§€ ì†ŒìŠ¤(ì´ì•Œ ìì‹ )
             nullptr                // DamageType
         );
 
         UE_LOG(LogTemp, Warning, TEXT("ammo damage to %s! "), *GetNameSafe(OtherActor));
     }
 
-	if (OtherActor != this && OtherComponent->IsSimulatingPhysics())  // ½º½º·Î¿Í Ãæµ¹ÇÏ´Â °Ô ¾Æ´Ï°í , Ãæµ¹ÇÑ ÄÄÆ÷³ÍÆ®°¡ ¹°¸® ½Ã¹Ä·¹ÀÌ¼ÇÀ» ÇÏ°í ÀÖ´Ù¸é
+	if (OtherActor != this && OtherComponent->IsSimulatingPhysics())  // ìŠ¤ìŠ¤ë¡œì™€ ì¶©ëŒí•˜ëŠ” ê²Œ ì•„ë‹ˆê³  , ì¶©ëŒí•œ ì»´í¬ë„ŒíŠ¸ê°€ ë¬¼ë¦¬ ì‹œë®¬ë ˆì´ì…˜ì„ í•˜ê³  ìˆë‹¤ë©´
     {
-		OtherComponent->AddImpulseAtLocation(ProjectileMovementComponent->Velocity * 100.0f, Hit.ImpactPoint);  // Ãæµ¹ ÁöÁ¡¿¡ ¹ß»çÃ¼ÀÇ ¼Óµµ¿¡ ºñ·ÊÇÏ´Â ÀÓÆŞ½º¸¦ °¡ÇÔ
+		OtherComponent->AddImpulseAtLocation(ProjectileMovementComponent->Velocity * 100.0f, Hit.ImpactPoint);  // ì¶©ëŒ ì§€ì ì— ë°œì‚¬ì²´ì˜ ì†ë„ì— ë¹„ë¡€í•˜ëŠ” ì„í„ìŠ¤ë¥¼ ê°€í•¨
     }
 
 
     if(StoneImpactEffect)
     {
-        UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), StoneImpactEffect, GetActorLocation());  // ÇÇ°İ ÀÌÆåÆ® Àç»ı
+        UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), StoneImpactEffect, GetActorLocation());  // í”¼ê²© ì´í™íŠ¸ ì¬ìƒ
     }
 	
-	ReturnToPool(); // Ãæµ¹ ÈÄ Ç®·Î ¹İÈ¯
+	ReturnToPool(); // ì¶©ëŒ í›„ í’€ë¡œ ë°˜í™˜
 }
 
 //----------------------------------------------------------------------------------------
-//  Ç®¸µ ÀÎÅÍÆäÀÌ½º ±¸Çö 
+//  í’€ë§ ì¸í„°í˜ì´ìŠ¤ êµ¬í˜„ 
 //----------------------------------------------------------------------------------------
 
 void AFPSProjectile::OnPoolActivate_Implementation()
 {
-    // ProjectileMovementComponent È°¼ºÈ­
+    // ProjectileMovementComponent í™œì„±í™”
     if (ProjectileMovementComponent)
     {
         ProjectileMovementComponent->SetActive(true);
         ProjectileMovementComponent->Velocity = FVector::ZeroVector;
     }
 
-    // ¼ö¸í Å¸ÀÌ¸Ó ½ÃÀÛ
+    // ìˆ˜ëª… íƒ€ì´ë¨¸ ì‹œì‘
     GetWorld()->GetTimerManager().SetTimer(
         LifetimeTimerHandle,
         this,
@@ -161,10 +162,10 @@ void AFPSProjectile::OnPoolActivate_Implementation()
 
 void AFPSProjectile::OnPoolDeactivate_Implementation()
 {
-    // Å¸ÀÌ¸Ó Á¤¸®
+    // íƒ€ì´ë¨¸ ì •ë¦¬
     GetWorld()->GetTimerManager().ClearTimer(LifetimeTimerHandle);
 
-    // ÀÌµ¿ Á¤Áö
+    // ì´ë™ ì •ì§€
     if (ProjectileMovementComponent)
     {
         ProjectileMovementComponent->StopMovementImmediately();
@@ -177,7 +178,7 @@ void AFPSProjectile::OnPoolSpawn_Implementation(const FVector& Location, const F
     SetActorLocation(Location);
     SetActorRotation(Rotation);
 
-    // ¼Óµµ ¸®¼Â
+    // ì†ë„ ë¦¬ì…‹
     if (ProjectileMovementComponent)
     {
         ProjectileMovementComponent->Velocity = FVector::ZeroVector;
@@ -186,10 +187,10 @@ void AFPSProjectile::OnPoolSpawn_Implementation(const FVector& Location, const F
 
 void AFPSProjectile::ReturnToPool()
 {
-    // Å¸ÀÌ¸Ó Á¤¸®
+    // íƒ€ì´ë¨¸ ì •ë¦¬
     GetWorld()->GetTimerManager().ClearTimer(LifetimeTimerHandle);
 
-    // SubsystemÀ» ÅëÇØ Ç®¿¡ ¹İÈ¯
+    // Subsystemì„ í†µí•´ í’€ì— ë°˜í™˜
     if (UWorld* World = GetWorld())
     {
         if (UObjectPoolSubSystem* PoolSubsystem = World->GetSubsystem<UObjectPoolSubSystem>())
@@ -199,6 +200,6 @@ void AFPSProjectile::ReturnToPool()
         }
     }
 
-    // Ç®ÀÌ ¾øÀ¸¸é ÆÄ±«
+    // í’€ì´ ì—†ìœ¼ë©´ íŒŒê´´
     Destroy();
 }

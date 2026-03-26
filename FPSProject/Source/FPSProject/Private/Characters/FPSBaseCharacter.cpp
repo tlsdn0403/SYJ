@@ -1,10 +1,9 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
-#include "Characters/FPSBaseCharacter.h"
+癤�#include "Characters/FPSBaseCharacter.h"
 #include "Protocol.pb.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Weapon/WeaponBase.h"
+#include "Weapon/MountedMachineGun.h"
 #include "Projectiles/FPSProjectile.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Components/HealthComponent.h"
@@ -16,44 +15,37 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "ClientPacketHandler.h"
 
-
-// Sets default values
 AFPSBaseCharacter::AFPSBaseCharacter()
 {
- 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
+    PrimaryActorTick.bCanEverTick = true;
 
-
-    // 스프링 암 생성
     CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
     CameraBoom->SetupAttachment(RootComponent);
-    CameraBoom->TargetArmLength = 300.0f;                                                               // 캐릭터와 카메라 사이 거리. 조절 가능
-    CameraBoom->bUsePawnControlRotation = true;                                                         // 폰 컨트롤러의 회전 값을 따라감
+    CameraBoom->TargetArmLength = 300.0f;
+    CameraBoom->bUsePawnControlRotation = true;
 
-    // 카메라 생성 후 스프링암에 결합
     ThirdPersonCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("ThirdPersonCamera"));
     ThirdPersonCameraComponent->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
-    ThirdPersonCameraComponent->bUsePawnControlRotation = false;                                        // 카메라자체는 컨트롤 안함. 붐이 모든 회전 제어
+    ThirdPersonCameraComponent->bUsePawnControlRotation = false;
 
+    FPSCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("FPSCamera"));
+    FPSCameraComponent->SetupAttachment(RootComponent);
+    FPSCameraComponent->bUsePawnControlRotation = true;
+    FPSCameraComponent->SetActive(false);
 
-    // 소유 플레이어의 일인칭 메시 컴포넌트를 생성.
     FPSMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("ThirdPersonMesh"));
     check(FPSMesh != nullptr);
 
-
-
-    // 일부 인바이런먼트 섀도를 비활성화하여 단일 메시 같은 느낌을 보존
     FPSMesh->bCastDynamicShadow = false;
     FPSMesh->CastShadow = false;
 
-
-    //체력 컴포넌트 추가
     HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComponent"));
 
     PlayerInfo = new Protocol::PosInfo();
     DestInfo = new Protocol::PosInfo();
 
     GetCharacterMovement()->bRunPhysicsWithNoController = true;
+    GetCharacterMovement()->bEnablePhysicsInteraction = false;
 }
 
 AFPSBaseCharacter::~AFPSBaseCharacter()
@@ -62,15 +54,12 @@ AFPSBaseCharacter::~AFPSBaseCharacter()
     delete DestInfo;
 }
 
-// Called when the game starts or when spawned
 void AFPSBaseCharacter::BeginPlay()
 {
-	Super::BeginPlay();
-	
-	check(GEngine != nullptr);
+    Super::BeginPlay();
 
-	// 디버그 메시지를 5초간 표시
-	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("We are using FPSCharacter."));
+    check(GEngine != nullptr);
+    GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("We are using FPSCharacter."));
   
     AFPSPlayerController* PC = Cast<AFPSPlayerController>(GetController());
     if (PC)
@@ -83,12 +72,23 @@ void AFPSBaseCharacter::BeginPlay()
     }
 }
 
-// Called every frame
 void AFPSBaseCharacter::Tick(float DeltaTime)
 {
-	Super::Tick(DeltaTime);
+    Super::Tick(DeltaTime);
 
-    // 1. 내 캐릭터인 경우
+    if (bIsUsingMountedWeapon && CurrentMountedWeapon)
+    {
+        CurrentMountedWeapon->UpdateAim(GetControlRotation());
+
+        if (FPSCameraComponent)
+        {
+            FPSCameraComponent->SetWorldLocationAndRotation(
+                CurrentMountedWeapon->GetCameraLocation(),
+                CurrentMountedWeapon->GetCameraRotation()
+            );
+        }
+    }
+
     if (IsLocallyControlled())
     {
         MovePacketSendTimer += DeltaTime;
@@ -98,7 +98,6 @@ void AFPSBaseCharacter::Tick(float DeltaTime)
             SendMovePacket();
         }
     }
-    // 2. 남의 캐릭터인 경우
     else
     {
         const Protocol::MoveState State = PlayerInfo->state();
@@ -110,7 +109,6 @@ void AFPSBaseCharacter::Tick(float DeltaTime)
         FRotator TargetRot(0.f, DestInfo->yaw(), 0.f);
         SetActorRotation(FMath::RInterpTo(GetActorRotation(), TargetRot, DeltaTime, 10.f));
 
-        // 이전 상태가 JUMP가 아니었는데, 지금 JUMP로 바뀌었다면 딱 한 번만 점프!
         if (State == Protocol::MOVE_STATE_JUMP && RemoteLastState != Protocol::MOVE_STATE_JUMP)
         {
             if (!GetCharacterMovement()->IsFalling())
@@ -119,13 +117,10 @@ void AFPSBaseCharacter::Tick(float DeltaTime)
             }
         }
 
-        // 이번 프레임의 상태를 '이전 상태'로 저장해 둡니다. (다음 프레임에서 비교하기 위해)
         RemoteLastState = State;
 
-        // [A] 점프 상태
         if (State == Protocol::MOVE_STATE_JUMP)
         {
-            // 점프 중 이동 입력
             FVector MoveDir = TargetLocation - CurrentLocation;
             MoveDir.Z = 0.f;
             if (MoveDir.Size() > 10.f)
@@ -134,7 +129,6 @@ void AFPSBaseCharacter::Tick(float DeltaTime)
                 AddMovementInput(MoveDir);
             }
         }
-        // [B] 달리기 상태
         else if (State == Protocol::MOVE_STATE_RUN)
         {
             if (DistToDest2D > 10.0f)
@@ -145,7 +139,6 @@ void AFPSBaseCharacter::Tick(float DeltaTime)
                 AddMovementInput(MoveDir);
             }
         }
-        // [C] 가만히 있는 상태 (IDLE)
         else
         {
             if (DistToDest2D > 5.0f)
@@ -153,37 +146,27 @@ void AFPSBaseCharacter::Tick(float DeltaTime)
                 TargetLocation.Z = CurrentLocation.Z;
                 SetActorLocation(TargetLocation);
             }
-            // IDLE일 때는 회전을 즉시 맞춤
             SetActorRotation(FRotator(0.f, DestInfo->yaw(), 0.f));
         }
     }
 }
 
-// Called to bind functionality to input
 void AFPSBaseCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
-	Super::SetupPlayerInputComponent(PlayerInputComponent);
+    Super::SetupPlayerInputComponent(PlayerInputComponent);
 
-
-    // movement 바인딩을 구성
     PlayerInputComponent->BindAxis("MoveForward", this, &AFPSBaseCharacter::MoveForward);
     PlayerInputComponent->BindAxis("MoveRight", this, &AFPSBaseCharacter::MoveRight);
 
-    // look 바인딩을 구성
     PlayerInputComponent->BindAxis("Turn", this, &AFPSBaseCharacter::AddControllerYawInput);
     PlayerInputComponent->BindAxis("LookUp", this, &AFPSBaseCharacter::AddControllerPitchInput);
 
-    // action 바인딩을 구성
     PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &AFPSBaseCharacter::StartJump);
     PlayerInputComponent->BindAction("Jump", IE_Released, this, &AFPSBaseCharacter::StopJump);
-
-	// Fire 액션 바인딩을 구성
     PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &AFPSBaseCharacter::Fire);
-
-    PlayerInputComponent->BindAction("Interact", IE_Pressed, this, &AFPSBaseCharacter::Interact); // Interact 액션 바인딩
+    PlayerInputComponent->BindAction("Interact", IE_Pressed, this, &AFPSBaseCharacter::Interact);
 }
 
-// ---------------------------- 트럭 탑승, 하차 ----------------------------------
 void AFPSBaseCharacter::EnterTruckCargo(ATruck* Truck)
 {
     if (!Truck || bIsOnTruckCargo)
@@ -194,23 +177,19 @@ void AFPSBaseCharacter::EnterTruckCargo(ATruck* Truck)
     bIsOnTruckCargo = true;
     CurrentTruck = Truck;
 
-    // 적재함 위치로 이동
     SetActorLocationAndRotation(
         Truck->GetCargoRideLocation(),
         Truck->GetCargoRideRotation()
     );
 
-    // 트럭에 부착
     AttachToActor(Truck, FAttachmentTransformRules::KeepWorldTransform);
 
-	// 캐릭터 움직임 멈추고, 걷기 모드로 설정 (점프나 낙하 방지)
     if (GetCharacterMovement())
     {
         GetCharacterMovement()->StopMovementImmediately();
         GetCharacterMovement()->SetMovementMode(MOVE_Walking);
     }
 }
-
 
 void AFPSBaseCharacter::ExitTruckCargo()
 {
@@ -233,13 +212,113 @@ void AFPSBaseCharacter::ExitTruckCargo()
     CurrentTruck = nullptr;
 }
 
+void AFPSBaseCharacter::EnterMountedWeapon(ATruck* Truck, AMountedMachineGun* MountedWeapon)
+{
+    if (!Truck || !MountedWeapon || bIsUsingMountedWeapon)
+    {
+        return;
+    }
 
-// ---------------------------------- 이동 , 점프, 발사 관련 함수들 ----------------------------------
+    bIsUsingMountedWeapon = true;
+    bIsOnTruckCargo = false;
+    CurrentTruck = Truck;
+    CurrentMountedWeapon = MountedWeapon;
+    CurrentMountedWeapon->SetWeaponUser(this);
+
+    SetActorLocationAndRotation(
+        Truck->GetTurretSeatLocation(),
+        Truck->GetTurretSeatRotation()
+    );
+
+    AttachToActor(Truck, FAttachmentTransformRules::KeepWorldTransform);
+
+    if (GetCharacterMovement())
+    {
+        GetCharacterMovement()->StopMovementImmediately();
+        GetCharacterMovement()->DisableMovement();
+    }
+
+    GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+    GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+    if (ThirdPersonCameraComponent)
+    {
+        ThirdPersonCameraComponent->SetActive(false);
+    }
+    if (FPSCameraComponent)
+    {
+        FPSCameraComponent->SetWorldLocationAndRotation(
+            MountedWeapon->GetCameraLocation(),
+            MountedWeapon->GetCameraRotation()
+        );
+        FPSCameraComponent->SetActive(true);
+    }
+
+    if (Controller)
+    {
+        Controller->SetControlRotation(MountedWeapon->GetCameraRotation());
+    }
+}
+
+void AFPSBaseCharacter::ExitMountedWeapon()
+{
+    if (!bIsUsingMountedWeapon || !CurrentTruck)
+    {
+        return;
+    }
+
+    ATruck* Truck = CurrentTruck;
+
+    if (CurrentMountedWeapon)
+    {
+        CurrentMountedWeapon->SetWeaponUser(nullptr);
+    }
+
+    DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+    SetActorLocationAndRotation(
+        Truck->GetCargoRideLocation(),
+        Truck->GetCargoRideRotation()
+    );
+    AttachToActor(Truck, FAttachmentTransformRules::KeepWorldTransform);
+
+    if (GetCharacterMovement())
+    {
+        GetCharacterMovement()->SetMovementMode(MOVE_Walking);
+    }
+
+    GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+    GetMesh()->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+
+    if (FPSCameraComponent)
+    {
+        FPSCameraComponent->SetActive(false);
+    }
+    if (ThirdPersonCameraComponent)
+    {
+        ThirdPersonCameraComponent->SetActive(true);
+    }
+
+    Truck->EndMountedWeaponUse(this);
+    CurrentMountedWeapon = nullptr;
+    bIsUsingMountedWeapon = false;
+    bIsOnTruckCargo = true;
+}
+
+bool AFPSBaseCharacter::CanInteractWithMountedWeapon() const
+{
+    return CurrentInteractableActor != nullptr
+        && CurrentTruckInteractType == ETruckInteractType::TurretSeat;
+}
+
 void AFPSBaseCharacter::MoveForward(float Value)
 {
+    if (bIsUsingMountedWeapon)
+    {
+        return;
+    }
+
     if (Controller != nullptr && Value != 0.0f)
     {
-        // 어디가 앞인지 찾고, 플레이어가 해당 방향으로 이동하고자 한다는 것을 기록
         const FRotator ControlRot = Controller->GetControlRotation();
         const FRotator YawRot(0.0f, ControlRot.Yaw, 0.0f);
 
@@ -250,20 +329,28 @@ void AFPSBaseCharacter::MoveForward(float Value)
 
 void AFPSBaseCharacter::MoveRight(float Value)
 {
+    if (bIsUsingMountedWeapon)
+    {
+        return;
+    }
+
     if (Controller != nullptr && Value != 0.0f)
     {
-        // 어디가 오른쪽인지 찾고, 플레이어가 해당 방향으로 이동하고자 한다는 것을 기록
         const FRotator ControlRot = Controller->GetControlRotation();
         const FRotator YawRot(0.0f, ControlRot.Yaw, 0.0f);
 
         const FVector Direction = FRotationMatrix(YawRot).GetUnitAxis(EAxis::Y);
         AddMovementInput(Direction, Value);
     }
-
 }
 
 void AFPSBaseCharacter::StartJump()
 {
+    if (bIsUsingMountedWeapon)
+    {
+        return;
+    }
+
     Jump();
     bPressedJump = true;
     SendMovePacket();
@@ -274,10 +361,6 @@ void AFPSBaseCharacter::StopJump()
     StopJumping();
     bPressedJump = false;
 }
-
-//--------------------------------------------------------------------------------------------
-
-// ---------------------------------- 총기 관련 함수들 ----------------------------------
 
 void AFPSBaseCharacter::SetCurrentWeapon(AWeaponBase* NewWeapon)
 {
@@ -308,7 +391,13 @@ void AFPSBaseCharacter::ClearCurrentWeapon()
 
 void AFPSBaseCharacter::Fire()
 {
-    // 현재 무기가 있으면 무기의 Fire 호출(총구에서 발사)
+    if (bIsUsingMountedWeapon && CurrentMountedWeapon)
+    {
+        CurrentMountedWeapon->SetWeaponUser(this);
+        CurrentMountedWeapon->Fire();
+        return;
+    }
+
     if (GetCurrentWeapon())
     {
         GetCurrentWeapon()->Fire();
@@ -363,16 +452,12 @@ void AFPSBaseCharacter::SendMovePacket()
     Protocol::C_MOVE MovePkt;
     Protocol::PosInfo* Info = MovePkt.mutable_info();
 
-    // 내 ID 설정
     Info->set_object_id(PlayerInfo->object_id());
-
-    // 내 위치, 회전값 설정
     Info->set_x(GetActorLocation().X);
     Info->set_y(GetActorLocation().Y);
     Info->set_z(GetActorLocation().Z);
     Info->set_yaw(GetControlRotation().Yaw);
 
-    // 현재 내가 이동중인지 판단하여 State 설정
     if (GetCharacterMovement()->IsFalling())
     {
         Info->set_state(Protocol::MOVE_STATE_JUMP);
@@ -386,21 +471,14 @@ void AFPSBaseCharacter::SendMovePacket()
         Info->set_state(Protocol::MOVE_STATE_IDLE);
     }
 
-    // 상태가 바뀔 때 로그를 찍어보세요.
     static Protocol::MoveState LastState = Protocol::MOVE_STATE_IDLE;
     if (LastState != Info->state())
     {
-        // UE_LOG(LogTemp, Warning, TEXT("State Changed: %d"), Info->state());
         LastState = Info->state();
     }
 
-    // 버퍼에 담아서 서버로 전송
     SEND_PACKET(MovePkt);
 }
-
-//--------------------------------------------------------------------------------------------
-
-// ---------------------------------- 상호작용 관련 함수들 ----------------------------------
 
 void AFPSBaseCharacter::SetInteractableActor(AActor* NewActor)
 {
@@ -409,45 +487,48 @@ void AFPSBaseCharacter::SetInteractableActor(AActor* NewActor)
 
 void AFPSBaseCharacter::Interact()
 {
+    if (bIsUsingMountedWeapon)
+    {
+        ExitMountedWeapon();
+        return;
+    }
+
+    if (CanInteractWithMountedWeapon())
+    {
+        if (CurrentInteractableActor->GetClass()->ImplementsInterface(UInteractInterface::StaticClass()))
+        {
+            IInteractInterface::Execute_Interact(CurrentInteractableActor, this);
+        }
+        return;
+    }
 
     if (bIsOnTruckCargo)
     {
-        // 탑승중이면 내리도록
         ExitTruckCargo();
         return;
     }
+
     if (CurrentInteractableActor)
     {
-        // 해당 액터가 인터페이스를 가지고 있는지 확인
         if (CurrentInteractableActor->GetClass()->ImplementsInterface(UInteractInterface::StaticClass()))
         {
-            // 인터페이스의 Interact 함수 실행
-			IInteractInterface::Execute_Interact(CurrentInteractableActor, this); 
+            IInteractInterface::Execute_Interact(CurrentInteractableActor, this);
         }
     }
 }
 
-//--------------------------------------------------------------------------------------------
-
-// ---------------------------------- 인벤토리 관련 함수들 ----------------------------------
-
-
 bool AFPSBaseCharacter::AddItem(EItemType NewItemType)
 {
-
     if (Inventory.Num() >= MaxItemCount)
     {
-        // 꽉 찼다는 알려주기? 
         UE_LOG(LogTemp, Warning, TEXT("Inventory Full!"));
         return false;
     }
 
     Inventory.Add(NewItemType);
 
-    // UI 업데이트 알림
-    if (OnInventoryUpdated.IsBound())  // IsBound() -> 바인딩 된 함수가 있는지? 
+    if (OnInventoryUpdated.IsBound())
     {
-        // 현재 인벤토리에 얼마나 찾는지 알려줌
         OnInventoryUpdated.Broadcast(Inventory);
     }
 
@@ -457,13 +538,9 @@ bool AFPSBaseCharacter::AddItem(EItemType NewItemType)
 
 TArray<EItemType> AFPSBaseCharacter::OffloadItems()
 {
-    // 현재 가진 아이템 복사
     TArray<EItemType> ItemsToGive = Inventory;
-
-    // 인벤토리 비우기
     Inventory.Empty();
 
-    // UI 갱신 (빈 배열 전달)
     if (OnInventoryUpdated.IsBound())
     {
         OnInventoryUpdated.Broadcast(Inventory);

@@ -90,7 +90,7 @@ bool Handle_S_EQUIP_WEAPON(PacketSessionRef& session, Protocol::S_EQUIP_WEAPON& 
 {
 	if (auto* GameInstance = Cast<UFPSProjectGameInstance>(GWorld->GetGameInstance()))
 	{
-		//// 1. 일단 서버를 돌아서 내 클라까지 패킷이 잘 도착했는지 로그로 확인!
+		//일단 서버를 돌아서 내 클라까지 패킷이 잘 도착했는지 로그로 확인!
 		//UE_LOG(LogTemp, Warning, TEXT("======== [네트워크] S_EQUIP_WEAPON 수신 ========"));
 		//UE_LOG(LogTemp, Warning, TEXT("누가 주웠는가(PlayerID) : %llu"), pkt.playerid());
 		//UE_LOG(LogTemp, Warning, TEXT("무슨 아이템(ItemID) : %llu"), pkt.itemobjectid());

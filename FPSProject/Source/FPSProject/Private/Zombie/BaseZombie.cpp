@@ -5,6 +5,7 @@
 #include "Components/HealthComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Kismet/KismetMathLibrary.h" 
+#include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
 
 ABaseZombie::ABaseZombie()

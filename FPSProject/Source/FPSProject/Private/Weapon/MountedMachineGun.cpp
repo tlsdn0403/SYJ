@@ -1,4 +1,4 @@
-#include "Weapon/MountedMachineGun.h"
+﻿#include "Weapon/MountedMachineGun.h"
 
 #include "Characters/FPSBaseCharacter.h"
 #include "Animation/AnimInstance.h"
@@ -7,6 +7,7 @@
 #include "Projectiles/FPSProjectile.h"
 #include "Sound/SoundBase.h"
 #include "Subsystems/ObjectPoolSubSystem.h"
+#include "Components/ChildActorComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "UObject/UnrealType.h"
@@ -36,10 +37,20 @@ AMountedMachineGun::AMountedMachineGun()
 	CameraBoom->TargetArmLength = 0.0f;
 	CameraBoom->bDoCollisionTest = false;
 	CameraBoom->bUsePawnControlRotation = false;
+	CameraBoom->bEnableCameraLag = true;
+	CameraBoom->bEnableCameraRotationLag = true;
+	CameraBoom->CameraLagSpeed = CameraLocationLagSpeed;
+	CameraBoom->CameraRotationLagSpeed = CameraRotationLagSpeed;
 	CameraBoom->SocketOffset = CameraSocketOffset;
 
 	CameraPoint = CreateDefaultSubobject<USceneComponent>(TEXT("CameraPoint"));
 	CameraPoint->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
+
+	MagazineActorComponent = CreateDefaultSubobject<UChildActorComponent>(TEXT("MagazineActorComponent"));
+	MagazineActorComponent->SetupAttachment(GunMesh);
+	MagazineActorComponent->SetRelativeLocation(FVector::ZeroVector);
+
+	CurrentBulletsInMagazine = MagazineCapacity;
 }
 
 void AMountedMachineGun::BeginPlay()
@@ -50,6 +61,14 @@ void AMountedMachineGun::BeginPlay()
 	{
 		GunMesh->SetAnimInstanceClass(MountedGunAnimClass);
 	}
+
+	if (MagazineActorComponent && MagazineActorClass)
+	{
+		MagazineActorComponent->SetChildActorClass(MagazineActorClass);
+	}
+
+	CurrentBulletsInMagazine = MagazineCapacity;
+	UpdateMagazineState(false);
 }
 
 void AMountedMachineGun::Tick(float DeltaTime)
@@ -57,6 +76,7 @@ void AMountedMachineGun::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 
 	UpdateAnimationState(DeltaTime);
+	UpdateMagazineState(false);
 }
 
 void AMountedMachineGun::SetWeaponUser(AFPSBaseCharacter* NewUser)
@@ -89,6 +109,8 @@ void AMountedMachineGun::Fire()
 	LastFireTime = CurrentTime;
 	CurrentSlideOffset = SlideKickDistance;
 	CurrentTriggerValue = TriggerPressedValue;
+	bFireInputActive = true;
+	CurrentBulletsInMagazine = FMath::Max(0, CurrentBulletsInMagazine - 1);
 
 	FVector CameraLocation;
 	FRotator CameraRotation;
@@ -171,41 +193,63 @@ void AMountedMachineGun::Fire()
 	{
 		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), GunParticleEffect, FireLocation, FireRotation);
 	}
+
+	UpdateMagazineState(true);
 }
 
 void AMountedMachineGun::UpdateAim(const FRotator& ControlRotation)
 {
 	const FRotator ActorRotation = GetActorRotation();
-	const float RelativeYaw = FMath::FindDeltaAngleDegrees(ActorRotation.Yaw, ControlRotation.Yaw);
-	const float RelativePitch = FMath::ClampAngle(ControlRotation.Pitch, MinPitch, MaxPitch);
+	TargetRelativeYaw = FMath::Clamp(FMath::FindDeltaAngleDegrees(ActorRotation.Yaw, ControlRotation.Yaw), MinYaw, MaxYaw);
+	TargetRelativePitch = FMath::ClampAngle(ControlRotation.Pitch, MinPitch, MaxPitch);
+
+	const float DeltaSeconds = GetWorld() ? GetWorld()->GetDeltaSeconds() : 0.0f;
+	CurrentRelativeYaw = FMath::FInterpTo(CurrentRelativeYaw, TargetRelativeYaw, DeltaSeconds, YawInterpSpeed);
+	CurrentRelativePitch = FMath::FInterpTo(CurrentRelativePitch, TargetRelativePitch, DeltaSeconds, PitchInterpSpeed);
 
 	if (YawPivot)
 	{
-		YawPivot->SetRelativeRotation(FRotator(0.0f, RelativeYaw, 0.0f));
+		YawPivot->SetRelativeRotation(FRotator(0.0f, CurrentRelativeYaw, 0.0f));
 	}
 
 	if (PitchPivot)
 	{
-		PitchPivot->SetRelativeRotation(FRotator(RelativePitch, 0.0f, 0.0f));
+		PitchPivot->SetRelativeRotation(FRotator(CurrentRelativePitch, 0.0f, 0.0f));
 	}
 
 	if (CameraBoom)
 	{
+		CameraBoom->CameraLagSpeed = CameraLocationLagSpeed;
+		CameraBoom->CameraRotationLagSpeed = CameraRotationLagSpeed;
 		CameraBoom->SocketOffset = CameraSocketOffset;
 	}
 
-	SetAnimRotatorValue(TEXT("Left_Right_Direction_Part_Rotation"), FRotator(0.0f, RelativeYaw, 0.0f));
-	SetAnimRotatorValue(TEXT("Gun_Up_Down_Direction_Rotation"), FRotator(RelativePitch, 0.0f, 0.0f));
-	SetAnimVectorValue(TEXT("Gun_Translation"), FVector::ZeroVector);
+	SetAnimRotatorValue(TEXT("Left_Right_Direction_Part_Rotation"), FRotator(0.0f, CurrentRelativeYaw * HorizontalBoneYawMultiplier, 0.0f));
+	SetAnimRotatorValue(TEXT("Gun_Up_Down_Direction_Rotation"), FRotator(CurrentRelativePitch * VerticalBonePitchMultiplier, 0.0f, 0.0f));
+	SetAnimVectorValue(TEXT("Gun_Translation"), GunTranslationOffset);
 }
 
 void AMountedMachineGun::UpdateAnimationState(float DeltaTime)
 {
 	CurrentSlideOffset = FMath::FInterpTo(CurrentSlideOffset, 0.0f, DeltaTime, SlideReturnSpeed);
 	CurrentTriggerValue = FMath::FInterpTo(CurrentTriggerValue, 0.0f, DeltaTime, SlideReturnSpeed * 2.0f);
+	bFireInputActive = (GetWorld() && (GetWorld()->GetTimeSeconds() - LastFireTime) <= (FireInterval * 1.5f));
 
 	SetAnimFloatValue(TEXT("Anim_Slide"), CurrentSlideOffset);
 	SetAnimFloatValue(TEXT("Anim_Trigger"), CurrentTriggerValue);
+}
+
+void AMountedMachineGun::UpdateMagazineState(bool bTriggeredByFire)
+{
+	SetChildActorIntValue(MagazineActorComponent, MagazineBulletCountPropertyName, CurrentBulletsInMagazine);
+	SetChildActorBoolValue(MagazineActorComponent, MagazineFirePressedPropertyName, bFireInputActive);
+	SetChildActorBoolValue(MagazineActorComponent, MagazineSystemWorkingPropertyName, bFireInputActive);
+
+	if (bTriggeredByFire)
+	{
+		CallChildActorFunction(MagazineActorComponent, MagazineFireEventName);
+		CallChildActorFunction(MagazineActorComponent, MagazineSetBulletCountFunctionName);
+	}
 }
 
 void AMountedMachineGun::SetAnimFloatValue(FName PropertyName, float Value) const
@@ -261,3 +305,55 @@ void AMountedMachineGun::SetAnimRotatorValue(FName PropertyName, const FRotator&
 		}
 	}
 }
+
+void AMountedMachineGun::SetChildActorIntValue(UChildActorComponent* ChildActorComponent, FName PropertyName, int32 Value) const
+{
+	if (!ChildActorComponent)
+	{
+		return;
+	}
+
+	if (AActor* ChildActor = ChildActorComponent->GetChildActor())
+	{
+		if (FIntProperty* IntProperty = FindFProperty<FIntProperty>(ChildActor->GetClass(), PropertyName))
+		{
+			IntProperty->SetPropertyValue_InContainer(ChildActor, Value);
+		}
+	}
+}
+
+void AMountedMachineGun::SetChildActorBoolValue(UChildActorComponent* ChildActorComponent, FName PropertyName, bool Value) const
+{
+	if (!ChildActorComponent)
+	{
+		return;
+	}
+
+	if (AActor* ChildActor = ChildActorComponent->GetChildActor())
+	{
+		if (FBoolProperty* BoolProperty = FindFProperty<FBoolProperty>(ChildActor->GetClass(), PropertyName))
+		{
+			BoolProperty->SetPropertyValue_InContainer(ChildActor, Value);
+		}
+	}
+}
+
+bool AMountedMachineGun::CallChildActorFunction(UChildActorComponent* ChildActorComponent, FName FunctionName) const
+{
+	if (!ChildActorComponent || FunctionName.IsNone())
+	{
+		return false;
+	}
+
+	if (AActor* ChildActor = ChildActorComponent->GetChildActor())
+	{
+		if (UFunction* Function = ChildActor->FindFunction(FunctionName))
+		{
+			ChildActor->ProcessEvent(Function, nullptr);
+			return true;
+		}
+	}
+
+	return false;
+}
+

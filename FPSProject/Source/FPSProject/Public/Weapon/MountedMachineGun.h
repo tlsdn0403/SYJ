@@ -6,6 +6,7 @@
 
 class AFPSBaseCharacter;
 class AFPSProjectile;
+class UAnimInstance;
 class UParticleSystem;
 class USceneComponent;
 class USkeletalMeshComponent;
@@ -58,6 +59,19 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mounted Gun")
 	FVector CameraSocketOffset = FVector(-20.0f, 0.0f, 6.0f);
 
+	// ---------------------- 기관총 애니메이션 설정 -------------------------------
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mounted Gun|Animation")
+	TSubclassOf<UAnimInstance> MountedGunAnimClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mounted Gun|Animation")
+	float TriggerPressedValue = 20.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mounted Gun|Animation")
+	float SlideKickDistance = -21.391f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mounted Gun|Animation")
+	float SlideReturnSpeed = 18.0f;
+
 	UPROPERTY(EditDefaultsOnly, Category = "Mounted Gun")
 	TSubclassOf<AFPSProjectile> ProjectileClass;
 
@@ -77,8 +91,15 @@ protected:
 	float MinPitch = -15.0f;
 
 private:
+	void UpdateAnimationState(float DeltaTime);
+	void SetAnimFloatValue(FName PropertyName, float Value) const;
+	void SetAnimVectorValue(FName PropertyName, const FVector& Value) const;
+	void SetAnimRotatorValue(FName PropertyName, const FRotator& Value) const;
+
 	UPROPERTY()
 	AFPSBaseCharacter* CurrentUser = nullptr;
 
 	float LastFireTime = -1000.0f;
+	float CurrentSlideOffset = 0.0f;
+	float CurrentTriggerValue = 0.0f;
 };

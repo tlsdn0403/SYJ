@@ -1,6 +1,7 @@
 #include "Weapon/MountedMachineGun.h"
 
 #include "Characters/FPSBaseCharacter.h"
+#include "Animation/AnimInstance.h"
 #include "Kismet/GameplayStatics.h"
 #include "Particles/ParticleSystem.h"
 #include "Projectiles/FPSProjectile.h"
@@ -8,6 +9,7 @@
 #include "Subsystems/ObjectPoolSubSystem.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "UObject/UnrealType.h"
 
 AMountedMachineGun::AMountedMachineGun()
 {
@@ -43,11 +45,18 @@ AMountedMachineGun::AMountedMachineGun()
 void AMountedMachineGun::BeginPlay()
 {
 	Super::BeginPlay();
+
+	if (GunMesh && MountedGunAnimClass)
+	{
+		GunMesh->SetAnimInstanceClass(MountedGunAnimClass);
+	}
 }
 
 void AMountedMachineGun::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	UpdateAnimationState(DeltaTime);
 }
 
 void AMountedMachineGun::SetWeaponUser(AFPSBaseCharacter* NewUser)
@@ -78,6 +87,8 @@ void AMountedMachineGun::Fire()
 		return;
 	}
 	LastFireTime = CurrentTime;
+	CurrentSlideOffset = SlideKickDistance;
+	CurrentTriggerValue = TriggerPressedValue;
 
 	FVector CameraLocation;
 	FRotator CameraRotation;
@@ -181,5 +192,72 @@ void AMountedMachineGun::UpdateAim(const FRotator& ControlRotation)
 	if (CameraBoom)
 	{
 		CameraBoom->SocketOffset = CameraSocketOffset;
+	}
+
+	SetAnimRotatorValue(TEXT("Left_Right_Direction_Part_Rotation"), FRotator(0.0f, RelativeYaw, 0.0f));
+	SetAnimRotatorValue(TEXT("Gun_Up_Down_Direction_Rotation"), FRotator(RelativePitch, 0.0f, 0.0f));
+	SetAnimVectorValue(TEXT("Gun_Translation"), FVector::ZeroVector);
+}
+
+void AMountedMachineGun::UpdateAnimationState(float DeltaTime)
+{
+	CurrentSlideOffset = FMath::FInterpTo(CurrentSlideOffset, 0.0f, DeltaTime, SlideReturnSpeed);
+	CurrentTriggerValue = FMath::FInterpTo(CurrentTriggerValue, 0.0f, DeltaTime, SlideReturnSpeed * 2.0f);
+
+	SetAnimFloatValue(TEXT("Anim_Slide"), CurrentSlideOffset);
+	SetAnimFloatValue(TEXT("Anim_Trigger"), CurrentTriggerValue);
+}
+
+void AMountedMachineGun::SetAnimFloatValue(FName PropertyName, float Value) const
+{
+	if (!GunMesh)
+	{
+		return;
+	}
+
+	if (UAnimInstance* AnimInstance = GunMesh->GetAnimInstance())
+	{
+		if (FFloatProperty* FloatProperty = FindFProperty<FFloatProperty>(AnimInstance->GetClass(), PropertyName))
+		{
+			FloatProperty->SetPropertyValue_InContainer(AnimInstance, Value);
+		}
+	}
+}
+
+void AMountedMachineGun::SetAnimVectorValue(FName PropertyName, const FVector& Value) const
+{
+	if (!GunMesh)
+	{
+		return;
+	}
+
+	if (UAnimInstance* AnimInstance = GunMesh->GetAnimInstance())
+	{
+		if (FStructProperty* StructProperty = FindFProperty<FStructProperty>(AnimInstance->GetClass(), PropertyName))
+		{
+			if (StructProperty->Struct == TBaseStructure<FVector>::Get())
+			{
+				*StructProperty->ContainerPtrToValuePtr<FVector>(AnimInstance) = Value;
+			}
+		}
+	}
+}
+
+void AMountedMachineGun::SetAnimRotatorValue(FName PropertyName, const FRotator& Value) const
+{
+	if (!GunMesh)
+	{
+		return;
+	}
+
+	if (UAnimInstance* AnimInstance = GunMesh->GetAnimInstance())
+	{
+		if (FStructProperty* StructProperty = FindFProperty<FStructProperty>(AnimInstance->GetClass(), PropertyName))
+		{
+			if (StructProperty->Struct == TBaseStructure<FRotator>::Get())
+			{
+				*StructProperty->ContainerPtrToValuePtr<FRotator>(AnimInstance) = Value;
+			}
+		}
 	}
 }

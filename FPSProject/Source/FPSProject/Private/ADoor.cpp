@@ -44,7 +44,10 @@ void AADoor::BeginPlay()
 	//델리게이트 바인딩 (트리거 컴포넌트의 OnEnter 이벤트를 듣도록 설정)
 	InteractTrigger->OnEnter.AddDynamic(this, &AADoor::WidgetStart);
 	InteractTrigger->OnExit.AddDynamic(this, &AADoor::WidgetEnd);
-
+	if (UInteractUIClass* UI = Cast<UInteractUIClass>(WidgetComp->GetUserWidgetObject()))
+	{
+		UI->SetDoorInteractText(bOpen);
+	}
 }
 
 // Called every frame

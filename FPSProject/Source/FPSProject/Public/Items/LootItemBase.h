@@ -47,6 +47,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "setting")
 	UMaterialInterface* OverlayMaterial;	//오버레이 메터리얼
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "setting")
+	FText setText;	//오버레이 메터리얼
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;

@@ -10,7 +10,7 @@ void UInteractUIClass::NativeConstruct()
 	// 애니메이션이랑 텍스트 블록이 제대로 바인딩 되었는지 확인
 	InteractText->SetIsEnabled(true);
 	//InteractText->SetColorAndOpacity(FSlateColor(FLinearColor(1.f, 1.f, 1.f, 1.f)));
-	InteractText->SetText(FText::FromString(TEXT("Open")));
+	//InteractText->SetText(FText::FromString(TEXT("Open")));
 }
 void UInteractUIClass::PlayAni_PopUp(bool bOpen)
 {
@@ -32,6 +32,7 @@ void UInteractUIClass::SetInteractText(const FText& NewText)
 {
 	if (InteractText)
 	{
+		UE_LOG(LogTemp, Warning, TEXT("TextBlock exists / NewText = %s"), *NewText.ToString());
 		InteractText->SetText(NewText);
 	}
 }

@@ -39,7 +39,10 @@ void ALootItemBase::BeginPlay()
 
     InteractTrigger->OnEnter.AddDynamic(this, &ALootItemBase::WidgetStart);
     InteractTrigger->OnExit.AddDynamic(this, &ALootItemBase::WidgetEnd);
-
+	if (UInteractUIClass* UI = Cast<UInteractUIClass>(WidgetComp->GetUserWidgetObject()))
+	{
+		UI->SetInteractText(setText);
+	}
 
 }
 
@@ -65,6 +68,7 @@ void ALootItemBase::Interact_Implementation(AFPSBaseCharacter* Character)
             // 인벤토리가 꽉 찼을 때 로직
 			UE_LOG(LogTemp, Warning, TEXT("Cannot pick up item: Inventory is full."));
         }
+
     }
 }
 

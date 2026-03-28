@@ -1,5 +1,4 @@
 ﻿#include "Weapon/MountedMachineGun.h"
-
 #include "Characters/FPSBaseCharacter.h"
 #include "Animation/AnimInstance.h"
 #include "Kismet/GameplayStatics.h"
@@ -18,17 +17,19 @@ AMountedMachineGun::AMountedMachineGun()
 
 	SceneRoot = CreateDefaultSubobject<USceneComponent>(TEXT("SceneRoot"));
 	SetRootComponent(SceneRoot);
-
+	// 좌우 회전
 	YawPivot = CreateDefaultSubobject<USceneComponent>(TEXT("YawPivot"));
 	YawPivot->SetupAttachment(SceneRoot);
-
+	// 상하 회전
 	PitchPivot = CreateDefaultSubobject<USceneComponent>(TEXT("PitchPivot"));
 	PitchPivot->SetupAttachment(YawPivot);
 
+	// 총기 메시
 	GunMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("GunMesh"));
 	GunMesh->SetupAttachment(PitchPivot);
 	GunMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
+	// 총알 발사 지점
 	MuzzlePoint = CreateDefaultSubobject<USceneComponent>(TEXT("MuzzlePoint"));
 	MuzzlePoint->SetupAttachment(GunMesh);
 
@@ -50,6 +51,7 @@ AMountedMachineGun::AMountedMachineGun()
 	MagazineActorComponent->SetupAttachment(GunMesh);
 	MagazineActorComponent->SetRelativeLocation(FVector::ZeroVector);
 
+	// 초기에 총알 용량을 탄창 용량만큼.
 	CurrentBulletsInMagazine = MagazineCapacity;
 }
 
@@ -100,13 +102,16 @@ void AMountedMachineGun::Fire()
 	{
 		return;
 	}
-
+	// 연사 시간을 조절하기 위함.
 	const float CurrentTime = GetWorld()->GetTimeSeconds();
 	if (CurrentTime - LastFireTime < FireInterval)
 	{
+		// 연사 쿨이 안돌았으면 발사 ㄴㄴ
 		return;
 	}
-	LastFireTime = CurrentTime;
+
+	LastFireTime = CurrentTime;				//업데이트
+
 	CurrentSlideOffset = SlideKickDistance;
 	CurrentTriggerValue = TriggerPressedValue;
 	bFireInputActive = true;
@@ -148,22 +153,22 @@ void AMountedMachineGun::Fire()
 	{
 		if (AActor* PooledActor = PoolSubsystem->SpawnFromPool(ProjectileClass, FireLocation, FireRotation))
 		{
-				if (AFPSProjectile* Projectile = Cast<AFPSProjectile>(PooledActor))
+			if (AFPSProjectile* Projectile = Cast<AFPSProjectile>(PooledActor))
+			{
+				Projectile->SetOwner(CurrentUser);
+				Projectile->SetInstigator(CurrentUser);
+				if (Projectile->CollisionComponent)
 				{
-					Projectile->SetOwner(CurrentUser);
-					Projectile->SetInstigator(CurrentUser);
-					if (Projectile->CollisionComponent)
+					Projectile->CollisionComponent->IgnoreActorWhenMoving(this, true);
+					Projectile->CollisionComponent->IgnoreActorWhenMoving(CurrentUser, true);
+					if (CurrentUser->CurrentTruck)
 					{
-						Projectile->CollisionComponent->IgnoreActorWhenMoving(this, true);
-						Projectile->CollisionComponent->IgnoreActorWhenMoving(CurrentUser, true);
-						if (CurrentUser->CurrentTruck)
-						{
-							Projectile->CollisionComponent->IgnoreActorWhenMoving(CurrentUser->CurrentTruck, true);
-						}
+						Projectile->CollisionComponent->IgnoreActorWhenMoving(CurrentUser->CurrentTruck, true);
 					}
-					Projectile->FireInDirection(FireDirection);
 				}
+				Projectile->FireInDirection(FireDirection);
 			}
+		}
 	}
 	else
 	{
@@ -199,10 +204,14 @@ void AMountedMachineGun::Fire()
 
 void AMountedMachineGun::UpdateAim(const FRotator& ControlRotation)
 {
+	// 기관총이 어디를 봐야 하는지 계산
 	const FRotator ActorRotation = GetActorRotation();
+	// -120 , 120도 까지만 회전 하도록
+	// FindDeltaAngleDegrees -> 플레이어 방향과 기관총 방향이 얼마나 차이 나는지 계산
 	TargetRelativeYaw = FMath::Clamp(FMath::FindDeltaAngleDegrees(ActorRotation.Yaw, ControlRotation.Yaw), MinYaw, MaxYaw);
 	TargetRelativePitch = FMath::ClampAngle(ControlRotation.Pitch, MinPitch, MaxPitch);
 
+	// 부드럽게 회전하도록 보간을 해줌
 	const float DeltaSeconds = GetWorld() ? GetWorld()->GetDeltaSeconds() : 0.0f;
 	CurrentRelativeYaw = FMath::FInterpTo(CurrentRelativeYaw, TargetRelativeYaw, DeltaSeconds, YawInterpSpeed);
 	CurrentRelativePitch = FMath::FInterpTo(CurrentRelativePitch, TargetRelativePitch, DeltaSeconds, PitchInterpSpeed);
@@ -356,4 +365,3 @@ bool AMountedMachineGun::CallChildActorFunction(UChildActorComponent* ChildActor
 
 	return false;
 }
-

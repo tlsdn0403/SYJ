@@ -4,6 +4,7 @@
 #include "Zombie/BaseZombie.h"
 #include "Components/HealthComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/KismetMathLibrary.h" 
 #include "Kismet/GameplayStatics.h"
 

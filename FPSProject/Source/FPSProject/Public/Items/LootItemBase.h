@@ -8,6 +8,7 @@
 #include "Interface/InteractInterface.h"
 #include "LootItemBase.generated.h"
 
+class UWidgetComponent;
 
 UENUM(BlueprintType)
 enum class EItemType : uint8
@@ -27,6 +28,9 @@ public:
 	// Sets default values for this actor's properties
 	ALootItemBase();
 
+	UPROPERTY(VisibleAnywhere, Category = "Components")
+	USceneComponent* SceneRoot;
+
 	// 상호작용 범위 컴포넌트
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Interaction")
 	UInteractTriggerComponent* InteractTrigger;
@@ -34,6 +38,9 @@ public:
 	// 에디터에서 이 아이템이 뭔지 설정할 변수
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item Properties")
 	EItemType ItemType = EItemType::None; // 기본값 None
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Interaction")
+	UWidgetComponent* WidgetComp;
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;

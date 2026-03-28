@@ -2,6 +2,9 @@
 
 
 #include "Items/LootItemBase.h"
+#include "Components/WidgetComponent.h"
+#include "Components/InteractTriggerComponent.h"
+#include "Characters/FPSBaseCharacter.h"
 
 // Sets default values
 ALootItemBase::ALootItemBase()

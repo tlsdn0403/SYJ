@@ -2,9 +2,11 @@
 
 
 #include "Items/LootItemBase.h"
+#include "HUD/InteractUIClass.h"
 #include "Components/WidgetComponent.h"
 #include "Components/InteractTriggerComponent.h"
 #include "Characters/FPSBaseCharacter.h"
+#include "Materials/MaterialInterface.h"
 
 // Sets default values
 ALootItemBase::ALootItemBase()
@@ -12,8 +14,16 @@ ALootItemBase::ALootItemBase()
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
+    SceneRoot = CreateDefaultSubobject<USceneComponent>(TEXT("SceneRoot"));
+    SetRootComponent(SceneRoot);
+
 	MeshComp = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MeshComp"));
-	RootComponent = MeshComp;
+    MeshComp->SetupAttachment(SceneRoot);
+
+    WidgetComp = CreateDefaultSubobject<UWidgetComponent>(TEXT("WidgetComp"));
+    WidgetComp->SetupAttachment(MeshComp);
+    WidgetComp->SetTwoSided(true);
+    WidgetComp->SetWidgetSpace(EWidgetSpace::Screen);
 
 	// 트리거 컴포넌트 생성 및 부착
 	InteractTrigger = CreateDefaultSubobject<UInteractTriggerComponent>(TEXT("InteractTrigger"));
@@ -25,7 +35,12 @@ ALootItemBase::ALootItemBase()
 void ALootItemBase::BeginPlay()
 {
 	Super::BeginPlay();
-	
+    if (WidgetComp) WidgetComp->InitWidget();
+
+    InteractTrigger->OnEnter.AddDynamic(this, &ALootItemBase::WidgetStart);
+    InteractTrigger->OnExit.AddDynamic(this, &ALootItemBase::WidgetEnd);
+
+
 }
 
 // Called every frame
@@ -53,3 +68,32 @@ void ALootItemBase::Interact_Implementation(AFPSBaseCharacter* Character)
     }
 }
 
+
+void ALootItemBase::WidgetStart(AActor* OtherActor)
+{
+	if (!Cast<AFPSBaseCharacter>(OtherActor)) return;
+	if (UInteractUIClass* UI = Cast<UInteractUIClass>(WidgetComp->GetUserWidgetObject()))
+	{
+		UI->PlayAni_PopUp(true); // 위젯 클래스에 만든 함수
+
+	}
+
+	if (MeshComp && OverlayMaterial)
+	{
+		MeshComp->SetOverlayMaterial(OverlayMaterial);
+	}
+}
+
+void ALootItemBase::WidgetEnd(AActor* OtherActor)
+{
+	if (!Cast<AFPSBaseCharacter>(OtherActor)) return;
+	if (UInteractUIClass* UI = Cast<UInteractUIClass>(WidgetComp->GetUserWidgetObject()))
+	{
+		UI->RePlayAni_PopUp(); // 위젯 클래스에 만든 함수
+
+	}
+	if (MeshComp && OverlayMaterial)
+	{
+		MeshComp->SetOverlayMaterial(nullptr);
+	}
+}

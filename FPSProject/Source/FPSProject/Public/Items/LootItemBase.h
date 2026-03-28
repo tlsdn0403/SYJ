@@ -9,6 +9,8 @@
 #include "LootItemBase.generated.h"
 
 class UWidgetComponent;
+class AFPSBaseCharacter;
+class UMaterialInterface;
 
 UENUM(BlueprintType)
 enum class EItemType : uint8
@@ -41,6 +43,10 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Interaction")
 	UWidgetComponent* WidgetComp;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "setting")
+	UMaterialInterface* OverlayMaterial;	//오버레이 메터리얼
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -54,4 +60,11 @@ public:
 
 	// 인터페이스 함수 오버라이드 (F키 눌렀을 때 실행될 내용)
 	virtual void Interact_Implementation(AFPSBaseCharacter* Character) override;
+
+	//델리게이트 함수 (트리거 컴포넌트의 이벤트에 바인딩 될 함수)
+	UFUNCTION()
+	void WidgetStart(AActor* OtherActor);
+
+	UFUNCTION()
+	void WidgetEnd(AActor* OtherActor);
 };

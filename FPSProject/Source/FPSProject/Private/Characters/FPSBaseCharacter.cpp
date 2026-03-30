@@ -116,6 +116,7 @@ void AFPSBaseCharacter::Tick(float DeltaTime)
 
     const bool bIsAttachedToTruckSeat = bIsDrivingTruck || bIsOnTruckCargo || bIsUsingMountedWeapon;
 
+    // 줌 했을 떄 FOV 확대
     if (ThirdPersonCameraComponent && CameraBoom)
     {
         const float TargetFOV = bIsAiming ? AimingThirdPersonFOV : DefaultThirdPersonFOV;
@@ -139,6 +140,19 @@ void AFPSBaseCharacter::Tick(float DeltaTime)
             TargetSocketOffset,
             DeltaTime,
             AimInterpSpeed);
+    }
+
+    if (IsLocallyControlled() && Controller && !RecoilRecoveryRemaining.IsNearlyZero())
+    {
+        const float RecoveryAlpha = FMath::Clamp(RecoilRecoverySpeed * DeltaTime, 0.0f, 1.0f);
+        const FRotator RecoveryStep = RecoilRecoveryRemaining * RecoveryAlpha;
+
+        FRotator ControlRotation = Controller->GetControlRotation();
+        ControlRotation.Pitch -= RecoveryStep.Pitch;
+        ControlRotation.Yaw -= RecoveryStep.Yaw;
+        Controller->SetControlRotation(ControlRotation);
+
+        RecoilRecoveryRemaining -= RecoveryStep;
     }
 
     if (bIsUsingMountedWeapon && CurrentMountedWeapon)
@@ -585,6 +599,23 @@ void AFPSBaseCharacter::GetWeaponAimViewPoint(FVector& OutLocation, FRotator& Ou
     }
 
     GetActorEyesViewPoint(OutLocation, OutRotation);
+}
+
+// 총을 쏠 때 총기 반동을 주기.
+void AFPSBaseCharacter::ApplyWeaponRecoil(float PitchKick, float YawKick)
+{
+    if (!IsLocallyControlled() || !Controller || bIsDrivingTruck || bIsUsingMountedWeapon)
+    {
+        return;
+    }
+
+    FRotator ControlRotation = Controller->GetControlRotation();
+    ControlRotation.Pitch += PitchKick;
+    ControlRotation.Yaw += YawKick;
+    Controller->SetControlRotation(ControlRotation);
+
+    RecoilRecoveryRemaining.Pitch += PitchKick;
+    RecoilRecoveryRemaining.Yaw += YawKick;
 }
 
 void AFPSBaseCharacter::SetPlayerInfo(const Protocol::PosInfo& Info)

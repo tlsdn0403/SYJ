@@ -52,7 +52,19 @@ protected:
 	float HipFireSpreadAngleDegrees = 1.5f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Aim")
-	float AimSpreadAngleDegrees = 0.2f;
+	float AimSpreadAngleDegrees = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Recoil")
+	FVector2D HipFireRecoilPitchRange = FVector2D(0.9f, 1.5f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Recoil")
+	float HipFireRecoilYawMagnitude = 0.45f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Recoil")
+	FVector2D AimRecoilPitchRange = FVector2D(0.35f, 0.7f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Recoil")
+	float AimRecoilYawMagnitude = 0.18f;
 
 	UFUNCTION(BlueprintCallable, Category = "Weapon")
 	virtual void AttachWeapon(AFPSBaseCharacter* TargetCharacter);
@@ -66,6 +78,7 @@ public:
 
 protected:
 	float GetCurrentSpreadAngleDegrees() const;
+	void ApplyFireRecoil() const;
 
 	/** The character holding this weapon */
 	//UPROPERTY()

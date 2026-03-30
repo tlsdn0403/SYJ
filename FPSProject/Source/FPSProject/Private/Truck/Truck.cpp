@@ -16,10 +16,21 @@ ATruck::ATruck()
 	DriverSeatInteractTrigger = CreateDefaultSubobject<UInteractTriggerComponent>(TEXT("DriverSeatInteractTrigger"));
 	DriverSeatInteractTrigger->SetupAttachment(RootComponent);
 	DriverSeatInteractTrigger->InitSphereRadius(200.0f);
+	DriverSeatInteractTrigger->InteractType = ETruckInteractType::DriverSeat;
 
 	CargoSeatInteractTrigger = CreateDefaultSubobject<UInteractTriggerComponent>(TEXT("CargoSeatInteractTrigger"));
 	CargoSeatInteractTrigger->SetupAttachment(RootComponent);
 	CargoSeatInteractTrigger->InitSphereRadius(200.0f);
+	CargoSeatInteractTrigger->InteractType = ETruckInteractType::CargoSeat;
+
+	DriverSeatPoint = CreateDefaultSubobject<USceneComponent>(TEXT("DriverSeatPoint"));
+	DriverSeatPoint->SetupAttachment(RootComponent);
+	DriverSeatPoint->SetRelativeLocation(FVector(110.0f, -10.0f, 120.0f));
+	DriverSeatPoint->SetRelativeRotation(FRotator(0.0f, 0.0f, 0.0f));
+
+	DriverExitPoint = CreateDefaultSubobject<USceneComponent>(TEXT("DriverExitPoint"));
+	DriverExitPoint->SetupAttachment(RootComponent);
+	DriverExitPoint->SetRelativeLocation(FVector(130.0f, -170.0f, 20.0f));
 
 	TurretSeatInteractTrigger = CreateDefaultSubobject<UInteractTriggerComponent>(TEXT("TurretSeatInteractTrigger"));
 	TurretSeatInteractTrigger->SetupAttachment(RootComponent);
@@ -214,6 +225,21 @@ FRotator ATruck::GetCargoRideRotation() const
 	return CargoRidePoint ? CargoRidePoint->GetComponentRotation() : GetActorRotation();
 }
 
+FVector ATruck::GetDriverSeatLocation() const
+{
+	return DriverSeatPoint ? DriverSeatPoint->GetComponentLocation() : GetActorLocation();
+}
+
+FRotator ATruck::GetDriverSeatRotation() const
+{
+	return DriverSeatPoint ? DriverSeatPoint->GetComponentRotation() : GetActorRotation();
+}
+
+FVector ATruck::GetDriverExitLocation() const
+{
+	return DriverExitPoint ? DriverExitPoint->GetComponentLocation() : GetActorLocation() - GetActorRightVector() * 200.f;
+}
+
 FVector ATruck::GetCargoExitLocation() const
 {
 	return CargoExitPoint ? CargoExitPoint->GetComponentLocation() : GetActorLocation() + GetActorRightVector() * 200.f;
@@ -254,9 +280,12 @@ FBox ATruck::GetCargoWorldBounds() const
 
 void ATruck::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
+	Super::SetupPlayerInputComponent(PlayerInputComponent);
+
 	PlayerInputComponent->BindAxis("Throttle", this, &ATruck::MoveForward);
 	PlayerInputComponent->BindAxis("Steer", this, &ATruck::MoveRight);
 	PlayerInputComponent->BindAxis("Brake", this, &ATruck::Brake);
+	PlayerInputComponent->BindAction("Interact", IE_Pressed, this, &ATruck::ExitDriverSeat);
 }
 
 void ATruck::MoveForward(float Value)
@@ -403,10 +432,24 @@ void ATruck::Interact_Implementation(AFPSBaseCharacter* Character)
 	// 운전석 탑승
 	if (Character->GetCurrentTruckInteractType() == ETruckInteractType::DriverSeat)
 	{
+		if (DriverCharacter && DriverCharacter != Character)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Driver seat already occupied by %s"), *GetNameSafe(DriverCharacter));
+			return;
+		}
+
 		AController* PlayerController = Character->GetController();
 		if (PlayerController)
 		{
+			Character->EnterTruckDriverSeat(this);
+			if (!Character->IsDrivingTruck())
+			{
+				return;
+			}
+
+			DriverCharacter = Character;
 			PlayerController->Possess(this);
+			PlayerController->SetControlRotation(GetActorRotation());
 			UE_LOG(LogTemp, Log, TEXT("Driver Seat!"));
 		}
 	}
@@ -417,6 +460,33 @@ void ATruck::Interact_Implementation(AFPSBaseCharacter* Character)
 		{
 			Character->EnterTruckCargo(this);
 		}
+	}
+}
+
+void ATruck::ExitDriverSeat()
+{
+	if (!DriverCharacter)
+	{
+		return;
+	}
+
+	AController* DriverController = GetController();
+	AFPSBaseCharacter* CharacterToRestore = DriverCharacter;
+	DriverCharacter = nullptr;
+
+	if (auto* MoveComp = Cast<UChaosWheeledVehicleMovementComponent>(GetVehicleMovement()))
+	{
+		MoveComp->SetThrottleInput(0.0f);
+		MoveComp->SetSteeringInput(0.0f);
+		MoveComp->SetBrakeInput(1.0f);
+	}
+
+	CharacterToRestore->ExitTruckDriverSeat();
+
+	if (DriverController)
+	{
+		DriverController->Possess(CharacterToRestore);
+		DriverController->SetControlRotation(CharacterToRestore->GetActorRotation());
 	}
 }
 

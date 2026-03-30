@@ -200,7 +200,6 @@ private:
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FPS|Aim", meta = (AllowPrivateAccess = "true"))
     FRotator RecoilRecoveryRemaining = FRotator::ZeroRotator;
-
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FPS|Inventory", meta = (AllowPrivateAccess = "true"))
     TArray<EItemType> Inventory;
 

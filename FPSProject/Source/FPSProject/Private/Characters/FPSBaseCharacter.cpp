@@ -236,20 +236,15 @@ void AFPSBaseCharacter::EnterTruckDriverSeat(ATruck* Truck)
     CurrentTruck = Truck;
     bIsDrivingTruck = true;
     bIsAiming = false;
-    // 캐릭터가 다른 무언가에 붙어있으면 떼어버림
     DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
-    // 운전석 위치에 캐릭터 부착
     AttachToComponent(Truck->DriverSeatPoint, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
-    // 회전 , 위치 0으로
     SetActorRelativeLocation(FVector::ZeroVector);
     SetActorRelativeRotation(FRotator::ZeroRotator);
-    // 캐릭터 움직임 없앰
     if (GetCharacterMovement())
     {
         GetCharacterMovement()->StopMovementImmediately();
         GetCharacterMovement()->DisableMovement();
     }
-    // 충돌처리 끔
     GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
     GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 

@@ -85,12 +85,17 @@ void AWeaponBase::Fire()
                 WeaponMesh->GetRightVector() * MuzzleOffset.Y +
                 WeaponMesh->GetUpVector() * MuzzleOffset.Z;
 
+            if (WeaponMesh && WeaponMesh->DoesSocketExist(MuzzleSocketName))
+            {
+                FireLocation = WeaponMesh->GetSocketLocation(MuzzleSocketName);
+            }
+
             FVector CameraLocation;
             FRotator CameraRotation;
             Character->GetWeaponAimViewPoint(CameraLocation, CameraRotation);
 
             FVector TraceStart = CameraLocation;
-            FVector TraceEnd = TraceStart + CameraRotation.Vector() * 10000.0f;
+            FVector TraceEnd = TraceStart + CameraRotation.Vector() * AimTraceDistance;
 
             FHitResult HitResult;
             FCollisionQueryParams QueryParams;
@@ -98,7 +103,24 @@ void AWeaponBase::Fire()
             QueryParams.AddIgnoredActor(Character);
 
             const bool bHit = World->LineTraceSingleByChannel(HitResult, TraceStart, TraceEnd, ECC_Visibility, QueryParams);
-            const FVector TargetLocation = bHit ? HitResult.Location : TraceEnd;
+            FVector TargetLocation = bHit ? HitResult.Location : TraceEnd;
+
+            FHitResult MuzzleHitResult;
+            FCollisionQueryParams MuzzleQueryParams;
+            MuzzleQueryParams.AddIgnoredActor(this);
+            MuzzleQueryParams.AddIgnoredActor(Character);
+
+            const bool bMuzzleBlocked = World->LineTraceSingleByChannel(
+                MuzzleHitResult,
+                FireLocation,
+                TargetLocation,
+                ECC_Visibility,
+                MuzzleQueryParams);
+
+            if (bMuzzleBlocked)
+            {
+                TargetLocation = MuzzleHitResult.Location;
+            }
 
             FVector FireDirection = (TargetLocation - FireLocation).GetSafeNormal();
             const float SpreadAngleDegrees = GetCurrentSpreadAngleDegrees();

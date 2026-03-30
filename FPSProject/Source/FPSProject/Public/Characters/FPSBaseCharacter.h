@@ -40,6 +40,12 @@ public:
     UFUNCTION(BlueprintCallable, Category = "FPS|Weapon")
     void ClearCurrentWeapon();
 
+    UFUNCTION(BlueprintCallable, Category = "FPS|Weapon")
+    bool IsAiming() const { return bIsAiming; }
+
+    UFUNCTION(BlueprintCallable, Category = "FPS|Weapon")
+    void GetWeaponAimViewPoint(FVector& OutLocation, FRotator& OutRotation) const;
+
     void Interact();
     void SetInteractableActor(AActor* NewActor);
 
@@ -113,6 +119,8 @@ protected:
     void StartJump();
     void StopJump();
     void Fire();
+    void StartAim();
+    void StopAim();
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FPS|Camera")
     UCameraComponent* FPSCameraComponent;
@@ -157,6 +165,30 @@ private:
 
     UPROPERTY(EditDefaultsOnly, Category = "FPS|Animation")
     UAnimationAsset* DrivingAnimationAsset = nullptr;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FPS|Weapon", meta = (AllowPrivateAccess = "true"))
+    bool bIsAiming = false;
+
+    UPROPERTY(EditDefaultsOnly, Category = "FPS|Aim")
+    float DefaultThirdPersonFOV = 90.0f;
+
+    UPROPERTY(EditDefaultsOnly, Category = "FPS|Aim")
+    float AimingThirdPersonFOV = 55.0f;
+
+    UPROPERTY(EditDefaultsOnly, Category = "FPS|Aim")
+    float DefaultBoomLength = 300.0f;
+
+    UPROPERTY(EditDefaultsOnly, Category = "FPS|Aim")
+    float AimingBoomLength = 120.0f;
+
+    UPROPERTY(EditDefaultsOnly, Category = "FPS|Aim")
+    FVector DefaultCameraBoomSocketOffset = FVector::ZeroVector;
+
+    UPROPERTY(EditDefaultsOnly, Category = "FPS|Aim")
+    FVector AimingCameraBoomSocketOffset = FVector(0.0f, 45.0f, 20.0f);
+
+    UPROPERTY(EditDefaultsOnly, Category = "FPS|Aim")
+    float AimInterpSpeed = 12.0f;
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FPS|Inventory", meta = (AllowPrivateAccess = "true"))
     TArray<EItemType> Inventory;

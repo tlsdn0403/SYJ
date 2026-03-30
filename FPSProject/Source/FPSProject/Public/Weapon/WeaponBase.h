@@ -48,6 +48,12 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
 	UParticleSystem* GunParticleEffect;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Aim")
+	float HipFireSpreadAngleDegrees = 1.5f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Aim")
+	float AimSpreadAngleDegrees = 0.2f;
+
 	UFUNCTION(BlueprintCallable, Category = "Weapon")
 	virtual void AttachWeapon(AFPSBaseCharacter* TargetCharacter);
 
@@ -59,6 +65,8 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 protected:
+	float GetCurrentSpreadAngleDegrees() const;
+
 	/** The character holding this weapon */
 	//UPROPERTY()
 	UPROPERTY(EditAnywhere, Category = "Network")

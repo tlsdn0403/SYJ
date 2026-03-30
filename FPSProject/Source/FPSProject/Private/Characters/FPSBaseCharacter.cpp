@@ -29,6 +29,7 @@ AFPSBaseCharacter::AFPSBaseCharacter()
     ThirdPersonCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("ThirdPersonCamera"));
     ThirdPersonCameraComponent->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
     ThirdPersonCameraComponent->bUsePawnControlRotation = false;
+    ThirdPersonCameraComponent->FieldOfView = DefaultThirdPersonFOV;
 
     FPSCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("FPSCamera"));
     FPSCameraComponent->SetupAttachment(RootComponent);
@@ -48,6 +49,7 @@ AFPSBaseCharacter::AFPSBaseCharacter()
 
     GetCharacterMovement()->bRunPhysicsWithNoController = true;
     GetCharacterMovement()->bEnablePhysicsInteraction = false;
+    DefaultCameraBoomSocketOffset = CameraBoom->SocketOffset;
 
     static ConstructorHelpers::FObjectFinder<UAnimationAsset> DrivingAnimationRef(
         TEXT("/Game/Characters/Animations/Driving/Driving__2__Anim.Driving__2__Anim"));
@@ -86,6 +88,31 @@ void AFPSBaseCharacter::Tick(float DeltaTime)
     Super::Tick(DeltaTime);
 
     const bool bIsAttachedToTruckSeat = bIsDrivingTruck || bIsOnTruckCargo || bIsUsingMountedWeapon;
+
+    if (ThirdPersonCameraComponent && CameraBoom)
+    {
+        const float TargetFOV = bIsAiming ? AimingThirdPersonFOV : DefaultThirdPersonFOV;
+        const float TargetBoomLength = bIsAiming ? AimingBoomLength : DefaultBoomLength;
+        const FVector TargetSocketOffset = bIsAiming ? AimingCameraBoomSocketOffset : DefaultCameraBoomSocketOffset;
+
+        ThirdPersonCameraComponent->FieldOfView = FMath::FInterpTo(
+            ThirdPersonCameraComponent->FieldOfView,
+            TargetFOV,
+            DeltaTime,
+            AimInterpSpeed);
+
+        CameraBoom->TargetArmLength = FMath::FInterpTo(
+            CameraBoom->TargetArmLength,
+            TargetBoomLength,
+            DeltaTime,
+            AimInterpSpeed);
+
+        CameraBoom->SocketOffset = FMath::VInterpTo(
+            CameraBoom->SocketOffset,
+            TargetSocketOffset,
+            DeltaTime,
+            AimInterpSpeed);
+    }
 
     if (bIsUsingMountedWeapon && CurrentMountedWeapon)
     {
@@ -179,6 +206,8 @@ void AFPSBaseCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
     PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &AFPSBaseCharacter::StartJump);
     PlayerInputComponent->BindAction("Jump", IE_Released, this, &AFPSBaseCharacter::StopJump);
     PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &AFPSBaseCharacter::Fire);
+    PlayerInputComponent->BindAction("Aim", IE_Pressed, this, &AFPSBaseCharacter::StartAim);
+    PlayerInputComponent->BindAction("Aim", IE_Released, this, &AFPSBaseCharacter::StopAim);
     PlayerInputComponent->BindAction("Interact", IE_Pressed, this, &AFPSBaseCharacter::Interact);
 }
 
@@ -191,6 +220,7 @@ void AFPSBaseCharacter::EnterTruckDriverSeat(ATruck* Truck)
 
     CurrentTruck = Truck;
     bIsDrivingTruck = true;
+    bIsAiming = false;
 
     DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
     AttachToComponent(Truck->DriverSeatPoint, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
@@ -250,6 +280,7 @@ void AFPSBaseCharacter::EnterTruckCargo(ATruck* Truck)
 
     bIsOnTruckCargo = true;
     bIsDrivingTruck = false;
+    bIsAiming = false;
     CurrentTruck = Truck;
 
     SetActorLocationAndRotation(
@@ -297,6 +328,7 @@ void AFPSBaseCharacter::EnterMountedWeapon(ATruck* Truck, AMountedMachineGun* Mo
     bIsUsingMountedWeapon = true;
     bIsOnTruckCargo = false;
     bIsDrivingTruck = false;
+    bIsAiming = false;
     CurrentTruck = Truck;
     CurrentMountedWeapon = MountedWeapon;
     CurrentMountedWeapon->SetWeaponUser(this);
@@ -438,6 +470,21 @@ void AFPSBaseCharacter::StopJump()
     bPressedJump = false;
 }
 
+void AFPSBaseCharacter::StartAim()
+{
+    if (bIsDrivingTruck || bIsUsingMountedWeapon || bIsOnTruckCargo || !CurrentWeapon)
+    {
+        return;
+    }
+
+    bIsAiming = true;
+}
+
+void AFPSBaseCharacter::StopAim()
+{
+    bIsAiming = false;
+}
+
 void AFPSBaseCharacter::SetCurrentWeapon(AWeaponBase* NewWeapon)
 {
     CurrentWeapon = NewWeapon;
@@ -486,6 +533,7 @@ void AFPSBaseCharacter::PlayDrivingAnimation()
 void AFPSBaseCharacter::ClearCurrentWeapon()
 {
     SetCurrentWeapon(nullptr);
+    bIsAiming = false;
 }
 
 void AFPSBaseCharacter::Fire()
@@ -502,6 +550,25 @@ void AFPSBaseCharacter::Fire()
         GetCurrentWeapon()->Fire();
         return;
     }
+}
+
+void AFPSBaseCharacter::GetWeaponAimViewPoint(FVector& OutLocation, FRotator& OutRotation) const
+{
+    if (FPSCameraComponent && FPSCameraComponent->IsActive())
+    {
+        OutLocation = FPSCameraComponent->GetComponentLocation();
+        OutRotation = FPSCameraComponent->GetComponentRotation();
+        return;
+    }
+
+    if (ThirdPersonCameraComponent && ThirdPersonCameraComponent->IsActive())
+    {
+        OutLocation = ThirdPersonCameraComponent->GetComponentLocation();
+        OutRotation = ThirdPersonCameraComponent->GetComponentRotation();
+        return;
+    }
+
+    GetActorEyesViewPoint(OutLocation, OutRotation);
 }
 
 void AFPSBaseCharacter::SetPlayerInfo(const Protocol::PosInfo& Info)

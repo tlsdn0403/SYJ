@@ -85,6 +85,8 @@ void AFPSBaseCharacter::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
 
+    const bool bIsAttachedToTruckSeat = bIsDrivingTruck || bIsOnTruckCargo || bIsUsingMountedWeapon;
+
     if (bIsUsingMountedWeapon && CurrentMountedWeapon)
     {
         CurrentMountedWeapon->UpdateAim(GetControlRotation());
@@ -106,6 +108,10 @@ void AFPSBaseCharacter::Tick(float DeltaTime)
             MovePacketSendTimer = 0.f;
             SendMovePacket();
         }
+    }
+    else if (bIsAttachedToTruckSeat)
+    {
+        return;
     }
     else
     {

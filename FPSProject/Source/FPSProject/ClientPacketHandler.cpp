@@ -2,6 +2,8 @@
 #include "BufferReader.h"
 #include "FPSProject.h"
 #include "FPSProjectGameInstance.h"
+#include "Kismet/GameplayStatics.h"
+#include "Engine/Engine.h"
 
 PacketHandlerFunc GPacketHandler[UINT16_MAX];
 
@@ -12,6 +14,8 @@ bool Handle_INVALID(PacketSessionRef& session, BYTE* buffer, int32 len)
 
 bool Handle_S_LOGIN(PacketSessionRef& session, Protocol::S_LOGIN& pkt)
 {
+	UE_LOG(LogTemp, Warning, TEXT("[Network] 서버로부터 S_LOGIN (로그인 성공) 패킷 도착!!!"));
+
 	for (auto& Player : pkt.players())
 	{
 	}
@@ -21,10 +25,16 @@ bool Handle_S_LOGIN(PacketSessionRef& session, Protocol::S_LOGIN& pkt)
 		const Protocol::ObjectInfo& Player = pkt.players(i);
 	}
 
-	// 로비에서 캐릭터 선택해서 인덱스 전송.
-	Protocol::C_ENTER_GAME EnterGamePkt;
-	EnterGamePkt.set_playerindex(0);
-	SEND_PACKET(EnterGamePkt);
+	//// 로비에서 캐릭터 선택해서 인덱스 전송.
+	//Protocol::C_ENTER_GAME EnterGamePkt;
+	//EnterGamePkt.set_playerindex(0);
+	//SEND_PACKET(EnterGamePkt);
+
+	if (UWorld* World = GWorld) // 혹은 session->GetWorld() 같은 방식
+	{
+		// 맵 이동!
+		UGameplayStatics::OpenLevel(World, TEXT("Map_helpme1"));
+	}
 
 	return true;
 }

@@ -10,7 +10,8 @@
  * 
  */
 
-
+class UEditableText;
+class UButton;
 class UImage;
 class UWidgetAnimation;
 
@@ -33,14 +34,23 @@ protected:
 	UPROPERTY(meta = (BindWidget))
 	UImage* LogoImage;
 
+	// UI의 닉네임 입력칸 연결
+	UPROPERTY(meta = (BindWidget))
+	UEditableText* NicknameT;
+
+	// UI의 IP 입력칸 연결
+	UPROPERTY(meta = (BindWidget))
+	UEditableText* IPT;
+
 public:
 
-	/*UPROPERTY(meta = (BindWidget))
-	class UButton* LoginButton;*/
+	UPROPERTY(meta = (BindWidget))
+	class UButton* LoginButton;
 	UFUNCTION()
 	void PlayAni_Start();
 	UFUNCTION()
 	void PlayAni_Click();
-	//void OnClickLogin();
+	UFUNCTION()
+	void OnClickLogin();
 };
 

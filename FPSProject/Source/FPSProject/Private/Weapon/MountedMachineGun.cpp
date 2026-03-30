@@ -10,6 +10,7 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "UObject/UnrealType.h"
+#include "Truck/Truck.h"
 
 AMountedMachineGun::AMountedMachineGun()
 {

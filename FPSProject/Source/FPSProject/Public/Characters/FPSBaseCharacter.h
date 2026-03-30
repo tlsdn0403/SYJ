@@ -214,7 +214,7 @@ protected:
     Protocol::PosInfo* DestInfo;
     Protocol::MoveState RemoteLastState = Protocol::MOVE_STATE_IDLE;
 
-    const float MOVE_PACKET_SEND_DELAY = 0.05f;
+    const float MOVE_PACKET_SEND_DELAY = 0.033f;
     float MovePacketSendTimer = 0.f;
 
     void ApplyDefaultAnimationClass();

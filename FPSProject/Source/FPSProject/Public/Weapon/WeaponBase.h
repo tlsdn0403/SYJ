@@ -43,7 +43,13 @@ protected:
 	FVector MuzzleOffset;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
+	FName MuzzleSocketName = TEXT("b_gun_muzzleflash");
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
 	FName AttachSocketName = TEXT("GripPoint");
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Aim")
+	float AimTraceDistance = 30000.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
 	UParticleSystem* GunParticleEffect;

@@ -584,6 +584,27 @@ void AFPSBaseCharacter::Fire()
 
 void AFPSBaseCharacter::GetWeaponAimViewPoint(FVector& OutLocation, FRotator& OutRotation) const
 {
+    if (const APlayerController* PlayerController = Cast<APlayerController>(Controller))
+    {
+        int32 ViewportSizeX = 0;
+        int32 ViewportSizeY = 0;
+        PlayerController->GetViewportSize(ViewportSizeX, ViewportSizeY);
+
+        if (ViewportSizeX > 0 && ViewportSizeY > 0)
+        {
+            FVector WorldDirection;
+            if (PlayerController->DeprojectScreenPositionToWorld(
+                ViewportSizeX * 0.5f,
+                ViewportSizeY * 0.5f,
+                OutLocation,
+                WorldDirection))
+            {
+                OutRotation = WorldDirection.Rotation();
+                return;
+            }
+        }
+    }
+
     if (FPSCameraComponent && FPSCameraComponent->IsActive())
     {
         OutLocation = FPSCameraComponent->GetComponentLocation();

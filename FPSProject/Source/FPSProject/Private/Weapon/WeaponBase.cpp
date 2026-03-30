@@ -95,6 +95,7 @@ void AWeaponBase::Fire()
             FHitResult HitResult;
             FCollisionQueryParams QueryParams;
             QueryParams.AddIgnoredActor(this);
+            QueryParams.AddIgnoredActor(Character);
 
             const bool bHit = World->LineTraceSingleByChannel(HitResult, TraceStart, TraceEnd, ECC_Visibility, QueryParams);
             const FVector TargetLocation = bHit ? HitResult.Location : TraceEnd;
@@ -119,6 +120,11 @@ void AWeaponBase::Fire()
                 {
                     Projectile->SetOwner(this);
                     Projectile->SetInstigator(Character);
+                    if (Projectile->CollisionComponent)
+                    {
+                        Projectile->CollisionComponent->IgnoreActorWhenMoving(this, true);
+                        Projectile->CollisionComponent->IgnoreActorWhenMoving(Character, true);
+                    }
                     Projectile->FireInDirection(FireDirection);
                 }
             }
@@ -146,6 +152,8 @@ void AWeaponBase::Fire()
             }
         }
     }
+
+    ApplyFireRecoil();
 }
 
 void AWeaponBase::Tick(float DeltaTime)
@@ -161,5 +169,21 @@ float AWeaponBase::GetCurrentSpreadAngleDegrees() const
     }
 
     return Character->IsAiming() ? AimSpreadAngleDegrees : HipFireSpreadAngleDegrees;
+}
+
+void AWeaponBase::ApplyFireRecoil() const
+{
+    if (!Character)
+    {
+        return;
+    }
+
+    const bool bIsAimFire = Character->IsAiming();
+    const FVector2D PitchRange = bIsAimFire ? AimRecoilPitchRange : HipFireRecoilPitchRange;
+    const float YawMagnitude = bIsAimFire ? AimRecoilYawMagnitude : HipFireRecoilYawMagnitude;
+
+    const float PitchKick = FMath::FRandRange(PitchRange.X, PitchRange.Y);
+    const float YawKick = FMath::FRandRange(-YawMagnitude, YawMagnitude);
+    Character->ApplyWeaponRecoil(PitchKick, YawKick);
 }
 

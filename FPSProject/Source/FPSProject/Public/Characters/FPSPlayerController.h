@@ -79,5 +79,8 @@ public:
 	UFUNCTION()
 	void Pressed5(const FInputActionValue& InputValue);
 
+	UFUNCTION()
+	void PickUp_Item(UTexture2D* image);
+
 };
 

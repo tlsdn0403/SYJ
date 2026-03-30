@@ -9,59 +9,56 @@
 
 void UInventoryWidget::NativeConstruct()
 {
-    Super::NativeConstruct();
+	Super::NativeConstruct();
 
 	if (!SlotWidgetClass) return;
 
 
 
-    SlotWidgets =
-    {
-        Slot1,
-        Slot2,
-        Slot3,
-        Slot4,
-        Slot5
-    };
+	SlotWidgets =
+	{
+		Slot1,
+		Slot2,
+		Slot3,
+		Slot4,
+		Slot5
+	};
 }
 
-void UInventoryWidget:: PlayAin_Slot(int32 SlotIndex)
+void UInventoryWidget::PlayAin_Slot(int32 SlotIndex)
 {
-	//USlotWidget* TargetSlotWidget = nullptr;
- //   switch (SlotIndex) {
- //       case 0:
-	//		TargetSlotWidget = SlotWidgets[0];
-	//	break;
-	//	case 1:
-	//		TargetSlotWidget = SlotWidgets[1];
-	//		break;
-	//	case 2:     
-	//		TargetSlotWidget = SlotWidgets[2];
-	//		break;
-	//	case 3:
-	//		TargetSlotWidget = SlotWidgets[3];
-	//		break;
-	//	case 4:
-	//		TargetSlotWidget = SlotWidgets[4];
-	//		break;
- //   }
- //   if (TargetSlotWidget)
- //   {
- //       TargetSlotWidget->PlayAni_Select();
- //   }
-
 	if (SlotWidgets.IsValidIndex(SlotIndex) && IsValid(SlotWidgets[SlotIndex]))
 	{
 		SlotWidgets[SlotIndex]->PlayAni_Select();
 	}
 }
 
-//void UInventoryWidget::SetItem(int32 Index, UTexture2D* IconTexture)
-//{
-//    if (!SlotWidgets.IsValidIndex(Index)) return;
-//
-//   // SlotWidgets[Index]->SetItem(IconTexture);
-//}
+void UInventoryWidget::PickUp_Item(UTexture2D* image) {
+	//아이템 줍기
+	//아이템에서 줍기 실행 시-> 이거 실행되게끔.. 
+
+	//어떤 손에 들어갈지 확인
+	for(int i = 0; i < SlotWidgets.Num(); ++i)
+	{
+		if (SlotWidgets.IsValidIndex(i) && IsValid(SlotWidgets[i]) && !SlotWidgets[i]->Selected)
+		{
+
+			//아이템 아이콘 설정
+			SlotWidgets[i]->Selected = true;
+			SlotWidgets[i]->SetItem(image);
+			//아이템 차지 슬롯 몇개인지 확인하고 카운트 증가.
+			break;
+		}
+	}
+	return;
+}
+
+void UInventoryWidget::SetItem(int32 Index, UTexture2D* IconTexture)
+{
+	if (!SlotWidgets.IsValidIndex(Index)) return;
+
+	SlotWidgets[Index]->SetItem(IconTexture);
+}
 
 void UInventoryWidget::SelectSlot(int32 slotnum)
 {
@@ -71,7 +68,7 @@ void UInventoryWidget::SelectSlot(int32 slotnum)
 		{
 			if (i == slotnum)
 			{
-				SlotWidgets[i]->Selected= !SlotWidgets[i]->Selected;
+				SlotWidgets[i]->Selected = !SlotWidgets[i]->Selected;
 				//SlotWidgets[i]->PlayAni_Select();
 			}
 			else
@@ -79,7 +76,7 @@ void UInventoryWidget::SelectSlot(int32 slotnum)
 				SlotWidgets[i]->Selected = false;
 				//SlotWidgets[i]->ClearSlot();
 			}
-				SlotWidgets[i]->PlayAni_Select();
+			SlotWidgets[i]->PlayAni_Select();
 		}
 	}
 }

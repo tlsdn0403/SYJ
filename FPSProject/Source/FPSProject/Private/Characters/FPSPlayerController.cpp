@@ -83,3 +83,11 @@ void AFPSPlayerController::Pressed5(const FInputActionValue& Value)
 	// 여기서 인벤토리 / 무기 변경 / 슬롯 선택 처리
 	InventoryW->SelectSlot(4); // 예시로 슬롯 1 선택
 }
+
+void AFPSPlayerController::PickUp_Item(UTexture2D* image)
+{
+	if (InventoryW)
+	{
+		InventoryW->PickUp_Item(image);
+	}
+}

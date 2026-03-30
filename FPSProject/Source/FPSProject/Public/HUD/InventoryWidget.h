@@ -49,10 +49,11 @@ public:
 	UPROPERTY()
 	TArray<USlotWidget*> SlotWidgets;
 
-	void SelectSlot(int32 slotnum);	// 슬롯 초기화 함수
+	void SelectSlot(int32 slotnum);	// 슬롯 선택시 깜빡이는 효과
 	void PlayAin_Slot(int32 SlotIndex);
 	/*UPROPERTY()
 	USlotWidget* SlotW;*/
 
-	//void SetItem(int32 SlotIndex, UTexture2D* IconTexture);
+	void SetItem(int32 SlotIndex, UTexture2D* IconTexture);
+	void PickUp_Item(UTexture2D* image);
 };

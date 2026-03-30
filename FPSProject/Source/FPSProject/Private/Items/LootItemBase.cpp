@@ -6,6 +6,7 @@
 #include "Components/WidgetComponent.h"
 #include "Components/InteractTriggerComponent.h"
 #include "Characters/FPSBaseCharacter.h"
+#include "Characters/FPSPlayerController.h"
 #include "Materials/MaterialInterface.h"
 
 // Sets default values
@@ -61,6 +62,10 @@ void ALootItemBase::Interact_Implementation(AFPSBaseCharacter* Character)
         if (Character->AddItem(this->ItemType))
         {
             // 성공하면 아이템 삭제
+			if (AFPSPlayerController* PC = Character->GetController<AFPSPlayerController>())
+			{
+				PC->PickUp_Item(itemimage);
+			}
             Destroy();
         }
         else

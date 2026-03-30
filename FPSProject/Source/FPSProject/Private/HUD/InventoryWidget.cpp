@@ -47,6 +47,7 @@ void UInventoryWidget::PickUp_Item(UTexture2D* image) {
 			SlotWidgets[i]->Selected = true;
 			SlotWidgets[i]->SetItem(image);
 			//아이템 차지 슬롯 몇개인지 확인하고 카운트 증가.
+			//아이템이 다른 슬롯 차지해서 그런 경우 아이템 색 회색으로 그려지게끔...
 			break;
 		}
 	}

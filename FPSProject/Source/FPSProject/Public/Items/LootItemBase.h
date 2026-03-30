@@ -6,6 +6,7 @@
 #include "GameFramework/Actor.h"
 #include "Components/InteractTriggerComponent.h"
 #include "Interface/InteractInterface.h"
+#include "Engine/Texture2D.h"
 #include "LootItemBase.generated.h"
 
 class UWidgetComponent;
@@ -48,7 +49,10 @@ public:
 	UMaterialInterface* OverlayMaterial;	//오버레이 메터리얼
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "setting")
-	FText setText;	//오버레이 메터리얼
+	FText setText;	//아이템 이름
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "setting")
+	UTexture2D* itemimage;	//아이템이미지
 
 protected:
 	// Called when the game starts or when spawned

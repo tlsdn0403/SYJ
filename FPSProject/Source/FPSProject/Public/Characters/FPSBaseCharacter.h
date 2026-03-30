@@ -16,6 +16,7 @@ class UHealthComponent;
 class AFPSProjectile;
 class UInventoryWidget;
 class UAnimInstance;
+class UAnimationAsset;
 class ATruck;
 class AMountedMachineGun;
 
@@ -67,10 +68,19 @@ public:
     ATruck* CurrentTruck = nullptr;
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Truck")
+    bool bIsDrivingTruck = false;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Truck")
     bool bIsUsingMountedWeapon = false;
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Truck")
     AMountedMachineGun* CurrentMountedWeapon = nullptr;
+
+    UFUNCTION(BlueprintCallable, Category = "Truck")
+    void EnterTruckDriverSeat(ATruck* Truck);
+
+    UFUNCTION(BlueprintCallable, Category = "Truck")
+    void ExitTruckDriverSeat();
 
     UFUNCTION(BlueprintCallable, Category = "Truck")
     void EnterTruckCargo(ATruck* Truck);
@@ -89,6 +99,9 @@ public:
 
     UFUNCTION(BlueprintCallable, Category = "Truck")
     bool IsOnTruckCargo() const { return bIsOnTruckCargo; }
+
+    UFUNCTION(BlueprintCallable, Category = "Truck")
+    bool IsDrivingTruck() const { return bIsDrivingTruck; }
 
     UFUNCTION(BlueprintCallable, Category = "Truck")
     bool IsUsingMountedWeapon() const { return bIsUsingMountedWeapon; }
@@ -142,6 +155,9 @@ private:
     UPROPERTY(EditDefaultsOnly, Category = "FPS|Animation")
     TSubclassOf<UAnimInstance> ArmedAnimClass;
 
+    UPROPERTY(EditDefaultsOnly, Category = "FPS|Animation")
+    UAnimationAsset* DrivingAnimationAsset = nullptr;
+
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FPS|Inventory", meta = (AllowPrivateAccess = "true"))
     TArray<EItemType> Inventory;
 
@@ -168,6 +184,9 @@ protected:
 
     const float MOVE_PACKET_SEND_DELAY = 0.05f;
     float MovePacketSendTimer = 0.f;
+
+    void ApplyDefaultAnimationClass();
+    void PlayDrivingAnimation();
 
     void SendMovePacket();
 };

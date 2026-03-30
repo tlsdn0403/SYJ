@@ -13,7 +13,9 @@
 #include "Interface/InteractInterface.h"
 #include "Truck/Truck.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Animation/AnimationAsset.h"
 #include "ClientPacketHandler.h"
+#include "UObject/ConstructorHelpers.h"
 
 AFPSBaseCharacter::AFPSBaseCharacter()
 {
@@ -46,6 +48,13 @@ AFPSBaseCharacter::AFPSBaseCharacter()
 
     GetCharacterMovement()->bRunPhysicsWithNoController = true;
     GetCharacterMovement()->bEnablePhysicsInteraction = false;
+
+    static ConstructorHelpers::FObjectFinder<UAnimationAsset> DrivingAnimationRef(
+        TEXT("/Game/Characters/Animations/Driving/Driving__2__Anim.Driving__2__Anim"));
+    if (DrivingAnimationRef.Succeeded())
+    {
+        DrivingAnimationAsset = DrivingAnimationRef.Object;
+    }
 }
 
 AFPSBaseCharacter::~AFPSBaseCharacter()
@@ -167,6 +176,65 @@ void AFPSBaseCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
     PlayerInputComponent->BindAction("Interact", IE_Pressed, this, &AFPSBaseCharacter::Interact);
 }
 
+void AFPSBaseCharacter::EnterTruckDriverSeat(ATruck* Truck)
+{
+    if (!Truck || bIsDrivingTruck || bIsOnTruckCargo || bIsUsingMountedWeapon)
+    {
+        return;
+    }
+
+    CurrentTruck = Truck;
+    bIsDrivingTruck = true;
+
+    DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+    AttachToComponent(Truck->DriverSeatPoint, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+    SetActorRelativeLocation(FVector::ZeroVector);
+    SetActorRelativeRotation(FRotator::ZeroRotator);
+
+    if (GetCharacterMovement())
+    {
+        GetCharacterMovement()->StopMovementImmediately();
+        GetCharacterMovement()->DisableMovement();
+    }
+
+    GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+    GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+    PlayDrivingAnimation();
+}
+
+void AFPSBaseCharacter::ExitTruckDriverSeat()
+{
+    if (!bIsDrivingTruck || !CurrentTruck)
+    {
+        return;
+    }
+
+    ATruck* Truck = CurrentTruck;
+
+    DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+    SetActorLocationAndRotation(
+        Truck->GetDriverExitLocation(),
+        Truck->GetActorRotation()
+    );
+
+    if (GetCharacterMovement())
+    {
+        GetCharacterMovement()->StopMovementImmediately();
+        GetCharacterMovement()->SetMovementMode(MOVE_Walking);
+    }
+
+    GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+    GetMesh()->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+
+    bIsDrivingTruck = false;
+    CurrentTruck = nullptr;
+    CurrentTruckInteractType = ETruckInteractType::None;
+    CurrentInteractableActor = nullptr;
+
+    ApplyDefaultAnimationClass();
+}
+
 void AFPSBaseCharacter::EnterTruckCargo(ATruck* Truck)
 {
     if (!Truck || bIsOnTruckCargo)
@@ -175,6 +243,7 @@ void AFPSBaseCharacter::EnterTruckCargo(ATruck* Truck)
     }
 
     bIsOnTruckCargo = true;
+    bIsDrivingTruck = false;
     CurrentTruck = Truck;
 
     SetActorLocationAndRotation(
@@ -221,6 +290,7 @@ void AFPSBaseCharacter::EnterMountedWeapon(ATruck* Truck, AMountedMachineGun* Mo
 
     bIsUsingMountedWeapon = true;
     bIsOnTruckCargo = false;
+    bIsDrivingTruck = false;
     CurrentTruck = Truck;
     CurrentMountedWeapon = MountedWeapon;
     CurrentMountedWeapon->SetWeaponUser(this);
@@ -366,7 +436,22 @@ void AFPSBaseCharacter::SetCurrentWeapon(AWeaponBase* NewWeapon)
 {
     CurrentWeapon = NewWeapon;
 
-    if (!GetMesh()) return;
+    if (bIsDrivingTruck)
+    {
+        return;
+    }
+
+    ApplyDefaultAnimationClass();
+}
+
+void AFPSBaseCharacter::ApplyDefaultAnimationClass()
+{
+    if (!GetMesh())
+    {
+        return;
+    }
+
+    GetMesh()->SetAnimationMode(EAnimationMode::AnimationBlueprint);
 
     if (CurrentWeapon != nullptr)
     {
@@ -375,13 +460,21 @@ void AFPSBaseCharacter::SetCurrentWeapon(AWeaponBase* NewWeapon)
             GetMesh()->SetAnimInstanceClass(ArmedAnimClass);
         }
     }
-    else
+    else if (UnarmedAnimClass)
     {
-        if (UnarmedAnimClass)
-        {
-            GetMesh()->SetAnimInstanceClass(UnarmedAnimClass);
-        }
+        GetMesh()->SetAnimInstanceClass(UnarmedAnimClass);
     }
+}
+
+void AFPSBaseCharacter::PlayDrivingAnimation()
+{
+    if (!GetMesh() || !DrivingAnimationAsset)
+    {
+        return;
+    }
+
+    GetMesh()->SetAnimationMode(EAnimationMode::AnimationSingleNode);
+    GetMesh()->PlayAnimation(DrivingAnimationAsset, true);
 }
 
 void AFPSBaseCharacter::ClearCurrentWeapon()

@@ -363,7 +363,7 @@ void ATruck::Interact_Implementation(AFPSBaseCharacter* Character)
 		MountedWeapon->SetWeaponUser(Character);
 		return;
 	}
-
+	// 아이템 파밍 라운드.
 	if (bIsLoadingPhase)
 	{
 		if (Character->GetItemCount() > 0)
@@ -400,7 +400,7 @@ void ATruck::Interact_Implementation(AFPSBaseCharacter* Character)
 
 		return;
 	}
-
+	// 운전석 탑승
 	if (Character->GetCurrentTruckInteractType() == ETruckInteractType::DriverSeat)
 	{
 		AController* PlayerController = Character->GetController();

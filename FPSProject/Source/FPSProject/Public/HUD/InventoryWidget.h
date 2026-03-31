@@ -12,6 +12,8 @@
 
 class USlotWidget;
 class UHorizontalBox;
+class UImage;
+
 
 UCLASS()
 class FPSPROJECT_API UInventoryWidget : public UUserWidget
@@ -22,6 +24,9 @@ protected:
 	virtual void NativeConstruct() override;
 
 public:
+
+	UPROPERTY(meta = (BindWidget))	//
+	UImage* GunImage;
 
 	// 슬롯들을 담을 박스
 	UPROPERTY(meta = (BindWidget))	//
@@ -56,4 +61,5 @@ public:
 
 	void SetItem(int32 SlotIndex, UTexture2D* IconTexture);
 	void PickUp_Item(UTexture2D* image);
+	void GetGunAR4();
 };

@@ -5,7 +5,7 @@
 #include "HUD/StartScreenClass.h"
 
 void AStartModeController::BeginPlay() {
-		Super::BeginPlay();
+	Super::BeginPlay();
 	if ( !StartScreenWidgetClass) return;
 
 	bShowMouseCursor = true;

@@ -50,10 +50,12 @@ void UStartScreenClass::OnClickLogin()
 
 		Protocol::C_LOGIN LoginPkt;
 
+		LoginPkt.set_nickname(TCHAR_TO_UTF8(*UserID));
+
 		SendBufferRef SendBuffer = ClientPacketHandler::MakeSendBuffer(LoginPkt);
 		GameInstance->SendPacket(SendBuffer);
 
-		RemoveFromParent();
+		this -> RemoveFromParent();
 
 		if (APlayerController* PC = GetWorld()->GetFirstPlayerController())
 		{

@@ -73,6 +73,33 @@ void AFPSBaseCharacter::BeginPlay()
     GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("We are using FPSCharacter."));
   
     AFPSPlayerController* PC = Cast<AFPSPlayerController>(GetController());
+
+    if (IsLocallyControlled())
+    {
+        // [복구 1] 맵 로딩 후 0.2초 대기했다가 서버에 C_ENTER_GAME 보내기!
+        FTimerHandle TimerHandle;
+        GetWorld()->GetTimerManager().SetTimer(TimerHandle, FTimerDelegate::CreateLambda([this]()
+            {
+                Protocol::C_ENTER_GAME EnterGamePkt;
+                EnterGamePkt.set_playerindex(0); // 임시로 0번
+
+                if (auto* GameInstance = Cast<UFPSProjectGameInstance>(GetGameInstance()))
+                {
+                    SendBufferRef SendBuffer = ClientPacketHandler::MakeSendBuffer(EnterGamePkt);
+                    GameInstance->SendPacket(SendBuffer);
+                    UE_LOG(LogTemp, Warning, TEXT("[Network] 0.2초 대기 후 C_ENTER_GAME 안전하게 전송 완료!"));
+                }
+            }), 0.2f, false);
+
+        // 마우스 커서 숨기기
+        if (PC)
+        {
+            FInputModeGameOnly InputMode;
+            PC->SetInputMode(InputMode);
+            PC->bShowMouseCursor = false;
+        }
+    }
+
     if (PC)
     {
         if (PC->InventoryW)
@@ -158,55 +185,40 @@ void AFPSBaseCharacter::Tick(float DeltaTime)
     {
         return;
     }
-    else
+    else // 남의 캐릭터일 때
     {
         const Protocol::MoveState State = PlayerInfo->state();
-
         FVector CurrentLocation = GetActorLocation();
         FVector TargetLocation = FVector(DestInfo->x(), DestInfo->y(), DestInfo->z());
-        float DistToDest2D = FVector::Dist2D(CurrentLocation, TargetLocation);
 
+        // 1. 회전 보간 (부드럽게 15.f 적용)
         FRotator TargetRot(0.f, DestInfo->yaw(), 0.f);
-        SetActorRotation(FMath::RInterpTo(GetActorRotation(), TargetRot, DeltaTime, 10.f));
+        SetActorRotation(FMath::RInterpTo(GetActorRotation(), TargetRot, DeltaTime, 15.f));
 
+        // 2. 점프 이벤트 유지
         if (State == Protocol::MOVE_STATE_JUMP && RemoteLastState != Protocol::MOVE_STATE_JUMP)
         {
-            if (!GetCharacterMovement()->IsFalling())
-            {
-                Jump();
-            }
+            if (!GetCharacterMovement()->IsFalling()) Jump();
         }
-
         RemoteLastState = State;
 
-        if (State == Protocol::MOVE_STATE_JUMP)
+        // 3. [복구 2] AddMovementInput 버리고 VInterpTo로 직접 밀어주기!
+        float DistToDest = FVector::Dist(CurrentLocation, TargetLocation);
+
+        if (State == Protocol::MOVE_STATE_RUN || State == Protocol::MOVE_STATE_JUMP)
         {
-            FVector MoveDir = TargetLocation - CurrentLocation;
-            MoveDir.Z = 0.f;
-            if (MoveDir.Size() > 10.f)
+            if (DistToDest > 2.0f) // 오차가 작을 때만 보간
             {
-                MoveDir.Normalize();
-                AddMovementInput(MoveDir);
+                FVector NewLocation = FMath::VInterpTo(CurrentLocation, TargetLocation, DeltaTime, 15.0f);
+                SetActorLocation(NewLocation);
             }
         }
-        else if (State == Protocol::MOVE_STATE_RUN)
+        else // IDLE 상태
         {
-            if (DistToDest2D > 10.0f)
+            if (DistToDest > 2.0f)
             {
-                FVector MoveDir = TargetLocation - CurrentLocation;
-                MoveDir.Z = 0.f;
-                MoveDir.Normalize();
-                AddMovementInput(MoveDir);
+                SetActorLocation(FMath::VInterpTo(CurrentLocation, TargetLocation, DeltaTime, 10.0f));
             }
-        }
-        else
-        {
-            if (DistToDest2D > 5.0f)
-            {
-                TargetLocation.Z = CurrentLocation.Z;
-                SetActorLocation(TargetLocation);
-            }
-            SetActorRotation(FRotator(0.f, DestInfo->yaw(), 0.f));
         }
     }
 }

@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Engine/GameInstance.h"
+#include "Tickable.h"
 #include "FPSProject.h"
 #include "FPSProjectGameInstance.generated.h"
 
@@ -11,7 +12,7 @@
  * 
  */
 UCLASS()
-class FPSPROJECT_API UFPSProjectGameInstance : public UGameInstance
+class FPSPROJECT_API UFPSProjectGameInstance : public UGameInstance, public FTickableGameObject
 {
 	GENERATED_BODY()
 
@@ -41,6 +42,9 @@ public:
 
 public:
 	virtual void Shutdown() override;
+	virtual void Tick(float DeltaTime) override;
+	virtual TStatId GetStatId() const override;
+	virtual bool IsTickable() const override { return true; }
 
 public:
 	// GameServer

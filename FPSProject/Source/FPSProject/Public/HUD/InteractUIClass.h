@@ -33,6 +33,7 @@ public:
     UPROPERTY(BlueprintReadOnly, meta = (BindWidget, AllowPrivateAccess = "true"))
     UTextBlock* InteractText;
 
+    // 이거 기관총에도 장착하려고 만듦
     UFUNCTION(BlueprintCallable)
     void SetInteractText(const FText& NewText);
 

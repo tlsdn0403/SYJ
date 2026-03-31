@@ -48,12 +48,6 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Interaction")
 	UInteractTriggerComponent* TurretSeatInteractTrigger;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Driver")
-	USceneComponent* DriverSeatPoint;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Driver")
-	USceneComponent* DriverExitPoint;
-
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Cargo|Ride")
 	USceneComponent* CargoRidePoint;
 
@@ -101,15 +95,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Cargo|Ride")
 	FRotator GetCargoRideRotation() const;
 
-	UFUNCTION(BlueprintCallable, Category = "Driver")
-	FVector GetDriverSeatLocation() const;
-
-	UFUNCTION(BlueprintCallable, Category = "Driver")
-	FRotator GetDriverSeatRotation() const;
-
-	UFUNCTION(BlueprintCallable, Category = "Driver")
-	FVector GetDriverExitLocation() const;
-
 	UFUNCTION(BlueprintCallable, Category = "Cargo|Ride")
 	FVector GetCargoExitLocation() const;
 
@@ -138,9 +123,6 @@ public:
 
 	UFUNCTION()
 	void OnTurretInteractExit(AActor* OtherActor);
-
-	UFUNCTION()
-	void ExitDriverSeat();
 
 protected:
 	virtual void Tick(float DeltaTime) override;
@@ -199,7 +181,4 @@ private:
 
 	UPROPERTY()
 	AFPSBaseCharacter* MountedWeaponUser = nullptr;
-
-	UPROPERTY()
-	AFPSBaseCharacter* DriverCharacter = nullptr;
 };

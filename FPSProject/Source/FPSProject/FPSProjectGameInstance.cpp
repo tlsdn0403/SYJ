@@ -40,12 +40,12 @@ void UFPSProjectGameInstance::ConnectToGameServer(const FString& IPAddress)
 		GameServerSession = MakeShared<PacketSession>(Socket);
 		GameServerSession->Run();
 
-		//// TEMP : Lobby에서 캐릭터 선택창 등
-		//{
-		//	Protocol::C_LOGIN Pkt;
-		//	SendBufferRef SendBuffer = ClientPacketHandler::MakeSendBuffer(Pkt);
-		//	SendPacket(SendBuffer);
-		//}
+		// TEMP : Lobby에서 캐릭터 선택창 등
+		{
+			Protocol::C_LOGIN Pkt;
+			SendBufferRef SendBuffer = ClientPacketHandler::MakeSendBuffer(Pkt);
+			SendPacket(SendBuffer);
+		}
 	}
 	else
 	{
@@ -249,14 +249,4 @@ void UFPSProjectGameInstance::Shutdown()
 	DisconnectFromGameServer();
 
 	Super::Shutdown();
-}
-
-void UFPSProjectGameInstance::Tick(float DeltaTime)
-{
-	HandleRecvPackets();
-}
-
-TStatId UFPSProjectGameInstance::GetStatId() const
-{
-	RETURN_QUICK_DECLARE_CYCLE_STAT(UFPSProjectGameInstance, STATGROUP_Tickables);
 }

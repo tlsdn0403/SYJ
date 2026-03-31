@@ -6,7 +6,7 @@ import "Struct.proto";
 
 message C_LOGIN
 {
-	string nickname = 1;
+
 }
 
 message S_LOGIN

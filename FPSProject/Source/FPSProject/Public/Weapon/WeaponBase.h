@@ -43,34 +43,10 @@ protected:
 	FVector MuzzleOffset;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
-	FName MuzzleSocketName = TEXT("b_gun_muzzleflash");
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
 	FName AttachSocketName = TEXT("GripPoint");
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Aim")
-	float AimTraceDistance = 30000.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
 	UParticleSystem* GunParticleEffect;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Aim")
-	float HipFireSpreadAngleDegrees = 1.5f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Aim")
-	float AimSpreadAngleDegrees = 0.0f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Recoil")
-	FVector2D HipFireRecoilPitchRange = FVector2D(0.9f, 1.5f);
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Recoil")
-	float HipFireRecoilYawMagnitude = 0.45f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Recoil")
-	FVector2D AimRecoilPitchRange = FVector2D(0.35f, 0.7f);
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Recoil")
-	float AimRecoilYawMagnitude = 0.18f;
 
 	UFUNCTION(BlueprintCallable, Category = "Weapon")
 	virtual void AttachWeapon(AFPSBaseCharacter* TargetCharacter);
@@ -83,9 +59,6 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 protected:
-	float GetCurrentSpreadAngleDegrees() const;
-	void ApplyFireRecoil() const;
-
 	/** The character holding this weapon */
 	//UPROPERTY()
 	UPROPERTY(EditAnywhere, Category = "Network")

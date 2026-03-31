@@ -13,6 +13,7 @@
 class USlotWidget;
 class UHorizontalBox;
 class UImage;
+class UTextBlock;
 
 
 UCLASS()
@@ -28,7 +29,12 @@ public:
 	UPROPERTY(meta = (BindWidget))	//
 	UImage* GunImage;
 
-	// 슬롯들을 담을 박스
+	UPROPERTY(meta = (BindWidget))
+	UTextBlock* GunText;
+
+
+
+	// 슬롯들을 담을 박스 =======================================================================================
 	UPROPERTY(meta = (BindWidget))	//
 	UHorizontalBox* SlotBox;	//UHorizontalBox = UI 위젯들을 “가로로 자동 정렬해서 담아주는 컨테이너(상자)” 객체
 

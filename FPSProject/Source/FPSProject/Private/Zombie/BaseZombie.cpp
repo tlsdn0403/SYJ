@@ -120,7 +120,7 @@ void ABaseZombie::OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 void ABaseZombie::OnZombieDamaged(float NewHealth, float Damage, const FHitResult& Hit)
 {
     UE_LOG(LogTemp, Warning, TEXT("Zombie Damaged: NewHealth=%f, Damage=%f, HitBone=%s"), NewHealth, Damage, *Hit.BoneName.ToString());
-    FVector EffectLocation = Hit.ImpactPoint;
+    FVector EffectLocation =  Hit.ImpactPoint;
  /*   if (BloodImpactEffect)
     {
         UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), BloodImpactEffect, EffectLocation);
@@ -128,10 +128,15 @@ void ABaseZombie::OnZombieDamaged(float NewHealth, float Damage, const FHitResul
 
     if (HitEffect)
     {
+        FVector Direction = -Hit.ImpactNormal;
+        FRotator Rotation = Direction.Rotation();
+
+
         UNiagaraFunctionLibrary::SpawnSystemAtLocation(
             GetWorld(),
             HitEffect,
-            EffectLocation
+            EffectLocation,
+			Rotation
         );
     }
     // 분해 로직

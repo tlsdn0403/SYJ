@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include "Projectiles/FPSProjectile.h"
@@ -21,33 +21,35 @@ AFPSProjectile::AFPSProjectile()
 
     if (!CollisionComponent)
     {
-        // 스피어를 단순 콜리전 표현으로 사용
+        // ?ㅽ뵾?대? ?⑥닚 肄쒕━???쒗쁽?쇰줈 ?ъ슜
         CollisionComponent = CreateDefaultSubobject<USphereComponent>(TEXT("SphereComponent"));
 
-        // 스피어의 콜리전 반경을 설정
-        CollisionComponent->InitSphereRadius(15.0f);
+        // ?ㅽ뵾?댁쓽 肄쒕━??諛섍꼍???ㅼ젙
+        CollisionComponent->InitSphereRadius(1.5f);
+        CollisionComponent->BodyInstance.bUseCCD = true;
 
-        // 충돌처리 채널에 등록..? 
-		CollisionComponent->BodyInstance.SetCollisionProfileName(TEXT("Projectile")); // 콜리전 프로파일 설정
+        // 異⑸룎泥섎━ 梨꾨꼸???깅줉..? 
+		CollisionComponent->BodyInstance.SetCollisionProfileName(TEXT("Projectile")); // 肄쒕━???꾨줈?뚯씪 ?ㅼ젙
 
-        // 컴포넌트가 어딘가에 부딪힐 때 호출되는 이벤트
+        // 而댄룷?뚰듃媛 ?대뵖媛??遺?ろ옄 ???몄텧?섎뒗 ?대깽??
         CollisionComponent->OnComponentHit.AddDynamic(this, &AFPSProjectile::OnHit);
 
-        // 루트 컴포넌트가 콜리전 컴포넌트가 되도록 설정
+        // 猷⑦듃 而댄룷?뚰듃媛 肄쒕━??而댄룷?뚰듃媛 ?섎룄濡??ㅼ젙
         RootComponent = CollisionComponent;
     }
 
     if (!ProjectileMovementComponent)
     {
-        // 이 컴포넌트를 사용하여 이 발사체의 이동 구현.
+        // ??而댄룷?뚰듃瑜??ъ슜?섏뿬 ??諛쒖궗泥댁쓽 ?대룞 援ы쁽.
         ProjectileMovementComponent = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileMovementComponent"));
         ProjectileMovementComponent->SetUpdatedComponent(CollisionComponent);
-        ProjectileMovementComponent->InitialSpeed = 3000.0f;                    // 초기속도
-        ProjectileMovementComponent->MaxSpeed = 3000.0f;                        // 최대 속도
-		ProjectileMovementComponent->bRotationFollowsVelocity = true;           // 속도에 따라 회전
-		ProjectileMovementComponent->bShouldBounce = true;                      // 바운스 활성화
-        ProjectileMovementComponent->Bounciness = 0.3f;
-		ProjectileMovementComponent->ProjectileGravityScale = 0.0f;             // 중력의 영향을 받지 않음
+        ProjectileMovementComponent->InitialSpeed = 20000.0f;                   // 珥덇린?띾룄
+        ProjectileMovementComponent->MaxSpeed = 20000.0f;                       // 理쒕? ?띾룄
+        ProjectileMovementComponent->bForceSubStepping = true;
+		ProjectileMovementComponent->bRotationFollowsVelocity = true;           // ?띾룄???곕씪 ?뚯쟾
+		ProjectileMovementComponent->bShouldBounce = false;                     // 諛붿슫???쒖꽦??
+        ProjectileMovementComponent->Bounciness = 0.0f;
+		ProjectileMovementComponent->ProjectileGravityScale = 0.0f;             // 以묐젰???곹뼢??諛쏆? ?딆쓬
     }
 
     if (!ProjectileMeshComponent)
@@ -58,17 +60,17 @@ AFPSProjectile::AFPSProjectile()
         {
             ProjectileMeshComponent->SetStaticMesh(Mesh.Object);
         }
-        //동적으로 메타리얼 적용
+        //?숈쟻?쇰줈 硫뷀?由ъ뼹 ?곸슜
         static ConstructorHelpers::FObjectFinder<UMaterial>Material(TEXT("/Script/Engine.Material'/Game/Projectiles/M_AK47.M_AK47'"));
         if (Material.Succeeded())
         {
             ProjectileMaterialInstance = UMaterialInstanceDynamic::Create(Material.Object, ProjectileMeshComponent);
         }
         ProjectileMeshComponent->SetMaterial(0, ProjectileMaterialInstance);
-        ProjectileMeshComponent->SetRelativeScale3D(FVector(0.9f, 0.9f, 0.9f));
+        ProjectileMeshComponent->SetRelativeScale3D(FVector(0.08f, 0.08f, 0.08f));
         ProjectileMeshComponent->SetupAttachment(RootComponent);
     }
-	// 피격 이펙트 로드
+	// ?쇨꺽 ?댄럺??濡쒕뱶
     if(!StoneImpactEffect)
     {
         static ConstructorHelpers::FObjectFinder<UParticleSystem>ImpactEffect(TEXT("/Script/Engine.ParticleSystem'/Game/MilitaryWeapSilver/FX/P_Impact_Stone_Large_01.P_Impact_Stone_Large_01'"));
@@ -97,60 +99,64 @@ void AFPSProjectile::FireInDirection(const FVector& ShootDirection)
 {
     if (ProjectileMovementComponent)
     {
-        //발사체의 속도가 ProjectileMovementComponent 에 의해 정의되기 때문에 발사 방향만 제공하면 됨
+        //諛쒖궗泥댁쓽 ?띾룄媛 ProjectileMovementComponent ???섑빐 ?뺤쓽?섍린 ?뚮Ц??諛쒖궗 諛⑺뼢留??쒓났?섎㈃ ??
         ProjectileMovementComponent->Velocity = ShootDirection * ProjectileMovementComponent->InitialSpeed;
 	}
 }
 
 void AFPSProjectile::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComponent, FVector NormalImpulse, const FHitResult& Hit)
 {
-    // 자기 자신이나 발사자(Owner)는 제외
+    // ?먭린 ?먯떊?대굹 諛쒖궗??Owner)???쒖쇅
     AActor* MyOwner = GetOwner();
     AActor* InstigatorActor = GetInstigator();
     if (OtherActor && OtherActor != this && OtherActor != MyOwner && OtherActor != InstigatorActor)
     {
 
         UGameplayStatics::ApplyPointDamage(
-            OtherActor,            // Damage 대상 (좀비)
-            20.f,                   // 데미지 값
-            ProjectileMovementComponent->Velocity.GetSafeNormal(),  // 발사 방향(혹은 ShotDirection)
-            Hit,                   // !!! 여기서 실제 충돌 FHitResult 전체 넘김
-            GetInstigatorController(),  // 컨트롤러
-            this,                  // 데미지 소스(총알 자신)
+            OtherActor,            // Damage ???(醫鍮?
+            20.f,                   // ?곕?吏 媛?
+            ProjectileMovementComponent->Velocity.GetSafeNormal(),  // 諛쒖궗 諛⑺뼢(?뱀? ShotDirection)
+            Hit,                   // !!! ?ш린???ㅼ젣 異⑸룎 FHitResult ?꾩껜 ?섍?
+            GetInstigatorController(),  // 而⑦듃濡ㅻ윭
+            this,                  // ?곕?吏 ?뚯뒪(珥앹븣 ?먯떊)
             nullptr                // DamageType
         );
 
         UE_LOG(LogTemp, Warning, TEXT("ammo damage to %s! "), *GetNameSafe(OtherActor));
     }
 
-	if (OtherActor != this && OtherComponent->IsSimulatingPhysics())  // 스스로와 충돌하는 게 아니고 , 충돌한 컴포넌트가 물리 시뮬레이션을 하고 있다면
+	if (OtherActor != this && OtherComponent->IsSimulatingPhysics())  // ?ㅼ뒪濡쒖? 異⑸룎?섎뒗 寃??꾨땲怨?, 異⑸룎??而댄룷?뚰듃媛 臾쇰━ ?쒕??덉씠?섏쓣 ?섍퀬 ?덈떎硫?
     {
-		OtherComponent->AddImpulseAtLocation(ProjectileMovementComponent->Velocity * 100.0f, Hit.ImpactPoint);  // 충돌 지점에 발사체의 속도에 비례하는 임펄스를 가함
+		OtherComponent->AddImpulseAtLocation(ProjectileMovementComponent->Velocity * 100.0f, Hit.ImpactPoint);  // 異⑸룎 吏?먯뿉 諛쒖궗泥댁쓽 ?띾룄??鍮꾨??섎뒗 ?꾪럡?ㅻ? 媛??
     }
 
 
     if(StoneImpactEffect)
     {
-        UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), StoneImpactEffect, GetActorLocation());  // 피격 이펙트 재생
+        UGameplayStatics::SpawnEmitterAtLocation(
+            GetWorld(),
+            StoneImpactEffect,
+            Hit.ImpactPoint,
+            Hit.ImpactNormal.Rotation());  // ?쇨꺽 ?댄럺???ъ깮
     }
 	
-	ReturnToPool(); // 충돌 후 풀로 반환
+	ReturnToPool(); // 異⑸룎 ???濡?諛섑솚
 }
 
 //----------------------------------------------------------------------------------------
-//  풀링 인터페이스 구현 
+//  ?留??명꽣?섏씠??援ы쁽 
 //----------------------------------------------------------------------------------------
 
 void AFPSProjectile::OnPoolActivate_Implementation()
 {
-    // ProjectileMovementComponent 활성화
+    // ProjectileMovementComponent ?쒖꽦??
     if (ProjectileMovementComponent)
     {
         ProjectileMovementComponent->SetActive(true);
         ProjectileMovementComponent->Velocity = FVector::ZeroVector;
     }
 
-    // 수명 타이머 시작
+    // ?섎챸 ??대㉧ ?쒖옉
     GetWorld()->GetTimerManager().SetTimer(
         LifetimeTimerHandle,
         this,
@@ -162,10 +168,10 @@ void AFPSProjectile::OnPoolActivate_Implementation()
 
 void AFPSProjectile::OnPoolDeactivate_Implementation()
 {
-    // 타이머 정리
+    // ??대㉧ ?뺣━
     GetWorld()->GetTimerManager().ClearTimer(LifetimeTimerHandle);
 
-    // 이동 정지
+    // ?대룞 ?뺤?
     if (ProjectileMovementComponent)
     {
         ProjectileMovementComponent->StopMovementImmediately();
@@ -178,7 +184,7 @@ void AFPSProjectile::OnPoolSpawn_Implementation(const FVector& Location, const F
     SetActorLocation(Location);
     SetActorRotation(Rotation);
 
-    // 속도 리셋
+    // ?띾룄 由ъ뀑
     if (ProjectileMovementComponent)
     {
         ProjectileMovementComponent->Velocity = FVector::ZeroVector;
@@ -187,10 +193,10 @@ void AFPSProjectile::OnPoolSpawn_Implementation(const FVector& Location, const F
 
 void AFPSProjectile::ReturnToPool()
 {
-    // 타이머 정리
+    // ??대㉧ ?뺣━
     GetWorld()->GetTimerManager().ClearTimer(LifetimeTimerHandle);
 
-    // Subsystem을 통해 풀에 반환
+    // Subsystem???듯빐 ???諛섑솚
     if (UWorld* World = GetWorld())
     {
         if (UObjectPoolSubSystem* PoolSubsystem = World->GetSubsystem<UObjectPoolSubSystem>())
@@ -200,6 +206,7 @@ void AFPSProjectile::ReturnToPool()
         }
     }
 
-    // 풀이 없으면 파괴
+    // ????놁쑝硫??뚭눼
     Destroy();
 }
+

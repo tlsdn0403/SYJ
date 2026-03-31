@@ -1,4 +1,4 @@
-#include "Weapon/WeaponBase.h"
+ï»¿#include "Weapon/WeaponBase.h"
 #include "FPSProjectGameInstance.h" 
 #include "Weapon/WeaponBase.h"
 #include "Projectiles/FPSProjectile.h"
@@ -10,6 +10,7 @@
 #include "Particles/ParticleSystem.h"
 #include "Subsystems/ObjectPoolSubSystem.h"
 #include "Engine/Engine.h"
+#include "Math/UnrealMathUtility.h"
 
 bool bDebug = false;
 AWeaponBase::AWeaponBase()
@@ -26,10 +27,10 @@ void AWeaponBase::BeginPlay()
 {
     Super::BeginPlay();
 
-    // °ÔÀÓ ÀÎ½ºÅÏ½º¸¦ Ã£¾Æ¼­ ³ª¸¦ µî·ÏÇÔ
+    // ê²Œì„ ì¸ìŠ¤í„´ìŠ¤ë¥¼ ì°¾ì•„ì„œ ë‚˜ë¥¼ ë“±ë¡í•¨
     if (auto* GI = Cast<UFPSProjectGameInstance>(GetGameInstance()))
     {
-        if (ObjectId != 0) // ID°¡ ¼³Á¤µÈ °æ¿ì¿¡¸¸
+        if (ObjectId != 0) // IDê°€ ì„¤ì •ëœ ê²½ìš°ì—ë§Œ
         {
             GI->FieldItems.Add(ObjectId, this);
         }
@@ -84,21 +85,52 @@ void AWeaponBase::Fire()
                 WeaponMesh->GetRightVector() * MuzzleOffset.Y +
                 WeaponMesh->GetUpVector() * MuzzleOffset.Z;
 
+            if (WeaponMesh && WeaponMesh->DoesSocketExist(MuzzleSocketName))
+            {
+                FireLocation = WeaponMesh->GetSocketLocation(MuzzleSocketName);
+            }
+
             FVector CameraLocation;
             FRotator CameraRotation;
-            Character->GetActorEyesViewPoint(CameraLocation, CameraRotation);
+            Character->GetWeaponAimViewPoint(CameraLocation, CameraRotation);
 
             FVector TraceStart = CameraLocation;
-            FVector TraceEnd = TraceStart + CameraRotation.Vector() * 10000.0f;
+            FVector TraceEnd = TraceStart + CameraRotation.Vector() * AimTraceDistance;
 
             FHitResult HitResult;
             FCollisionQueryParams QueryParams;
             QueryParams.AddIgnoredActor(this);
+            QueryParams.AddIgnoredActor(Character);
 
             const bool bHit = World->LineTraceSingleByChannel(HitResult, TraceStart, TraceEnd, ECC_Visibility, QueryParams);
-            const FVector TargetLocation = bHit ? HitResult.Location : TraceEnd;
+            FVector TargetLocation = bHit ? HitResult.Location : TraceEnd;
 
-            const FVector FireDirection = (TargetLocation - FireLocation).GetSafeNormal();
+            FHitResult MuzzleHitResult;
+            FCollisionQueryParams MuzzleQueryParams;
+            MuzzleQueryParams.AddIgnoredActor(this);
+            MuzzleQueryParams.AddIgnoredActor(Character);
+
+            const bool bMuzzleBlocked = World->LineTraceSingleByChannel(
+                MuzzleHitResult,
+                FireLocation,
+                TargetLocation,
+                ECC_Visibility,
+                MuzzleQueryParams);
+
+            if (bMuzzleBlocked)
+            {
+                TargetLocation = MuzzleHitResult.Location;
+            }
+
+            FVector FireDirection = (TargetLocation - FireLocation).GetSafeNormal();
+            const float SpreadAngleDegrees = GetCurrentSpreadAngleDegrees();
+            if (SpreadAngleDegrees > 0.0f)
+            {
+                FireDirection = FMath::VRandCone(
+                    FireDirection,
+                    FMath::DegreesToRadians(SpreadAngleDegrees));
+            }
+
             const FRotator FireRotation = FireDirection.Rotation();
 
             UObjectPoolSubSystem* PoolSubsystem = World->GetSubsystem<UObjectPoolSubSystem>();
@@ -110,6 +142,11 @@ void AWeaponBase::Fire()
                 {
                     Projectile->SetOwner(this);
                     Projectile->SetInstigator(Character);
+                    if (Projectile->CollisionComponent)
+                    {
+                        Projectile->CollisionComponent->IgnoreActorWhenMoving(this, true);
+                        Projectile->CollisionComponent->IgnoreActorWhenMoving(Character, true);
+                    }
                     Projectile->FireInDirection(FireDirection);
                 }
             }
@@ -137,9 +174,38 @@ void AWeaponBase::Fire()
             }
         }
     }
+
+    ApplyFireRecoil();
 }
 
 void AWeaponBase::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
 }
+
+float AWeaponBase::GetCurrentSpreadAngleDegrees() const
+{
+    if (!Character)
+    {
+        return HipFireSpreadAngleDegrees;
+    }
+
+    return Character->IsAiming() ? AimSpreadAngleDegrees : HipFireSpreadAngleDegrees;
+}
+
+void AWeaponBase::ApplyFireRecoil() const
+{
+    if (!Character)
+    {
+        return;
+    }
+
+    const bool bIsAimFire = Character->IsAiming();
+    const FVector2D PitchRange = bIsAimFire ? AimRecoilPitchRange : HipFireRecoilPitchRange;
+    const float YawMagnitude = bIsAimFire ? AimRecoilYawMagnitude : HipFireRecoilYawMagnitude;
+
+    const float PitchKick = FMath::FRandRange(PitchRange.X, PitchRange.Y);
+    const float YawKick = FMath::FRandRange(-YawMagnitude, YawMagnitude);
+    Character->ApplyWeaponRecoil(PitchKick, YawKick);
+}
+

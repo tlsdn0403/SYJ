@@ -19,8 +19,10 @@ bool Handle_INVALID(PacketSessionRef& session, BYTE* buffer, int32 len)
 
 bool Handle_C_LOGIN(PacketSessionRef& session, Protocol::C_LOGIN& pkt)
 {
-	// TODO : DB에서 Account 정보 긁어온다
-	// TODO : DB에서 유저 정보 긁어온다
+	// 클라이언트가 보낸 닉네임 꺼내서 확인하기!
+	std::string clientName = pkt.nickname();
+	std::cout << "[Server] 로그인 요청 들어옴! 닉네임: " << clientName << std::endl;
+
 	Protocol::S_LOGIN loginPkt;
 
 	for (int32 i = 0; i < 3; i++)
@@ -29,7 +31,7 @@ bool Handle_C_LOGIN(PacketSessionRef& session, Protocol::C_LOGIN& pkt)
 		Protocol::PosInfo* posInfo = player->mutable_pos_info();
 		posInfo->set_x(Utils::GetRandom(0.f, 100.f));
 		posInfo->set_y(Utils::GetRandom(0.f, 100.f));
-		posInfo->set_z(Utils::GetRandom(0.f, 100.f));
+		posInfo->set_z(90.0f);
 		posInfo->set_yaw(Utils::GetRandom(0.f, 45.f));
 	}
 

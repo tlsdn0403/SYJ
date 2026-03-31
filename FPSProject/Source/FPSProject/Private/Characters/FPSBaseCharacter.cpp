@@ -13,7 +13,9 @@
 #include "Interface/InteractInterface.h"
 #include "Truck/Truck.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Animation/AnimationAsset.h"
 #include "ClientPacketHandler.h"
+#include "UObject/ConstructorHelpers.h"
 
 AFPSBaseCharacter::AFPSBaseCharacter()
 {
@@ -27,6 +29,7 @@ AFPSBaseCharacter::AFPSBaseCharacter()
     ThirdPersonCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("ThirdPersonCamera"));
     ThirdPersonCameraComponent->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
     ThirdPersonCameraComponent->bUsePawnControlRotation = false;
+    ThirdPersonCameraComponent->FieldOfView = DefaultThirdPersonFOV;
 
     FPSCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("FPSCamera"));
     FPSCameraComponent->SetupAttachment(RootComponent);
@@ -46,6 +49,14 @@ AFPSBaseCharacter::AFPSBaseCharacter()
 
     GetCharacterMovement()->bRunPhysicsWithNoController = true;
     GetCharacterMovement()->bEnablePhysicsInteraction = false;
+    DefaultCameraBoomSocketOffset = CameraBoom->SocketOffset;
+
+    static ConstructorHelpers::FObjectFinder<UAnimationAsset> DrivingAnimationRef(
+        TEXT("/Game/Characters/Animations/Driving/Driving__2__Anim.Driving__2__Anim"));
+    if (DrivingAnimationRef.Succeeded())
+    {
+        DrivingAnimationAsset = DrivingAnimationRef.Object;
+    }
 }
 
 AFPSBaseCharacter::~AFPSBaseCharacter()
@@ -60,8 +71,35 @@ void AFPSBaseCharacter::BeginPlay()
 
     check(GEngine != nullptr);
     GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("We are using FPSCharacter."));
-  
+	
     AFPSPlayerController* PC = Cast<AFPSPlayerController>(GetController());
+
+    if (IsLocallyControlled())
+    {
+        // 바로 보내지 말고, 0.2초 뒤에 SendEnterGame 함수를 실행하도록 예약!
+        FTimerHandle TimerHandle;
+        GetWorld()->GetTimerManager().SetTimer(TimerHandle, FTimerDelegate::CreateLambda([this]()
+            {
+                Protocol::C_ENTER_GAME EnterGamePkt;
+                EnterGamePkt.set_playerindex(0);
+
+                if (auto* GameInstance = Cast<UFPSProjectGameInstance>(GetGameInstance()))
+                {
+                    SendBufferRef SendBuffer = ClientPacketHandler::MakeSendBuffer(EnterGamePkt);
+                    GameInstance->SendPacket(SendBuffer);
+                    UE_LOG(LogTemp, Warning, TEXT("[Network] 0.2초 대기 후 C_ENTER_GAME 안전하게 전송 완료!"));
+                }
+            }), 0.2f, false); // 0.2초 딜레이
+
+        if (PC)
+        {
+            FInputModeGameOnly InputMode;
+            PC->SetInputMode(InputMode);
+            PC->bShowMouseCursor = false;
+        }
+    }
+
+    // 인벤토리 UI 띄우기
     if (PC)
     {
         if (PC->InventoryW)
@@ -75,6 +113,47 @@ void AFPSBaseCharacter::BeginPlay()
 void AFPSBaseCharacter::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
+
+    const bool bIsAttachedToTruckSeat = bIsDrivingTruck || bIsOnTruckCargo || bIsUsingMountedWeapon;
+
+    // 줌 했을 떄 FOV 확대
+    if (ThirdPersonCameraComponent && CameraBoom)
+    {
+        const float TargetFOV = bIsAiming ? AimingThirdPersonFOV : DefaultThirdPersonFOV;
+        const float TargetBoomLength = bIsAiming ? AimingBoomLength : DefaultBoomLength;
+        const FVector TargetSocketOffset = bIsAiming ? AimingCameraBoomSocketOffset : DefaultCameraBoomSocketOffset;
+
+        ThirdPersonCameraComponent->FieldOfView = FMath::FInterpTo(
+            ThirdPersonCameraComponent->FieldOfView,
+            TargetFOV,
+            DeltaTime,
+            AimInterpSpeed);
+
+        CameraBoom->TargetArmLength = FMath::FInterpTo(
+            CameraBoom->TargetArmLength,
+            TargetBoomLength,
+            DeltaTime,
+            AimInterpSpeed);
+
+        CameraBoom->SocketOffset = FMath::VInterpTo(
+            CameraBoom->SocketOffset,
+            TargetSocketOffset,
+            DeltaTime,
+            AimInterpSpeed);
+    }
+
+    if (IsLocallyControlled() && Controller && !RecoilRecoveryRemaining.IsNearlyZero())
+    {
+        const float RecoveryAlpha = FMath::Clamp(RecoilRecoverySpeed * DeltaTime, 0.0f, 1.0f);
+        const FRotator RecoveryStep = RecoilRecoveryRemaining * RecoveryAlpha;
+
+        FRotator ControlRotation = Controller->GetControlRotation();
+        ControlRotation.Pitch -= RecoveryStep.Pitch;
+        ControlRotation.Yaw -= RecoveryStep.Yaw;
+        Controller->SetControlRotation(ControlRotation);
+
+        RecoilRecoveryRemaining -= RecoveryStep;
+    }
 
     if (bIsUsingMountedWeapon && CurrentMountedWeapon)
     {
@@ -98,55 +177,49 @@ void AFPSBaseCharacter::Tick(float DeltaTime)
             SendMovePacket();
         }
     }
-    else
+    //(신우) 트럭을 타고 있을 때 위치보정 안하도록  (이거 안하니까 이상한곳에 앉아있음)
+    else if (bIsAttachedToTruckSeat)
+    {
+        return;
+    }
+
+    else // 남의 캐릭터인 경우
     {
         const Protocol::MoveState State = PlayerInfo->state();
-
         FVector CurrentLocation = GetActorLocation();
         FVector TargetLocation = FVector(DestInfo->x(), DestInfo->y(), DestInfo->z());
-        float DistToDest2D = FVector::Dist2D(CurrentLocation, TargetLocation);
 
+        // 1. 회전은 지금처럼 부드럽게 유지
         FRotator TargetRot(0.f, DestInfo->yaw(), 0.f);
         SetActorRotation(FMath::RInterpTo(GetActorRotation(), TargetRot, DeltaTime, 10.f));
 
+        // 2. 점프 처리는 그대로 유지 (이벤트성)
         if (State == Protocol::MOVE_STATE_JUMP && RemoteLastState != Protocol::MOVE_STATE_JUMP)
         {
-            if (!GetCharacterMovement()->IsFalling())
-            {
-                Jump();
-            }
+            if (!GetCharacterMovement()->IsFalling()) Jump();
         }
-
         RemoteLastState = State;
 
-        if (State == Protocol::MOVE_STATE_JUMP)
+        // 3. [핵심] 위치 이동 로직 변경
+        float DistToDest = FVector::Dist(CurrentLocation, TargetLocation);
+
+        if (State == Protocol::MOVE_STATE_RUN || State == Protocol::MOVE_STATE_JUMP)
         {
-            FVector MoveDir = TargetLocation - CurrentLocation;
-            MoveDir.Z = 0.f;
-            if (MoveDir.Size() > 10.f)
+            if (DistToDest > 2.0f) // 아주 작은 데드존만 설정
             {
-                MoveDir.Normalize();
-                AddMovementInput(MoveDir);
+                // 속도(15.0f)는 서버의 패킷 주기와 캐릭터 이동 속도에 맞춰 조절해봐!
+                // SetActorLocation으로 직접 밀어버리면 물리 엔진 간섭 없이 목표까지 쭉 미끄러지듯 이동해.
+                FVector NewLocation = FMath::VInterpTo(CurrentLocation, TargetLocation, DeltaTime, 15.0f);
+                SetActorLocation(NewLocation);
             }
         }
-        else if (State == Protocol::MOVE_STATE_RUN)
+        else // IDLE 상태 등
         {
-            if (DistToDest2D > 10.0f)
+            if (DistToDest > 5.0f)
             {
-                FVector MoveDir = TargetLocation - CurrentLocation;
-                MoveDir.Z = 0.f;
-                MoveDir.Normalize();
-                AddMovementInput(MoveDir);
+                // IDLE인데 거리가 멀면 부드럽게 최종 위치로 수렴
+                SetActorLocation(FMath::VInterpTo(CurrentLocation, TargetLocation, DeltaTime, 10.0f));
             }
-        }
-        else
-        {
-            if (DistToDest2D > 5.0f)
-            {
-                TargetLocation.Z = CurrentLocation.Z;
-                SetActorLocation(TargetLocation);
-            }
-            SetActorRotation(FRotator(0.f, DestInfo->yaw(), 0.f));
         }
     }
 }
@@ -164,7 +237,71 @@ void AFPSBaseCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
     PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &AFPSBaseCharacter::StartJump);
     PlayerInputComponent->BindAction("Jump", IE_Released, this, &AFPSBaseCharacter::StopJump);
     PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &AFPSBaseCharacter::Fire);
+    PlayerInputComponent->BindAction("Aim", IE_Pressed, this, &AFPSBaseCharacter::StartAim);
+    PlayerInputComponent->BindAction("Aim", IE_Released, this, &AFPSBaseCharacter::StopAim);
     PlayerInputComponent->BindAction("Interact", IE_Pressed, this, &AFPSBaseCharacter::Interact);
+}
+
+void AFPSBaseCharacter::EnterTruckDriverSeat(ATruck* Truck)
+{
+    if (!Truck || bIsDrivingTruck || bIsOnTruckCargo || bIsUsingMountedWeapon)
+    {
+        return;
+    }
+
+    CurrentTruck = Truck;
+    bIsDrivingTruck = true;
+    bIsAiming = false;
+    // 캐릭터가 다른 무언가에 붙어있으면 떼어버림
+    DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+    // 운전석 위치에 캐릭터 부착
+    AttachToComponent(Truck->DriverSeatPoint, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+    // 회전 , 위치 0으로
+    SetActorRelativeLocation(FVector::ZeroVector);
+    SetActorRelativeRotation(FRotator::ZeroRotator);
+    // 캐릭터 움직임 없앰
+    if (GetCharacterMovement())
+    {
+        GetCharacterMovement()->StopMovementImmediately();
+        GetCharacterMovement()->DisableMovement();
+    }
+    // 충돌처리 끔
+    GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+    GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+    PlayDrivingAnimation();
+}
+
+void AFPSBaseCharacter::ExitTruckDriverSeat()
+{
+    if (!bIsDrivingTruck || !CurrentTruck)
+    {
+        return;
+    }
+
+    ATruck* Truck = CurrentTruck;
+
+    DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+    SetActorLocationAndRotation(
+        Truck->GetDriverExitLocation(),
+        Truck->GetActorRotation()
+    );
+
+    if (GetCharacterMovement())
+    {
+        GetCharacterMovement()->StopMovementImmediately();
+        GetCharacterMovement()->SetMovementMode(MOVE_Walking);
+    }
+
+    GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+    GetMesh()->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+
+    bIsDrivingTruck = false;
+    CurrentTruck = nullptr;
+    CurrentTruckInteractType = ETruckInteractType::None;
+    CurrentInteractableActor = nullptr;
+
+    ApplyDefaultAnimationClass();
 }
 
 void AFPSBaseCharacter::EnterTruckCargo(ATruck* Truck)
@@ -175,6 +312,8 @@ void AFPSBaseCharacter::EnterTruckCargo(ATruck* Truck)
     }
 
     bIsOnTruckCargo = true;
+    bIsDrivingTruck = false;
+    bIsAiming = false;
     CurrentTruck = Truck;
 
     SetActorLocationAndRotation(
@@ -221,6 +360,8 @@ void AFPSBaseCharacter::EnterMountedWeapon(ATruck* Truck, AMountedMachineGun* Mo
 
     bIsUsingMountedWeapon = true;
     bIsOnTruckCargo = false;
+    bIsDrivingTruck = false;
+    bIsAiming = false;
     CurrentTruck = Truck;
     CurrentMountedWeapon = MountedWeapon;
     CurrentMountedWeapon->SetWeaponUser(this);
@@ -362,11 +503,41 @@ void AFPSBaseCharacter::StopJump()
     bPressedJump = false;
 }
 
+void AFPSBaseCharacter::StartAim()
+{
+    if (bIsDrivingTruck || bIsUsingMountedWeapon || bIsOnTruckCargo || !CurrentWeapon)
+    {
+        return;
+    }
+
+    bIsAiming = true;
+}
+
+void AFPSBaseCharacter::StopAim()
+{
+    bIsAiming = false;
+}
+
 void AFPSBaseCharacter::SetCurrentWeapon(AWeaponBase* NewWeapon)
 {
     CurrentWeapon = NewWeapon;
 
-    if (!GetMesh()) return;
+    if (bIsDrivingTruck)
+    {
+        return;
+    }
+
+    ApplyDefaultAnimationClass();
+}
+
+void AFPSBaseCharacter::ApplyDefaultAnimationClass()
+{
+    if (!GetMesh())
+    {
+        return;
+    }
+
+    GetMesh()->SetAnimationMode(EAnimationMode::AnimationBlueprint);
 
     if (CurrentWeapon != nullptr)
     {
@@ -375,18 +546,27 @@ void AFPSBaseCharacter::SetCurrentWeapon(AWeaponBase* NewWeapon)
             GetMesh()->SetAnimInstanceClass(ArmedAnimClass);
         }
     }
-    else
+    else if (UnarmedAnimClass)
     {
-        if (UnarmedAnimClass)
-        {
-            GetMesh()->SetAnimInstanceClass(UnarmedAnimClass);
-        }
+        GetMesh()->SetAnimInstanceClass(UnarmedAnimClass);
     }
+}
+
+void AFPSBaseCharacter::PlayDrivingAnimation()
+{
+    if (!GetMesh() || !DrivingAnimationAsset)
+    {
+        return;
+    }
+
+    GetMesh()->SetAnimationMode(EAnimationMode::AnimationSingleNode);
+    GetMesh()->PlayAnimation(DrivingAnimationAsset, true);
 }
 
 void AFPSBaseCharacter::ClearCurrentWeapon()
 {
     SetCurrentWeapon(nullptr);
+    bIsAiming = false;
 }
 
 void AFPSBaseCharacter::Fire()
@@ -403,6 +583,63 @@ void AFPSBaseCharacter::Fire()
         GetCurrentWeapon()->Fire();
         return;
     }
+}
+
+void AFPSBaseCharacter::GetWeaponAimViewPoint(FVector& OutLocation, FRotator& OutRotation) const
+{
+    if (const APlayerController* PlayerController = Cast<APlayerController>(Controller))
+    {
+        int32 ViewportSizeX = 0;
+        int32 ViewportSizeY = 0;
+        PlayerController->GetViewportSize(ViewportSizeX, ViewportSizeY);
+
+        if (ViewportSizeX > 0 && ViewportSizeY > 0)
+        {
+            FVector WorldDirection;
+            if (PlayerController->DeprojectScreenPositionToWorld(
+                ViewportSizeX * 0.5f,
+                ViewportSizeY * 0.5f,
+                OutLocation,
+                WorldDirection))
+            {
+                OutRotation = WorldDirection.Rotation();
+                return;
+            }
+        }
+    }
+
+    if (FPSCameraComponent && FPSCameraComponent->IsActive())
+    {
+        OutLocation = FPSCameraComponent->GetComponentLocation();
+        OutRotation = FPSCameraComponent->GetComponentRotation();
+        return;
+    }
+
+    if (ThirdPersonCameraComponent && ThirdPersonCameraComponent->IsActive())
+    {
+        OutLocation = ThirdPersonCameraComponent->GetComponentLocation();
+        OutRotation = ThirdPersonCameraComponent->GetComponentRotation();
+        return;
+    }
+
+    GetActorEyesViewPoint(OutLocation, OutRotation);
+}
+
+// 총을 쏠 때 총기 반동을 주기.
+void AFPSBaseCharacter::ApplyWeaponRecoil(float PitchKick, float YawKick)
+{
+    if (!IsLocallyControlled() || !Controller || bIsDrivingTruck || bIsUsingMountedWeapon)
+    {
+        return;
+    }
+
+    FRotator ControlRotation = Controller->GetControlRotation();
+    ControlRotation.Pitch += PitchKick;
+    ControlRotation.Yaw += YawKick;
+    Controller->SetControlRotation(ControlRotation);
+
+    RecoilRecoveryRemaining.Pitch += PitchKick;
+    RecoilRecoveryRemaining.Yaw += YawKick;
 }
 
 void AFPSBaseCharacter::SetPlayerInfo(const Protocol::PosInfo& Info)
@@ -548,3 +785,4 @@ TArray<EItemType> AFPSBaseCharacter::OffloadItems()
 
     return ItemsToGive;
 }
+

@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+ï»¿// Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include "FPSProjectGameInstance.h"
@@ -18,8 +18,8 @@ void UFPSProjectGameInstance::ConnectToGameServer(const FString& IPAddress)
 	FIPv4Address Ip;
 	if (FIPv4Address::Parse(IPAddress, Ip) == false)
 	{
-		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("Connection Failed : Àß¸øµÈ IP ÁÖ¼Ò Çü½ÄÀÔ´Ï´Ù."));
-		return; // ÀÌ»óÇÑ IP¸é ¿©±â¼­ ÇÔ¼ö¸¦ ¹Ù·Î Á¾·áÇØ¼­ Å©·¡½Ã¸¦ ¸·½À´Ï´Ù!
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("Connection Failed : ì˜ëª»ëœ IP ì£¼ì†Œ í˜•ì‹ì…ë‹ˆë‹¤."));
+		return; // ì´ìƒí•œ IPë©´ ì—¬ê¸°ì„œ í•¨ìˆ˜ë¥¼ ë°”ë¡œ ì¢…ë£Œí•´ì„œ í¬ë˜ì‹œë¥¼ ë§‰ìŠµë‹ˆë‹¤!
 	}
 
 	Socket = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->CreateSocket(TEXT("Stream"), TEXT("Client Socket"));
@@ -40,12 +40,12 @@ void UFPSProjectGameInstance::ConnectToGameServer(const FString& IPAddress)
 		GameServerSession = MakeShared<PacketSession>(Socket);
 		GameServerSession->Run();
 
-		// TEMP : Lobby¿¡¼­ Ä³¸¯ÅÍ ¼±ÅÃÃ¢ µî
-		{
-			Protocol::C_LOGIN Pkt;
-			SendBufferRef SendBuffer = ClientPacketHandler::MakeSendBuffer(Pkt);
-			SendPacket(SendBuffer);
-		}
+		//// TEMP : Lobbyì—ì„œ ìºë¦­í„° ì„ íƒì°½ ë“±
+		//{
+		//	Protocol::C_LOGIN Pkt;
+		//	SendBufferRef SendBuffer = ClientPacketHandler::MakeSendBuffer(Pkt);
+		//	SendPacket(SendBuffer);
+		//}
 	}
 	else
 	{
@@ -98,30 +98,30 @@ void UFPSProjectGameInstance::HandleSpawn(const Protocol::ObjectInfo& ObjectInfo
 	if (World == nullptr)
 		return;
 
-	// Áßº¹ Ã³¸® Ã¼Å©
+	// ì¤‘ë³µ ì²˜ë¦¬ ì²´í¬
 	const uint64 ObjectId = ObjectInfo.object_id();
 	if (Players.Find(ObjectId) != nullptr)
 		return;
 
 	FVector SpawnLocation(ObjectInfo.pos_info().x(), ObjectInfo.pos_info().y(), ObjectInfo.pos_info().z());
 
-	// 1. ³» Ä³¸¯ÅÍÀÎ °æ¿ì
+	// 1. ë‚´ ìºë¦­í„°ì¸ ê²½ìš°
 	if (IsMine)
 	{
 		auto* PC = UGameplayStatics::GetPlayerController(this, 0);
 		if (PC)
 		{
-			// AFPSBaseCharacter·Î Ä³½ºÆÃ!
+			// AFPSBaseCharacterë¡œ ìºìŠ¤íŒ…!
 			MyPlayer = Cast<AFPSBaseCharacter>(PC->GetPawn());
 			if (MyPlayer)
 			{
-				MyPlayer->SetPlayerInfo(ObjectInfo.pos_info()); // ³» °íÀ¯ ID¿Í À§Ä¡ Á¤º¸ ¼¼ÆÃ
+				MyPlayer->SetPlayerInfo(ObjectInfo.pos_info()); // ë‚´ ê³ ìœ  IDì™€ ìœ„ì¹˜ ì •ë³´ ì„¸íŒ…
 				MyPlayer->SetActorLocation(SpawnLocation);
-				Players.Add(ObjectId, MyPlayer);               // ¸Ê¿¡ µî·Ï
+				Players.Add(ObjectId, MyPlayer);               // ë§µì— ë“±ë¡
 			}
 		}
 	}
-	// 2. ´Ù¸¥ À¯ÀúÀÇ Ä³¸¯ÅÍÀÎ °æ¿ì
+	// 2. ë‹¤ë¥¸ ìœ ì €ì˜ ìºë¦­í„°ì¸ ê²½ìš°
 	else
 	{
 		if (OtherPlayerClass == nullptr)
@@ -133,8 +133,8 @@ void UFPSProjectGameInstance::HandleSpawn(const Protocol::ObjectInfo& ObjectInfo
 		AFPSBaseCharacter* OtherPlayer = Cast<AFPSBaseCharacter>(World->SpawnActor(OtherPlayerClass, &SpawnLocation));
 		if (OtherPlayer)
 		{
-			OtherPlayer->SetPlayerInfo(ObjectInfo.pos_info()); // Å¸°Ù À¯ÀúÀÇ ID¿Í À§Ä¡ Á¤º¸ ¼¼ÆÃ
-			Players.Add(ObjectId, OtherPlayer);               // ¸Ê¿¡ µî·Ï
+			OtherPlayer->SetPlayerInfo(ObjectInfo.pos_info()); // íƒ€ê²Ÿ ìœ ì €ì˜ IDì™€ ìœ„ì¹˜ ì •ë³´ ì„¸íŒ…
+			Players.Add(ObjectId, OtherPlayer);               // ë§µì— ë“±ë¡
 		}
 	}
 }
@@ -161,7 +161,7 @@ void UFPSProjectGameInstance::HandleDespawn(uint64 ObjectId)
 	if (World == nullptr)
 		return;
 
-	// 1. Players ¸Ê¿¡¼­ ÇØ´ç ID¸¦ °¡Áø Ä³¸¯ÅÍ Ã£±â
+	// 1. Players ë§µì—ì„œ í•´ë‹¹ IDë¥¼ ê°€ì§„ ìºë¦­í„° ì°¾ê¸°
 	AFPSBaseCharacter** FindActor = Players.Find(ObjectId);
 	if (FindActor == nullptr)
 		return;
@@ -169,11 +169,11 @@ void UFPSProjectGameInstance::HandleDespawn(uint64 ObjectId)
 	AFPSBaseCharacter* Player = *FindActor;
 	if (Player)
 	{
-		// 2. ¿ùµå¿¡¼­ Ä³¸¯ÅÍ Á¦°Å
+		// 2. ì›”ë“œì—ì„œ ìºë¦­í„° ì œê±°
 		World->DestroyActor(Player);
 	}
 
-	// 3. ¸Ê¿¡¼­ ÇØ´ç µ¥ÀÌÅÍ ¿ÏÀüÈ÷ »èÁ¦ (¸Å¿ì Áß¿ä!)
+	// 3. ë§µì—ì„œ í•´ë‹¹ ë°ì´í„° ì™„ì „íˆ ì‚­ì œ (ë§¤ìš° ì¤‘ìš”!)
 	Players.Remove(ObjectId);
 }
 
@@ -196,7 +196,7 @@ void UFPSProjectGameInstance::HandleMove(const Protocol::S_MOVE& MovePkt)
 
 	const uint64 ObjectId = MovePkt.info().object_id();
 
-	// 1. ÆĞÅ¶ÀÌ ¾Ë·ÁÁØ ID·Î ¿ì¸® ¸Ê¿¡¼­ Ä³¸¯ÅÍ Ã£±â
+	// 1. íŒ¨í‚·ì´ ì•Œë ¤ì¤€ IDë¡œ ìš°ë¦¬ ë§µì—ì„œ ìºë¦­í„° ì°¾ê¸°
 	AFPSBaseCharacter** FindActor = Players.Find(ObjectId);
 	if (FindActor == nullptr)
 		return;
@@ -205,12 +205,12 @@ void UFPSProjectGameInstance::HandleMove(const Protocol::S_MOVE& MovePkt)
 	if (Player == nullptr)
 		return;
 
-	// 2. ³» Ä³¸¯ÅÍ°¡ ¼­¹ö·ÎºÎÅÍ ³» ÀÌµ¿ ÆĞÅ¶À» ´Ù½Ã ¹ŞÀº °Å¶ó¸é ¹«½Ã
+	// 2. ë‚´ ìºë¦­í„°ê°€ ì„œë²„ë¡œë¶€í„° ë‚´ ì´ë™ íŒ¨í‚·ì„ ë‹¤ì‹œ ë°›ì€ ê±°ë¼ë©´ ë¬´ì‹œ
 	if (Player->IsLocallyControlled())
 		return;
 
-	// 3. ³²ÀÇ Ä³¸¯ÅÍ¶ó¸é ¸ñÇ¥ À§Ä¡(DestInfo)¸¦ °»½Å
-	// ÀÌ·¸°Ô °»½ÅÇØÁÖ¸é AFPSBaseCharacter::Tick ÇÔ¼ö¿¡¼­ ÀÌ°É º¸°í ÀÚ¿¬½º·´°Ô °É¾î°©´Ï´Ù.
+	// 3. ë‚¨ì˜ ìºë¦­í„°ë¼ë©´ ëª©í‘œ ìœ„ì¹˜(DestInfo)ë¥¼ ê°±ì‹ 
+	// ì´ë ‡ê²Œ ê°±ì‹ í•´ì£¼ë©´ AFPSBaseCharacter::Tick í•¨ìˆ˜ì—ì„œ ì´ê±¸ ë³´ê³  ìì—°ìŠ¤ëŸ½ê²Œ ê±¸ì–´ê°‘ë‹ˆë‹¤.
 	const Protocol::PosInfo& Info = MovePkt.info();
 	Player->SetDestInfo(Info);
 }
@@ -220,24 +220,24 @@ void UFPSProjectGameInstance::HandleEquipWeapon(const Protocol::S_EQUIP_WEAPON& 
 	uint64 PlayerId = pkt.playerid();
 	uint64 ItemId = pkt.itemobjectid();
 
-	// ´©°¡ ÁÖ¿ü´ÂÁö Ã£±â
+	// ëˆ„ê°€ ì£¼ì› ëŠ”ì§€ ì°¾ê¸°
 	AFPSBaseCharacter* TargetPlayer = Players.Contains(PlayerId) ? Players[PlayerId] : nullptr;
 
-	// ¹Ù´Ú¿¡ ÀÖ´Â ÃÑ Ã£±â (FieldItems ¸Ê¿¡ µî·ÏÇØµĞ °Í)
+	// ë°”ë‹¥ì— ìˆëŠ” ì´ ì°¾ê¸° (FieldItems ë§µì— ë“±ë¡í•´ë‘” ê²ƒ)
 	if (FieldItems.Contains(ItemId))
 	{
 		AWeaponBase* WeaponActor = Cast<AWeaponBase>(FieldItems[ItemId]);
 
 		if (TargetPlayer && WeaponActor)
 		{
-			// ³» Ä³¸¯ÅÍ¶ó¸é ÀÌ¹Ì ·ÎÄÃ¿¡¼­ Ã³¸®°¡ µÇ¾ú°ÚÁö¸¸, 
-			// È¤½Ã ¸ğ¸¦ µ¿±âÈ­¸¦ À§ÇØ ³²ÀÇ Ä³¸¯ÅÍÀÏ ¶§¸¸ ½ÇÇà
+			// ë‚´ ìºë¦­í„°ë¼ë©´ ì´ë¯¸ ë¡œì»¬ì—ì„œ ì²˜ë¦¬ê°€ ë˜ì—ˆê² ì§€ë§Œ, 
+			// í˜¹ì‹œ ëª¨ë¥¼ ë™ê¸°í™”ë¥¼ ìœ„í•´ ë‚¨ì˜ ìºë¦­í„°ì¼ ë•Œë§Œ ì‹¤í–‰
 			if (!TargetPlayer->IsLocallyControlled())
 			{
 				TargetPlayer->EquipWeaponFromField(WeaponActor);
 			}
 
-			// ÀÌÁ¦ ¹Ù´Ú¿¡ ¾øÀ¸´Ï °ü¸® ¸ñ·Ï¿¡¼­ Á¦°Å!
+			// ì´ì œ ë°”ë‹¥ì— ì—†ìœ¼ë‹ˆ ê´€ë¦¬ ëª©ë¡ì—ì„œ ì œê±°!
 			FieldItems.Remove(ItemId);
 		}
 	}
@@ -245,8 +245,19 @@ void UFPSProjectGameInstance::HandleEquipWeapon(const Protocol::S_EQUIP_WEAPON& 
 
 void UFPSProjectGameInstance::Shutdown()
 {
-	// °ÔÀÓÀÌ ²¨Áú ¶§ µÚ³¡ÀÌ ¾øµµ·Ï ¼ÒÄÏ ¿¬°áºÎÅÍ È®½ÇÈ÷ ²÷¾îÁİ´Ï´Ù.
+	// ê²Œì„ì´ êº¼ì§ˆ ë•Œ ë’¤ëì´ ì—†ë„ë¡ ì†Œì¼“ ì—°ê²°ë¶€í„° í™•ì‹¤íˆ ëŠì–´ì¤ë‹ˆë‹¤.
 	DisconnectFromGameServer();
 
 	Super::Shutdown();
 }
+
+void UFPSProjectGameInstance::Tick(float DeltaTime)
+{
+	HandleRecvPackets();
+}
+
+TStatId UFPSProjectGameInstance::GetStatId() const
+{
+	RETURN_QUICK_DECLARE_CYCLE_STAT(UFPSProjectGameInstance, STATGROUP_Tickables);
+}
+

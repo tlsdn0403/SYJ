@@ -1,7 +1,9 @@
-#include "ClientPacketHandler.h"
+Ôªø#include "ClientPacketHandler.h"
 #include "BufferReader.h"
 #include "FPSProject.h"
 #include "FPSProjectGameInstance.h"
+#include "Kismet/GameplayStatics.h"
+#include "Engine/Engine.h"
 
 PacketHandlerFunc GPacketHandler[UINT16_MAX];
 
@@ -12,6 +14,8 @@ bool Handle_INVALID(PacketSessionRef& session, BYTE* buffer, int32 len)
 
 bool Handle_S_LOGIN(PacketSessionRef& session, Protocol::S_LOGIN& pkt)
 {
+	UE_LOG(LogTemp, Warning, TEXT("[Network] ÏÑúÎ≤ÑÎ°úÎ∂ÄÌÑ∞ S_LOGIN (Î°úÍ∑∏Ïù∏ ÏÑ±Í≥µ) Ìå®ÌÇ∑ ÎèÑÏ∞©!!!"));
+
 	for (auto& Player : pkt.players())
 	{
 	}
@@ -21,10 +25,15 @@ bool Handle_S_LOGIN(PacketSessionRef& session, Protocol::S_LOGIN& pkt)
 		const Protocol::ObjectInfo& Player = pkt.players(i);
 	}
 
-	// ∑Œ∫Òø°º≠ ƒ≥∏Ø≈Õ º±≈√«ÿº≠ ¿Œµ¶Ω∫ ¿¸º€.
-	Protocol::C_ENTER_GAME EnterGamePkt;
-	EnterGamePkt.set_playerindex(0);
-	SEND_PACKET(EnterGamePkt);
+	//// Î°úÎπÑÏóêÏÑú Ï∫êÎ¶≠ÌÑ∞ ÏÑ†ÌÉùÌï¥ÏÑú Ïù∏Îç±Ïä§ Ï†ÑÏÜ°.
+	//Protocol::C_ENTER_GAME EnterGamePkt;
+	//EnterGamePkt.set_playerindex(0);
+	//SEND_PACKET(EnterGamePkt);
+
+	if (UWorld* World = GWorld)
+	{
+		UGameplayStatics::OpenLevel(World, TEXT("Map_helpme1"));
+	}
 
 	return true;
 }
@@ -43,7 +52,7 @@ bool Handle_S_LEAVE_GAME(PacketSessionRef& session, Protocol::S_LEAVE_GAME& pkt)
 {
 	if (auto* GameInstance = Cast<UFPSProjectGameInstance>(GWorld->GetGameInstance()))
 	{
-		// TODO : ∞‘¿” ¡æ∑·? ∑Œ∫Ò∑Œ?
+		// TODO : Í≤åÏûÑ Ï¢ÖÎ£å? Î°úÎπÑÎ°ú?
 	}
 
 	return true;
@@ -90,13 +99,13 @@ bool Handle_S_EQUIP_WEAPON(PacketSessionRef& session, Protocol::S_EQUIP_WEAPON& 
 {
 	if (auto* GameInstance = Cast<UFPSProjectGameInstance>(GWorld->GetGameInstance()))
 	{
-		//¿œ¥‹ º≠πˆ∏¶ µπæ∆º≠ ≥ª ≈¨∂Û±Ó¡ˆ ∆–≈∂¿Ã ¿ﬂ µµ¬¯«ﬂ¥¬¡ˆ ∑Œ±◊∑Œ »Æ¿Œ!
-		//UE_LOG(LogTemp, Warning, TEXT("======== [≥◊∆Æøˆ≈©] S_EQUIP_WEAPON ºˆΩ≈ ========"));
-		//UE_LOG(LogTemp, Warning, TEXT("¥©∞° ¡÷ø¸¥¬∞°(PlayerID) : %llu"), pkt.playerid());
-		//UE_LOG(LogTemp, Warning, TEXT("π´Ωº æ∆¿Ã≈€(ItemID) : %llu"), pkt.itemobjectid());
-		//UE_LOG(LogTemp, Warning, TEXT("π´±‚ ≈∏¿‘(WeaponType) : %d"), pkt.weapontype());
+		//ÏùºÎã® ÏÑúÎ≤ÑÎ•º ÎèåÏïÑÏÑú ÎÇ¥ ÌÅ¥ÎùºÍπåÏßÄ Ìå®ÌÇ∑Ïù¥ Ïûò ÎèÑÏ∞©ÌñàÎäîÏßÄ Î°úÍ∑∏Î°ú ÌôïÏù∏!
+		//UE_LOG(LogTemp, Warning, TEXT("======== [ÎÑ§Ìä∏ÏõåÌÅ¨] S_EQUIP_WEAPON ÏàòÏã† ========"));
+		//UE_LOG(LogTemp, Warning, TEXT("ÎàÑÍ∞Ä Ï£ºÏõ†ÎäîÍ∞Ä(PlayerID) : %llu"), pkt.playerid());
+		//UE_LOG(LogTemp, Warning, TEXT("Î¨¥Ïä® ÏïÑÏù¥ÌÖú(ItemID) : %llu"), pkt.itemobjectid());
+		//UE_LOG(LogTemp, Warning, TEXT("Î¨¥Í∏∞ ÌÉÄÏûÖ(WeaponType) : %d"), pkt.weapontype());
 
-		 // GameInstanceø° «‘ºˆ∏¶ ∏∏µÈæÓº≠ Ω«¡¶ ∏µ®∏µ¿ª º’ø° ∫Ÿ¿Ã±‚
+		 // GameInstanceÏóê Ìï®ÏàòÎ•º ÎßåÎì§Ïñ¥ÏÑú Ïã§Ï†ú Î™®Îç∏ÎßÅÏùÑ ÏÜêÏóê Î∂ôÏù¥Í∏∞
 		 GameInstance->HandleEquipWeapon(pkt); 
 	}
 

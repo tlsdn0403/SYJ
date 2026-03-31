@@ -40,16 +40,16 @@ AFPSProjectile::AFPSProjectile()
 
     if (!ProjectileMovementComponent)
     {
-        // ??而댄룷?뚰듃瑜??ъ슜?섏뿬 ??諛쒖궗泥댁쓽 ?대룞 援ы쁽.
+        // 이 컴포넌트를 이용해 발사체 이동 구현
         ProjectileMovementComponent = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileMovementComponent"));
         ProjectileMovementComponent->SetUpdatedComponent(CollisionComponent);
-        ProjectileMovementComponent->InitialSpeed = 20000.0f;                   // 珥덇린?띾룄
-        ProjectileMovementComponent->MaxSpeed = 20000.0f;                       // 理쒕? ?띾룄
+        ProjectileMovementComponent->InitialSpeed = 20000.0f;                   // 초기 속도
+        ProjectileMovementComponent->MaxSpeed = 20000.0f;                       // 최대 속도
         ProjectileMovementComponent->bForceSubStepping = true;
-		ProjectileMovementComponent->bRotationFollowsVelocity = true;           // ?띾룄???곕씪 ?뚯쟾
-		ProjectileMovementComponent->bShouldBounce = false;                     // 諛붿슫???쒖꽦??
+		ProjectileMovementComponent->bRotationFollowsVelocity = true;           // 속도에 따라 회전
+		ProjectileMovementComponent->bShouldBounce = false;                     // 바닥에 바운스
         ProjectileMovementComponent->Bounciness = 0.0f;
-		ProjectileMovementComponent->ProjectileGravityScale = 0.0f;             // 以묐젰???곹뼢??諛쏆? ?딆쓬
+		ProjectileMovementComponent->ProjectileGravityScale = 0.0f;             // 촣알이 받는 중력
     }
 
     if (!ProjectileMeshComponent)

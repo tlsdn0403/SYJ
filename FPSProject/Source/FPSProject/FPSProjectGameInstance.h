@@ -1,9 +1,10 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+ï»¿// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
 #include "CoreMinimal.h"
 #include "Engine/GameInstance.h"
+#include "Tickable.h"
 #include "FPSProject.h"
 #include "FPSProjectGameInstance.generated.h"
 
@@ -11,7 +12,7 @@
  * 
  */
 UCLASS()
-class FPSPROJECT_API UFPSProjectGameInstance : public UGameInstance
+class FPSPROJECT_API UFPSProjectGameInstance : public UGameInstance, public FTickableGameObject
 {
 	GENERATED_BODY()
 
@@ -41,6 +42,9 @@ public:
 
 public:
 	virtual void Shutdown() override;
+	virtual void Tick(float DeltaTime) override;
+	virtual TStatId GetStatId() const override;
+	virtual bool IsTickable() const override { return true; }
 
 public:
 	// GameServer
@@ -55,7 +59,7 @@ public:
 	class AFPSBaseCharacter* MyPlayer;
 	TMap<uint64, class AFPSBaseCharacter*> Players;
 
-	// [Ãß°¡] ¹Ù´Ú¿¡ ¶³¾îÁø ¾ÆÀÌÅÛ(ÃÑ±â µî)µéÀ» ID·Î °ü¸®ÇÏ±â À§ÇÑ ¸Ê
+	// [ì¶”ê°€] ë°”ë‹¥ì— ë–¨ì–´ì§„ ì•„ì´í…œ(ì´ê¸° ë“±)ë“¤ì„ IDë¡œ ê´€ë¦¬í•˜ê¸° ìœ„í•œ ë§µ
 	UPROPERTY()
 	TMap<uint64, AActor*> FieldItems;
 };

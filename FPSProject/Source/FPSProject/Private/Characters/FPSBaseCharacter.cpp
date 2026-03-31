@@ -92,10 +92,14 @@ void AFPSBaseCharacter::Tick(float DeltaTime)
     // 줌 했을 떄 FOV 확대
     if (ThirdPersonCameraComponent && CameraBoom)
     {
+        // 조준중이면 Aiming 카메라 , 아니면 기존
         const float TargetFOV = bIsAiming ? AimingThirdPersonFOV : DefaultThirdPersonFOV;
-        const float TargetBoomLength = bIsAiming ? AimingBoomLength : DefaultBoomLength;
+		// 이것도 조준중이면 Aiming 카메라 붐
+        const float TargetBoomLength = bIsAiming ? AimingBoomLength : DefaultBoomLength;\
+	    // 이것도 조준중이면 Aiming 카메라 붐 소켓 오프셋
         const FVector TargetSocketOffset = bIsAiming ? AimingCameraBoomSocketOffset : DefaultCameraBoomSocketOffset;
 
+        // 보간을 이용해서, 카메라가 부드럽게 이동하도록
         ThirdPersonCameraComponent->FieldOfView = FMath::FInterpTo(
             ThirdPersonCameraComponent->FieldOfView,
             TargetFOV,
@@ -565,15 +569,20 @@ void AFPSBaseCharacter::Fire()
 
 void AFPSBaseCharacter::GetWeaponAimViewPoint(FVector& OutLocation, FRotator& OutRotation) const
 {
+    // 실제 플레이어가 조종줄일 때
     if (const APlayerController* PlayerController = Cast<APlayerController>(Controller))
     {
+        // 뷰포트 크기 가져옴
         int32 ViewportSizeX = 0;
         int32 ViewportSizeY = 0;
         PlayerController->GetViewportSize(ViewportSizeX, ViewportSizeY);
 
+        // 중앙 좌표 계산
         if (ViewportSizeX > 0 && ViewportSizeY > 0)
         {
             FVector WorldDirection;
+            // 화면 중앙을 월드 방향으로 변환
+			// 2D 화면 좌표를 3D 월드 좌표와 방향으로 바꾸어 주는 함수다
             if (PlayerController->DeprojectScreenPositionToWorld(
                 ViewportSizeX * 0.5f,
                 ViewportSizeY * 0.5f,
@@ -584,8 +593,10 @@ void AFPSBaseCharacter::GetWeaponAimViewPoint(FVector& OutLocation, FRotator& Ou
                 return;
             }
         }
+		// OutLocation -> 월드 공간에서 화면 중앙에 해당하는 위치
+		// OutRotation -> 월드 공간에서 화면 중앙을 향하는 방향의 회전값
     }
-
+    
     if (FPSCameraComponent && FPSCameraComponent->IsActive())
     {
         OutLocation = FPSCameraComponent->GetComponentLocation();

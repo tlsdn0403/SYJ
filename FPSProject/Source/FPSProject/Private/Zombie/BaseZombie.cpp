@@ -6,6 +6,8 @@
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/KismetMathLibrary.h" 
+#include "NiagaraFunctionLibrary.h"
+#include "NiagaraSystem.h"
 #include "Kismet/GameplayStatics.h"
 
 ABaseZombie::ABaseZombie()
@@ -119,12 +121,19 @@ void ABaseZombie::OnZombieDamaged(float NewHealth, float Damage, const FHitResul
 {
     UE_LOG(LogTemp, Warning, TEXT("Zombie Damaged: NewHealth=%f, Damage=%f, HitBone=%s"), NewHealth, Damage, *Hit.BoneName.ToString());
     FVector EffectLocation = Hit.ImpactPoint;
-    if (BloodImpactEffect)
+ /*   if (BloodImpactEffect)
     {
         UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), BloodImpactEffect, EffectLocation);
-    }
+    }*/
 
-	
+    if (HitEffect)
+    {
+        UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+            GetWorld(),
+            HitEffect,
+            EffectLocation
+        );
+    }
     // 분해 로직
     
     if (Hit.BoneName != NAME_None)

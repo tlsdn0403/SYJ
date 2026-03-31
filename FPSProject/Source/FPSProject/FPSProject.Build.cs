@@ -10,7 +10,8 @@ public class FPSProject : ModuleRules
 	
 		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", "Sockets", "Networking",
             "UMG",
-			"AIModule",
+            "Niagara",
+            "AIModule",
             "GameplayTasks",
             "NavigationSystem"
 		});

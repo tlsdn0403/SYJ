@@ -7,6 +7,7 @@
 class UHealthComponent;
 class UAnimMontage;
 class UParticleSystem;
+class UNiagaraSystem;
 
 /** 좀비 상태를 나타내는 열거형 */
 UENUM(BlueprintType)
@@ -61,6 +62,9 @@ protected:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zombie|Effects")
     UParticleSystem* BloodImpactEffect;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zombie|Effects")
+    TObjectPtr<UNiagaraSystem> HitEffect;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zombie|Attack")
     UAnimMontage* AttackMontage;

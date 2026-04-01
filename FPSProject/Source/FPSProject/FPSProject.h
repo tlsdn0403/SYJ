@@ -37,8 +37,7 @@ USING_SHARED_PTR(SendBuffer);
 #include "ClientPacketHandler.h"
 #include "FPSProjectGameInstance.h"
 #include "Kismet/GameplayStatics.h"
+#include "Engine/Engine.h"
 #include "Engine/World.h"
 
-#define SEND_PACKET(Pkt)														\
-	SendBufferRef SendBuffer = ClientPacketHandler::MakeSendBuffer(Pkt);		\
-	Cast<UFPSProjectGameInstance>(GWorld->GetGameInstance())->SendPacket(SendBuffer);
+#define SEND_PACKET(Pkt) UFPSProjectGameInstance::SendPacketStatic(ClientPacketHandler::MakeSendBuffer(Pkt))

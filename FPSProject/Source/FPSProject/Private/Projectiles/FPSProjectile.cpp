@@ -32,6 +32,7 @@ AFPSProjectile::AFPSProjectile()
 
         // 異⑸룎泥섎━ 梨꾨꼸???깅줉..? 
 		CollisionComponent->BodyInstance.SetCollisionProfileName(TEXT("Projectile")); // 肄쒕━???꾨줈?뚯씪 ?ㅼ젙
+        CollisionComponent->SetCollisionResponseToChannel(ECC_Vehicle, ECR_Ignore);
 
         // 而댄룷?뚰듃媛 ?대뵖媛??遺?ろ옄 ???몄텧?섎뒗 ?대깽??
         CollisionComponent->OnComponentHit.AddDynamic(this, &AFPSProjectile::OnHit);
@@ -108,6 +109,11 @@ void AFPSProjectile::FireInDirection(const FVector& ShootDirection)
 
 void AFPSProjectile::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComponent, FVector NormalImpulse, const FHitResult& Hit)
 {
+    if (Cast<ATruck>(OtherActor))
+    {
+        return;
+    }
+
     // ?먭린 ?먯떊?대굹 諛쒖궗??Owner)???쒖쇅
     AActor* MyOwner = GetOwner();
     AActor* InstigatorActor = GetInstigator();

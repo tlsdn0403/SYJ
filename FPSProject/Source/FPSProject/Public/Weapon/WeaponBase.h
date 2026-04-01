@@ -24,6 +24,12 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Weapon")
 	virtual void SetWeaponUser(AFPSBaseCharacter* NewCharacter);
+
+	UFUNCTION(BlueprintCallable, Category = "Weapon")
+	void SetWeaponCollisionEnabled(bool bEnabled);
+
+	UFUNCTION(BlueprintCallable, Category = "Weapon")
+	void SetWeaponHidden(bool Hidden);
 protected:
 	virtual void BeginPlay() override;
 

@@ -365,6 +365,12 @@ void AFPSBaseCharacter::EnterMountedWeapon(ATruck* Truck, AMountedMachineGun* Mo
     CurrentMountedWeapon = MountedWeapon;
     CurrentMountedWeapon->SetWeaponUser(this);
 
+    if (CurrentWeapon)
+    {
+        CurrentWeapon->SetWeaponCollisionEnabled(false);
+        CurrentWeapon->SetWeaponHidden(true);
+    }
+
     SetActorLocationAndRotation(
         Truck->GetTurretSeatLocation(),
         Truck->GetTurretSeatRotation()
@@ -444,6 +450,13 @@ void AFPSBaseCharacter::ExitMountedWeapon()
     CurrentMountedWeapon = nullptr;
     bIsUsingMountedWeapon = false;
     bIsOnTruckCargo = true;
+
+    if (CurrentWeapon)
+    {
+        CurrentWeapon->SetWeaponHidden(false);
+        CurrentWeapon->SetWeaponCollisionEnabled(true);
+    }
+
     ApplyDefaultAnimationClass();
 }
 

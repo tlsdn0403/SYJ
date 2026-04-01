@@ -70,6 +70,26 @@ void AWeaponBase::SetWeaponUser(AFPSBaseCharacter* NewCharacter)
     Character = NewCharacter;
 }
 
+void AWeaponBase::SetWeaponCollisionEnabled(bool bEnabled)
+{
+    SetActorEnableCollision(bEnabled);
+
+    if (WeaponMesh)
+    {
+        WeaponMesh->SetCollisionEnabled(bEnabled ? ECollisionEnabled::QueryOnly : ECollisionEnabled::NoCollision);
+    }
+}
+
+void AWeaponBase::SetWeaponHidden(bool Hidden)
+{
+    SetActorHiddenInGame(Hidden);
+
+    if (WeaponMesh)
+    {
+        WeaponMesh->SetVisibility(!Hidden, true);
+    }
+}
+
 void AWeaponBase::Fire()
 {
     if (!Character || !Character->GetController()) return;
@@ -175,7 +195,7 @@ void AWeaponBase::Fire()
         }
     }
 
-    ApplyFireRecoil();
+    
 }
 
 void AWeaponBase::Tick(float DeltaTime)

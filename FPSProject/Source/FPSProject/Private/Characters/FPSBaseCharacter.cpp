@@ -16,6 +16,7 @@
 #include "Animation/AnimationAsset.h"
 #include "ClientPacketHandler.h"
 #include "UObject/ConstructorHelpers.h"
+#include "TimerManager.h"
 
 AFPSBaseCharacter::AFPSBaseCharacter()
 {
@@ -236,6 +237,7 @@ void AFPSBaseCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
     PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &AFPSBaseCharacter::StartJump);
     PlayerInputComponent->BindAction("Jump", IE_Released, this, &AFPSBaseCharacter::StopJump);
     PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &AFPSBaseCharacter::Fire);
+    PlayerInputComponent->BindAction("Fire", IE_Released, this, &AFPSBaseCharacter::StopFire);
     PlayerInputComponent->BindAction("Aim", IE_Pressed, this, &AFPSBaseCharacter::StartAim);
     PlayerInputComponent->BindAction("Aim", IE_Released, this, &AFPSBaseCharacter::StopAim);
     PlayerInputComponent->BindAction("Interact", IE_Pressed, this, &AFPSBaseCharacter::Interact);
@@ -251,6 +253,7 @@ void AFPSBaseCharacter::EnterTruckDriverSeat(ATruck* Truck)
     CurrentTruck = Truck;
     bIsDrivingTruck = true;
     bIsAiming = false;
+    StopFire();
     DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
     AttachToComponent(Truck->DriverSeatPoint, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
     SetActorRelativeLocation(FVector::ZeroVector);
@@ -305,6 +308,7 @@ void AFPSBaseCharacter::EnterTruckCargo(ATruck* Truck)
         return;
     }
 
+    StopFire();
     bIsOnTruckCargo = true;
     bIsDrivingTruck = false;
     bIsAiming = false;
@@ -315,7 +319,7 @@ void AFPSBaseCharacter::EnterTruckCargo(ATruck* Truck)
         Truck->GetCargoRideRotation()
     );
 
-    AttachToActor(Truck, FAttachmentTransformRules::KeepWorldTransform);
+    AttachToComponent(Truck->CargoRidePoint, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
 
     if (GetCharacterMovement())
     {
@@ -352,6 +356,7 @@ void AFPSBaseCharacter::EnterMountedWeapon(ATruck* Truck, AMountedMachineGun* Mo
         return;
     }
 
+    StopFire();
     bIsUsingMountedWeapon = true;
     bIsOnTruckCargo = false;
     bIsDrivingTruck = false;
@@ -360,12 +365,18 @@ void AFPSBaseCharacter::EnterMountedWeapon(ATruck* Truck, AMountedMachineGun* Mo
     CurrentMountedWeapon = MountedWeapon;
     CurrentMountedWeapon->SetWeaponUser(this);
 
+    if (CurrentWeapon)
+    {
+        CurrentWeapon->SetWeaponCollisionEnabled(false);
+        CurrentWeapon->SetWeaponHidden(true);
+    }
+
     SetActorLocationAndRotation(
         Truck->GetTurretSeatLocation(),
         Truck->GetTurretSeatRotation()
     );
 
-    AttachToActor(Truck, FAttachmentTransformRules::KeepWorldTransform);
+    AttachToComponent(Truck->TurretSeatPoint, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
 
     if (GetCharacterMovement())
     {
@@ -375,6 +386,7 @@ void AFPSBaseCharacter::EnterMountedWeapon(ATruck* Truck, AMountedMachineGun* Mo
 
     GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
     GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+    PlayDrivingAnimation();
 
     if (ThirdPersonCameraComponent)
     {
@@ -409,12 +421,13 @@ void AFPSBaseCharacter::ExitMountedWeapon()
         CurrentMountedWeapon->SetWeaponUser(nullptr);
     }
 
+    StopFire();
     DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
     SetActorLocationAndRotation(
         Truck->GetCargoRideLocation(),
         Truck->GetCargoRideRotation()
     );
-    AttachToActor(Truck, FAttachmentTransformRules::KeepWorldTransform);
+    AttachToComponent(Truck->CargoRidePoint, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
 
     if (GetCharacterMovement())
     {
@@ -437,6 +450,14 @@ void AFPSBaseCharacter::ExitMountedWeapon()
     CurrentMountedWeapon = nullptr;
     bIsUsingMountedWeapon = false;
     bIsOnTruckCargo = true;
+
+    if (CurrentWeapon)
+    {
+        CurrentWeapon->SetWeaponHidden(false);
+        CurrentWeapon->SetWeaponCollisionEnabled(true);
+    }
+
+    ApplyDefaultAnimationClass();
 }
 
 bool AFPSBaseCharacter::CanInteractWithMountedWeapon() const
@@ -569,6 +590,17 @@ void AFPSBaseCharacter::Fire()
     {
         CurrentMountedWeapon->SetWeaponUser(this);
         CurrentMountedWeapon->Fire();
+
+        if (!GetWorldTimerManager().IsTimerActive(MountedWeaponAutoFireTimerHandle))
+        {
+            GetWorldTimerManager().SetTimer(
+                MountedWeaponAutoFireTimerHandle,
+                this,
+                &AFPSBaseCharacter::HandleMountedWeaponAutoFire,
+                CurrentMountedWeapon->GetFireInterval(),
+                true,
+                CurrentMountedWeapon->GetFireInterval());
+        }
         return;
     }
 
@@ -576,6 +608,14 @@ void AFPSBaseCharacter::Fire()
     {
         GetCurrentWeapon()->Fire();
         return;
+    }
+}
+
+void AFPSBaseCharacter::StopFire()
+{
+    if (GetWorld())
+    {
+        GetWorldTimerManager().ClearTimer(MountedWeaponAutoFireTimerHandle);
     }
 }
 
@@ -629,7 +669,7 @@ void AFPSBaseCharacter::GetWeaponAimViewPoint(FVector& OutLocation, FRotator& Ou
 // 총을 쏠 때 총기 반동을 주기.
 void AFPSBaseCharacter::ApplyWeaponRecoil(float PitchKick, float YawKick)
 {
-    if (!IsLocallyControlled() || !Controller || bIsDrivingTruck || bIsUsingMountedWeapon)
+    if (!IsLocallyControlled() || !Controller || bIsDrivingTruck)
     {
         return;
     }
@@ -641,6 +681,18 @@ void AFPSBaseCharacter::ApplyWeaponRecoil(float PitchKick, float YawKick)
 
     RecoilRecoveryRemaining.Pitch += PitchKick;
     RecoilRecoveryRemaining.Yaw += YawKick;
+}
+
+void AFPSBaseCharacter::HandleMountedWeaponAutoFire()
+{
+    if (!bIsUsingMountedWeapon || !CurrentMountedWeapon)
+    {
+        StopFire();
+        return;
+    }
+
+    CurrentMountedWeapon->SetWeaponUser(this);
+    CurrentMountedWeapon->Fire();
 }
 
 void AFPSBaseCharacter::SetPlayerInfo(const Protocol::PosInfo& Info)
@@ -727,6 +779,7 @@ void AFPSBaseCharacter::Interact()
 {
     if (bIsUsingMountedWeapon)
     {
+        StopFire();
         ExitMountedWeapon();
         return;
     }

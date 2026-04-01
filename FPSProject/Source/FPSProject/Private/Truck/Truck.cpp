@@ -79,6 +79,9 @@ ATruck::ATruck()
 		FName SlotName = FName(*FString::Printf(TEXT("AmmoSlot_%d"), i));
 		UStaticMeshComponent* NewSlot = CreateDefaultSubobject<UStaticMeshComponent>(SlotName);
 		NewSlot->SetupAttachment(CargoOrigin);
+		NewSlot->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		NewSlot->SetSimulatePhysics(false);
+		NewSlot->SetEnableGravity(false);
 		AmmoSlots.Add(NewSlot);
 	}
 
@@ -87,6 +90,9 @@ ATruck::ATruck()
 		FName SlotName = FName(*FString::Printf(TEXT("FuelSlot_%d"), i));
 		UStaticMeshComponent* NewSlot = CreateDefaultSubobject<UStaticMeshComponent>(SlotName);
 		NewSlot->SetupAttachment(CargoOrigin);
+		NewSlot->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		NewSlot->SetSimulatePhysics(false);
+		NewSlot->SetEnableGravity(false);
 		FuelSlots.Add(NewSlot);
 	}
 
@@ -95,6 +101,9 @@ ATruck::ATruck()
 		FName SlotName = FName(*FString::Printf(TEXT("MedKitSlot_%d"), i));
 		UStaticMeshComponent* NewSlot = CreateDefaultSubobject<UStaticMeshComponent>(SlotName);
 		NewSlot->SetupAttachment(CargoOrigin);
+		NewSlot->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		NewSlot->SetSimulatePhysics(false);
+		NewSlot->SetEnableGravity(false);
 		MedKitSlots.Add(NewSlot);
 	}
 
@@ -169,6 +178,9 @@ void ATruck::BeginPlay()
 	for (UStaticMeshComponent* Slot : AmmoSlots) { if (Slot) Slot->SetVisibility(false); }
 	for (UStaticMeshComponent* Slot : FuelSlots) { if (Slot) Slot->SetVisibility(false); }
 	for (UStaticMeshComponent* Slot : MedKitSlots) { if (Slot) Slot->SetVisibility(false); }
+	for (UStaticMeshComponent* Slot : AmmoSlots) { if (Slot) { Slot->SetSimulatePhysics(false); Slot->SetEnableGravity(false); Slot->SetCollisionEnabled(ECollisionEnabled::NoCollision); } }
+	for (UStaticMeshComponent* Slot : FuelSlots) { if (Slot) { Slot->SetSimulatePhysics(false); Slot->SetEnableGravity(false); Slot->SetCollisionEnabled(ECollisionEnabled::NoCollision); } }
+	for (UStaticMeshComponent* Slot : MedKitSlots) { if (Slot) { Slot->SetSimulatePhysics(false); Slot->SetEnableGravity(false); Slot->SetCollisionEnabled(ECollisionEnabled::NoCollision); } }
 
 	if (MountedWeaponClass && TurretMountPoint)
 	{

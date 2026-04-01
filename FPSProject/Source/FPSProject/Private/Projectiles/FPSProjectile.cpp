@@ -4,8 +4,10 @@
 #include "Projectiles/FPSProjectile.h"
 #include "Components/SphereComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
+#include "GameFramework/Pawn.h"
 #include "Particles/ParticleSystem.h"
 #include "Kismet/GameplayStatics.h"  
+#include "Truck/Truck.h"
 
 // Sets default values
 AFPSProjectile::AFPSProjectile()
@@ -125,7 +127,14 @@ void AFPSProjectile::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor
         UE_LOG(LogTemp, Warning, TEXT("ammo damage to %s! "), *GetNameSafe(OtherActor));
     }
 
-	if (OtherActor != this && OtherComponent->IsSimulatingPhysics())  // ?ㅼ뒪濡쒖? 異⑸룎?섎뒗 寃??꾨땲怨?, 異⑸룎??而댄룷?뚰듃媛 臾쇰━ ?쒕??덉씠?섏쓣 ?섍퀬 ?덈떎硫?
+	const bool bCanApplyPhysicsImpulse =
+		OtherActor != this &&
+		OtherComponent &&
+		OtherComponent->IsSimulatingPhysics() &&
+		!Cast<ATruck>(OtherActor) &&
+		!Cast<APawn>(OtherActor);
+
+	if (bCanApplyPhysicsImpulse)  // 차량이나 폰에는 총알 impulse를 주지 않아 튕김 버그를 막는다.
     {
 		OtherComponent->AddImpulseAtLocation(ProjectileMovementComponent->Velocity * 100.0f, Hit.ImpactPoint);  // 異⑸룎 吏?먯뿉 諛쒖궗泥댁쓽 ?띾룄??鍮꾨??섎뒗 ?꾪럡?ㅻ? 媛??
     }

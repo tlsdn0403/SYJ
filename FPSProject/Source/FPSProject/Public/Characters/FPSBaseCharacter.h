@@ -122,6 +122,7 @@ protected:
     void StartJump();
     void StopJump();
     void Fire();
+    void StopFire();
     void StartAim();
     void StopAim();
 
@@ -229,7 +230,10 @@ protected:
 
     void ApplyDefaultAnimationClass();
     void PlayDrivingAnimation();
+    void HandleMountedWeaponAutoFire();
 
     void SendMovePacket();
+
+    FTimerHandle MountedWeaponAutoFireTimerHandle;
 };
 

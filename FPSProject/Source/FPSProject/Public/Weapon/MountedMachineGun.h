@@ -11,6 +11,7 @@ class USceneComponent;
 class USkeletalMeshComponent;
 class USoundBase;
 class USpringArmComponent;
+class UAnimInstance;
 
 UCLASS()
 class FPSPROJECT_API AMountedMachineGun : public AActor
@@ -27,6 +28,7 @@ public:
 	void UpdateAim(const FRotator& ControlRotation);
 	FVector GetCameraLocation() const;
 	FRotator GetCameraRotation() const;
+	float GetFireInterval() const { return FireInterval; }
 
 protected:
 	virtual void BeginPlay() override;
@@ -76,9 +78,31 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mounted Gun")
 	float MinPitch = -15.0f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mounted Gun|Recoil")
+	FVector2D RecoilPitchRange = FVector2D(0.2f, 0.45f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mounted Gun|Recoil")
+	float RecoilYawMagnitude = 0.12f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Mounted Gun|Animation")
+	TSubclassOf<UAnimInstance> GunAnimationBlueprintClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mounted Gun|Animation")
+	float TriggerAnimationReturnSpeed = 18.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mounted Gun|Animation")
+	float RecoilAnimationReturnSpeed = 24.0f;
+
 private:
 	UPROPERTY()
 	AFPSBaseCharacter* CurrentUser = nullptr;
 
 	float LastFireTime = -1000.0f;
+	float TriggerAnimationAlpha = 0.0f;
+	float RecoilAnimationAlpha = 0.0f;
+
+	void ApplyMountedRecoil() const;
+	void ApplyFireAnimation();
+	void UpdateFireAnimation(float DeltaTime);
+	void SetAnimFloatProperty(UAnimInstance* AnimInstance, const TCHAR* PropertyName, float Value) const;
 };

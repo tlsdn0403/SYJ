@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+ï»¿// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
@@ -11,6 +11,8 @@
  */
 
 
+class UEditableText;
+class UButton;
 class UImage;
 class UWidgetAnimation;
 
@@ -21,7 +23,7 @@ class FPSPROJECT_API UStartScreenClass : public UUserWidget
 
 protected:
 	virtual void NativeConstruct() override;
-	//virtual bool Initialize() override;		//¸¶¿ì½º ÀÔ·Â ¹Þ´Â ¿ë
+	//virtual bool Initialize() override;		//ë§ˆìš°ìŠ¤ ìž…ë ¥ ë°›ëŠ” ìš©
 
 
 	UPROPERTY(meta = (BindWidgetAnim), Transient)
@@ -33,14 +35,22 @@ protected:
 	UPROPERTY(meta = (BindWidget))
 	UImage* LogoImage;
 
+	UPROPERTY(meta = (BindWidget))
+	UEditableText* NicknameT;
+
+	UPROPERTY(meta = (BindWidget))
+	UEditableText* IPT;
+
 public:
 
-	/*UPROPERTY(meta = (BindWidget))
-	class UButton* LoginButton;*/
+	UPROPERTY(meta = (BindWidget))
+	class UButton* LoginButton;
 	UFUNCTION()
 	void PlayAni_Start();
 	UFUNCTION()
 	void PlayAni_Click();
-	//void OnClickLogin();
+	UFUNCTION()
+	void OnClickLogin();
 };
+
 

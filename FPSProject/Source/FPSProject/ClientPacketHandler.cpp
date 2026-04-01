@@ -1,7 +1,24 @@
-#include "ClientPacketHandler.h"
+Ôªø#include "ClientPacketHandler.h"
 #include "BufferReader.h"
 #include "FPSProject.h"
 #include "FPSProjectGameInstance.h"
+#include "Kismet/GameplayStatics.h"
+#include "Engine/Engine.h"
+
+UWorld* GetGameWorld()
+{
+	if (GEngine)
+	{
+		for (const FWorldContext& Context : GEngine->GetWorldContexts())
+		{
+			if (Context.WorldType == EWorldType::PIE || Context.WorldType == EWorldType::Game)
+			{
+				return Context.World();
+			}
+		}
+	}
+	return GWorld;
+}
 
 PacketHandlerFunc GPacketHandler[UINT16_MAX];
 
@@ -12,69 +29,108 @@ bool Handle_INVALID(PacketSessionRef& session, BYTE* buffer, int32 len)
 
 bool Handle_S_LOGIN(PacketSessionRef& session, Protocol::S_LOGIN& pkt)
 {
-	for (auto& Player : pkt.players())
+	UWorld* World = GetGameWorld();
+	if (World)
 	{
+		UGameplayStatics::OpenLevel(World, TEXT("Map_helpme1"));
 	}
-
-	for (int32 i = 0; i < pkt.players_size(); i++)
-	{
-		const Protocol::ObjectInfo& Player = pkt.players(i);
-	}
-
-	// ∑Œ∫Òø°º≠ ƒ≥∏Ø≈Õ º±≈√«ÿº≠ ¿Œµ¶Ω∫ ¿¸º€.
-	Protocol::C_ENTER_GAME EnterGamePkt;
-	EnterGamePkt.set_playerindex(0);
-	SEND_PACKET(EnterGamePkt);
 
 	return true;
 }
 
 bool Handle_S_ENTER_GAME(PacketSessionRef& session, Protocol::S_ENTER_GAME& pkt)
 {
-	if (auto* GameInstance = Cast<UFPSProjectGameInstance>(GWorld->GetGameInstance()))
+	UWorld* World = GetGameWorld();
+	if (World)
+	{
+		if (auto* GameInstance = Cast<UFPSProjectGameInstance>(World->GetGameInstance()))
+		{
+			// ÏûÖÏû• ÏÑ±Í≥µ Ïãú Ïä§Ìè∞ Ï≤òÎ¶¨
+			GameInstance->HandleSpawn(pkt);
+		}
+	}
+
+	/*if (auto* GameInstance = Cast<UFPSProjectGameInstance>(GWorld->GetGameInstance()))
 	{
 		GameInstance->HandleSpawn(pkt);
-	}
+	}*/
 
 	return true;
 }
 
 bool Handle_S_LEAVE_GAME(PacketSessionRef& session, Protocol::S_LEAVE_GAME& pkt)
 {
-	if (auto* GameInstance = Cast<UFPSProjectGameInstance>(GWorld->GetGameInstance()))
+	UWorld* World = GetGameWorld();
+	if (World)
 	{
-		// TODO : ∞‘¿” ¡æ∑·? ∑Œ∫Ò∑Œ?
+		if (auto* GameInstance = Cast<UFPSProjectGameInstance>(World->GetGameInstance()))
+		{
+			// TODO : Í≤åÏûÑ Ï¢ÖÎ£å ÌòπÏùÄ Î°úÎπÑ Ïù¥Îèô Î°úÏßÅ
+			// Ïòà: UGameplayStatics::OpenLevel(World, TEXT("StartMap"));
+		}
 	}
+
+	//if (auto* GameInstance = Cast<UFPSProjectGameInstance>(GWorld->GetGameInstance()))
+	//{
+	//	// TODO : Í≤åÏûÑ Ï¢ÖÎ£å? Î°úÎπÑÎ°ú?
+	//}
 
 	return true;
 }
 
 bool Handle_S_SPAWN(PacketSessionRef& session, Protocol::S_SPAWN& pkt)
 {
-	if (auto* GameInstance = Cast<UFPSProjectGameInstance>(GWorld->GetGameInstance()))
+	UWorld* World = GetGameWorld();
+	if (World)
+	{
+		if (auto* GameInstance = Cast<UFPSProjectGameInstance>(World->GetGameInstance()))
+		{
+			GameInstance->HandleSpawn(pkt);
+		}
+	}
+
+	/*if (auto* GameInstance = Cast<UFPSProjectGameInstance>(GWorld->GetGameInstance()))
 	{
 		GameInstance->HandleSpawn(pkt);
-	}
+	}*/
 
 	return true;
 }
 
 bool Handle_S_DESPAWN(PacketSessionRef& session, Protocol::S_DESPAWN& pkt)
 {
-	if (auto* GameInstance = Cast<UFPSProjectGameInstance>(GWorld->GetGameInstance()))
+	UWorld* World = GetGameWorld();
+	if (World)
+	{
+		if (auto* GameInstance = Cast<UFPSProjectGameInstance>(World->GetGameInstance()))
+		{
+			GameInstance->HandleDespawn(pkt);
+		}
+	}
+
+	/*if (auto* GameInstance = Cast<UFPSProjectGameInstance>(GWorld->GetGameInstance()))
 	{
 		GameInstance->HandleDespawn(pkt);
-	}
+	}*/
 
 	return true;
 }
 
 bool Handle_S_MOVE(PacketSessionRef& session, Protocol::S_MOVE& pkt)
 {
-	if (auto* GameInstance = Cast<UFPSProjectGameInstance>(GWorld->GetGameInstance()))
+	UWorld* World = GetGameWorld();
+	if (World)
+	{
+		if (auto* GameInstance = Cast<UFPSProjectGameInstance>(World->GetGameInstance()))
+		{
+			GameInstance->HandleMove(pkt);
+		}
+	}
+
+	/*if (auto* GameInstance = Cast<UFPSProjectGameInstance>(GWorld->GetGameInstance()))
 	{
 		GameInstance->HandleMove(pkt);
-	}
+	}*/
 
 	return true;
 }
@@ -88,17 +144,25 @@ bool Handle_S_CHAT(PacketSessionRef& session, Protocol::S_CHAT& pkt)
 
 bool Handle_S_EQUIP_WEAPON(PacketSessionRef& session, Protocol::S_EQUIP_WEAPON& pkt)
 {
-	if (auto* GameInstance = Cast<UFPSProjectGameInstance>(GWorld->GetGameInstance()))
+	UWorld* World = GetGameWorld();
+	if (World)
 	{
-		//¿œ¥‹ º≠πˆ∏¶ µπæ∆º≠ ≥ª ≈¨∂Û±Ó¡ˆ ∆–≈∂¿Ã ¿ﬂ µµ¬¯«ﬂ¥¬¡ˆ ∑Œ±◊∑Œ »Æ¿Œ!
-		//UE_LOG(LogTemp, Warning, TEXT("======== [≥◊∆Æøˆ≈©] S_EQUIP_WEAPON ºˆΩ≈ ========"));
-		//UE_LOG(LogTemp, Warning, TEXT("¥©∞° ¡÷ø¸¥¬∞°(PlayerID) : %llu"), pkt.playerid());
-		//UE_LOG(LogTemp, Warning, TEXT("π´Ωº æ∆¿Ã≈€(ItemID) : %llu"), pkt.itemobjectid());
-		//UE_LOG(LogTemp, Warning, TEXT("π´±‚ ≈∏¿‘(WeaponType) : %d"), pkt.weapontype());
-
-		 // GameInstanceø° «‘ºˆ∏¶ ∏∏µÈæÓº≠ Ω«¡¶ ∏µ®∏µ¿ª º’ø° ∫Ÿ¿Ã±‚
-		 GameInstance->HandleEquipWeapon(pkt); 
+		if (auto* GameInstance = Cast<UFPSProjectGameInstance>(World->GetGameInstance()))
+		{
+			GameInstance->HandleEquipWeapon(pkt);
+		}
 	}
+	//if (auto* GameInstance = Cast<UFPSProjectGameInstance>(GWorld->GetGameInstance()))
+	//{
+	//	//ÏùºÎã® ÏÑúÎ≤ÑÎ•º ÎèåÏïÑÏÑú ÎÇ¥ ÌÅ¥ÎùºÍπåÏßÄ Ìå®ÌÇ∑Ïù¥ Ïûò ÎèÑÏ∞©ÌñàÎäîÏßÄ Î°úÍ∑∏Î°ú ÌôïÏù∏!
+	//	//UE_LOG(LogTemp, Warning, TEXT("======== [ÎÑ§Ìä∏ÏõåÌÅ¨] S_EQUIP_WEAPON ÏàòÏã† ========"));
+	//	//UE_LOG(LogTemp, Warning, TEXT("ÎàÑÍ∞Ä Ï£ºÏõ†ÎäîÍ∞Ä(PlayerID) : %llu"), pkt.playerid());
+	//	//UE_LOG(LogTemp, Warning, TEXT("Î¨¥Ïä® ÏïÑÏù¥ÌÖú(ItemID) : %llu"), pkt.itemobjectid());
+	//	//UE_LOG(LogTemp, Warning, TEXT("Î¨¥Í∏∞ ÌÉÄÏûÖ(WeaponType) : %d"), pkt.weapontype());
+
+	//	 // GameInstanceÏóê Ìï®ÏàòÎ•º ÎßåÎì§Ïñ¥ÏÑú Ïã§Ï†ú Î™®Îç∏ÎßÅÏùÑ ÏÜêÏóê Î∂ôÏù¥Í∏∞
+	//	 GameInstance->HandleEquipWeapon(pkt); 
+	//}
 
 	return true;
 }

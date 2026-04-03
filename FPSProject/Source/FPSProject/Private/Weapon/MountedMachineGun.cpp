@@ -1,4 +1,4 @@
-#include "Weapon/MountedMachineGun.h"
+ï»¿#include "Weapon/MountedMachineGun.h"
 
 #include "Characters/FPSBaseCharacter.h"
 #include "Kismet/GameplayStatics.h"
@@ -11,6 +11,7 @@
 #include "Animation/AnimInstance.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/Actor.h"
+#include "TimerManager.h"
 #include "UObject/ConstructorHelpers.h"
 #include "UObject/UnrealType.h"
 
@@ -76,12 +77,13 @@ void AMountedMachineGun::BeginPlay()
 			GunMesh->SetAnimInstanceClass(GunAnimationBlueprintClass);
 		}
 	}
+
 }
 
 void AMountedMachineGun::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-	// ¾Ö´Ï¸ŞÀÌ¼Ç ¾÷µ¥ÀÌÆ®
+	// ì• ë‹ˆë©”ì´ì…˜ ì—…ë°ì´íŠ¸
 	UpdateFireAnimation(DeltaTime);
 }
 
@@ -257,7 +259,7 @@ void AMountedMachineGun::ApplyMountedRecoil() const
 
 void AMountedMachineGun::ApplyFireAnimation()
 {
-	// ¾ËÆÄ°ªµé 1·Î
+	// ì•ŒíŒŒê°’ë“¤ 1ë¡œ
 	TriggerAnimationAlpha = 1.0f;
 	RecoilAnimationAlpha = 1.0f;
 	UpdateFireAnimation(0.0f);
@@ -269,13 +271,13 @@ void AMountedMachineGun::UpdateFireAnimation(float DeltaTime)
 	{
 		return;
 	}
-	// ¾Ö´Ï¸ŞÀÌ¼Ç ÀÎ½ºÅÏ½º¸¦ °¡Á®¿È
+	// ì• ë‹ˆë©”ì´ì…˜ ì¸ìŠ¤í„´ìŠ¤ë¥¼ ê°€ì ¸ì˜´
 	UAnimInstance* AnimInstance = GunMesh->GetAnimInstance();
 	if (!AnimInstance)
 	{
 		return;
 	}
-	//¾ËÆÄ°ªÀ» 0À¸·Î º¸°£
+	//ì•ŒíŒŒê°’ì„ 0ìœ¼ë¡œ ë³´ê°„
 	if (DeltaTime > 0.0f)
 	{
 		TriggerAnimationAlpha = FMath::FInterpTo(
@@ -291,7 +293,7 @@ void AMountedMachineGun::UpdateFireAnimation(float DeltaTime)
 			RecoilAnimationReturnSpeed);
 	}
 
-	// º¸°£ÇÑ °ªÀ» ¾Ö´Ï¸ŞÀÌ¼Ç ºí·çÇÁ¸°Æ®¿¡¼­ »ç¿ëÇÒ ¼ö ÀÖµµ·Ï ¾Ö´Ï¸ŞÀÌ¼Ç ÀÎ½ºÅÏ½ºÀÇ ÇÁ·ÎÆÛÆ¼·Î ¼³Á¤
+	// ë³´ê°„í•œ ê°’ì„ ì• ë‹ˆë©”ì´ì…˜ ë¸”ë£¨í”„ë¦°íŠ¸ì—ì„œ ì‚¬ìš©í•  ìˆ˜ ìˆë„ë¡ ì• ë‹ˆë©”ì´ì…˜ ì¸ìŠ¤í„´ìŠ¤ì˜ í”„ë¡œí¼í‹°ë¡œ ì„¤ì •
 	SetAnimFloatProperty(AnimInstance, TEXT("Anim_Trigger"), TriggerAnimationAlpha);
 	SetAnimFloatProperty(AnimInstance, TEXT("Trigger"), TriggerAnimationAlpha);
 	SetAnimVectorProperty(AnimInstance, TEXT("Gun_Translation"), GunRecoilTranslation * RecoilAnimationAlpha);
@@ -316,8 +318,8 @@ void AMountedMachineGun::SetAnimVectorProperty(UAnimInstance* AnimInstance, cons
 	{
 		return;
 	}
-	//"Gun_Translation" ÇÁ·ÎÆÛÆ¼ ÀÖ´ÂÁö Ã£À½
-	// FVector°¡ ¾ğ¸®¾ó ³»ºÎÀûÀ¸·Î struct¶ó¼­ FStructProperty·Î Ã£À½
+	//"Gun_Translation" í”„ë¡œí¼í‹° ìˆëŠ”ì§€ ì°¾ìŒ
+	// FVectorê°€ ì–¸ë¦¬ì–¼ ë‚´ë¶€ì ìœ¼ë¡œ structë¼ì„œ FStructPropertyë¡œ ì°¾ìŒ
 	if (FStructProperty* StructProperty = FindFProperty<FStructProperty>(AnimInstance->GetClass(), PropertyName))
 	{
 		if (StructProperty->Struct == TBaseStructure<FVector>::Get())
@@ -334,7 +336,7 @@ void AMountedMachineGun::SpawnEmptyShell()
 	{
 		return;
 	}
-	// ¼ÒÄÏ À§Ä¡¿¡¼­ ½ºÆùÇÏµµ·Ï ¼ÒÄÏ À§Ä¡ °¡Á®¿ÍÁÜ
+	// ì†Œì¼“ ìœ„ì¹˜ì—ì„œ ìŠ¤í°í•˜ë„ë¡ ì†Œì¼“ ìœ„ì¹˜ ê°€ì ¸ì™€ì¤Œ
 	const FTransform SocketTransform = GunMesh->GetSocketTransform(EmptyShellSocketName, RTS_World);
 
 	FActorSpawnParameters SpawnParams;
@@ -352,6 +354,17 @@ void AMountedMachineGun::SpawnEmptyShell()
 	{
 		return;
 	}
+
+	SpawnedShell->SetOwner(this);
+	SpawnedShell->SetInstigator(CurrentUser);
+	ResetEmptyShellPhysics(SpawnedShell, false);
+	SpawnedShell->SetActorLocationAndRotation(
+		SocketTransform.GetLocation(),
+		SocketTransform.Rotator(),
+		false,
+		nullptr,
+		ETeleportType::TeleportPhysics);
+	ResetEmptyShellPhysics(SpawnedShell, true);
 
 	TArray<UPrimitiveComponent*> PrimitiveComponents;
 	SpawnedShell->GetComponents<UPrimitiveComponent>(PrimitiveComponents);
@@ -381,4 +394,53 @@ void AMountedMachineGun::SpawnEmptyShell()
 			PrimitiveComponent->AddImpulse(WorldImpulse, NAME_None, true);
 		}
 	}
+
+	SpawnedShell->SetLifeSpan(EmptyShellLifetime);
 }
+
+void AMountedMachineGun::ResetEmptyShellPhysics(AActor* ShellActor, bool bEnablePhysics) const
+{
+	if (!ShellActor)
+	{
+		return;
+	}
+
+	TArray<UPrimitiveComponent*> PrimitiveComponents;
+	ShellActor->GetComponents<UPrimitiveComponent>(PrimitiveComponents);
+
+	for (UPrimitiveComponent* PrimitiveComponent : PrimitiveComponents)
+	{
+		if (!PrimitiveComponent)
+		{
+			continue;
+		}
+
+		PrimitiveComponent->SetPhysicsLinearVelocity(FVector::ZeroVector);
+		PrimitiveComponent->SetPhysicsAngularVelocityInDegrees(FVector::ZeroVector);
+
+		if (PrimitiveComponent->CanEditSimulatePhysics())
+		{
+			PrimitiveComponent->SetSimulatePhysics(bEnablePhysics);
+			if (bEnablePhysics)
+			{
+				PrimitiveComponent->WakeAllRigidBodies();
+			}
+		}
+	}
+}
+
+void AMountedMachineGun::ReturnEmptyShellToPool(AActor* ShellActor) const
+{
+	if (!ShellActor || !GetWorld())
+	{
+		return;
+	}
+
+	ResetEmptyShellPhysics(ShellActor, false);
+
+	if (UObjectPoolSubSystem* PoolSubsystem = GetWorld()->GetSubsystem<UObjectPoolSubSystem>())
+	{
+		PoolSubsystem->ReturnToPool(ShellActor);
+	}
+}
+

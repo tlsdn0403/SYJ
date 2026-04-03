@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
@@ -103,6 +103,12 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mounted Gun|Shell")
 	FVector EmptyShellEjectImpulse = FVector(20.0f, 140.0f, 90.0f);
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mounted Gun|Shell")
+	float EmptyShellLifetime = 5.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mounted Gun|Shell")
+	int32 EmptyShellPoolSize = 24;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mounted Gun|Animation")
 	FVector GunRecoilTranslation = FVector(-12.0f, 0.0f, 0.0f);
 
@@ -120,4 +126,7 @@ private:
 	void SetAnimFloatProperty(UAnimInstance* AnimInstance, const TCHAR* PropertyName, float Value) const;
 	void SetAnimVectorProperty(UAnimInstance* AnimInstance, const TCHAR* PropertyName, const FVector& Value) const;
 	void SpawnEmptyShell();
+	void ResetEmptyShellPhysics(AActor* ShellActor, bool bEnablePhysics) const;
+	void ReturnEmptyShellToPool(AActor* ShellActor) const;
 };
+

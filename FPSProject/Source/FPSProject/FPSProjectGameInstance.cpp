@@ -40,12 +40,12 @@ void UFPSProjectGameInstance::ConnectToGameServer(const FString& IPAddress)
 		GameServerSession = MakeShared<PacketSession>(Socket);
 		GameServerSession->Run();
 
-		// TEMP : Lobby에서 캐릭터 선택창 등
-		{
-			Protocol::C_LOGIN Pkt;
-			SendBufferRef SendBuffer = ClientPacketHandler::MakeSendBuffer(Pkt);
-			SendPacket(SendBuffer);
-		}
+		//// TEMP : Lobby에서 캐릭터 선택창 등
+		//{
+		//	Protocol::C_LOGIN Pkt;
+		//	SendBufferRef SendBuffer = ClientPacketHandler::MakeSendBuffer(Pkt);
+		//	SendPacket(SendBuffer);
+		//}
 	}
 	else
 	{
@@ -89,6 +89,31 @@ void UFPSProjectGameInstance::SendPacket(SendBufferRef SendBuffer)
 	GameServerSession->SendPacket(SendBuffer);
 }
 
+void UFPSProjectGameInstance::SendPacketStatic(SendBufferRef SendBuffer)
+{
+	UWorld* World = nullptr;
+	if (GEngine)
+	{
+		for (const FWorldContext& Context : GEngine->GetWorldContexts())
+		{
+			if (Context.WorldType == EWorldType::PIE || Context.WorldType == EWorldType::Game)
+			{
+				World = Context.World();
+				break;
+			}
+		}
+	}
+	if (World == nullptr) World = GWorld;
+
+	if (World)
+	{
+		if (auto* GI = Cast<UFPSProjectGameInstance>(World->GetGameInstance()))
+		{
+			GI->SendPacket(SendBuffer);
+		}
+	}
+}
+
 void UFPSProjectGameInstance::HandleSpawn(const Protocol::ObjectInfo& ObjectInfo, bool IsMine)
 {
 	if (Socket == nullptr || GameServerSession == nullptr)
@@ -124,13 +149,9 @@ void UFPSProjectGameInstance::HandleSpawn(const Protocol::ObjectInfo& ObjectInfo
 	// 2. 다른 유저의 캐릭터인 경우
 	else
 	{
-		if (OtherPlayerClass == nullptr)
-		{
-			UE_LOG(LogTemp, Error, TEXT("OtherPlayerClass is NULL! Please set it in GameInstance Blueprint!"));
-			return;
-		}
+		if (OtherPlayerClass == nullptr) return;
 
-		AFPSBaseCharacter* OtherPlayer = Cast<AFPSBaseCharacter>(World->SpawnActor(OtherPlayerClass, &SpawnLocation));
+		AFPSBaseCharacter* OtherPlayer = World->SpawnActor<AFPSBaseCharacter>(OtherPlayerClass, SpawnLocation, FRotator::ZeroRotator);
 		if (OtherPlayer)
 		{
 			OtherPlayer->SetPlayerInfo(ObjectInfo.pos_info()); // 타겟 유저의 ID와 위치 정보 세팅

@@ -4,6 +4,8 @@
 #include "Characters/FPSBaseCharacter.h"
 #include "Weapon/WeaponBase.h"
 #include "Engine/Engine.h" // 디버그 메시지 출력용
+#include "Characters/FPSPlayerController.h"
+#include "HUD/InventoryWidget.h"
 #include "ClientPacketHandler.h"
 #include "Protocol.pb.h"
 
@@ -45,6 +47,9 @@ void UPickUpWeaponComponent::OnSphereBeginOverlap(UPrimitiveComponent* Overlappe
 
 		OnPickUp.Broadcast(Character);
 		Character->SetCurrentWeapon(Cast<AWeaponBase>(GetOwner()));
+		AFPSPlayerController* PC = Cast<AFPSPlayerController>( Character->GetController()); 
+		PC->InventoryW->GetGunAR4();	//총 체크 
+
 		OnComponentBeginOverlap.RemoveAll(this); // 한 번만 실행 
 
 		// 내 캐릭터가 무기를 주웠으니 서버로 패킷 전송!

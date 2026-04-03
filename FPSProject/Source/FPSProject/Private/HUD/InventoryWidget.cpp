@@ -2,8 +2,9 @@
 
 
 #include "HUD/InventoryWidget.h"
-
+#include "Components/Image.h"
 #include "HUD/SlotWidget.h"
+#include "Components/TextBlock.h"
 #include "Components/HorizontalBox.h"
 #include "Components/HorizontalBoxSlot.h"
 
@@ -79,5 +80,16 @@ void UInventoryWidget::SelectSlot(int32 slotnum)
 			}
 			SlotWidgets[i]->PlayAni_Select();
 		}
+	}
+}
+
+void UInventoryWidget::GetGunAR4() {
+
+	if (GunImage) {
+		GunImage->SetRenderOpacity(1.f);
+		GunImage->SetColorAndOpacity(FLinearColor(1.f, 1.f, 1.f, 1.f));
+		GunImage->SetBrushTintColor(FSlateColor(FLinearColor(1.f, 1.f, 1.f, 1.f)));
+		GunText->SetRenderOpacity(1.f);
+		GunText->SetColorAndOpacity(FLinearColor(1.f, 1.f, 1.f, 1.f));
 	}
 }

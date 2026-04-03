@@ -12,6 +12,9 @@
 
 class USlotWidget;
 class UHorizontalBox;
+class UImage;
+class UTextBlock;
+
 
 UCLASS()
 class FPSPROJECT_API UInventoryWidget : public UUserWidget
@@ -23,7 +26,15 @@ protected:
 
 public:
 
-	// 슬롯들을 담을 박스
+	UPROPERTY(meta = (BindWidget))	//
+	UImage* GunImage;
+
+	UPROPERTY(meta = (BindWidget))
+	UTextBlock* GunText;
+
+
+
+	// 슬롯들을 담을 박스 =======================================================================================
 	UPROPERTY(meta = (BindWidget))	//
 	UHorizontalBox* SlotBox;	//UHorizontalBox = UI 위젯들을 “가로로 자동 정렬해서 담아주는 컨테이너(상자)” 객체
 
@@ -56,4 +67,5 @@ public:
 
 	void SetItem(int32 SlotIndex, UTexture2D* IconTexture);
 	void PickUp_Item(UTexture2D* image);
+	void GetGunAR4();
 };

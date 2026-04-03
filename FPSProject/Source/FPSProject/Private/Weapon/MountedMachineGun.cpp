@@ -7,8 +7,10 @@
 #include "Sound/SoundBase.h"
 #include "Subsystems/ObjectPoolSubSystem.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "Components/PrimitiveComponent.h"
 #include "Animation/AnimInstance.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "GameFramework/Actor.h"
 #include "UObject/ConstructorHelpers.h"
 #include "UObject/UnrealType.h"
 
@@ -49,6 +51,13 @@ AMountedMachineGun::AMountedMachineGun()
 	if (GunAnimBP.Succeeded())
 	{
 		GunAnimationBlueprintClass = GunAnimBP.Class;
+	}
+
+	static ConstructorHelpers::FClassFinder<AActor> EmptyShellBP(
+		TEXT("/Game/Heavy_Machine_Gun/Attachments/EmptyShell/Blueprints/BP_EmptyShell"));
+	if (EmptyShellBP.Succeeded())
+	{
+		EmptyShellClass = EmptyShellBP.Class;
 	}
 }
 
@@ -206,6 +215,7 @@ void AMountedMachineGun::Fire()
 		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), GunParticleEffect, FireLocation, FireRotation);
 	}
 
+	SpawnEmptyShell();
 	ApplyFireAnimation();
 	ApplyMountedRecoil();
 }
@@ -281,7 +291,7 @@ void AMountedMachineGun::UpdateFireAnimation(float DeltaTime)
 
 	SetAnimFloatProperty(AnimInstance, TEXT("Anim_Trigger"), TriggerAnimationAlpha);
 	SetAnimFloatProperty(AnimInstance, TEXT("Trigger"), TriggerAnimationAlpha);
-	SetAnimFloatProperty(AnimInstance, TEXT("Gun_Translation"), RecoilAnimationAlpha);
+	SetAnimVectorProperty(AnimInstance, TEXT("Gun_Translation"), GunRecoilTranslation * RecoilAnimationAlpha);
 }
 
 void AMountedMachineGun::SetAnimFloatProperty(UAnimInstance* AnimInstance, const TCHAR* PropertyName, float Value) const
@@ -294,5 +304,77 @@ void AMountedMachineGun::SetAnimFloatProperty(UAnimInstance* AnimInstance, const
 	if (FFloatProperty* FloatProperty = FindFProperty<FFloatProperty>(AnimInstance->GetClass(), PropertyName))
 	{
 		FloatProperty->SetPropertyValue_InContainer(AnimInstance, Value);
+	}
+}
+
+void AMountedMachineGun::SetAnimVectorProperty(UAnimInstance* AnimInstance, const TCHAR* PropertyName, const FVector& Value) const
+{
+	if (!AnimInstance)
+	{
+		return;
+	}
+
+	if (FStructProperty* StructProperty = FindFProperty<FStructProperty>(AnimInstance->GetClass(), PropertyName))
+	{
+		if (StructProperty->Struct == TBaseStructure<FVector>::Get())
+		{
+			void* StructValuePtr = StructProperty->ContainerPtrToValuePtr<void>(AnimInstance);
+			*static_cast<FVector*>(StructValuePtr) = Value;
+		}
+	}
+}
+
+void AMountedMachineGun::SpawnEmptyShell()
+{
+	if (!EmptyShellClass || !GunMesh || !GetWorld() || !GunMesh->DoesSocketExist(EmptyShellSocketName))
+	{
+		return;
+	}
+
+	const FTransform SocketTransform = GunMesh->GetSocketTransform(EmptyShellSocketName, RTS_World);
+
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.Owner = this;
+	SpawnParams.Instigator = CurrentUser;
+	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+	AActor* SpawnedShell = GetWorld()->SpawnActor<AActor>(
+		EmptyShellClass,
+		SocketTransform.GetLocation(),
+		SocketTransform.Rotator(),
+		SpawnParams);
+
+	if (!SpawnedShell)
+	{
+		return;
+	}
+
+	TArray<UPrimitiveComponent*> PrimitiveComponents;
+	SpawnedShell->GetComponents<UPrimitiveComponent>(PrimitiveComponents);
+
+	const FVector WorldImpulse =
+		SocketTransform.GetRotation().RotateVector(EmptyShellEjectImpulse);
+
+	for (UPrimitiveComponent* PrimitiveComponent : PrimitiveComponents)
+	{
+		if (!PrimitiveComponent)
+		{
+			continue;
+		}
+
+		PrimitiveComponent->IgnoreActorWhenMoving(this, true);
+		if (CurrentUser)
+		{
+			PrimitiveComponent->IgnoreActorWhenMoving(CurrentUser, true);
+			if (CurrentUser->CurrentTruck)
+			{
+				PrimitiveComponent->IgnoreActorWhenMoving(CurrentUser->CurrentTruck, true);
+			}
+		}
+
+		if (PrimitiveComponent->IsSimulatingPhysics())
+		{
+			PrimitiveComponent->AddImpulse(WorldImpulse, NAME_None, true);
+		}
 	}
 }

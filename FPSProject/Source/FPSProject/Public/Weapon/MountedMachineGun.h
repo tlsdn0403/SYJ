@@ -6,6 +6,7 @@
 
 class AFPSBaseCharacter;
 class AFPSProjectile;
+class AActor;
 class UParticleSystem;
 class USceneComponent;
 class USkeletalMeshComponent;
@@ -93,6 +94,18 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mounted Gun|Animation")
 	float RecoilAnimationReturnSpeed = 24.0f;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Mounted Gun|Shell")
+	TSubclassOf<AActor> EmptyShellClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mounted Gun|Shell")
+	FName EmptyShellSocketName = TEXT("EmptyShell_Socket");
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mounted Gun|Shell")
+	FVector EmptyShellEjectImpulse = FVector(20.0f, 140.0f, 90.0f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mounted Gun|Animation")
+	FVector GunRecoilTranslation = FVector(-12.0f, 0.0f, 0.0f);
+
 private:
 	UPROPERTY()
 	AFPSBaseCharacter* CurrentUser = nullptr;
@@ -105,4 +118,6 @@ private:
 	void ApplyFireAnimation();
 	void UpdateFireAnimation(float DeltaTime);
 	void SetAnimFloatProperty(UAnimInstance* AnimInstance, const TCHAR* PropertyName, float Value) const;
+	void SetAnimVectorProperty(UAnimInstance* AnimInstance, const TCHAR* PropertyName, const FVector& Value) const;
+	void SpawnEmptyShell();
 };

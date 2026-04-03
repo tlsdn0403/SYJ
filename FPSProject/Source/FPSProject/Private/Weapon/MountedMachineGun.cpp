@@ -81,6 +81,7 @@ void AMountedMachineGun::BeginPlay()
 void AMountedMachineGun::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+	// 애니메이션 업데이트
 	UpdateFireAnimation(DeltaTime);
 }
 
@@ -256,6 +257,7 @@ void AMountedMachineGun::ApplyMountedRecoil() const
 
 void AMountedMachineGun::ApplyFireAnimation()
 {
+	// 알파값들 1로
 	TriggerAnimationAlpha = 1.0f;
 	RecoilAnimationAlpha = 1.0f;
 	UpdateFireAnimation(0.0f);
@@ -267,13 +269,13 @@ void AMountedMachineGun::UpdateFireAnimation(float DeltaTime)
 	{
 		return;
 	}
-
+	// 애니메이션 인스턴스를 가져옴
 	UAnimInstance* AnimInstance = GunMesh->GetAnimInstance();
 	if (!AnimInstance)
 	{
 		return;
 	}
-
+	//알파값을 0으로 보간
 	if (DeltaTime > 0.0f)
 	{
 		TriggerAnimationAlpha = FMath::FInterpTo(
@@ -289,6 +291,7 @@ void AMountedMachineGun::UpdateFireAnimation(float DeltaTime)
 			RecoilAnimationReturnSpeed);
 	}
 
+	// 보간한 값을 애니메이션 블루프린트에서 사용할 수 있도록 애니메이션 인스턴스의 프로퍼티로 설정
 	SetAnimFloatProperty(AnimInstance, TEXT("Anim_Trigger"), TriggerAnimationAlpha);
 	SetAnimFloatProperty(AnimInstance, TEXT("Trigger"), TriggerAnimationAlpha);
 	SetAnimVectorProperty(AnimInstance, TEXT("Gun_Translation"), GunRecoilTranslation * RecoilAnimationAlpha);
@@ -313,7 +316,8 @@ void AMountedMachineGun::SetAnimVectorProperty(UAnimInstance* AnimInstance, cons
 	{
 		return;
 	}
-
+	//"Gun_Translation" 프로퍼티 있는지 찾음
+	// FVector가 언리얼 내부적으로 struct라서 FStructProperty로 찾음
 	if (FStructProperty* StructProperty = FindFProperty<FStructProperty>(AnimInstance->GetClass(), PropertyName))
 	{
 		if (StructProperty->Struct == TBaseStructure<FVector>::Get())
@@ -330,7 +334,7 @@ void AMountedMachineGun::SpawnEmptyShell()
 	{
 		return;
 	}
-
+	// 소켓 위치에서 스폰하도록 소켓 위치 가져와줌
 	const FTransform SocketTransform = GunMesh->GetSocketTransform(EmptyShellSocketName, RTS_World);
 
 	FActorSpawnParameters SpawnParams;

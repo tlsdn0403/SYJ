@@ -117,6 +117,28 @@ bool Room::LeaveRoom(ObjectRef object)
 
 bool Room::HandleEnterPlayer(PlayerRef player)
 {
+	bool success = EnterRoom(player, true);
+
+	if (success == false)
+		return false;
+
+	Protocol::S_SPAWN_ITEM spawnItemPkt;
+	Protocol::ObjectInfo* itemInfo = spawnItemPkt.add_items();
+
+	itemInfo->set_object_id(1); // 이 무기의 고유 번호는 1번!
+	itemInfo->set_object_type(Protocol::OBJECT_TYPE_ITEM);
+	itemInfo->set_weapon_type(Protocol::WEAPON_TYPE_RIFLE);
+
+	Protocol::PosInfo* pos = itemInfo->mutable_pos_info();
+	pos->set_x(-860.0f);
+	pos->set_y(-180.0f);
+	pos->set_z(30.0f);
+	pos->set_yaw(0.0f);
+
+	// 방금 접속한 플레이어에게 패킷 전송
+	SendBufferRef itemBuffer = ServerPacketHandler::MakeSendBuffer(spawnItemPkt);
+	player->session.lock()->Send(itemBuffer);
+
 	return EnterRoom(player, true);
 }
 

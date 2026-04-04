@@ -78,3 +78,9 @@ message S_EQUIP_WEAPON
 	uint64 itemObjectId = 2;   // 맵에 떨어져 있던 어떤 아이템을 주웠는지 (주웠으니 맵에서 지워야 함)
 	int32 weaponType = 3;      // 그 아이템이 무슨 총인지 (어떤 모델링을 띄울지 결정)
 }
+
+message S_SPAWN_ITEM
+{
+	// ObjectInfo 안에 이미 itemObjectId(고유번호), 좌표, 무슨 총인지(weapon_type) 다 들어있음!
+	repeated ObjectInfo items = 1; 
+}

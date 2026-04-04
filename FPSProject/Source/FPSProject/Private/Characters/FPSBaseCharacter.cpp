@@ -208,14 +208,33 @@ void AFPSBaseCharacter::Tick(float DeltaTime)
 
         if (State == Protocol::MOVE_STATE_RUN || State == Protocol::MOVE_STATE_JUMP)
         {
-            if (DistToDest > 2.0f) // 오차가 작을 때만 보간
+            // [해결 1] SetActorLocation(VInterpTo) 삭제! 위치를 강제로 덮어씌우면 물리엔진과 싸우게 됨.
+
+            FVector Direction;
+            if (DistToDest > 15.0f)
             {
-                FVector NewLocation = FMath::VInterpTo(CurrentLocation, TargetLocation, DeltaTime, 15.0f);
-                SetActorLocation(NewLocation);
+                // 타겟이 멀리 있으면 타겟을 향해 전력 질주
+                Direction = (TargetLocation - CurrentLocation).GetSafeNormal();
+            }
+            else
+            {
+                // [해결 2 핵심!] 타겟에 도착했는데 아직 서버에서 멈추라는 패킷이 안 왔다면?
+                // 멈칫하지 않고, 캐릭터가 바라보는 앞방향으로 계속 달리게 해서 애니메이션을 부드럽게 유지!
+                Direction = GetActorForwardVector();
+            }
+
+            // 물리 엔진을 이용해 자연스럽게 뜀 (애니메이션 정상 작동)
+            AddMovementInput(Direction, 1.0f);
+
+            // [해결 3] 만약 렉이 걸려서 서버 위치랑 200 이상 크게 차이 나버리면, 그때만 강제로 순간이동(보정)
+            if (DistToDest > 200.0f)
+            {
+                SetActorLocation(TargetLocation);
             }
         }
         else // IDLE 상태
         {
+            // 서 있을 때는 오차가 있으면 제자리로 스르륵 끌어당김
             if (DistToDest > 2.0f)
             {
                 SetActorLocation(FMath::VInterpTo(CurrentLocation, TargetLocation, DeltaTime, 10.0f));
@@ -716,7 +735,6 @@ void AFPSBaseCharacter::EquipWeaponFromField(AWeaponBase* Weapon)
 {
     if (Weapon == nullptr) return;
 
-    // 1. �ٴڿ� �����Ǿ� �ִ� ������ �浹�� ���
     Weapon->SetActorEnableCollision(false);
 
     // 2. ���Ͽ� ���� (SnapToTarget�� ��� ���� ��ġ�� �����̵��մϴ�.)

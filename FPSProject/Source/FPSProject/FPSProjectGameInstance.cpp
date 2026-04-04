@@ -241,6 +241,8 @@ void UFPSProjectGameInstance::HandleEquipWeapon(const Protocol::S_EQUIP_WEAPON& 
 	uint64 PlayerId = pkt.playerid();
 	uint64 ItemId = pkt.itemobjectid();
 
+	UE_LOG(LogTemp, Warning, TEXT("[Network] S_EQUIP_WEAPON 수신! PlayerId: %llu, ItemId: %llu"), PlayerId, ItemId);
+
 	// 누가 주웠는지 찾기
 	AFPSBaseCharacter* TargetPlayer = Players.Contains(PlayerId) ? Players[PlayerId] : nullptr;
 
@@ -260,6 +262,49 @@ void UFPSProjectGameInstance::HandleEquipWeapon(const Protocol::S_EQUIP_WEAPON& 
 
 			// 이제 바닥에 없으니 관리 목록에서 제거!
 			FieldItems.Remove(ItemId);
+		}
+	}
+}
+
+void UFPSProjectGameInstance::HandleSpawnItem(const Protocol::S_SPAWN_ITEM& pkt)
+{
+	UWorld* CurrentWorld = GetWorld();
+	if (CurrentWorld == nullptr) return;
+
+	// 패킷에 들어있는 모든 아이템 목록을 순회
+	for (int32 i = 0; i < pkt.items_size(); i++)
+	{
+		const Protocol::ObjectInfo& ItemInfo = pkt.items(i);
+
+		uint64 ItemId = ItemInfo.object_id();
+		const Protocol::PosInfo& Pos = ItemInfo.pos_info();
+
+		// 이미 맵(장부)에 소환되어 있는 아이템이면 패스
+		if (FieldItems.Contains(ItemId))
+			continue;
+
+		// 스폰할 좌표 설정
+		FVector SpawnLocation(Pos.x(), Pos.y(), Pos.z());
+
+		// 무기 스폰! (에디터에서 DefaultWeaponClass를 지정해뒀어야 함)
+		if (DefaultWeaponClass)
+		{
+			AWeaponBase* SpawnedWeapon = CurrentWorld->SpawnActor<AWeaponBase>(DefaultWeaponClass, SpawnLocation, FRotator::ZeroRotator);
+
+			if (SpawnedWeapon)
+			{
+				// 1. 소환된 무기에게 이름표(ID) 달아주기
+				SpawnedWeapon->ItemObjectId = ItemId;
+
+				// 2. 바닥 아이템 장부에 등록! (이게 정석의 핵심)
+				FieldItems.Add(ItemId, SpawnedWeapon);
+
+				UE_LOG(LogTemp, Warning, TEXT("[Network] %llu번 무기가 맵에 소환되었습니다! (위치: %s)"), ItemId, *SpawnLocation.ToString());
+			}
+		}
+		else
+		{
+			UE_LOG(LogTemp, Error, TEXT("[Network] DefaultWeaponClass가 세팅되지 않아 무기를 스폰할 수 없습니다!"));
 		}
 	}
 }

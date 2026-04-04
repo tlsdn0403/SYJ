@@ -1,4 +1,4 @@
-#include "Weapon/MountedMachineGun.h"
+﻿#include "Weapon/MountedMachineGun.h"
 
 #include "Characters/FPSBaseCharacter.h"
 #include "Kismet/GameplayStatics.h"
@@ -7,8 +7,11 @@
 #include "Sound/SoundBase.h"
 #include "Subsystems/ObjectPoolSubSystem.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "Components/PrimitiveComponent.h"
 #include "Animation/AnimInstance.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "GameFramework/Actor.h"
+#include "TimerManager.h"
 #include "UObject/ConstructorHelpers.h"
 #include "UObject/UnrealType.h"
 
@@ -50,6 +53,13 @@ AMountedMachineGun::AMountedMachineGun()
 	{
 		GunAnimationBlueprintClass = GunAnimBP.Class;
 	}
+
+	static ConstructorHelpers::FClassFinder<AActor> EmptyShellBP(
+		TEXT("/Game/Heavy_Machine_Gun/Attachments/EmptyShell/Blueprints/BP_EmptyShell"));
+	if (EmptyShellBP.Succeeded())
+	{
+		EmptyShellClass = EmptyShellBP.Class;
+	}
 }
 
 void AMountedMachineGun::BeginPlay()
@@ -67,11 +77,13 @@ void AMountedMachineGun::BeginPlay()
 			GunMesh->SetAnimInstanceClass(GunAnimationBlueprintClass);
 		}
 	}
+
 }
 
 void AMountedMachineGun::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+	// 애니메이션 업데이트
 	UpdateFireAnimation(DeltaTime);
 }
 
@@ -206,6 +218,7 @@ void AMountedMachineGun::Fire()
 		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), GunParticleEffect, FireLocation, FireRotation);
 	}
 
+	SpawnEmptyShell();
 	ApplyFireAnimation();
 	ApplyMountedRecoil();
 }
@@ -246,6 +259,7 @@ void AMountedMachineGun::ApplyMountedRecoil() const
 
 void AMountedMachineGun::ApplyFireAnimation()
 {
+	// 알파값들 1로
 	TriggerAnimationAlpha = 1.0f;
 	RecoilAnimationAlpha = 1.0f;
 	UpdateFireAnimation(0.0f);
@@ -257,13 +271,13 @@ void AMountedMachineGun::UpdateFireAnimation(float DeltaTime)
 	{
 		return;
 	}
-
+	// 애니메이션 인스턴스를 가져옴
 	UAnimInstance* AnimInstance = GunMesh->GetAnimInstance();
 	if (!AnimInstance)
 	{
 		return;
 	}
-
+	//알파값을 0으로 보간
 	if (DeltaTime > 0.0f)
 	{
 		TriggerAnimationAlpha = FMath::FInterpTo(
@@ -279,9 +293,10 @@ void AMountedMachineGun::UpdateFireAnimation(float DeltaTime)
 			RecoilAnimationReturnSpeed);
 	}
 
+	// 보간한 값을 애니메이션 블루프린트에서 사용할 수 있도록 애니메이션 인스턴스의 프로퍼티로 설정
 	SetAnimFloatProperty(AnimInstance, TEXT("Anim_Trigger"), TriggerAnimationAlpha);
 	SetAnimFloatProperty(AnimInstance, TEXT("Trigger"), TriggerAnimationAlpha);
-	SetAnimFloatProperty(AnimInstance, TEXT("Gun_Translation"), RecoilAnimationAlpha);
+	SetAnimVectorProperty(AnimInstance, TEXT("Gun_Translation"), GunRecoilTranslation * RecoilAnimationAlpha);
 }
 
 void AMountedMachineGun::SetAnimFloatProperty(UAnimInstance* AnimInstance, const TCHAR* PropertyName, float Value) const
@@ -296,3 +311,136 @@ void AMountedMachineGun::SetAnimFloatProperty(UAnimInstance* AnimInstance, const
 		FloatProperty->SetPropertyValue_InContainer(AnimInstance, Value);
 	}
 }
+
+void AMountedMachineGun::SetAnimVectorProperty(UAnimInstance* AnimInstance, const TCHAR* PropertyName, const FVector& Value) const
+{
+	if (!AnimInstance)
+	{
+		return;
+	}
+	//"Gun_Translation" 프로퍼티 있는지 찾음
+	// FVector가 언리얼 내부적으로 struct라서 FStructProperty로 찾음
+	if (FStructProperty* StructProperty = FindFProperty<FStructProperty>(AnimInstance->GetClass(), PropertyName))
+	{
+		if (StructProperty->Struct == TBaseStructure<FVector>::Get())
+		{
+			void* StructValuePtr = StructProperty->ContainerPtrToValuePtr<void>(AnimInstance);
+			*static_cast<FVector*>(StructValuePtr) = Value;
+		}
+	}
+}
+
+void AMountedMachineGun::SpawnEmptyShell()
+{
+	if (!EmptyShellClass || !GunMesh || !GetWorld() || !GunMesh->DoesSocketExist(EmptyShellSocketName))
+	{
+		return;
+	}
+	// 소켓 위치에서 스폰하도록 소켓 위치 가져와줌
+	const FTransform SocketTransform = GunMesh->GetSocketTransform(EmptyShellSocketName, RTS_World);
+
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.Owner = this;
+	SpawnParams.Instigator = CurrentUser;
+	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+	AActor* SpawnedShell = GetWorld()->SpawnActor<AActor>(
+		EmptyShellClass,
+		SocketTransform.GetLocation(),
+		SocketTransform.Rotator(),
+		SpawnParams);
+
+	if (!SpawnedShell)
+	{
+		return;
+	}
+
+	SpawnedShell->SetOwner(this);
+	SpawnedShell->SetInstigator(CurrentUser);
+	ResetEmptyShellPhysics(SpawnedShell, false);
+	SpawnedShell->SetActorLocationAndRotation(
+		SocketTransform.GetLocation(),
+		SocketTransform.Rotator(),
+		false,
+		nullptr,
+		ETeleportType::TeleportPhysics);
+	ResetEmptyShellPhysics(SpawnedShell, true);
+
+	TArray<UPrimitiveComponent*> PrimitiveComponents;
+	SpawnedShell->GetComponents<UPrimitiveComponent>(PrimitiveComponents);
+
+	const FVector WorldImpulse =
+		SocketTransform.GetRotation().RotateVector(EmptyShellEjectImpulse);
+
+	for (UPrimitiveComponent* PrimitiveComponent : PrimitiveComponents)
+	{
+		if (!PrimitiveComponent)
+		{
+			continue;
+		}
+
+		PrimitiveComponent->IgnoreActorWhenMoving(this, true);
+		if (CurrentUser)
+		{
+			PrimitiveComponent->IgnoreActorWhenMoving(CurrentUser, true);
+			if (CurrentUser->CurrentTruck)
+			{
+				PrimitiveComponent->IgnoreActorWhenMoving(CurrentUser->CurrentTruck, true);
+			}
+		}
+
+		if (PrimitiveComponent->IsSimulatingPhysics())
+		{
+			PrimitiveComponent->AddImpulse(WorldImpulse, NAME_None, true);
+		}
+	}
+
+	SpawnedShell->SetLifeSpan(EmptyShellLifetime);
+}
+
+void AMountedMachineGun::ResetEmptyShellPhysics(AActor* ShellActor, bool bEnablePhysics) const
+{
+	if (!ShellActor)
+	{
+		return;
+	}
+
+	TArray<UPrimitiveComponent*> PrimitiveComponents;
+	ShellActor->GetComponents<UPrimitiveComponent>(PrimitiveComponents);
+
+	for (UPrimitiveComponent* PrimitiveComponent : PrimitiveComponents)
+	{
+		if (!PrimitiveComponent)
+		{
+			continue;
+		}
+
+		PrimitiveComponent->SetPhysicsLinearVelocity(FVector::ZeroVector);
+		PrimitiveComponent->SetPhysicsAngularVelocityInDegrees(FVector::ZeroVector);
+
+		if (PrimitiveComponent->CanEditSimulatePhysics())
+		{
+			PrimitiveComponent->SetSimulatePhysics(bEnablePhysics);
+			if (bEnablePhysics)
+			{
+				PrimitiveComponent->WakeAllRigidBodies();
+			}
+		}
+	}
+}
+
+void AMountedMachineGun::ReturnEmptyShellToPool(AActor* ShellActor) const
+{
+	if (!ShellActor || !GetWorld())
+	{
+		return;
+	}
+
+	ResetEmptyShellPhysics(ShellActor, false);
+
+	if (UObjectPoolSubSystem* PoolSubsystem = GetWorld()->GetSubsystem<UObjectPoolSubSystem>())
+	{
+		PoolSubsystem->ReturnToPool(ShellActor);
+	}
+}
+

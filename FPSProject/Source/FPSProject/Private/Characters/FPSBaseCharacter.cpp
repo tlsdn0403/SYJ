@@ -813,6 +813,11 @@ void AFPSBaseCharacter::Interact()
 
     if (bIsOnTruckCargo)
     {
+        if (CurrentTruck && CurrentTruck->TryEnterMountedWeapon(this))
+        {
+            return;
+        }
+
         ExitTruckCargo();
         return;
     }

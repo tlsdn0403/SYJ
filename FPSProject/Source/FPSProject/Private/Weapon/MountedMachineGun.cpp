@@ -8,6 +8,7 @@
 #include "Subsystems/ObjectPoolSubSystem.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/PrimitiveComponent.h"
+#include "Components/StaticMeshComponent.h"
 #include "Animation/AnimInstance.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/Actor.h"
@@ -37,6 +38,12 @@ AMountedMachineGun::AMountedMachineGun()
 	MuzzlePoint = CreateDefaultSubobject<USceneComponent>(TEXT("MuzzlePoint"));
 	MuzzlePoint->SetupAttachment(GunMesh);
 
+	FeedBulletComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("FeedBulletComponent"));
+	FeedBulletComponent->SetupAttachment(GunMesh);
+	FeedBulletComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	FeedBulletComponent->SetCastShadow(false);
+	FeedBulletComponent->SetVisibility(false);
+
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
 	CameraBoom->SetupAttachment(PitchPivot);
 	CameraBoom->TargetArmLength = 0.0f;
@@ -60,6 +67,13 @@ AMountedMachineGun::AMountedMachineGun()
 	{
 		EmptyShellClass = EmptyShellBP.Class;
 	}
+
+	static ConstructorHelpers::FObjectFinder<UStaticMesh> BulletMeshAsset(
+		TEXT("/Game/Heavy_Machine_Gun/Attachments/Bullet/Static_Meshes/SM_Bullet.SM_Bullet"));
+	if (BulletMeshAsset.Succeeded())
+	{
+		FeedBulletMesh = BulletMeshAsset.Object;
+	}
 }
 
 void AMountedMachineGun::BeginPlay()
@@ -78,6 +92,16 @@ void AMountedMachineGun::BeginPlay()
 		}
 	}
 
+	if (FeedBulletComponent)
+	{
+		FeedBulletComponent->SetVisibility(false);
+		FeedBulletComponent->SetRelativeScale3D(AmmoFeedBulletScale);
+		if (FeedBulletMesh)
+		{
+			FeedBulletComponent->SetStaticMesh(FeedBulletMesh);
+		}
+	}
+
 }
 
 void AMountedMachineGun::Tick(float DeltaTime)
@@ -85,6 +109,7 @@ void AMountedMachineGun::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 	// 애니메이션 업데이트
 	UpdateFireAnimation(DeltaTime);
+	UpdateAmmoFeedAnimation(DeltaTime);
 }
 
 void AMountedMachineGun::SetWeaponUser(AFPSBaseCharacter* NewUser)
@@ -220,6 +245,7 @@ void AMountedMachineGun::Fire()
 
 	SpawnEmptyShell();
 	ApplyFireAnimation();
+	StartAmmoFeedAnimation();
 	ApplyMountedRecoil();
 }
 
@@ -297,6 +323,59 @@ void AMountedMachineGun::UpdateFireAnimation(float DeltaTime)
 	SetAnimFloatProperty(AnimInstance, TEXT("Anim_Trigger"), TriggerAnimationAlpha);
 	SetAnimFloatProperty(AnimInstance, TEXT("Trigger"), TriggerAnimationAlpha);
 	SetAnimVectorProperty(AnimInstance, TEXT("Gun_Translation"), GunRecoilTranslation * RecoilAnimationAlpha);
+}
+
+void AMountedMachineGun::StartAmmoFeedAnimation()
+{
+	AmmoFeedAnimationAlpha = 1.0f;
+	UpdateAmmoFeedAnimation(0.0f);
+}
+
+void AMountedMachineGun::UpdateAmmoFeedAnimation(float DeltaTime)
+{
+	if (!FeedBulletComponent || !GunMesh)
+	{
+		return;
+	}
+
+	if (AmmoFeedAnimationAlpha <= 0.0f)
+	{
+		FeedBulletComponent->SetVisibility(false);
+		return;
+	}
+
+	if (DeltaTime > 0.0f && AmmoFeedAnimationDuration > KINDA_SMALL_NUMBER)
+	{
+		AmmoFeedAnimationAlpha = FMath::Max(
+			AmmoFeedAnimationAlpha - (DeltaTime / AmmoFeedAnimationDuration),
+			0.0f);
+	}
+
+	const bool bHasStartSocket =
+		AmmoFeedStartSocketName != NAME_None && GunMesh->DoesSocketExist(AmmoFeedStartSocketName);
+	const bool bHasEndSocket =
+		AmmoFeedEndSocketName != NAME_None && GunMesh->DoesSocketExist(AmmoFeedEndSocketName);
+
+	const FVector StartLocation = bHasStartSocket
+		? GunMesh->GetSocketLocation(AmmoFeedStartSocketName)
+		: GunMesh->GetComponentTransform().TransformPosition(AmmoFeedStartOffset);
+	const FVector EndLocation = bHasEndSocket
+		? GunMesh->GetSocketLocation(AmmoFeedEndSocketName)
+		: GunMesh->GetComponentTransform().TransformPosition(AmmoFeedEndOffset);
+
+	const FVector Direction = (EndLocation - StartLocation).GetSafeNormal();
+	const FVector BulletLocation = FMath::Lerp(EndLocation, StartLocation, AmmoFeedAnimationAlpha);
+	const FRotator BulletRotation = Direction.IsNearlyZero()
+		? GunMesh->GetComponentRotation()
+		: Direction.Rotation();
+
+	FeedBulletComponent->SetVisibility(true);
+	FeedBulletComponent->SetWorldLocationAndRotation(BulletLocation, BulletRotation);
+
+	if (AmmoFeedAnimationAlpha <= 0.0f)
+	{
+		FeedBulletComponent->SetVisibility(false);
+	}
 }
 
 void AMountedMachineGun::SetAnimFloatProperty(UAnimInstance* AnimInstance, const TCHAR* PropertyName, float Value) const

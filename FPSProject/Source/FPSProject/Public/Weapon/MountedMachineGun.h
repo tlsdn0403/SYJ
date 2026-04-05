@@ -10,6 +10,8 @@ class AActor;
 class UParticleSystem;
 class USceneComponent;
 class USkeletalMeshComponent;
+class UStaticMesh;
+class UStaticMeshComponent;
 class USoundBase;
 class USpringArmComponent;
 class UAnimInstance;
@@ -54,6 +56,9 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Mounted Gun")
 	USceneComponent* CameraPoint;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Mounted Gun|Animation")
+	UStaticMeshComponent* FeedBulletComponent;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mounted Gun")
 	FName MuzzleSocketName = TEXT("Muzzle");
@@ -112,17 +117,41 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mounted Gun|Animation")
 	FVector GunRecoilTranslation = FVector(-12.0f, 0.0f, 0.0f);
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mounted Gun|Animation")
+	FName AmmoFeedStartSocketName;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mounted Gun|Animation")
+	FName AmmoFeedEndSocketName;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mounted Gun|Animation")
+	FVector AmmoFeedStartOffset = FVector(-24.0f, -12.0f, 4.0f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mounted Gun|Animation")
+	FVector AmmoFeedEndOffset = FVector(6.0f, 0.0f, 8.0f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mounted Gun|Animation")
+	float AmmoFeedAnimationDuration = 0.06f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mounted Gun|Animation")
+	FVector AmmoFeedBulletScale = FVector(0.45f, 0.45f, 0.45f);
+
 private:
 	UPROPERTY()
 	AFPSBaseCharacter* CurrentUser = nullptr;
 
+	UPROPERTY()
+	UStaticMesh* FeedBulletMesh = nullptr;
+
 	float LastFireTime = -1000.0f;
 	float TriggerAnimationAlpha = 0.0f;
 	float RecoilAnimationAlpha = 0.0f;
+	float AmmoFeedAnimationAlpha = 0.0f;
 
 	void ApplyMountedRecoil() const;
 	void ApplyFireAnimation();
 	void UpdateFireAnimation(float DeltaTime);
+	void StartAmmoFeedAnimation();
+	void UpdateAmmoFeedAnimation(float DeltaTime);
 	void SetAnimFloatProperty(UAnimInstance* AnimInstance, const TCHAR* PropertyName, float Value) const;
 	void SetAnimVectorProperty(UAnimInstance* AnimInstance, const TCHAR* PropertyName, const FVector& Value) const;
 	void SpawnEmptyShell();

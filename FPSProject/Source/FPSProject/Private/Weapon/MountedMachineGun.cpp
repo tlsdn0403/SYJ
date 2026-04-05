@@ -6,6 +6,7 @@
 #include "Projectiles/FPSProjectile.h"
 #include "Sound/SoundBase.h"
 #include "Subsystems/ObjectPoolSubSystem.h"
+#include "Components/ChildActorComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/PrimitiveComponent.h"
 #include "Components/StaticMeshComponent.h"
@@ -44,6 +45,10 @@ AMountedMachineGun::AMountedMachineGun()
 	FeedBulletComponent->SetCastShadow(false);
 	FeedBulletComponent->SetVisibility(false);
 
+	MagazineActorComponent = CreateDefaultSubobject<UChildActorComponent>(TEXT("MagazineActorComponent"));
+	MagazineActorComponent->SetupAttachment(GunMesh);
+	MagazineActorComponent->SetRelativeLocation(FVector::ZeroVector);
+
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
 	CameraBoom->SetupAttachment(PitchPivot);
 	CameraBoom->TargetArmLength = 0.0f;
@@ -74,6 +79,15 @@ AMountedMachineGun::AMountedMachineGun()
 	{
 		FeedBulletMesh = BulletMeshAsset.Object;
 	}
+
+	static ConstructorHelpers::FClassFinder<AActor> MagazineBP(
+		TEXT("/Game/Heavy_Machine_Gun/Attachments/Magazine/Blueprints/BP_Magazine"));
+	if (MagazineBP.Succeeded())
+	{
+		MagazineActorClass = MagazineBP.Class;
+	}
+
+	CurrentBulletsInMagazine = MagazineCapacity;
 }
 
 void AMountedMachineGun::BeginPlay()
@@ -102,6 +116,13 @@ void AMountedMachineGun::BeginPlay()
 		}
 	}
 
+	if (MagazineActorComponent && MagazineActorClass)
+	{
+		MagazineActorComponent->SetChildActorClass(MagazineActorClass);
+	}
+
+	CurrentBulletsInMagazine = MagazineCapacity;
+	UpdateMagazineAnimationState(false);
 }
 
 void AMountedMachineGun::Tick(float DeltaTime)
@@ -110,6 +131,7 @@ void AMountedMachineGun::Tick(float DeltaTime)
 	// 애니메이션 업데이트
 	UpdateFireAnimation(DeltaTime);
 	UpdateAmmoFeedAnimation(DeltaTime);
+	UpdateMagazineAnimationState(false);
 }
 
 void AMountedMachineGun::SetWeaponUser(AFPSBaseCharacter* NewUser)
@@ -140,6 +162,9 @@ void AMountedMachineGun::Fire()
 		return;
 	}
 	LastFireTime = CurrentTime;
+	bMagazineFirePressed = true;
+	CurrentBulletsInMagazine = FMath::Max(0, CurrentBulletsInMagazine - 1);
+	MagazineAnimationPlayingTime = CurrentTime + FireInterval;
 
 	const FVector CameraLocation = GetCameraLocation();
 	const FRotator CameraRotation = GetCameraRotation();
@@ -246,6 +271,7 @@ void AMountedMachineGun::Fire()
 	SpawnEmptyShell();
 	ApplyFireAnimation();
 	StartAmmoFeedAnimation();
+	UpdateMagazineAnimationState(true);
 	ApplyMountedRecoil();
 }
 
@@ -378,6 +404,30 @@ void AMountedMachineGun::UpdateAmmoFeedAnimation(float DeltaTime)
 	}
 }
 
+void AMountedMachineGun::UpdateMagazineAnimationState(bool bTriggeredByFire)
+{
+	if (!GetWorld())
+	{
+		return;
+	}
+
+	if (!bTriggeredByFire)
+	{
+		bMagazineFirePressed = (GetWorld()->GetTimeSeconds() - LastFireTime) <= (FireInterval * 1.5f);
+	}
+
+	SetChildActorIntProperty(MagazineActorComponent, MagazineBulletCountPropertyName, CurrentBulletsInMagazine);
+	SetChildActorFloatProperty(MagazineActorComponent, MagazineAnimationPlayingTimePropertyName, MagazineAnimationPlayingTime);
+	SetChildActorFloatProperty(MagazineActorComponent, MagazineFiringSpeedPropertyName, FireInterval);
+	SetChildActorBoolProperty(MagazineActorComponent, MagazineFirePressedPropertyName, bMagazineFirePressed);
+	SetChildActorBoolProperty(MagazineActorComponent, MagazineSystemWorkingPropertyName, bMagazineFirePressed);
+
+	if (bTriggeredByFire)
+	{
+		CallChildActorFunction(MagazineActorComponent, MagazineFireEventName);
+	}
+}
+
 void AMountedMachineGun::SetAnimFloatProperty(UAnimInstance* AnimInstance, const TCHAR* PropertyName, float Value) const
 {
 	if (!AnimInstance)
@@ -407,6 +457,73 @@ void AMountedMachineGun::SetAnimVectorProperty(UAnimInstance* AnimInstance, cons
 			*static_cast<FVector*>(StructValuePtr) = Value;
 		}
 	}
+}
+
+void AMountedMachineGun::SetChildActorIntProperty(UChildActorComponent* ChildActorComponent, FName PropertyName, int32 Value) const
+{
+	if (!ChildActorComponent || PropertyName.IsNone())
+	{
+		return;
+	}
+
+	if (AActor* ChildActor = ChildActorComponent->GetChildActor())
+	{
+		if (FIntProperty* IntProperty = FindFProperty<FIntProperty>(ChildActor->GetClass(), PropertyName))
+		{
+			IntProperty->SetPropertyValue_InContainer(ChildActor, Value);
+		}
+	}
+}
+
+void AMountedMachineGun::SetChildActorFloatProperty(UChildActorComponent* ChildActorComponent, FName PropertyName, float Value) const
+{
+	if (!ChildActorComponent || PropertyName.IsNone())
+	{
+		return;
+	}
+
+	if (AActor* ChildActor = ChildActorComponent->GetChildActor())
+	{
+		if (FFloatProperty* FloatProperty = FindFProperty<FFloatProperty>(ChildActor->GetClass(), PropertyName))
+		{
+			FloatProperty->SetPropertyValue_InContainer(ChildActor, Value);
+		}
+	}
+}
+
+void AMountedMachineGun::SetChildActorBoolProperty(UChildActorComponent* ChildActorComponent, FName PropertyName, bool Value) const
+{
+	if (!ChildActorComponent || PropertyName.IsNone())
+	{
+		return;
+	}
+
+	if (AActor* ChildActor = ChildActorComponent->GetChildActor())
+	{
+		if (FBoolProperty* BoolProperty = FindFProperty<FBoolProperty>(ChildActor->GetClass(), PropertyName))
+		{
+			BoolProperty->SetPropertyValue_InContainer(ChildActor, Value);
+		}
+	}
+}
+
+bool AMountedMachineGun::CallChildActorFunction(UChildActorComponent* ChildActorComponent, FName FunctionName) const
+{
+	if (!ChildActorComponent || FunctionName.IsNone())
+	{
+		return false;
+	}
+
+	if (AActor* ChildActor = ChildActorComponent->GetChildActor())
+	{
+		if (UFunction* Function = ChildActor->FindFunction(FunctionName))
+		{
+			ChildActor->ProcessEvent(Function, nullptr);
+			return true;
+		}
+	}
+
+	return false;
 }
 
 void AMountedMachineGun::SpawnEmptyShell()

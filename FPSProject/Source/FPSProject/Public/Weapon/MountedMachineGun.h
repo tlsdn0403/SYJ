@@ -10,6 +10,7 @@ class AActor;
 class UParticleSystem;
 class USceneComponent;
 class USkeletalMeshComponent;
+class UChildActorComponent;
 class UStaticMesh;
 class UStaticMeshComponent;
 class USoundBase;
@@ -59,6 +60,9 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Mounted Gun|Animation")
 	UStaticMeshComponent* FeedBulletComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Mounted Gun|Magazine")
+	UChildActorComponent* MagazineActorComponent;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mounted Gun")
 	FName MuzzleSocketName = TEXT("Muzzle");
@@ -135,6 +139,30 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mounted Gun|Animation")
 	FVector AmmoFeedBulletScale = FVector(0.45f, 0.45f, 0.45f);
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mounted Gun|Magazine")
+	TSubclassOf<AActor> MagazineActorClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mounted Gun|Magazine")
+	int32 MagazineCapacity = 50;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mounted Gun|Magazine")
+	FName MagazineFireEventName = TEXT("Play_Animate_Bullets_Inside_Magazine_TimeL_CE");
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mounted Gun|Magazine")
+	FName MagazineBulletCountPropertyName = TEXT("Number Of Bullets Inside Magazine");
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mounted Gun|Magazine")
+	FName MagazineFirePressedPropertyName = TEXT("Firing Key Is Pressed");
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mounted Gun|Magazine")
+	FName MagazineSystemWorkingPropertyName = TEXT("Magazine System Is Working");
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mounted Gun|Magazine")
+	FName MagazineAnimationPlayingTimePropertyName = TEXT("Animation Playing Time");
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mounted Gun|Magazine")
+	FName MagazineFiringSpeedPropertyName = TEXT("Firing Speed");
+
 private:
 	UPROPERTY()
 	AFPSBaseCharacter* CurrentUser = nullptr;
@@ -146,14 +174,22 @@ private:
 	float TriggerAnimationAlpha = 0.0f;
 	float RecoilAnimationAlpha = 0.0f;
 	float AmmoFeedAnimationAlpha = 0.0f;
+	float MagazineAnimationPlayingTime = 0.0f;
+	int32 CurrentBulletsInMagazine = 0;
+	bool bMagazineFirePressed = false;
 
 	void ApplyMountedRecoil() const;
 	void ApplyFireAnimation();
 	void UpdateFireAnimation(float DeltaTime);
 	void StartAmmoFeedAnimation();
 	void UpdateAmmoFeedAnimation(float DeltaTime);
+	void UpdateMagazineAnimationState(bool bTriggeredByFire);
 	void SetAnimFloatProperty(UAnimInstance* AnimInstance, const TCHAR* PropertyName, float Value) const;
 	void SetAnimVectorProperty(UAnimInstance* AnimInstance, const TCHAR* PropertyName, const FVector& Value) const;
+	void SetChildActorIntProperty(UChildActorComponent* ChildActorComponent, FName PropertyName, int32 Value) const;
+	void SetChildActorFloatProperty(UChildActorComponent* ChildActorComponent, FName PropertyName, float Value) const;
+	void SetChildActorBoolProperty(UChildActorComponent* ChildActorComponent, FName PropertyName, bool Value) const;
+	bool CallChildActorFunction(UChildActorComponent* ChildActorComponent, FName FunctionName) const;
 	void SpawnEmptyShell();
 	void ResetEmptyShellPhysics(AActor* ShellActor, bool bEnablePhysics) const;
 	void ReturnEmptyShellToPool(AActor* ShellActor) const;

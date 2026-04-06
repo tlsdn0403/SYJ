@@ -1,11 +1,13 @@
 ﻿#include "pch.h"
 #include <iostream>
+#include <atomic>
 #include "ThreadManager.h"
 #include "Service.h"
 #include "Session.h"
 #include "ClientPacketHandler.h"
 
 char sendData[] = "Hello World";
+std::atomic<int32> GConnectedCount = 0;
 
 class ServerSession : public PacketSession
 {
@@ -17,7 +19,7 @@ public:
 
 	virtual void OnConnected() override
 	{
-		cout << "OnConnected" << endl;
+		GConnectedCount++;
 		
 		Protocol::C_ENTER_GAME pkt;
 		auto sendBuffer = ClientPacketHandler::MakeSendBuffer(pkt);
@@ -35,12 +37,11 @@ public:
 
 	virtual void OnSend(int32 len) override
 	{
-		cout << "OnSend Len = " << len << endl;
 	}
 
 	virtual void OnDisconnected() override
 	{
-		cout << "Disconnected" << endl;
+		GConnectedCount--;
 	}
 };
 
@@ -54,11 +55,11 @@ int main()
 		NetAddress(L"127.0.0.1", 7777),
 		make_shared<IocpCore>(),
 		[=]() { return make_shared<ServerSession>(); }, // TODO : SessionManager 등
-		1);
+		5000);
 
 	ASSERT_CRASH(service->Start());
 
-	for (int32 i = 0; i < 2; i++)
+	for (int32 i = 0; i < 5; i++)
 	{
 		GThreadManager->Launch([=]()
 			{
@@ -72,6 +73,7 @@ int main()
 	while (true)
 	{
 		//service->Broadcast(sendBuffer);
+		cout << "현재 접속된 클라이언트 수: " << GConnectedCount.load() << " / 5000" << endl;
 		this_thread::sleep_for(1s);
 	}
 

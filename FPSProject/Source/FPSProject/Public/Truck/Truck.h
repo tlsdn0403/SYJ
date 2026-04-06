@@ -131,6 +131,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Turret")
 	AMountedMachineGun* GetMountedWeapon() const { return MountedWeapon; }
 
+	UFUNCTION(BlueprintCallable, Category = "Turret")
+	bool TryEnterMountedWeapon(AFPSBaseCharacter* Character);
+
 	void EndMountedWeaponUse(AFPSBaseCharacter* Character);
 
 	UFUNCTION()
@@ -191,6 +194,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Turret", meta = (AllowPrivateAccess = "true"))
 	FTransform MountedWeaponRelativeTransform;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Turret", meta = (AllowPrivateAccess = "true"))
+	float MountedWeaponUseDistance = 180.0f;
 private:
 	bool bIsBrakingSoundPlaying = false;
 

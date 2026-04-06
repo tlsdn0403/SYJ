@@ -385,23 +385,8 @@ void ATruck::Interact_Implementation(AFPSBaseCharacter* Character)
 		return;
 	}
 
-	if (Character->GetCurrentTruckInteractType() == ETruckInteractType::TurretSeat)
+	if (TryEnterMountedWeapon(Character))
 	{
-		if (!MountedWeapon)
-		{
-			UE_LOG(LogTemp, Warning, TEXT("Mounted weapon is not configured on truck %s"), *GetName());
-			return;
-		}
-
-		if (MountedWeaponUser && MountedWeaponUser != Character)
-		{
-			UE_LOG(LogTemp, Warning, TEXT("Mounted weapon already in use by %s"), *GetNameSafe(MountedWeaponUser));
-			return;
-		}
-
-		MountedWeaponUser = Character;
-		Character->EnterMountedWeapon(this, MountedWeapon);
-		MountedWeapon->SetWeaponUser(Character);
 		return;
 	}
 	// 아이템 파밍 라운드.
@@ -473,6 +458,37 @@ void ATruck::Interact_Implementation(AFPSBaseCharacter* Character)
 			Character->EnterTruckCargo(this);
 		}
 	}
+}
+
+bool ATruck::TryEnterMountedWeapon(AFPSBaseCharacter* Character)
+{
+	if (!Character || !MountedWeapon)
+	{
+		return false;
+	}
+
+	const bool bRequestedTurretSeat =
+		Character->GetCurrentTruckInteractType() == ETruckInteractType::TurretSeat;
+	const bool bSwitchingFromCargo =
+		Character->CurrentTruck == this &&
+		Character->IsOnTruckCargo() &&
+		FVector::Dist(Character->GetActorLocation(), GetTurretSeatLocation()) <= MountedWeaponUseDistance;
+
+	if (!bRequestedTurretSeat && !bSwitchingFromCargo)
+	{
+		return false;
+	}
+
+	if (MountedWeaponUser && MountedWeaponUser != Character)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Mounted weapon already in use by %s"), *GetNameSafe(MountedWeaponUser));
+		return true;
+	}
+
+	MountedWeaponUser = Character;
+	Character->EnterMountedWeapon(this, MountedWeapon);
+	MountedWeapon->SetWeaponUser(Character);
+	return true;
 }
 
 void ATruck::ExitDriverSeat()

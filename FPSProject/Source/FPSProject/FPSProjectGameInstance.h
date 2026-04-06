@@ -41,6 +41,8 @@ public:
 
 	void HandleEquipWeapon(const Protocol::S_EQUIP_WEAPON& pkt);
 
+	void HandleSpawnItem(const Protocol::S_SPAWN_ITEM& pkt);
+
 public:
 	virtual void Shutdown() override;
 	virtual void Tick(float DeltaTime) override;
@@ -63,4 +65,7 @@ public:
 	// [추가] 바닥에 떨어진 아이템(총기 등)들을 ID로 관리하기 위한 맵
 	UPROPERTY()
 	TMap<uint64, AActor*> FieldItems;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Network|Class")
+	TSubclassOf<class AWeaponBase> DefaultWeaponClass;
 };

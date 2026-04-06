@@ -2,6 +2,7 @@
 
 
 #include "Zombie/AIZombieController.h"
+#include "Zombie/BaseZombie.h"
 #include "BehaviorTree/BehaviorTree.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "Kismet/GameplayStatics.h"
@@ -26,12 +27,27 @@ void AAIZombieController::Tick(float DeltaSeconds)
 {
     Super::Tick(DeltaSeconds);
 
-    // ∏≈ «¡∑π¿” «√∑π¿ÃæÓ∏¶ √£æ∆º≠ Blackboardø° ¿˙¿Â
+    if (ABaseZombie* Zombie = Cast<ABaseZombie>(GetPawn()))
+    {
+        if (!Zombie->IsAlive())
+        {
+            ClearFocus(EAIFocusPriority::Gameplay);
+
+            if (GetBlackboardComponent())
+            {
+                GetBlackboardComponent()->ClearValue(TargetPlayerKey);
+            }
+
+            return;
+        }
+    }
+
+    // Îß§ ÌîÑÎ†àÏûÑ ÌîåÎ†àÏù¥Ïñ¥Î•º Ï∞æÏïÑÏÑú BlackboardÏóê Ï†ÄÏû•
     PlayerPawn = UGameplayStatics::GetPlayerPawn(GetWorld(), 0);
 
     if (PlayerPawn && GetBlackboardComponent())
     {
-        // Ω√æﬂ √º≈© 
+        // ÏãúÏïº Ï≤¥ÌÅ¨ 
         bool bCanSee = LineOfSightTo(PlayerPawn);
 
         if (bCanSee && GetPawn())
@@ -47,9 +63,9 @@ void AAIZombieController::Tick(float DeltaSeconds)
 
         if (bCanSee)
         {
-            //«√∑π¿ÃæÓø°∞‘ Ω√º± ∞Ì¡§.
+            //ÌîåÎ†àÏù¥Ïñ¥ÏóêÍ≤å ÏãúÏÑ† Í≥†Ï†ï.
             SetFocus(PlayerPawn);
-            // «√∑π¿ÃæÓ∏¶ ∫Ì∑¢∫∏µÂø° ¿˙¿Â °Ê «‡µø∆Æ∏Æ∞° ¿Ã∞… ∫∏∞Ì √ﬂ¿˚/∞¯∞›
+            // ÌîåÎ†àÏù¥Ïñ¥Î•º Î∏îÎûôÎ≥¥ÎìúÏóê Ï†ÄÏû• ‚Üí ÌñâÎèôÌä∏Î¶¨Í∞Ä Ïù¥Í±∏ Î≥¥Í≥† Ï∂îÏ†Å/Í≥µÍ≤©
             GetBlackboardComponent()->SetValueAsObject(TargetPlayerKey, PlayerPawn);
 			GetBlackboardComponent()->SetValueAsVector(FName("PlayerLocation"), PlayerPawn->GetActorLocation());
             
@@ -57,7 +73,7 @@ void AAIZombieController::Tick(float DeltaSeconds)
         else
         {
 			ClearFocus(EAIFocusPriority::Gameplay);
-            // Ω√æﬂ π€¿Ã∏È ≈∏∞Ÿ ¡ˆøÏ±‚ °Ê «‡µø∆Æ∏Æ∞° ¥Î±‚ ªÛ≈¬
+            // ÏãúÏïº Î∞ñÏù¥Î©¥ ÌÉÄÍ≤ü ÏßÄÏö∞Í∏∞ ‚Üí ÌñâÎèôÌä∏Î¶¨Í∞Ä ÎåÄÍ∏∞ ÏÉÅÌÉú
             GetBlackboardComponent()->ClearValue(TargetPlayerKey);
         }
     }

@@ -90,6 +90,9 @@ extern S_MOVEDefaultTypeInternal _S_MOVE_default_instance_;
 class S_SPAWN;
 struct S_SPAWNDefaultTypeInternal;
 extern S_SPAWNDefaultTypeInternal _S_SPAWN_default_instance_;
+class S_SPAWN_ITEM;
+struct S_SPAWN_ITEMDefaultTypeInternal;
+extern S_SPAWN_ITEMDefaultTypeInternal _S_SPAWN_ITEM_default_instance_;
 }  // namespace Protocol
 PROTOBUF_NAMESPACE_OPEN
 template<> ::Protocol::C_CHAT* Arena::CreateMaybeMessage<::Protocol::C_CHAT>(Arena*);
@@ -106,6 +109,7 @@ template<> ::Protocol::S_LEAVE_GAME* Arena::CreateMaybeMessage<::Protocol::S_LEA
 template<> ::Protocol::S_LOGIN* Arena::CreateMaybeMessage<::Protocol::S_LOGIN>(Arena*);
 template<> ::Protocol::S_MOVE* Arena::CreateMaybeMessage<::Protocol::S_MOVE>(Arena*);
 template<> ::Protocol::S_SPAWN* Arena::CreateMaybeMessage<::Protocol::S_SPAWN>(Arena*);
+template<> ::Protocol::S_SPAWN_ITEM* Arena::CreateMaybeMessage<::Protocol::S_SPAWN_ITEM>(Arena*);
 PROTOBUF_NAMESPACE_CLOSE
 namespace Protocol {
 
@@ -2250,6 +2254,163 @@ class S_EQUIP_WEAPON final :
   union { Impl_ _impl_; };
   friend struct ::TableStruct_Protocol_2eproto;
 };
+// -------------------------------------------------------------------
+
+class S_SPAWN_ITEM final :
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:Protocol.S_SPAWN_ITEM) */ {
+ public:
+  inline S_SPAWN_ITEM() : S_SPAWN_ITEM(nullptr) {}
+  ~S_SPAWN_ITEM() override;
+  explicit PROTOBUF_CONSTEXPR S_SPAWN_ITEM(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized);
+
+  S_SPAWN_ITEM(const S_SPAWN_ITEM& from);
+  S_SPAWN_ITEM(S_SPAWN_ITEM&& from) noexcept
+    : S_SPAWN_ITEM() {
+    *this = ::std::move(from);
+  }
+
+  inline S_SPAWN_ITEM& operator=(const S_SPAWN_ITEM& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline S_SPAWN_ITEM& operator=(S_SPAWN_ITEM&& from) noexcept {
+    if (this == &from) return *this;
+    if (GetOwningArena() == from.GetOwningArena()
+  #ifdef PROTOBUF_FORCE_COPY_IN_MOVE
+        && GetOwningArena() != nullptr
+  #endif  // !PROTOBUF_FORCE_COPY_IN_MOVE
+    ) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* descriptor() {
+    return GetDescriptor();
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Reflection* GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const S_SPAWN_ITEM& default_instance() {
+    return *internal_default_instance();
+  }
+  static inline const S_SPAWN_ITEM* internal_default_instance() {
+    return reinterpret_cast<const S_SPAWN_ITEM*>(
+               &_S_SPAWN_ITEM_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    14;
+
+  friend void swap(S_SPAWN_ITEM& a, S_SPAWN_ITEM& b) {
+    a.Swap(&b);
+  }
+  inline void Swap(S_SPAWN_ITEM* other) {
+    if (other == this) return;
+  #ifdef PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() != nullptr &&
+        GetOwningArena() == other->GetOwningArena()) {
+   #else  // PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() == other->GetOwningArena()) {
+  #endif  // !PROTOBUF_FORCE_COPY_IN_SWAP
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(S_SPAWN_ITEM* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetOwningArena() == other->GetOwningArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  S_SPAWN_ITEM* New(::PROTOBUF_NAMESPACE_ID::Arena* arena = nullptr) const final {
+    return CreateMaybeMessage<S_SPAWN_ITEM>(arena);
+  }
+  using ::PROTOBUF_NAMESPACE_ID::Message::CopyFrom;
+  void CopyFrom(const S_SPAWN_ITEM& from);
+  using ::PROTOBUF_NAMESPACE_ID::Message::MergeFrom;
+  void MergeFrom( const S_SPAWN_ITEM& from) {
+    S_SPAWN_ITEM::MergeImpl(*this, from);
+  }
+  private:
+  static void MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg);
+  public:
+  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
+  uint8_t* _InternalSerialize(
+      uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
+  int GetCachedSize() const final { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::PROTOBUF_NAMESPACE_ID::Arena* arena, bool is_message_owned);
+  void SharedDtor();
+  void SetCachedSize(int size) const final;
+  void InternalSwap(S_SPAWN_ITEM* other);
+
+  private:
+  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
+  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
+    return "Protocol.S_SPAWN_ITEM";
+  }
+  protected:
+  explicit S_SPAWN_ITEM(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                       bool is_message_owned = false);
+  public:
+
+  static const ClassData _class_data_;
+  const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*GetClassData() const final;
+
+  ::PROTOBUF_NAMESPACE_ID::Metadata GetMetadata() const final;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  enum : int {
+    kItemsFieldNumber = 1,
+  };
+  // repeated .Protocol.ObjectInfo items = 1;
+  int items_size() const;
+  private:
+  int _internal_items_size() const;
+  public:
+  void clear_items();
+  ::Protocol::ObjectInfo* mutable_items(int index);
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::Protocol::ObjectInfo >*
+      mutable_items();
+  private:
+  const ::Protocol::ObjectInfo& _internal_items(int index) const;
+  ::Protocol::ObjectInfo* _internal_add_items();
+  public:
+  const ::Protocol::ObjectInfo& items(int index) const;
+  ::Protocol::ObjectInfo* add_items();
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::Protocol::ObjectInfo >&
+      items() const;
+
+  // @@protoc_insertion_point(class_scope:Protocol.S_SPAWN_ITEM)
+ private:
+  class _Internal;
+
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  struct Impl_ {
+    ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::Protocol::ObjectInfo > items_;
+    mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_Protocol_2eproto;
+};
 // ===================================================================
 
 
@@ -2999,9 +3160,52 @@ inline void S_EQUIP_WEAPON::set_weapontype(int32_t value) {
   // @@protoc_insertion_point(field_set:Protocol.S_EQUIP_WEAPON.weaponType)
 }
 
+// -------------------------------------------------------------------
+
+// S_SPAWN_ITEM
+
+// repeated .Protocol.ObjectInfo items = 1;
+inline int S_SPAWN_ITEM::_internal_items_size() const {
+  return _impl_.items_.size();
+}
+inline int S_SPAWN_ITEM::items_size() const {
+  return _internal_items_size();
+}
+inline ::Protocol::ObjectInfo* S_SPAWN_ITEM::mutable_items(int index) {
+  // @@protoc_insertion_point(field_mutable:Protocol.S_SPAWN_ITEM.items)
+  return _impl_.items_.Mutable(index);
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::Protocol::ObjectInfo >*
+S_SPAWN_ITEM::mutable_items() {
+  // @@protoc_insertion_point(field_mutable_list:Protocol.S_SPAWN_ITEM.items)
+  return &_impl_.items_;
+}
+inline const ::Protocol::ObjectInfo& S_SPAWN_ITEM::_internal_items(int index) const {
+  return _impl_.items_.Get(index);
+}
+inline const ::Protocol::ObjectInfo& S_SPAWN_ITEM::items(int index) const {
+  // @@protoc_insertion_point(field_get:Protocol.S_SPAWN_ITEM.items)
+  return _internal_items(index);
+}
+inline ::Protocol::ObjectInfo* S_SPAWN_ITEM::_internal_add_items() {
+  return _impl_.items_.Add();
+}
+inline ::Protocol::ObjectInfo* S_SPAWN_ITEM::add_items() {
+  ::Protocol::ObjectInfo* _add = _internal_add_items();
+  // @@protoc_insertion_point(field_add:Protocol.S_SPAWN_ITEM.items)
+  return _add;
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::Protocol::ObjectInfo >&
+S_SPAWN_ITEM::items() const {
+  // @@protoc_insertion_point(field_list:Protocol.S_SPAWN_ITEM.items)
+  return _impl_.items_;
+}
+
 #ifdef __GNUC__
   #pragma GCC diagnostic pop
 #endif  // __GNUC__
+// -------------------------------------------------------------------
+
 // -------------------------------------------------------------------
 
 // -------------------------------------------------------------------

@@ -1,7 +1,9 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+ï»¿// Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include "Zombie/BaseZombie.h"
+#include "AIController.h"
+#include "BrainComponent.h"
 #include "Components/HealthComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -14,12 +16,12 @@ ABaseZombie::ABaseZombie()
 {
     PrimaryActorTick.bCanEverTick = true;
 
-    // Á»ºñ ¸Ş½Ã ÄÄÆ÷³ÍÆ®¸¦ »ı¼º.
+    // é†«Â€é®?ï§ë¶¿ë–† è€ŒëŒ„ë£·?ëš°ë“ƒç‘œ??ì•¹ê½¦.
 	ZombieMesh = GetMesh();
     //ZombieMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("ZombieMeshMesh"));
     check(ZombieMesh != nullptr);
 
-    //¸Ş½¬ÀÇ Äİ¸®Àü ¼³Á¤
+    //ï§ë¶¿ë©??è‚„ì’•â”???ã…¼ì ™
     ZombieMesh->SetCollisionProfileName(TEXT("CharacterMesh"));
 
     HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComponent"));
@@ -31,7 +33,7 @@ void ABaseZombie::BeginPlay()
 
     if (HealthComponent)
     {
-		HealthComponent->OnDamaged.AddDynamic(this, &ABaseZombie::OnZombieDamaged); // µ¥¹ÌÁö ÀÔÀ» ¶§ OnZombieDamaged¸¦ È£Ãâ
+		HealthComponent->OnDamaged.AddDynamic(this, &ABaseZombie::OnZombieDamaged); // ?ê³•?ï§Â€ ?ë‚†ì“£ ??OnZombieDamagedç‘œ??ëª„í…§
     }
 
     InitializeBoneDurability();
@@ -51,23 +53,23 @@ void ABaseZombie::Attack()
 
     UE_LOG(LogTemp, Warning, TEXT("Zombie %s Attack!"), *GetName());
 
-    // --- 1. °ø°İ ¾Ö´Ï¸ŞÀÌ¼Ç Àç»ı ---
+    // --- 1. æ€¨ë“¦êº½ ?ì¢Šë•²ï§ë¶¿ì” ???ÑŠê¹® ---
     UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
     if (AnimInstance && AttackMontage)
     {
-        //1.0¹è¼ÓÀ¸·Î ¾Ö´Ï¸ŞÀÌ¼Ç ¸ùÅ¸ÁÖ Àç»ı
+        //1.0è«›ê³—ëƒ½?ì‡°ì¤ˆ ?ì¢Šë•²ï§ë¶¿ì” ??ï§ì€?äºŒ??ÑŠê¹®
         AnimInstance->Montage_Play(AttackMontage, 1.0f);
 
         UE_LOG(LogTemp, Warning, TEXT("Zombie %s Montage!"), *GetName());
-        // ¸ùÅ¸ÁÖ ³¡³ª¸é OnAttackMontageEnded È£Ãâ
+        // ï§ì€?äºŒ??ì•¸êµ¹ï§?OnAttackMontageEnded ?ëª„í…§
         FOnMontageEnded EndDelegate;
         EndDelegate.BindUObject(this, &ABaseZombie::OnAttackMontageEnded);
         AnimInstance->Montage_SetEndDelegate(EndDelegate, AttackMontage);
     }
     else
     {
-        // ¸ùÅ¸ÁÖ ¾øÀ¸¸é ¹Ù·Î µ¥¹ÌÁö ÁÖ°í ³¡
-        // ---  ÇÃ·¹ÀÌ¾î¿¡°Ô µ¥¹ÌÁö ---
+        // ï§ì€?äºŒ??ë†ì‘ï§?è«›ë¶¾ì¤ˆ ?ê³•?ï§Â€ äºŒì‡¨í€¬ ??
+        // ---  ?ëš®ì …?ëŒë¼±?ë¨­ì¾¶ ?ê³•?ï§Â€ ---
         APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(GetWorld(), 0);
         if (PlayerPawn)
         {
@@ -89,8 +91,8 @@ void ABaseZombie::Attack()
 
 void ABaseZombie::OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 {
-    // ¸ùÅ¸ÁÖ°¡ ³¡³ª´Â ½ÃÁ¡¿¡ µ¥¹ÌÁö Àû¿ë
-    if (!bInterrupted) // Áß´ÜµÇÁö ¾Ê¾ÒÀ¸¸é
+    // ï§ì€?äºŒì‡¨? ?ì•¸êµ¹???ì’–ì ???ê³•?ï§Â€ ?ê³¸ìŠœ
+    if (!bInterrupted) // ä»¥ë¬ë–’?ì„? ?ë”†ë¸¯?ì‡°ãˆƒ
     {
         APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(GetWorld(), 0);
         if (PlayerPawn)
@@ -139,15 +141,15 @@ void ABaseZombie::OnZombieDamaged(float NewHealth, float Damage, const FHitResul
 			Rotation
         );
     }
-    // ºĞÇØ ·ÎÁ÷
+    // éºê¾ªë¹ æ¿¡ì’–ì­…
     
     if (Hit.BoneName != NAME_None)
     {
-        // ¸ÂÀº »À¸¦ ÁÖ¿ä ºĞÇØ °¡´É »À ÀÌ¸§À¸·Î º¯È¯
+        // ï§ìš? å ‰ëˆ? äºŒì‡±ìŠ‚ éºê¾ªë¹ åª›Â€??å ‰??ëŒ€ì««?ì‡°ì¤ˆ è¹‚Â€??
         FName TargetBone = GetParentBoneForDamage(Hit.BoneName);
 
-        // 2»À ³»±¸µµ ±ğ±â ¹× ºĞÇØ ½Ãµµ
-        // Hit.ImpactNormal * -1 Àº ÃÑ¾ËÀÌ ³¯¾Æ¿Â ¹æÇâ(Ãæ°İ ¹æÇâ)À» ÀÇ¹ÌÇÔ
+        // 2å ‰??ë‹¿ë„??æºë¡ªë¦° è«›?éºê¾ªë¹ ?ì’•ë£„
+        // Hit.ImpactNormal * -1 ?Â€ ç¥ì•¹ë¸£???ì¢ë¸˜??è«›â‘ºë¼¢(ç•°â‘·êº½ è«›â‘ºë¼¢)???ì„???
         ProcessBoneDamage(TargetBone, Damage, Hit.ImpactPoint, Hit.ImpactNormal * -1.0f);
     }
     if (NewHealth <= 0.f && bIsAlive)
@@ -159,22 +161,22 @@ void ABaseZombie::OnZombieDamaged(float NewHealth, float Damage, const FHitResul
 
 void ABaseZombie::InitializeBoneDurability()
 {
-    BoneDurability.Add(FName("head"), 20.0f);
+    BoneDurability.Add(FName("head"), 10.0f);
 
-    // ÆÈ
+    // ??
     BoneDurability.Add(FName("upperarm_l"), 15.0f);
     BoneDurability.Add(FName("lowerarm_l"), 10.0f);
     BoneDurability.Add(FName("upperarm_r"), 15.0f);
     BoneDurability.Add(FName("lowerarm_r"), 10.0f);
 
-    // ´Ù¸®
+    // ?ã…»â”
     BoneDurability.Add(FName("thigh_l"), 20.0f);
     BoneDurability.Add(FName("calf_l"), 15.0f);
     BoneDurability.Add(FName("thigh_r"), 20.0f);
     BoneDurability.Add(FName("calf_r"), 15.0f);
 
-    // Ã´Ãß (¿É¼Ç: Çã¸®°¡ ²÷¾îÁö°Ô ÇÒ °ÍÀÎÁö)
-    BoneDurability.Add(FName("spine_01"), 30.0f);
+    // ï§£ìˆˆí…› (?ë“­ë€¡: ?ëˆâ”åª›Â€ ?ë”†ë¼±ï§Â€å¯ƒ???å¯ƒê»‹ì”¤ï§Â€)
+    BoneDurability.Add(FName("spine_01"), 50.0f);
 }
 
 FName ABaseZombie::GetParentBoneForDamage(FName HitBoneName)
@@ -182,26 +184,26 @@ FName ABaseZombie::GetParentBoneForDamage(FName HitBoneName)
     FString BoneString = HitBoneName.ToString();
 
 	UE_LOG(LogTemp, Log, TEXT("Hit Bone: %s"), *BoneString);
-    // ¸Ó¸®/¸ñ
+    // ç™’ëªƒâ”/ï§?
     if (BoneString.Contains("neck") || BoneString.Contains("head")) return FName("head");
 
-    // ¿ŞÂÊ ÆÈ °è¿­
+    // ?ì‡±ã ??æ€¨ê¾©ë¿´
     if (BoneString.Contains("_l"))
     {
         if (BoneString.Contains("hand") || BoneString.Contains("finger") || BoneString.Contains("thumb") ||
             BoneString.Contains("index") || BoneString.Contains("middle") || BoneString.Contains("pinky") || BoneString.Contains("ring"))
         {
-            return FName("lowerarm_l"); // ¼Õ ¸ÂÀ¸¸é ¾Æ·¡ÆÈ µ¥¹ÌÁö·Î Ã³¸®
+            return FName("lowerarm_l"); // ??ï§ìšì‘ï§??ê¾¨ì˜’???ê³•?ï§Â€æ¿¡?ï§£ì„â”
         }
         if (BoneString.Contains("lowerarm") || BoneString.Contains("twist")) return FName("lowerarm_l");
         if (BoneString.Contains("upperarm") || BoneString.Contains("clavicle")) return FName("upperarm_l");
 
-        // ¿ŞÂÊ ´Ù¸®
+        // ?ì‡±ã ?ã…»â”
         if (BoneString.Contains("foot") || BoneString.Contains("ball") || BoneString.Contains("calf")) return FName("calf_l");
         if (BoneString.Contains("thigh")) return FName("thigh_l");
     }
 
-    // ¿À¸¥ÂÊ ÆÈ °è¿­
+    // ?ã…»â…¨ï§Ÿ???æ€¨ê¾©ë¿´
     if (BoneString.Contains("_r"))
     {
         if (BoneString.Contains("hand") || BoneString.Contains("finger") || BoneString.Contains("thumb") ||
@@ -212,23 +214,23 @@ FName ABaseZombie::GetParentBoneForDamage(FName HitBoneName)
         if (BoneString.Contains("lowerarm") || BoneString.Contains("twist")) return FName("lowerarm_r");
         if (BoneString.Contains("upperarm") || BoneString.Contains("clavicle")) return FName("upperarm_r");
 
-        // ¿À¸¥ÂÊ ´Ù¸®
+        // ?ã…»â…¨ï§Ÿ??ã…»â”
         if (BoneString.Contains("foot") || BoneString.Contains("ball") || BoneString.Contains("calf")) return FName("calf_r");
         if (BoneString.Contains("thigh")) return FName("thigh_r");
     }
 
-    // Ã´Ãß/°ñ¹İ
+    // ï§£ìˆˆí…›/æ€¨â‘¤ì»²
     if (BoneString.Contains("spine") || BoneString.Contains("pelvis")) return FName("spine_01");
 
-    return HitBoneName; // ¸ÅÇÎ ¾ÈµÇ¸é ±×´ë·Î ¹İÈ¯
+    return HitBoneName; // ï§ã…½ë¸¨ ?ëˆë¦ºï§?æ´¹ëªƒ?æ¿¡?è«›ì„‘ì†š
 }
 
 void ABaseZombie::ProcessBoneDamage(FName BoneName, float Damage, FVector ImpactPoint, FVector ImpactDirection)
 {
-    // ÀÌ¹Ì Àß¸° »À¶ó¸é ¹«½Ã
+    // ?ëŒ€? ?ì„â”› å ‰ëˆì”ªï§?è‡¾ëŒë–†
     if (BrokenBones.Contains(BoneName)) return;
 
-    // ³»±¸µµ ¸®½ºÆ®¿¡ ÀÖ´Â »ÀÀÎÁö È®ÀÎ
+    // ?ë‹¿ë„??ç”±ÑŠë’ª?ëª„ë¿‰ ?ëˆë’— å ‰ë‰ì”¤ï§Â€ ?ëº¤ì”¤
     if (BoneDurability.Contains(BoneName))
     {
         float CurrentBoneHealth = BoneDurability[BoneName] - Damage;
@@ -236,14 +238,24 @@ void ABaseZombie::ProcessBoneDamage(FName BoneName, float Damage, FVector Impact
 
         UE_LOG(LogTemp, Log, TEXT("Bone: %s Health: %f"), *BoneName.ToString(), CurrentBoneHealth);
 
-        // »À Ã¼·ÂÀÌ ´Ù µÇ¸é ºĞÇØ
+        // å ‰?ï§£ëŒ€ì °?????ì„ãˆƒ éºê¾ªë¹
         if (CurrentBoneHealth <= 0.0f)
         {
-            // Ãæ°İ·® °è»ê (ÃÑ¾Ë ¹æÇâ * Èû)
-            FVector Impulse = ImpactDirection * 300.0f; // Èû Á¶Àı ÇÊ¿ä
+            // ç•°â‘·êº½??æ€¨ê¾©ê¶› (ç¥ì•¹ë¸£ è«›â‘ºë¼¢ * ??
+            FVector Impulse = ImpactDirection * 300.0f; // ??è­°ê³—ì … ?ê¾©ìŠ‚
             DismemberLimb(BoneName, Impulse, ImpactPoint);
 
-            // ÇÏÃ¼°¡ ºĞ¸®µÇ¾úÀ¸¸é Å©·Ñ¸µ »óÅÂ·Î ÀüÈ¯
+            const bool bShouldDieImmediately =
+                BoneName == FName("head") ||
+                BoneName == FName("spine_01");
+
+            if (bShouldDieImmediately && bIsAlive)
+            {
+                Die();
+                return;
+            }
+
+            // ?ì„ê»œåª›Â€ éºê¾¨â”?ì„ë¿€?ì‡°ãˆƒ ?Ñ‰Â·ï§??ê³¹ê¹­æ¿¡??ê¾ªì†š
             if (IsLegBone(BoneName) && MovementState == EZombieMovementState::Normal)
             {
                 StartCrawling();
@@ -257,26 +269,26 @@ void ABaseZombie::DismemberLimb(FName BoneName, FVector Impulse, FVector HitLoca
 {
     if (BrokenBones.Contains(BoneName)) return;
 
-    // ºĞÇØ Ã³¸® ±â·Ï
+    // éºê¾ªë¹ ï§£ì„â” æ¹²ê³•ì¤‰
     BrokenBones.Add(BoneName);
 
-    // ½ÇÁ¦ ¸Ş½¬ ÄÄÆ÷³ÍÆ® °¡Á®¿À±â (GetMesh() »ç¿ë ±ÇÀå)
+    // ?ã…¼ì £ ï§ë¶¿ë© è€ŒëŒ„ë£·?ëš°ë“ƒ åª›Â€?ëª„ì‚¤æ¹²?(GetMesh() ?ÑŠìŠœ æ²…ëš¯ì˜£)
     USkeletalMeshComponent* MeshComp = GetMesh();
     if (!MeshComp) MeshComp = ZombieMesh;
 
     if (MeshComp)
     {
-        // 1. Á¦¾à Á¶°Ç ÆÄ±« (»À¸¦ ¹°¸®ÀûÀ¸·Î ºĞ¸®)
+        // 1. ?ì’–ë¹Ÿ è­°ê³Œêµ” ?ëš­ëˆ¼ (å ‰ëˆ? è‡¾ì‡°â”?ê³¸ì‘æ¿¡?éºê¾¨â”)
         MeshComp->BreakConstraint(Impulse, HitLocation, BoneName);
 
         MeshComp->HideBoneByName(BoneName, EPhysBodyOp::PBO_None);
-        // 2. Àß¸° ºÎÀ§°¡ ¹°¸® ½Ã¹Ä·¹ÀÌ¼ÇÀ» ÇÏµµ·Ï ¼³Á¤
-        // ÀÌ ¼³Á¤ÀÌ ¾øÀ¸¸é Àß¸° ÆÈÀÌ °øÁß¿¡ µÕµÕ ¶°´Ù´Ï¸ç ¾Ö´Ï¸ŞÀÌ¼ÇÀ» °è¼Ó µû¶óÇÕ´Ï´Ù.
-        // SetAllBodiesBelowSimulatePhysics: ÇØ´ç »À ¾Æ·¡ÂÊ ¸ğµç »À¸¦ ¹°¸® ½Ã¹Ä·¹ÀÌ¼ÇÀ¸·Î ÀüÈ¯
+        // 2. ?ì„â”› éºÂ€?ê¾§? è‡¾ì‡°â” ?ì’•??ë‰ì” ?ì„ì“£ ?ì„ë£„æ¿¡??ã…¼ì ™
+        // ???ã…¼ì ™???ë†ì‘ï§??ì„â”› ?ë¶¿ì”  æ€¨ë“­ì¨·???Î»ë« ?ì¢Šë–?ëˆÅ‰ ?ì¢Šë•²ï§ë¶¿ì” ?ì„ì“£ æ€¨ê¾©ëƒ½ ?ê³•ì”ª?â‘¸ë•²??
+        // SetAllBodiesBelowSimulatePhysics: ?ëŒ€ë–¦ å ‰??ê¾¨ì˜’ï§Ÿ?ï§â‘¤ë±º å ‰ëˆ? è‡¾ì‡°â” ?ì’•??ë‰ì” ?ì„ì‘æ¿¡??ê¾ªì†š
         MeshComp->SetAllBodiesBelowSimulatePhysics(BoneName, true, true);
 		
 
-        // 3. ¹°¸® Ãæ°İ °¡ÇÏ±â (Àß·Á³ª°¥ ¶§ Æ¨°Ü³ª°¡µµ·Ï)
+        // 3. è‡¾ì‡°â” ç•°â‘·êº½ åª›Â€?ì„ë¦° (?ì„ì ®?ì„ì» ???ëº¢êº¼?ì„??ê¾¨ì¤‰)
         MeshComp->AddImpulse(Impulse, BoneName, true);
 
         UE_LOG(LogTemp, Warning, TEXT("Dismembered: %s"), *BoneName.ToString());
@@ -288,12 +300,12 @@ void ABaseZombie::StartCrawling()
     
     if (MovementState == EZombieMovementState::Crawling) return;
 
-    // Á»ºñÀÇ »óÅÂ ±â¾î´Ù´Ï´Â »óÅÂ·Î º¯°æ
+    // é†«Â€é®ê¾©ì“½ ?ê³¹ê¹­ æ¹²ê³—ë¼±?ã…»ë•²???ê³¹ê¹­æ¿¡?è¹‚Â€å¯ƒ?
     MovementState = EZombieMovementState::Crawling;
 
     UE_LOG(LogTemp, Warning, TEXT("Zombie %s is now CRAWLING"), *GetName());
 
-    //  Á»ºñ°¡ ¹Ù´Ú¿¡ ´¯µµ·Ï Ä¸½¶ Å©±â ÁÙÀÌ±â
+    //  é†«Â€é®ê¾§? è«›ë¶¾ë–???ëº£ë£„æ¿¡?ï§¦â‰ªë’“ ?Ñˆë¦° ä»¥ê¾©ì” æ¹²?
     UCapsuleComponent* Capsule = GetCapsuleComponent();
     if (Capsule)
     {
@@ -301,24 +313,24 @@ void ABaseZombie::StartCrawling()
         Capsule->SetCapsuleRadius(CrawlingCapsuleRadius);
     }
 
-    //  ÀÌµ¿ ¼Óµµ ÁÙÀÌ±â
+    //  ?ëŒ€ë£ ?ë¾ë£„ ä»¥ê¾©ì” æ¹²?
     UCharacterMovementComponent* MoveComp = GetCharacterMovement();
     if (MoveComp)
     {
         MoveComp->MaxWalkSpeed = CrawlingMaxSpeed;
 
-        // ¹Ù´Ú¿¡¼­ ¿òÁ÷ÀÏ ¼ö ÀÖµµ·Ï
+        // è«›ë¶¾ë–?ë¨¯ê½Œ ?Â€ï§ê³¸ì”ª ???ëˆë£„æ¿¡?
         MoveComp->SetMovementMode(MOVE_Walking);
 
-        // NavMesh ±â¹İ ÀÌµ¿ÀÌ¶ó¸é ³ôÀÌ ¿ÀÇÁ¼Â Á¶Á¤
+        // NavMesh æ¹²ê³•ì»² ?ëŒ€ë£?ëŒ€ì”ªï§??ë¯ªì”  ?ã…½ë´½??è­°ê³—ì ™
         MoveComp->bOrientRotationToMovement = true;
     }
 
-    // Ä¸½¶ÀÌ ÁÙ¾úÀ¸´Ï ¸Å½¬¸¦ ¾Æ·¡·Î
+    // ï§¦â‰ªë’“??ä»¥ê¾©ë¿€?ì‡°ë•² ï§ã…¼ë©ç‘œ??ê¾¨ì˜’æ¿¡?
     USkeletalMeshComponent* MeshComp = GetMesh();
     if (MeshComp)
     {
-        // ±âÁ¸ ¸Ş½Ã À§Ä¡¿¡¼­ ¾Æ·¡·Î ³»¸®±â
+        // æ¹²ê³—ã€ˆ ï§ë¶¿ë–† ?ê¾©íŠ‚?ë¨¯ê½Œ ?ê¾¨ì˜’æ¿¡??ëŒ€â”æ¹²?
         FVector CurrentOffset = MeshComp->GetRelativeLocation();
         MeshComp->SetRelativeLocation(FVector(CurrentOffset.X, CurrentOffset.Y, -CrawlingCapsuleHalfHeight));
     }
@@ -339,15 +351,32 @@ void ABaseZombie::Die()
     if (!bIsAlive) return;
 
     bIsAlive = false;
+    MovementState = EZombieMovementState::Dead;
 
     UE_LOG(LogTemp, Warning, TEXT("Zombie %s Died!"), *GetName());
 
+    if (AAIController* AIController = Cast<AAIController>(GetController()))
+    {
+        AIController->StopMovement();
+        AIController->ClearFocus(EAIFocusPriority::Gameplay);
+
+        if (UBrainComponent* BrainComponent = AIController->GetBrainComponent())
+        {
+            BrainComponent->StopLogic(TEXT("Zombie died"));
+        }
+    }
+
+    if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
+    {
+        MoveComp->StopMovementImmediately();
+        MoveComp->DisableMovement();
+        MoveComp->SetComponentTickEnabled(false);
+    }
+
     GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-    GetMesh()->SetSimulatePhysics(true);
-    // Á×À» ¶§´Â ÀüÃ¼ ·¡±×µ¹
-    GetMesh()->SetSimulatePhysics(true);
-    // ¸ğµç »À°¡ ¹°¸® ¿µÇâÀ» ¹Şµµ·Ï
-    GetMesh()->SetAllBodiesBelowSimulatePhysics(FName("pelvis"), true, true);
+    // äºŒìŒì“£ ?ëš®ë’— ?ê¾©ê»œ ?ì„ë ‡??    GetMesh()->SetSimulatePhysics(true);
+    // ï§â‘¤ë±º å ‰ë‡? è‡¾ì‡°â” ?ê³¹ë¼¢??è«›ì…ë£„æ¿¡?    GetMesh()->SetAllBodiesBelowSimulatePhysics(FName("pelvis"), true, true);
     SetLifeSpan(5.f);
 }
+
 

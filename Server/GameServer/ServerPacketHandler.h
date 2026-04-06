@@ -24,6 +24,7 @@ enum : uint16
 	PKT_S_CHAT = 1011,
 	PKT_C_EQUIP_WEAPON = 1012,
 	PKT_S_EQUIP_WEAPON = 1013,
+	PKT_S_SPAWN_ITEM = 1014,
 };
 
 // Custom Handlers
@@ -63,6 +64,7 @@ public:
 	static SendBufferRef MakeSendBuffer(Protocol::S_MOVE& pkt) { return MakeSendBuffer(pkt, PKT_S_MOVE); }
 	static SendBufferRef MakeSendBuffer(Protocol::S_CHAT& pkt) { return MakeSendBuffer(pkt, PKT_S_CHAT); }
 	static SendBufferRef MakeSendBuffer(Protocol::S_EQUIP_WEAPON& pkt) { return MakeSendBuffer(pkt, PKT_S_EQUIP_WEAPON); }
+	static SendBufferRef MakeSendBuffer(Protocol::S_SPAWN_ITEM& pkt) { return MakeSendBuffer(pkt, PKT_S_SPAWN_ITEM); }
 
 private:
 	template<typename PacketType, typename ProcessFunc>

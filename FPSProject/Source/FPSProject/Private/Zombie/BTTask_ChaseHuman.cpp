@@ -2,6 +2,7 @@
 
 
 #include "Zombie/BTTask_ChaseHuman.h"
+#include "Zombie/BaseZombie.h"
 #include "AIController.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "NavigationSystem.h"
@@ -11,27 +12,27 @@
 UBTTask_ChaseHuman::UBTTask_ChaseHuman()
 {
 	NodeName = TEXT("Chase Human");
-	// Blackboard Å° ÃÊ±âÈ­
+	// Blackboard í‚¤ ì´ˆê¸°í™”
 	TargetPlayerKey.SelectedKeyName = FName("TargetPlayer");
 
-	// TickTask È°¼ºÈ­ (¸Å Æ½¸¶´Ù ½ÇÇà)
+	// TickTask í™œì„±í™” (ë§¤ í‹±ë§ˆë‹¤ ì‹¤í–‰)
     bNotifyTick = true;
 }
 
 EBTNodeResult::Type UBTTask_ChaseHuman::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
-	AAIController* AIController = OwnerComp.GetAIOwner();  //AI ÄÁÆ®·Ñ·¯ °¡Á®¿À±â
-	ACharacter* ZombieCharacter = Cast<ACharacter>(AIController->GetPawn()); // Á»ºñ Ä³¸¯ÅÍ °¡Á®¿À±â
-    AActor* TargetActor = Cast<AActor>(OwnerComp.GetBlackboardComponent()->GetValueAsObject(TargetPlayerKey.SelectedKeyName));   // Blackboard¿¡¼­ ÇÃ·¹ÀÌ¾î Å¸°Ù °¡Á®¿À±â
-    if (!TargetActor|| !AIController || !ZombieCharacter)
+	AAIController* AIController = OwnerComp.GetAIOwner();  //AI ì»¨íŠ¸ë¡¤ëŸ¬ ê°€ì ¸ì˜¤ê¸°
+	ABaseZombie* ZombieCharacter = AIController ? Cast<ABaseZombie>(AIController->GetPawn()) : nullptr; // ì¢€ë¹„ ìºë¦­í„° ê°€ì ¸ì˜¤ê¸°
+    AActor* TargetActor = Cast<AActor>(OwnerComp.GetBlackboardComponent()->GetValueAsObject(TargetPlayerKey.SelectedKeyName));   // Blackboardì—ì„œ í”Œë ˆì´ì–´ íƒ€ê²Ÿ ê°€ì ¸ì˜¤ê¸°
+    if (!TargetActor|| !AIController || !ZombieCharacter || !ZombieCharacter->IsAlive())
     {
-        return EBTNodeResult::Failed; // ÇÏ³ª¶óµµ ¾øÀ¸¸é ½ÇÆĞ ¹İÈ¯
+        return EBTNodeResult::Failed; // í•˜ë‚˜ë¼ë„ ì—†ìœ¼ë©´ ì‹¤íŒ¨ ë°˜í™˜
     }
 
 
     UE_LOG(LogTemp, Warning, TEXT("Zombie chasing player at location: %s"), *TargetActor->GetActorLocation().ToString());
 
-    // ÀÌµ¿ ÁßÀÌ¹Ç·Î In Progress ¹İÈ¯ (°è¼Ó ½ÇÇà)
+    // ì´ë™ ì¤‘ì´ë¯€ë¡œ In Progress ë°˜í™˜ (ê³„ì† ì‹¤í–‰)
     return EBTNodeResult::InProgress;
 }
 
@@ -46,18 +47,19 @@ void UBTTask_ChaseHuman::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* Node
         return;
     }
 
-    ACharacter* ZombieCharacter = Cast<ACharacter>(AIController->GetPawn());
+    ABaseZombie* ZombieCharacter = Cast<ABaseZombie>(AIController->GetPawn());
     AActor* TargetActor = Cast<AActor>(OwnerComp.GetBlackboardComponent()->GetValueAsObject(TargetPlayerKey.SelectedKeyName));
 
-    if (!ZombieCharacter || !TargetActor)
+    if (!ZombieCharacter || !TargetActor || !ZombieCharacter->IsAlive())
     {
+        AIController->StopMovement();
         FinishLatentTask(OwnerComp, EBTNodeResult::Failed);
         return;
     }
 
     float Distance = FVector::Dist(ZombieCharacter->GetActorLocation(), TargetActor->GetActorLocation());
 
-    // °ø°İ ¹üÀ§¿¡ µµ´ŞÇÏ¸é ¼º°ø ¹İÈ¯ (°ø°İÀ¸·Î ÀüÈ¯)
+    // ê³µê²© ë²”ìœ„ì— ë„ë‹¬í•˜ë©´ ì„±ê³µ ë°˜í™˜ (ê³µê²©ìœ¼ë¡œ ì „í™˜)
     if (Distance <= StopDistance)
     {
         UE_LOG(LogTemp, Warning, TEXT("In attack range! Distance: %f"), Distance);
@@ -65,7 +67,7 @@ void UBTTask_ChaseHuman::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* Node
         return;
     }
 
-    // ¸Å Æ½¸¶´Ù ÇÃ·¹ÀÌ¾î À§Ä¡ ¾÷µ¥ÀÌÆ®
+    // ë§¤ í‹±ë§ˆë‹¤ í”Œë ˆì´ì–´ ìœ„ì¹˜ ì—…ë°ì´íŠ¸
     AIController->MoveToActor(TargetActor, StopDistance);
 
     UE_LOG(LogTemp, Log, TEXT("Chasing... Distance: %f"), Distance);

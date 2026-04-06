@@ -30,33 +30,16 @@ void UPickUpWeaponComponent::OnSphereBeginOverlap(UPrimitiveComponent* Overlappe
 
 	if (Character && Character->IsLocallyControlled())
 	{
-		// 디버깅 메시지: 플레이어가 무기 장착(픽업) 트리거에 진입했는지 확인
-		UE_LOG(LogTemp, Log, TEXT("[PickUpWeaponComponent] '%s'  (Owner: '%s')."),
-			*GetNameSafe(Character),
-			*GetNameSafe(GetOwner()));
+		AWeaponBase* Weapon = Cast<AWeaponBase>(GetOwner());
+		if (Weapon == nullptr) return;
 
-		if (GEngine)
-		{
-			GEngine->AddOnScreenDebugMessage(
-				-1,
-				2.0f,
-				FColor::Green,
-				FString::Printf(TEXT("Attatch Weapon: %s"), *GetNameSafe(Character))
-			);
-		}
-
-		OnPickUp.Broadcast(Character);
-		Character->SetCurrentWeapon(Cast<AWeaponBase>(GetOwner()));
-		AFPSPlayerController* PC = Cast<AFPSPlayerController>( Character->GetController()); 
-		PC->InventoryW->GetGunAR4();	//총 체크 
-
-		OnComponentBeginOverlap.RemoveAll(this); // 한 번만 실행 
+		OnComponentBeginOverlap.RemoveAll(this);
 
 		// 내 캐릭터가 무기를 주웠으니 서버로 패킷 전송!
 		Protocol::C_EQUIP_WEAPON EquipPkt;
-		EquipPkt.set_itemobjectid(1); // (나중에 맵 아이템 ID로 교체할 부분)
+		EquipPkt.set_itemobjectid(Weapon->ItemObjectId);
 		SEND_PACKET(EquipPkt);
 
-		UE_LOG(LogTemp, Error, TEXT("======== C_EQUIP_WEAPON 서버로 전송 완료! ========"));
+		//UE_LOG(LogTemp, Warning, TEXT("[Network] 서버에 %llu번 무기 줍기 요청 완료!"), Weapon->ItemObjectId);
 	}
 }

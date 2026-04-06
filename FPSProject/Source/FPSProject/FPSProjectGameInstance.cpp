@@ -241,8 +241,6 @@ void UFPSProjectGameInstance::HandleEquipWeapon(const Protocol::S_EQUIP_WEAPON& 
 	uint64 PlayerId = pkt.playerid();
 	uint64 ItemId = pkt.itemobjectid();
 
-	UE_LOG(LogTemp, Warning, TEXT("[Network] S_EQUIP_WEAPON 수신! PlayerId: %llu, ItemId: %llu"), PlayerId, ItemId);
-
 	// 누가 주웠는지 찾기
 	AFPSBaseCharacter* TargetPlayer = Players.Contains(PlayerId) ? Players[PlayerId] : nullptr;
 
@@ -253,12 +251,7 @@ void UFPSProjectGameInstance::HandleEquipWeapon(const Protocol::S_EQUIP_WEAPON& 
 
 		if (TargetPlayer && WeaponActor)
 		{
-			// 내 캐릭터라면 이미 로컬에서 처리가 되었겠지만, 
-			// 혹시 모를 동기화를 위해 남의 캐릭터일 때만 실행
-			if (!TargetPlayer->IsLocallyControlled())
-			{
-				TargetPlayer->EquipWeaponFromField(WeaponActor);
-			}
+			TargetPlayer->EquipWeaponFromField(WeaponActor);
 
 			// 이제 바닥에 없으니 관리 목록에서 제거!
 			FieldItems.Remove(ItemId);

@@ -139,12 +139,32 @@ bool Room::HandleEnterPlayer(PlayerRef player)
 	SendBufferRef itemBuffer = ServerPacketHandler::MakeSendBuffer(spawnItemPkt);
 	player->session.lock()->Send(itemBuffer);
 
-	return EnterRoom(player, true);
+	return true;
 }
 
 bool Room::HandleLeavePlayer(PlayerRef player)
 {
-	return LeaveRoom(player);
+	if (player == nullptr) return false;
+
+	// 나가는 유저의 ID를 미리 기억해둠
+	uint64 leaveId = player->objectInfo->object_id();
+
+	// 기존에 만들어둔 방 퇴장 로직 실행 (서버 내부 장부에서 지우는 역할)
+	bool success = LeaveRoom(player);
+
+	// 퇴장에 실패했거나 이미 나간 유저라면 여기서 끝냄
+	if (success == false) return false;
+
+	// 방에 남아있는 다른 사람들에게 "얘 나갔다"고 소문내기!
+	Protocol::S_LEAVE_GAME leavePkt;
+	leavePkt.set_object_id(leaveId);
+
+	SendBufferRef sendBuffer = ServerPacketHandler::MakeSendBuffer(leavePkt);
+	Broadcast(sendBuffer);
+
+	cout << "[Server] " << leaveId << "번 유저 접속 종료 및 맵 퇴장 알림 완료!" << endl;
+
+	return true;
 }
 
 void Room::HandleMove(Protocol::C_MOVE pkt)
@@ -174,17 +194,17 @@ void Room::HandleEquipWeapon(PlayerRef player, Protocol::C_EQUIP_WEAPON pkt)
 	if (player == nullptr)
 		return;
 
-	// 1. 이 플레이어의 구조체 정보 갱신 (나중에 늦게 들어오는 유저를 위해)
+	// 이 플레이어의 구조체 정보 갱신
 	// (참고: 지금은 무조건 라이플을 주웠다고 가정하고 하드코딩합니다. 나중에는 맵에 떨어진 아이템 ID를 조회해서 타입을 찾아야 합니다.)
 	player->objectInfo->set_weapon_type(Protocol::WEAPON_TYPE_RIFLE);
 
-	// 2. 다른 사람들에게 뿌릴 S_EQUIP_WEAPON 패킷 조립
+	// 다른 사람들에게 뿌릴 S_EQUIP_WEAPON 패킷 조립
 	Protocol::S_EQUIP_WEAPON equipPkt;
 	equipPkt.set_playerid(player->objectInfo->object_id()); // 누가 주웠는지 (본인)
 	equipPkt.set_itemobjectid(pkt.itemobjectid());          // 어떤 아이템을 주웠는지 (클라가 보내준 맵의 총기 ID)
 	equipPkt.set_weapontype(Protocol::WEAPON_TYPE_RIFLE);   // 무슨 타입인지
 
-	// 3. 방에 있는 모든 사람에게 소문내기 (Broadcast)
+	// 방에 있는 모든 사람에게 소문내기 (Broadcast)
 	SendBufferRef sendBuffer = ServerPacketHandler::MakeSendBuffer(equipPkt);
 	Broadcast(sendBuffer);
 }

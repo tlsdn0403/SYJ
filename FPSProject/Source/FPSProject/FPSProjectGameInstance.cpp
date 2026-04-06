@@ -12,6 +12,7 @@
 #include "ClientPacketHandler.h"
 #include "Characters/FPSBaseCharacter.h"
 #include "Kismet/GameplayStatics.h"
+#include "Kismet/KismetSystemLibrary.h"
 
 void UFPSProjectGameInstance::ConnectToGameServer(const FString& IPAddress)
 {
@@ -55,22 +56,40 @@ void UFPSProjectGameInstance::ConnectToGameServer(const FString& IPAddress)
 
 void UFPSProjectGameInstance::DisconnectFromGameServer()
 {
-	if (Socket == nullptr || GameServerSession == nullptr)
-		return;
-
+	// 서버에 패킷 쏘기
 	Protocol::C_LEAVE_GAME LeavePkt;
 	SEND_PACKET(LeavePkt);
 
-	Socket->Close();
-
-	GameServerSession.Reset();
-
-	/*if (Socket)
+	// 소켓 통신 닫기
+	if (Socket)
 	{
-		ISocketSubsystem* SocketSubsystem = ISocketSubsystem::Get();
-		SocketSubsystem->DestroySocket(Socket);
+		Socket->Close();
 		Socket = nullptr;
-	}*/
+	}
+
+	// 내 게임 화면 끄기
+	UKismetSystemLibrary::QuitGame(this, nullptr, EQuitPreference::Quit, false);
+}
+
+void UFPSProjectGameInstance::HandleLeaveGame(const Protocol::S_LEAVE_GAME& pkt)
+{
+	uint64 LeaveId = pkt.object_id();
+
+	// 플레이어 장부(Players)에 나간 사람이 있는지 확인
+	if (Players.Contains(LeaveId))
+	{
+		AFPSBaseCharacter* LeavePlayer = Players[LeaveId];
+		if (LeavePlayer)
+		{
+			// 맵에서 그 캐릭터를 삭제
+			LeavePlayer->Destroy();
+		}
+
+		// 장부에서도 지워주기
+		Players.Remove(LeaveId);
+
+		UE_LOG(LogTemp, Warning, TEXT("[Network] %llu번 유저가 게임을 종료하여 맵에서 삭제되었습니다."), LeaveId);
+	}
 }
 
 void UFPSProjectGameInstance::HandleRecvPackets()

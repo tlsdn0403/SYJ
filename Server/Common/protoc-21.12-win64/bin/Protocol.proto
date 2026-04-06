@@ -33,7 +33,7 @@ message C_LEAVE_GAME
 
 message S_LEAVE_GAME
 {
-
+	uint64 object_id = 1;
 }
 
 message S_SPAWN

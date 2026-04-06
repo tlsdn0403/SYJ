@@ -39,7 +39,5 @@ void UPickUpWeaponComponent::OnSphereBeginOverlap(UPrimitiveComponent* Overlappe
 		Protocol::C_EQUIP_WEAPON EquipPkt;
 		EquipPkt.set_itemobjectid(Weapon->ItemObjectId);
 		SEND_PACKET(EquipPkt);
-
-		//UE_LOG(LogTemp, Warning, TEXT("[Network] 서버에 %llu번 무기 줍기 요청 완료!"), Weapon->ItemObjectId);
 	}
 }

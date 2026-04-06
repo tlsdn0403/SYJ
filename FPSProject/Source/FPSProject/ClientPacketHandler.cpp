@@ -144,3 +144,33 @@ bool Handle_S_SPAWN_ITEM(PacketSessionRef& session, Protocol::S_SPAWN_ITEM& pkt)
 	}
 	return true;
 }
+
+bool Handle_S_FIRE(PacketSessionRef& session, Protocol::S_FIRE& pkt)
+{
+	// 1. 메인 스레드에서 안전하게 쓰기 위해 패킷 복사본 만들기
+	Protocol::S_FIRE* pktCopy = new Protocol::S_FIRE(pkt);
+
+	// 2. 메인 스레드(GameThread)에게 작업 넘기기
+	AsyncTask(ENamedThreads::GameThread, [pktCopy]()
+		{
+			// 3. 현재 켜져 있는 월드와 게임 인스턴스 찾기
+			if (GEngine && GEngine->GetWorldContexts().Num() > 0)
+			{
+				UWorld* World = GEngine->GetWorldContexts()[0].World();
+				if (World)
+				{
+					UFPSProjectGameInstance* GI = Cast<UFPSProjectGameInstance>(World->GetGameInstance());
+					if (GI)
+					{
+						// 4. 이전에 우리가 GameInstance에 만들어둔 진짜 실행 함수 호출!
+						GI->HandleFire(*pktCopy);
+					}
+				}
+			}
+
+			// 5. 다 썼으면 메모리 누수 안 나게 삭제!
+			delete pktCopy;
+		});
+
+	return true;
+}

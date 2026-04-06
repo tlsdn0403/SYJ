@@ -42,8 +42,8 @@ public:
 	void HandleMove(const Protocol::S_MOVE& MovePkt);
 
 	void HandleEquipWeapon(const Protocol::S_EQUIP_WEAPON& pkt);
-
 	void HandleSpawnItem(const Protocol::S_SPAWN_ITEM& pkt);
+	void HandleFire(const Protocol::S_FIRE& pkt);
 
 public:
 	virtual void Shutdown() override;

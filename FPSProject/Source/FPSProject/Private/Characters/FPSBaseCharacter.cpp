@@ -192,49 +192,38 @@ void AFPSBaseCharacter::Tick(float DeltaTime)
         FVector CurrentLocation = GetActorLocation();
         FVector TargetLocation = FVector(DestInfo->x(), DestInfo->y(), DestInfo->z());
 
-        // 1. 회전 보간 (부드럽게 15.f 적용)
         FRotator TargetRot(0.f, DestInfo->yaw(), 0.f);
         SetActorRotation(FMath::RInterpTo(GetActorRotation(), TargetRot, DeltaTime, 15.f));
 
-        // 2. 점프 이벤트 유지
         if (State == Protocol::MOVE_STATE_JUMP && RemoteLastState != Protocol::MOVE_STATE_JUMP)
         {
             if (!GetCharacterMovement()->IsFalling()) Jump();
         }
         RemoteLastState = State;
 
-        // 3. [복구 2] AddMovementInput 버리고 VInterpTo로 직접 밀어주기!
         float DistToDest = FVector::Dist(CurrentLocation, TargetLocation);
 
         if (State == Protocol::MOVE_STATE_RUN || State == Protocol::MOVE_STATE_JUMP)
         {
-            // [해결 1] SetActorLocation(VInterpTo) 삭제! 위치를 강제로 덮어씌우면 물리엔진과 싸우게 됨.
-
             FVector Direction;
             if (DistToDest > 15.0f)
             {
-                // 타겟이 멀리 있으면 타겟을 향해 전력 질주
                 Direction = (TargetLocation - CurrentLocation).GetSafeNormal();
             }
             else
             {
-                // [해결 2 핵심!] 타겟에 도착했는데 아직 서버에서 멈추라는 패킷이 안 왔다면?
-                // 멈칫하지 않고, 캐릭터가 바라보는 앞방향으로 계속 달리게 해서 애니메이션을 부드럽게 유지!
                 Direction = GetActorForwardVector();
             }
 
-            // 물리 엔진을 이용해 자연스럽게 뜀 (애니메이션 정상 작동)
             AddMovementInput(Direction, 1.0f);
 
-            // [해결 3] 만약 렉이 걸려서 서버 위치랑 200 이상 크게 차이 나버리면, 그때만 강제로 순간이동(보정)
             if (DistToDest > 200.0f)
             {
                 SetActorLocation(TargetLocation);
             }
         }
-        else // IDLE 상태
+        else 
         {
-            // 서 있을 때는 오차가 있으면 제자리로 스르륵 끌어당김
             if (DistToDest > 2.0f)
             {
                 SetActorLocation(FMath::VInterpTo(CurrentLocation, TargetLocation, DeltaTime, 10.0f));
@@ -620,12 +609,27 @@ void AFPSBaseCharacter::Fire()
                 true,
                 CurrentMountedWeapon->GetFireInterval());
         }
+
+        if (IsLocallyControlled())
+        {
+            Protocol::C_FIRE FirePkt;
+            SEND_PACKET(FirePkt);
+            UE_LOG(LogTemp, Error, TEXT("[Network] 1. C_FIRE 패킷 서버로 발사!"));
+        }
+
         return;
     }
 
     if (GetCurrentWeapon())
     {
         GetCurrentWeapon()->Fire();
+
+        if (IsLocallyControlled())
+        {
+            Protocol::C_FIRE FirePkt;
+            SEND_PACKET(FirePkt);
+        }
+
         return;
     }
 }
@@ -712,6 +716,12 @@ void AFPSBaseCharacter::HandleMountedWeaponAutoFire()
 
     CurrentMountedWeapon->SetWeaponUser(this);
     CurrentMountedWeapon->Fire();
+
+    if (IsLocallyControlled())
+    {
+        Protocol::C_FIRE FirePkt;
+        SEND_PACKET(FirePkt);
+	}
 }
 
 void AFPSBaseCharacter::SetPlayerInfo(const Protocol::PosInfo& Info)
@@ -746,6 +756,9 @@ void AFPSBaseCharacter::EquipWeaponFromField(AWeaponBase* Weapon)
 
     // 현재 무기 변수 세팅
     SetCurrentWeapon(Weapon);
+
+    // 무기에게 주인 인식
+    Weapon->SetWeaponUser(this);
 
     // 내 캐릭터라면 인벤토리 UI 업데이트
     if (IsLocallyControlled())

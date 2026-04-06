@@ -194,6 +194,56 @@ void AWeaponBase::Tick(float DeltaTime)
     Super::Tick(DeltaTime);
 }
 
+void AWeaponBase::RemoteFire()
+{
+    if (!Character) return;
+
+    // 1. 소리 & 애니메이션 재생 (기존 Fire에서 복붙)
+    if (FireSound)
+    {
+        UGameplayStatics::PlaySoundAtLocation(this, FireSound, Character->GetActorLocation());
+    }
+    if (FireAnimation)
+    {
+        if (USkeletalMeshComponent* AnimMesh = Character->GetMesh())
+        {
+            if (UAnimInstance* AnimInstance = AnimMesh->GetAnimInstance())
+                AnimInstance->Montage_Play(FireAnimation, 1.f);
+        }
+    }
+
+    if (GEngine)
+    {
+        GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Blue, TEXT("빵! (상대방 화면에서 가짜 총알 발사됨!)"));
+    }
+    UE_LOG(LogTemp, Warning, TEXT("[Network] RemoteFire 실행됨! 남의 총구에서 쐈습니다."));
+
+    // 2. 총알 스폰 (카메라 조준선 계산 없이, 캐릭터가 바라보는 방향으로 무지성 발사!)
+    if (ProjectileClass)
+    {
+        UWorld* World = GetWorld();
+        if (World && WeaponMesh && WeaponMesh->DoesSocketExist(MuzzleSocketName))
+        {
+            FVector FireLocation = WeaponMesh->GetSocketLocation(MuzzleSocketName);
+            FRotator FireRotation = Character->GetActorRotation(); // 남의 캐릭터가 보는 방향
+
+            UObjectPoolSubSystem* PoolSubsystem = World->GetSubsystem<UObjectPoolSubSystem>();
+            if (PoolSubsystem)
+            {
+                AActor* PooledActor = PoolSubsystem->SpawnFromPool(ProjectileClass, FireLocation, FireRotation);
+                if (AFPSProjectile* Projectile = Cast<AFPSProjectile>(PooledActor))
+                {
+                    // 남의 총알은 나랑 충돌하지 않게 무시 처리
+                    if (Projectile->CollisionComponent)
+                        Projectile->CollisionComponent->IgnoreActorWhenMoving(Character, true);
+
+                    Projectile->FireInDirection(FireRotation.Vector());
+                }
+            }
+        }
+    }
+}
+
 float AWeaponBase::GetCurrentSpreadAngleDegrees() const
 {
     if (!Character)

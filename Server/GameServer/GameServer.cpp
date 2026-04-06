@@ -42,7 +42,7 @@ int main()
 		NetAddress(L"0.0.0.0", 7777),
 		make_shared<IocpCore>(),
 		[=]() { return make_shared<GameSession>(); }, // TODO : SessionManager 등
-		100);
+		5000);
 
 	ASSERT_CRASH(service->Start());
 

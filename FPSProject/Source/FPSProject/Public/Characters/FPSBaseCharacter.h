@@ -211,11 +211,8 @@ private:
     int32 MaxItemCount = 5;
 
 public:
-    // �÷��̾� �̵� ���� �Լ�
     void SetPlayerInfo(const Protocol::PosInfo& Info);
     void SetDestInfo(const Protocol::PosInfo& Info);
-
-    // �����κ��� ���� ���� ����� �޾��� �� ȣ��� �Լ�
     void EquipWeaponFromField(AWeaponBase* Weapon);
 
     Protocol::PosInfo* GetPlayerInfo() { return PlayerInfo; }
@@ -236,4 +233,3 @@ protected:
 
     FTimerHandle MountedWeaponAutoFireTimerHandle;
 };
-

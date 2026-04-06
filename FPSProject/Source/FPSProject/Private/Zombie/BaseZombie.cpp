@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include "Zombie/BaseZombie.h"
@@ -16,12 +16,12 @@ ABaseZombie::ABaseZombie()
 {
     PrimaryActorTick.bCanEverTick = true;
 
-    // 좀비 메시 컴포넌트를 생성.
+    // 醫鍮?硫붿떆 而댄룷?뚰듃瑜??앹꽦.
 	ZombieMesh = GetMesh();
     //ZombieMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("ZombieMeshMesh"));
     check(ZombieMesh != nullptr);
 
-    //메쉬의 콜리전 설정
+    //硫붿돩??肄쒕━???ㅼ젙
     ZombieMesh->SetCollisionProfileName(TEXT("CharacterMesh"));
 
     HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComponent"));
@@ -33,7 +33,7 @@ void ABaseZombie::BeginPlay()
 
     if (HealthComponent)
     {
-		HealthComponent->OnDamaged.AddDynamic(this, &ABaseZombie::OnZombieDamaged); // 데미지 입을 때 OnZombieDamaged를 호출
+		HealthComponent->OnDamaged.AddDynamic(this, &ABaseZombie::OnZombieDamaged); // ?곕?吏 ?낆쓣 ??OnZombieDamaged瑜??몄텧
     }
 
     InitializeBoneDurability();
@@ -53,23 +53,23 @@ void ABaseZombie::Attack()
 
     UE_LOG(LogTemp, Warning, TEXT("Zombie %s Attack!"), *GetName());
 
-    // --- 1. 공격 애니메이션 재생 ---
+    // --- 1. 怨듦꺽 ?좊땲硫붿씠???ъ깮 ---
     UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
     if (AnimInstance && AttackMontage)
     {
-        //1.0배속으로 애니메이션 몽타주 재생
+        //1.0諛곗냽?쇰줈 ?좊땲硫붿씠??紐쏀?二??ъ깮
         AnimInstance->Montage_Play(AttackMontage, 1.0f);
 
         UE_LOG(LogTemp, Warning, TEXT("Zombie %s Montage!"), *GetName());
-        // 몽타주 끝나면 OnAttackMontageEnded 호출
+        // 紐쏀?二??앸굹硫?OnAttackMontageEnded ?몄텧
         FOnMontageEnded EndDelegate;
         EndDelegate.BindUObject(this, &ABaseZombie::OnAttackMontageEnded);
         AnimInstance->Montage_SetEndDelegate(EndDelegate, AttackMontage);
     }
     else
     {
-        // 몽타주 없으면 바로 데미지 주고 끝
-        // ---  플레이어에게 데미지 ---
+        // 紐쏀?二??놁쑝硫?諛붾줈 ?곕?吏 二쇨퀬 ??
+        // ---  ?뚮젅?댁뼱?먭쾶 ?곕?吏 ---
         APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(GetWorld(), 0);
         if (PlayerPawn)
         {
@@ -91,8 +91,8 @@ void ABaseZombie::Attack()
 
 void ABaseZombie::OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 {
-    // 몽타주가 끝나는 시점에 데미지 적용
-    if (!bInterrupted) // 중단되지 않았으면
+    // 紐쏀?二쇨? ?앸굹???쒖젏???곕?吏 ?곸슜
+    if (!bInterrupted) // 以묐떒?섏? ?딆븯?쇰㈃
     {
         APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(GetWorld(), 0);
         if (PlayerPawn)
@@ -141,15 +141,15 @@ void ABaseZombie::OnZombieDamaged(float NewHealth, float Damage, const FHitResul
 			Rotation
         );
     }
-    // 분해 로직
+    // 遺꾪빐 濡쒖쭅
     
     if (Hit.BoneName != NAME_None)
     {
-        // 맞은 뼈를 주요 분해 가능 뼈 이름으로 변환
+        // 留욎? 堉덈? 二쇱슂 遺꾪빐 媛??堉??대쫫?쇰줈 蹂??
         FName TargetBone = GetParentBoneForDamage(Hit.BoneName);
 
-        // 2뼈 내구도 깎기 및 분해 시도
-        // Hit.ImpactNormal * -1 은 총알이 날아온 방향(충격 방향)을 의미함
+        // 2堉??닿뎄??源롪린 諛?遺꾪빐 ?쒕룄
+        // Hit.ImpactNormal * -1 ? 珥앹븣???좎븘??諛⑺뼢(異⑷꺽 諛⑺뼢)???섎???
         ProcessBoneDamage(TargetBone, Damage, Hit.ImpactPoint, Hit.ImpactNormal * -1.0f);
     }
     if (NewHealth <= 0.f && bIsAlive)
@@ -161,22 +161,22 @@ void ABaseZombie::OnZombieDamaged(float NewHealth, float Damage, const FHitResul
 
 void ABaseZombie::InitializeBoneDurability()
 {
-    BoneDurability.Add(FName("head"), 20.0f);
+    BoneDurability.Add(FName("head"), 10.0f);
 
-    // 팔
+    // ??
     BoneDurability.Add(FName("upperarm_l"), 15.0f);
     BoneDurability.Add(FName("lowerarm_l"), 10.0f);
     BoneDurability.Add(FName("upperarm_r"), 15.0f);
     BoneDurability.Add(FName("lowerarm_r"), 10.0f);
 
-    // 다리
+    // ?ㅻ━
     BoneDurability.Add(FName("thigh_l"), 20.0f);
     BoneDurability.Add(FName("calf_l"), 15.0f);
     BoneDurability.Add(FName("thigh_r"), 20.0f);
     BoneDurability.Add(FName("calf_r"), 15.0f);
 
-    // 척추 (옵션: 허리가 끊어지게 할 것인지)
-    BoneDurability.Add(FName("spine_01"), 30.0f);
+    // 泥숈텛 (?듭뀡: ?덈━媛 ?딆뼱吏寃???寃껋씤吏)
+    BoneDurability.Add(FName("spine_01"), 50.0f);
 }
 
 FName ABaseZombie::GetParentBoneForDamage(FName HitBoneName)
@@ -184,26 +184,26 @@ FName ABaseZombie::GetParentBoneForDamage(FName HitBoneName)
     FString BoneString = HitBoneName.ToString();
 
 	UE_LOG(LogTemp, Log, TEXT("Hit Bone: %s"), *BoneString);
-    // 머리/목
+    // 癒몃━/紐?
     if (BoneString.Contains("neck") || BoneString.Contains("head")) return FName("head");
 
-    // 왼쪽 팔 계열
+    // ?쇱そ ??怨꾩뿴
     if (BoneString.Contains("_l"))
     {
         if (BoneString.Contains("hand") || BoneString.Contains("finger") || BoneString.Contains("thumb") ||
             BoneString.Contains("index") || BoneString.Contains("middle") || BoneString.Contains("pinky") || BoneString.Contains("ring"))
         {
-            return FName("lowerarm_l"); // 손 맞으면 아래팔 데미지로 처리
+            return FName("lowerarm_l"); // ??留욎쑝硫??꾨옒???곕?吏濡?泥섎━
         }
         if (BoneString.Contains("lowerarm") || BoneString.Contains("twist")) return FName("lowerarm_l");
         if (BoneString.Contains("upperarm") || BoneString.Contains("clavicle")) return FName("upperarm_l");
 
-        // 왼쪽 다리
+        // ?쇱そ ?ㅻ━
         if (BoneString.Contains("foot") || BoneString.Contains("ball") || BoneString.Contains("calf")) return FName("calf_l");
         if (BoneString.Contains("thigh")) return FName("thigh_l");
     }
 
-    // 오른쪽 팔 계열
+    // ?ㅻⅨ履???怨꾩뿴
     if (BoneString.Contains("_r"))
     {
         if (BoneString.Contains("hand") || BoneString.Contains("finger") || BoneString.Contains("thumb") ||
@@ -214,23 +214,23 @@ FName ABaseZombie::GetParentBoneForDamage(FName HitBoneName)
         if (BoneString.Contains("lowerarm") || BoneString.Contains("twist")) return FName("lowerarm_r");
         if (BoneString.Contains("upperarm") || BoneString.Contains("clavicle")) return FName("upperarm_r");
 
-        // 오른쪽 다리
+        // ?ㅻⅨ履??ㅻ━
         if (BoneString.Contains("foot") || BoneString.Contains("ball") || BoneString.Contains("calf")) return FName("calf_r");
         if (BoneString.Contains("thigh")) return FName("thigh_r");
     }
 
-    // 척추/골반
+    // 泥숈텛/怨⑤컲
     if (BoneString.Contains("spine") || BoneString.Contains("pelvis")) return FName("spine_01");
 
-    return HitBoneName; // 매핑 안되면 그대로 반환
+    return HitBoneName; // 留ㅽ븨 ?덈릺硫?洹몃?濡?諛섑솚
 }
 
 void ABaseZombie::ProcessBoneDamage(FName BoneName, float Damage, FVector ImpactPoint, FVector ImpactDirection)
 {
-    // 이미 잘린 뼈라면 무시
+    // ?대? ?섎┛ 堉덈씪硫?臾댁떆
     if (BrokenBones.Contains(BoneName)) return;
 
-    // 내구도 리스트에 있는 뼈인지 확인
+    // ?닿뎄??由ъ뒪?몄뿉 ?덈뒗 堉덉씤吏 ?뺤씤
     if (BoneDurability.Contains(BoneName))
     {
         float CurrentBoneHealth = BoneDurability[BoneName] - Damage;
@@ -238,14 +238,24 @@ void ABaseZombie::ProcessBoneDamage(FName BoneName, float Damage, FVector Impact
 
         UE_LOG(LogTemp, Log, TEXT("Bone: %s Health: %f"), *BoneName.ToString(), CurrentBoneHealth);
 
-        // 뼈 체력이 다 되면 분해
+        // 堉?泥대젰?????섎㈃ 遺꾪빐
         if (CurrentBoneHealth <= 0.0f)
         {
-            // 충격량 계산 (총알 방향 * 힘)
-            FVector Impulse = ImpactDirection * 300.0f; // 힘 조절 필요
+            // 異⑷꺽??怨꾩궛 (珥앹븣 諛⑺뼢 * ??
+            FVector Impulse = ImpactDirection * 300.0f; // ??議곗젅 ?꾩슂
             DismemberLimb(BoneName, Impulse, ImpactPoint);
 
-            // 하체가 분리되었으면 크롤링 상태로 전환
+            const bool bShouldDieImmediately =
+                BoneName == FName("head") ||
+                BoneName == FName("spine_01");
+
+            if (bShouldDieImmediately && bIsAlive)
+            {
+                Die();
+                return;
+            }
+
+            // ?섏껜媛 遺꾨━?섏뿀?쇰㈃ ?щ·留??곹깭濡??꾪솚
             if (IsLegBone(BoneName) && MovementState == EZombieMovementState::Normal)
             {
                 StartCrawling();
@@ -259,26 +269,26 @@ void ABaseZombie::DismemberLimb(FName BoneName, FVector Impulse, FVector HitLoca
 {
     if (BrokenBones.Contains(BoneName)) return;
 
-    // 분해 처리 기록
+    // 遺꾪빐 泥섎━ 湲곕줉
     BrokenBones.Add(BoneName);
 
-    // 실제 메쉬 컴포넌트 가져오기 (GetMesh() 사용 권장)
+    // ?ㅼ젣 硫붿돩 而댄룷?뚰듃 媛?몄삤湲?(GetMesh() ?ъ슜 沅뚯옣)
     USkeletalMeshComponent* MeshComp = GetMesh();
     if (!MeshComp) MeshComp = ZombieMesh;
 
     if (MeshComp)
     {
-        // 1. 제약 조건 파괴 (뼈를 물리적으로 분리)
+        // 1. ?쒖빟 議곌굔 ?뚭눼 (堉덈? 臾쇰━?곸쑝濡?遺꾨━)
         MeshComp->BreakConstraint(Impulse, HitLocation, BoneName);
 
         MeshComp->HideBoneByName(BoneName, EPhysBodyOp::PBO_None);
-        // 2. 잘린 부위가 물리 시뮬레이션을 하도록 설정
-        // 이 설정이 없으면 잘린 팔이 공중에 둥둥 떠다니며 애니메이션을 계속 따라합니다.
-        // SetAllBodiesBelowSimulatePhysics: 해당 뼈 아래쪽 모든 뼈를 물리 시뮬레이션으로 전환
+        // 2. ?섎┛ 遺?꾧? 臾쇰━ ?쒕??덉씠?섏쓣 ?섎룄濡??ㅼ젙
+        // ???ㅼ젙???놁쑝硫??섎┛ ?붿씠 怨듭쨷???λ뫁 ?좊떎?덈ŉ ?좊땲硫붿씠?섏쓣 怨꾩냽 ?곕씪?⑸땲??
+        // SetAllBodiesBelowSimulatePhysics: ?대떦 堉??꾨옒履?紐⑤뱺 堉덈? 臾쇰━ ?쒕??덉씠?섏쑝濡??꾪솚
         MeshComp->SetAllBodiesBelowSimulatePhysics(BoneName, true, true);
 		
 
-        // 3. 물리 충격 가하기 (잘려나갈 때 튕겨나가도록)
+        // 3. 臾쇰━ 異⑷꺽 媛?섍린 (?섎젮?섍컝 ???뺢꺼?섍??꾨줉)
         MeshComp->AddImpulse(Impulse, BoneName, true);
 
         UE_LOG(LogTemp, Warning, TEXT("Dismembered: %s"), *BoneName.ToString());
@@ -290,12 +300,12 @@ void ABaseZombie::StartCrawling()
     
     if (MovementState == EZombieMovementState::Crawling) return;
 
-    // 좀비의 상태 기어다니는 상태로 변경
+    // 醫鍮꾩쓽 ?곹깭 湲곗뼱?ㅻ땲???곹깭濡?蹂寃?
     MovementState = EZombieMovementState::Crawling;
 
     UE_LOG(LogTemp, Warning, TEXT("Zombie %s is now CRAWLING"), *GetName());
 
-    //  좀비가 바닥에 눕도록 캡슐 크기 줄이기
+    //  醫鍮꾧? 諛붾떏???뺣룄濡?罹≪뒓 ?ш린 以꾩씠湲?
     UCapsuleComponent* Capsule = GetCapsuleComponent();
     if (Capsule)
     {
@@ -303,24 +313,24 @@ void ABaseZombie::StartCrawling()
         Capsule->SetCapsuleRadius(CrawlingCapsuleRadius);
     }
 
-    //  이동 속도 줄이기
+    //  ?대룞 ?띾룄 以꾩씠湲?
     UCharacterMovementComponent* MoveComp = GetCharacterMovement();
     if (MoveComp)
     {
         MoveComp->MaxWalkSpeed = CrawlingMaxSpeed;
 
-        // 바닥에서 움직일 수 있도록
+        // 諛붾떏?먯꽌 ?吏곸씪 ???덈룄濡?
         MoveComp->SetMovementMode(MOVE_Walking);
 
-        // NavMesh 기반 이동이라면 높이 오프셋 조정
+        // NavMesh 湲곕컲 ?대룞?대씪硫??믪씠 ?ㅽ봽??議곗젙
         MoveComp->bOrientRotationToMovement = true;
     }
 
-    // 캡슐이 줄었으니 매쉬를 아래로
+    // 罹≪뒓??以꾩뿀?쇰땲 留ㅼ돩瑜??꾨옒濡?
     USkeletalMeshComponent* MeshComp = GetMesh();
     if (MeshComp)
     {
-        // 기존 메시 위치에서 아래로 내리기
+        // 湲곗〈 硫붿떆 ?꾩튂?먯꽌 ?꾨옒濡??대━湲?
         FVector CurrentOffset = MeshComp->GetRelativeLocation();
         MeshComp->SetRelativeLocation(FVector(CurrentOffset.X, CurrentOffset.Y, -CrawlingCapsuleHalfHeight));
     }
@@ -364,10 +374,9 @@ void ABaseZombie::Die()
     }
 
     GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-    // 죽을 때는 전체 래그돌
-    GetMesh()->SetSimulatePhysics(true);
-    // 모든 뼈가 물리 영향을 받도록
-    GetMesh()->SetAllBodiesBelowSimulatePhysics(FName("pelvis"), true, true);
+    // 二쎌쓣 ?뚮뒗 ?꾩껜 ?섍렇??    GetMesh()->SetSimulatePhysics(true);
+    // 紐⑤뱺 堉덇? 臾쇰━ ?곹뼢??諛쏅룄濡?    GetMesh()->SetAllBodiesBelowSimulatePhysics(FName("pelvis"), true, true);
     SetLifeSpan(5.f);
 }
+
 

@@ -22,6 +22,8 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void DisconnectFromGameServer();
+	// 서버에서 남이 나갔다고 알려줬을 때 실행할 함수
+	void HandleLeaveGame(const Protocol::S_LEAVE_GAME& pkt);
 
 	UFUNCTION(BlueprintCallable)
 	void HandleRecvPackets();

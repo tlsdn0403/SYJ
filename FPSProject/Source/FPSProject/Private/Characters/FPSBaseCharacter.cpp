@@ -735,24 +735,32 @@ void AFPSBaseCharacter::EquipWeaponFromField(AWeaponBase* Weapon)
 {
     if (Weapon == nullptr) return;
 
-    Weapon->SetActorEnableCollision(false);
+    Weapon->SetActorEnableCollision(false); 
 
-    // 2. ���Ͽ� ���� (SnapToTarget�� ��� ���� ��ġ�� �����̵��մϴ�.)
+    // 소켓에 총 물리적으로 붙이기
     const FName SocketName = TEXT("Gun_socket");
     Weapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, SocketName);
-    // 3. ��ġ ���� (Location)
     Weapon->SetActorRelativeLocation(FVector(-35.209697f, 2.353551f, 0.508678f));
-
-    // ȸ�� ���� (Rotation - Pitch, Yaw, Roll ����)
     Weapon->SetActorRelativeRotation(FRotator(1.090108f, -88.966904f, -4.015320f));
-
-    // ������ ���� (Scale) - ���� 0.15��� �۾����� �ϴϱ�!
     Weapon->SetActorRelativeScale3D(FVector(0.15f, 0.15f, 0.15f));
 
-    // 4. ĳ���� ���� ������Ʈ �� �ִϸ��̼�Instance ����
+    // 현재 무기 변수 세팅
     SetCurrentWeapon(Weapon);
 
-    UE_LOG(LogTemp, Log, TEXT("[Network] %s�� �ٴڿ� �ִ� ����(%s)�� �����߽��ϴ�."), *GetName(), *Weapon->GetName());
+    // 내 캐릭터라면 인벤토리 UI 업데이트
+    if (IsLocallyControlled())
+    {
+        if (AFPSPlayerController* PC = Cast<AFPSPlayerController>(GetController()))
+        {
+            if (PC->InventoryW)
+            {
+                PC->InventoryW->GetGunAR4();
+            }
+        }
+    }
+
+    Weapon->SetOwner(this);
+    UE_LOG(LogTemp, Log, TEXT("[Network] %s가 바닥에 있는 무기(%s)를 장착했습니다."), *GetName(), *Weapon->GetName());
 }
 
 void AFPSBaseCharacter::SendMovePacket()

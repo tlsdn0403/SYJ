@@ -162,8 +162,6 @@ bool Room::HandleLeavePlayer(PlayerRef player)
 	SendBufferRef sendBuffer = ServerPacketHandler::MakeSendBuffer(leavePkt);
 	Broadcast(sendBuffer);
 
-	cout << "[Server] " << leaveId << "번 유저 접속 종료 및 맵 퇴장 알림 완료!" << endl;
-
 	return true;
 }
 
@@ -207,6 +205,20 @@ void Room::HandleEquipWeapon(PlayerRef player, Protocol::C_EQUIP_WEAPON pkt)
 	// 방에 있는 모든 사람에게 소문내기 (Broadcast)
 	SendBufferRef sendBuffer = ServerPacketHandler::MakeSendBuffer(equipPkt);
 	Broadcast(sendBuffer);
+}
+
+void Room::HandleFire(PlayerRef player, Protocol::C_FIRE pkt)
+{
+	if (player == nullptr) return;
+
+	Protocol::S_FIRE broadcastPkt;
+	broadcastPkt.set_object_id(player->objectInfo->object_id());
+
+	// 방에 있는 모두에게 쐈다고 알림
+	SendBufferRef sendBuffer = ServerPacketHandler::MakeSendBuffer(broadcastPkt);
+	Broadcast(sendBuffer);
+
+	cout << "[Server] " << player->objectInfo->object_id() << "번 유저 총기 발사! 남들에게 브로드캐스트 완료." << endl;
 }
 
 void Room::UpdateTick()

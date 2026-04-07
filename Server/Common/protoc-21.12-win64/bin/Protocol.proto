@@ -84,3 +84,13 @@ message S_SPAWN_ITEM
 	// ObjectInfo 안에 이미 itemObjectId(고유번호), 좌표, 무슨 총인지(weapon_type) 다 들어있음!
 	repeated ObjectInfo items = 1; 
 }
+
+message C_FIRE 
+{
+
+}
+
+message S_FIRE 
+{
+	uint64 object_id = 1; // 누가 쐈는지 알려주는 번호
+}

@@ -110,3 +110,20 @@ bool Handle_C_EQUIP_WEAPON(PacketSessionRef& session, Protocol::C_EQUIP_WEAPON& 
 
 	return true;
 }
+
+bool Handle_C_FIRE(PacketSessionRef& session, Protocol::C_FIRE& pkt)
+{
+	auto gameSession = static_pointer_cast<GameSession>(session);
+
+	PlayerRef player = gameSession->player.load();
+	if (player == nullptr)
+		return false;
+
+	RoomRef room = player->room.load().lock();
+	if (room == nullptr)
+		return false;
+
+	room->DoAsync(&Room::HandleFire, player, Protocol::C_FIRE(pkt));
+
+	return true;
+}

@@ -15,6 +15,7 @@ public:
 	bool HandleLeavePlayer(PlayerRef player);
 	void HandleMove(Protocol::C_MOVE pkt);
 	void HandleEquipWeapon(PlayerRef player, Protocol::C_EQUIP_WEAPON pkt);
+	void HandleFire(PlayerRef player, Protocol::C_FIRE pkt);
 
 public:
 	void UpdateTick();

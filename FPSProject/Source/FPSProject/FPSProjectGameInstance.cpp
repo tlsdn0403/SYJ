@@ -87,8 +87,6 @@ void UFPSProjectGameInstance::HandleLeaveGame(const Protocol::S_LEAVE_GAME& pkt)
 
 		// 장부에서도 지워주기
 		Players.Remove(LeaveId);
-
-		UE_LOG(LogTemp, Warning, TEXT("[Network] %llu번 유저가 게임을 종료하여 맵에서 삭제되었습니다."), LeaveId);
 	}
 }
 
@@ -317,6 +315,28 @@ void UFPSProjectGameInstance::HandleSpawnItem(const Protocol::S_SPAWN_ITEM& pkt)
 		else
 		{
 			UE_LOG(LogTemp, Error, TEXT("[Network] DefaultWeaponClass가 세팅되지 않아 무기를 스폰할 수 없습니다!"));
+		}
+	}
+}
+
+void UFPSProjectGameInstance::HandleFire(const Protocol::S_FIRE& pkt)
+{
+	uint64 ShooterId = pkt.object_id();
+
+	UE_LOG(LogTemp, Error, TEXT("[Network] 3. S_FIRE 패킷 서버로부터 수신 완료! 쏜 사람: %llu"), ShooterId);
+
+	if (Players.Contains(ShooterId))
+	{
+		AFPSBaseCharacter* Shooter = Players[ShooterId];
+
+		if (Shooter && !Shooter->IsLocallyControlled() && Shooter->GetCurrentWeapon())
+		{
+			Shooter->GetCurrentWeapon()->RemoteFire();
+		}
+		else
+		{
+			// 도착은 했는데 조건에 걸려서 실행이 안 됐을 경우!
+			UE_LOG(LogTemp, Error, TEXT("[Network] 에러: 캐릭터를 찾았으나 RemoteFire 조건(무기 장착 등)을 만족하지 못함!"));
 		}
 	}
 }

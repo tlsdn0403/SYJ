@@ -17,8 +17,11 @@ AWeaponBase::AWeaponBase()
 {
     PrimaryActorTick.bCanEverTick = true;
 
+    USceneComponent* SceneRoot = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
+    RootComponent = SceneRoot;
+
     WeaponMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("WeaponMesh"));
-    RootComponent = WeaponMesh;
+    WeaponMesh->SetupAttachment(RootComponent);
 
     AttachSocketName = TEXT("Gun_socket");
 }
@@ -38,9 +41,13 @@ void AWeaponBase::AttachWeapon(AFPSBaseCharacter* TargetCharacter)
     FAttachmentTransformRules AttachmentRules(EAttachmentRule::SnapToTarget, true);
     AttachToComponent(AttachMesh, AttachmentRules, AttachSocketName);
 
-    WeaponMesh->SetRelativeScale3D(FVector(0.15f, 0.15f, 0.15f));
+    /*WeaponMesh->SetRelativeScale3D(FVector(0.15f, 0.15f, 0.15f));
     WeaponMesh->SetRelativeLocation(FVector(-35.209697f, 2.353551f, 0.508678f));
-    WeaponMesh->SetRelativeRotation(FRotator(1.090108f, -88.966904f, -4.015320f));
+    WeaponMesh->SetRelativeRotation(FRotator(1.090108f, -88.966904f, -4.015320f));*/
+
+    // 부착 후 무기  위치, 회전 조정
+    WeaponMesh->SetRelativeLocation(FVector(-7.40821f, 4.648937f, 1.158742f));
+    WeaponMesh->SetRelativeRotation(FRotator(-6.316770f, -264.543091f, 2.009403f));
 
     Character->SetCurrentWeapon(this);
 

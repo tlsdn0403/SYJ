@@ -3,13 +3,17 @@
 #include "GameFramework/PlayerController.h"
 #include "Characters/FPSBaseCharacter.h"
 #include "Components/BoxComponent.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "Components/WidgetComponent.h"
 #include "Blueprint/UserWidget.h"
 #include "HUD/InteractUIClass.h"
 #include "Kismet/GameplayStatics.h"
 #include "Sound/SoundBase.h"
 #include "Weapon/MountedMachineGun.h"
+#include "Zombie/BaseZombie.h"
 #include "UObject/ConstructorHelpers.h"
+#include "Engine/OverlapResult.h"
+#include "CollisionShape.h"
 
 ATruck::ATruck()
 {
@@ -159,6 +163,12 @@ void ATruck::BeginPlay()
 {
 	Super::BeginPlay();
 
+	if (USkeletalMeshComponent* TruckMesh = GetMesh())
+	{
+		TruckMesh->SetNotifyRigidBodyCollision(true);
+		TruckMesh->OnComponentHit.AddDynamic(this, &ATruck::OnTruckMeshHit);
+	}
+
 	if (EngineSoundCue)
 	{
 		EngineAudioComponent->SetSound(EngineSoundCue);
@@ -207,6 +217,8 @@ void ATruck::BeginPlay()
 void ATruck::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	CheckZombieImpactSweep();
 
 	if (IsPlayerControlled())
 	{
@@ -324,18 +336,66 @@ void ATruck::Brake(float Value)
 		MoveComp->SetBrakeInput(Value);
 
 		const float Speed = GetVelocity().Size();
-		if (Value > 0.5f && Speed > 300.0f && !bIsBrakingSoundPlaying)
+		const bool bBrakePressed = Value > 0.5f;
+		if (bBrakePressed && !bBrakePressedLastFrame && Speed > BrakeSoundMinSpeed)
 		{
 			if (BrakeSound)
 			{
 				UGameplayStatics::PlaySoundAtLocation(this, BrakeSound, GetActorLocation());
-				bIsBrakingSoundPlaying = true;
-
-				FTimerHandle Handle;
-				GetWorld()->GetTimerManager().SetTimer(Handle, [this]() {
-					bIsBrakingSoundPlaying = false;
-				}, 1.0f, false);
 			}
+		}
+
+		bBrakePressedLastFrame = bBrakePressed;
+	}
+}
+
+void ATruck::CheckZombieImpactSweep()
+{
+	USkeletalMeshComponent* TruckMesh = GetMesh();
+	if (!TruckMesh)
+	{
+		return;
+	}
+
+	const FVector VehicleVelocity = GetVelocity();
+	const float ImpactSpeed = VehicleVelocity.Size();
+	if (ImpactSpeed < ZombieImpactMinSpeed)
+	{
+		return;
+	}
+
+	const FVector ImpactDirection = VehicleVelocity.GetSafeNormal();
+	if (ImpactDirection.IsNearlyZero())
+	{
+		return;
+	}
+
+	const FBoxSphereBounds Bounds = TruckMesh->Bounds;
+	const FVector SweepCenter = Bounds.Origin + ImpactDirection * (Bounds.BoxExtent.X * 0.35f);
+	const FVector SweepExtent = Bounds.BoxExtent * 1.05f;
+
+	TArray<FOverlapResult> Overlaps;
+	FCollisionObjectQueryParams ObjectQueryParams;
+	ObjectQueryParams.AddObjectTypesToQuery(ECC_Pawn);
+
+	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(TruckZombieImpactSweep), false, this);
+
+	if (!GetWorld()->OverlapMultiByObjectType(
+		Overlaps,
+		SweepCenter,
+		GetActorQuat(),
+		ObjectQueryParams,
+		FCollisionShape::MakeBox(SweepExtent),
+		QueryParams))
+	{
+		return;
+	}
+
+	for (const FOverlapResult& Overlap : Overlaps)
+	{
+		if (ABaseZombie* Zombie = Cast<ABaseZombie>(Overlap.GetActor()))
+		{
+			ProcessZombieImpact(Zombie, Zombie->GetActorLocation(), ImpactDirection, ImpactSpeed);
 		}
 	}
 }
@@ -515,6 +575,94 @@ void ATruck::ExitDriverSeat()
 	{
 		DriverController->Possess(CharacterToRestore);
 		DriverController->SetControlRotation(CharacterToRestore->GetActorRotation());
+	}
+}
+
+void ATruck::OnTruckMeshHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
+{
+	if (!OtherActor || OtherActor == this)
+	{
+		return;
+	}
+
+	ABaseZombie* Zombie = Cast<ABaseZombie>(OtherActor);
+	if (!Zombie || !Zombie->IsAlive())
+	{
+		return;
+	}
+
+	ProcessZombieImpact(Zombie, Hit.ImpactPoint, GetVelocity().GetSafeNormal(), GetVelocity().Size());
+}
+
+void ATruck::ProcessZombieImpact(ABaseZombie* Zombie, const FVector& ImpactPoint, const FVector& ImpactDirection, float ImpactSpeed)
+{
+	if (!Zombie || !Zombie->IsAlive() || ImpactSpeed < ZombieImpactMinSpeed)
+	{
+		return;
+	}
+
+	const float CurrentTime = GetWorld()->GetTimeSeconds();
+	if (const float* LastImpactTime = LastZombieImpactTimes.Find(Zombie))
+	{
+		if (CurrentTime - *LastImpactTime < ZombieImpactCooldown)
+		{
+			return;
+		}
+	}
+
+	LastZombieImpactTimes.Add(Zombie, CurrentTime);
+
+	const FVector SafeImpactDirection = ImpactDirection.IsNearlyZero() ? GetActorForwardVector() : ImpactDirection.GetSafeNormal();
+	const float Damage = FMath::GetMappedRangeValueClamped(
+		FVector2D(ZombieImpactMinSpeed, ZombieImpactFatalSpeed),
+		FVector2D(ZombieImpactMinDamage, ZombieImpactMaxDamage),
+		ImpactSpeed);
+	const float KnockbackScale = FMath::GetMappedRangeValueClamped(
+		FVector2D(ZombieImpactMinSpeed, ZombieImpactFatalSpeed),
+		FVector2D(1.0f, 1.6f),
+		ImpactSpeed);
+	const FVector LocalZombieLocation = GetActorTransform().InverseTransformPosition(Zombie->GetActorLocation());
+	const FVector MeshExtent = GetMesh() ? GetMesh()->Bounds.BoxExtent : FVector(150.0f, 100.0f, 100.0f);
+	const bool bFrontImpact = FVector::DotProduct(GetActorForwardVector(), SafeImpactDirection) > 0.5f;
+	const bool bPinnedCloseFrontImpact =
+		bFrontImpact &&
+		LocalZombieLocation.X > 0.0f &&
+		LocalZombieLocation.X < MeshExtent.X * 0.9f &&
+		FMath::Abs(LocalZombieLocation.Y) < MeshExtent.Y * 0.8f;
+
+	FHitResult DamageHit;
+	DamageHit.ImpactPoint = ImpactPoint;
+	DamageHit.Location = ImpactPoint;
+
+	UGameplayStatics::ApplyPointDamage(
+		Zombie,
+		Damage,
+		SafeImpactDirection,
+		DamageHit,
+		GetController(),
+		this,
+		nullptr);
+
+	if (Zombie->IsAlive() &&
+		(ImpactSpeed >= ZombieImpactFatalSpeed ||
+			(bPinnedCloseFrontImpact && ImpactSpeed >= ZombiePinnedImpactFatalSpeed)))
+	{
+		Zombie->Die();
+	}
+
+	if (Zombie->IsAlive())
+	{
+		const FVector LaunchVelocity =
+			SafeImpactDirection * (ZombieImpactKnockback * KnockbackScale) +
+			FVector::UpVector * (ZombieImpactUpwardKnockback * KnockbackScale);
+		Zombie->LaunchCharacter(LaunchVelocity, true, true);
+		return;
+	}
+
+	if (USkeletalMeshComponent* ZombieMesh = Zombie->GetMesh())
+	{
+		const FVector WorldImpulse = SafeImpactDirection * (ZombieImpactImpulse * KnockbackScale);
+		ZombieMesh->AddImpulseAtLocation(WorldImpulse, ImpactPoint, FName(TEXT("pelvis")));
 	}
 }
 

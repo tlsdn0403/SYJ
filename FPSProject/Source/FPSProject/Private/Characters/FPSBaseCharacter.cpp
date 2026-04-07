@@ -8,6 +8,7 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "Components/HealthComponent.h"
 #include "HUD/InventoryWidget.h"
+#include "HUD/BasicUI.h"
 #include "HUD/BaseUI.h"
 #include "Characters/FPSPlayerController.h"
 #include "Interface/InteractInterface.h"
@@ -107,6 +108,7 @@ void AFPSBaseCharacter::BeginPlay()
         {
             PC->InventoryW->AddToViewport();
             PC->TimerW->AddToViewport();
+            PC->BasicW->AddToViewport();
         }
     }
 }
@@ -754,7 +756,7 @@ void AFPSBaseCharacter::EquipWeaponFromField(AWeaponBase* Weapon)
         {
             if (PC->InventoryW)
             {
-                PC->InventoryW->GetGunAR4();
+               // PC->InventoryW->GetGunAR4();
             }
         }
     }

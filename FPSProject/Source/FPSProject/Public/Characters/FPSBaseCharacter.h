@@ -125,6 +125,7 @@ protected:
     void StopFire();
     void StartAim();
     void StopAim();
+    void LeaveGame();
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FPS|Camera")
     UCameraComponent* FPSCameraComponent;

@@ -249,6 +249,7 @@ void AFPSBaseCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
     PlayerInputComponent->BindAction("Aim", IE_Pressed, this, &AFPSBaseCharacter::StartAim);
     PlayerInputComponent->BindAction("Aim", IE_Released, this, &AFPSBaseCharacter::StopAim);
     PlayerInputComponent->BindAction("Interact", IE_Pressed, this, &AFPSBaseCharacter::Interact);
+    PlayerInputComponent->BindAction("LeaveGame", IE_Pressed, this, &AFPSBaseCharacter::LeaveGame);
 }
 
 void AFPSBaseCharacter::EnterTruckDriverSeat(ATruck* Truck)
@@ -539,6 +540,18 @@ void AFPSBaseCharacter::StartAim()
 void AFPSBaseCharacter::StopAim()
 {
     bIsAiming = false;
+}
+
+void AFPSBaseCharacter::LeaveGame()
+{
+    if (IsLocallyControlled())
+    {
+        // 내 게임 인스턴스를 찾아와서 접속 끊기 함수 실행!
+        if (UFPSProjectGameInstance* GI = Cast<UFPSProjectGameInstance>(GetGameInstance()))
+        {
+            GI->DisconnectFromGameServer();
+        }
+    }
 }
 
 void AFPSBaseCharacter::SetCurrentWeapon(AWeaponBase* NewWeapon)

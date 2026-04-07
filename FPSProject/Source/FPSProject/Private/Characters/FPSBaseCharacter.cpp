@@ -754,9 +754,9 @@ void AFPSBaseCharacter::EquipWeaponFromField(AWeaponBase* Weapon)
     {
         if (AFPSPlayerController* PC = Cast<AFPSPlayerController>(GetController()))
         {
-            if (PC->InventoryW)
+            if (PC->BasicW)
             {
-               // PC->InventoryW->GetGunAR4();
+                PC->BasicW->GetGunAR4();
             }
         }
     }

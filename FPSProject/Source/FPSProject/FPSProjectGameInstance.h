@@ -6,6 +6,7 @@
 #include "Engine/GameInstance.h"
 #include "Tickable.h"
 #include "FPSProject.h"
+#include "Enum.pb.h"
 #include "FPSProjectGameInstance.generated.h"
 
 /**
@@ -15,6 +16,12 @@ UCLASS()
 class FPSPROJECT_API UFPSProjectGameInstance : public UGameInstance, public FTickableGameObject
 {
 	GENERATED_BODY()
+
+	struct FPendingEquippedWeapon
+	{
+		uint64 ItemId = 0;
+		int32 WeaponType = Protocol::WEAPON_TYPE_NONE;
+	};
 
 public:
 	UFUNCTION(BlueprintCallable, Category = "Network")
@@ -44,6 +51,9 @@ public:
 	void HandleEquipWeapon(const Protocol::S_EQUIP_WEAPON& pkt);
 	void HandleSpawnItem(const Protocol::S_SPAWN_ITEM& pkt);
 	void HandleFire(const Protocol::S_FIRE& pkt);
+	void ApplyEquippedWeapon(uint64 PlayerId, uint64 ItemId, int32 WeaponType);
+	void RetryPendingWeapon(uint64 PlayerId);
+	TSubclassOf<class AWeaponBase> ResolveWeaponClass(int32 WeaponType) const;
 
 public:
 	virtual void Shutdown() override;
@@ -68,6 +78,11 @@ public:
 	UPROPERTY()
 	TMap<uint64, AActor*> FieldItems;
 
+	TMap<uint64, FPendingEquippedWeapon> PendingWeaponsByPlayer;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Network|Class")
-	TSubclassOf<class AWeaponBase> DefaultWeaponClass;
+	TSubclassOf<class AWeaponBase> DefaultWeaponClass;	// 바닥에 떨어진 무기 스폰할 때 사용할 기본 무기 클래스
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Network|Class")
+	TSubclassOf<class AWeaponBase> DefaultEquippedWeaponClass;	// 손에 장착된 무기 스폰할 때 사용할 기본 무기 클래스
 };

@@ -43,27 +43,6 @@ void UBasicUI::SetHealth(float CurrentHP,float MaxHP) {
 	{
 		HpColor = FLinearColor(0.443f, 0.047f, 0.044f, 0.5f); // 빨강
 	}
-	//if (Ratio > 0.6f)
-	//{
-	//	HpBar->SetFillColorAndOpacity(FLinearColor::Green);
-	//}
-	//else if (Ratio > 0.3f)
-	//{
-	//	HpBar->SetFillColorAndOpacity(FLinearColor(1.f, 0.5f, 0.f, 1.f)); // 주황
-	//}
-	//else
-	//{
-	//	HpBar->SetFillColorAndOpacity(FLinearColor::Red);
-	//}
-	//if (CurrentHP < 80 && CurrentHP >= 50) { //주황색 셋팅
-	//	HpText->SetColorAndOpacity(FLinearColor(1.f, 0.5f, 0.f, 1.f));
-	//}
-	//else if (CurrentHP < 50) { //빨간색 셋팅
-	//	HpText->SetColorAndOpacity(FLinearColor(1.f, 0.f, 0.f, 1.f)); // 빨강
-	//}
-	//else { //초록색 셋팅
-	//	HpText->SetColorAndOpacity(FLinearColor(0.f, 1.f, 0.f, 1.f)); // 초록
-	//}
 
 	HpBar->SetFillColorAndOpacity(HpColor);
 	HpColor.A = 1.0f; // 텍스트는 투명도 1로 고정`

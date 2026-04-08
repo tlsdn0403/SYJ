@@ -10,9 +10,11 @@
 
 class AFPSBaseCharacter;
 class AActor;
+class ABaseZombie;
 class AMountedMachineGun;
 class UBoxComponent;
 class USceneComponent;
+class UPrimitiveComponent;
 class UStaticMeshComponent;
 class USoundBase;
 class UWidgetComponent;
@@ -145,6 +147,9 @@ public:
 	UFUNCTION()
 	void ExitDriverSeat();
 
+	UFUNCTION()
+	void OnTruckMeshHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
+
 protected:
 	virtual void Tick(float DeltaTime) override;
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
@@ -152,6 +157,8 @@ protected:
 	void MoveForward(float Value);
 	void MoveRight(float Value);
 	void Brake(float Value);
+	void CheckZombieImpactSweep();
+	void ProcessZombieImpact(ABaseZombie* Zombie, const FVector& ImpactPoint, const FVector& ImpactDirection, float ImpactSpeed);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GameLogic")
 	int32 TotalLoadedItems = 0;
@@ -197,8 +204,39 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Turret", meta = (AllowPrivateAccess = "true"))
 	float MountedWeaponUseDistance = 180.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Zombie")
+	float ZombieImpactMinSpeed = 250.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Zombie")
+	float ZombieImpactFatalSpeed = 700.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Zombie")
+	float ZombiePinnedImpactFatalSpeed = 450.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Zombie")
+	float ZombieImpactMinDamage = 50.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Zombie")
+	float ZombieImpactMaxDamage = 200.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Zombie")
+	float ZombieImpactKnockback = 1600.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Zombie")
+	float ZombieImpactUpwardKnockback = 450.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Zombie")
+	float ZombieImpactImpulse = 260000.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Zombie")
+	float ZombieImpactCooldown = 0.35f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
+	float BrakeSoundMinSpeed = 300.0f;
 private:
 	bool bIsBrakingSoundPlaying = false;
+	bool bBrakePressedLastFrame = false;
 
 	UPROPERTY()
 	AMountedMachineGun* MountedWeapon = nullptr;
@@ -208,4 +246,6 @@ private:
 
 	UPROPERTY()
 	AFPSBaseCharacter* DriverCharacter = nullptr;
+
+	TMap<TObjectPtr<ABaseZombie>, float> LastZombieImpactTimes;
 };

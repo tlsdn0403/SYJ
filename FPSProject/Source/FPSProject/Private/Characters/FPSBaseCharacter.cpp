@@ -109,6 +109,7 @@ void AFPSBaseCharacter::BeginPlay()
             PC->InventoryW->AddToViewport();
             PC->TimerW->AddToViewport();
             PC->BasicW->AddToViewport();
+            SetHealth(100,100); //이건 처음값 임의 세팅
         }
     }
 }

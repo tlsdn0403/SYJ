@@ -33,15 +33,15 @@ void UBasicUI::SetHealth(float CurrentHP,float MaxHP) {
 
 	if (Ratio > 0.6f)
 	{
-		HpColor = FLinearColor(0.06f, 0.406f, 0.04f, 1.f); // 초록
+		HpColor = FLinearColor(0.06f, 0.406f, 0.04f, 0.5f); // 초록
 	}
 	else if (Ratio > 0.3f)
 	{
-		HpColor = FLinearColor(1.f, 0.235f, 0.07f, 1.f); // 주황
+		HpColor = FLinearColor(1.f, 0.235f, 0.07f, 0.5f); // 주황
 	}
 	else
 	{
-		HpColor = FLinearColor(0.443f, 0.047f, 0.044f, 1.f); // 빨강
+		HpColor = FLinearColor(0.443f, 0.047f, 0.044f, 0.5f); // 빨강
 	}
 	//if (Ratio > 0.6f)
 	//{
@@ -66,6 +66,7 @@ void UBasicUI::SetHealth(float CurrentHP,float MaxHP) {
 	//}
 
 	HpBar->SetFillColorAndOpacity(HpColor);
+	HpColor.A = 1.0f; // 텍스트는 투명도 1로 고정`
 	HpText->SetColorAndOpacity(HpColor);
 	HpBar->SetPercent(Ratio);
 	HpText->SetText(FText::FromString(FString::FromInt(CurrentHP)));

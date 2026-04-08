@@ -371,8 +371,11 @@ void ATruck::CheckZombieImpactSweep()
 	}
 
 	const FBoxSphereBounds Bounds = TruckMesh->Bounds;
-	const FVector SweepCenter = Bounds.Origin + ImpactDirection * (Bounds.BoxExtent.X * 0.35f);
-	const FVector SweepExtent = Bounds.BoxExtent * 1.05f;
+	const FVector SweepCenter = Bounds.Origin;
+	const FVector SweepExtent(
+		Bounds.BoxExtent.X * 1.12f,
+		Bounds.BoxExtent.Y * 1.35f,
+		Bounds.BoxExtent.Z * 1.18f);
 
 	TArray<FOverlapResult> Overlaps;
 	FCollisionObjectQueryParams ObjectQueryParams;
@@ -395,7 +398,14 @@ void ATruck::CheckZombieImpactSweep()
 	{
 		if (ABaseZombie* Zombie = Cast<ABaseZombie>(Overlap.GetActor()))
 		{
-			ProcessZombieImpact(Zombie, Zombie->GetActorLocation(), ImpactDirection, ImpactSpeed);
+			FVector ImpactPoint = Zombie->GetActorLocation();
+			FVector ClosestPoint;
+			if (TruckMesh->GetClosestPointOnCollision(Zombie->GetActorLocation(), ClosestPoint) >= 0.0f)
+			{
+				ImpactPoint = ClosestPoint;
+			}
+
+			ProcessZombieImpact(Zombie, ImpactPoint, ImpactDirection, ImpactSpeed);
 		}
 	}
 }
@@ -623,12 +633,18 @@ void ATruck::ProcessZombieImpact(ABaseZombie* Zombie, const FVector& ImpactPoint
 		ImpactSpeed);
 	const FVector LocalZombieLocation = GetActorTransform().InverseTransformPosition(Zombie->GetActorLocation());
 	const FVector MeshExtent = GetMesh() ? GetMesh()->Bounds.BoxExtent : FVector(150.0f, 100.0f, 100.0f);
-	const bool bFrontImpact = FVector::DotProduct(GetActorForwardVector(), SafeImpactDirection) > 0.5f;
-	const bool bPinnedCloseFrontImpact =
-		bFrontImpact &&
-		LocalZombieLocation.X > 0.0f &&
-		LocalZombieLocation.X < MeshExtent.X * 0.9f &&
-		FMath::Abs(LocalZombieLocation.Y) < MeshExtent.Y * 0.8f;
+	const bool bWithinTruckLength =
+		LocalZombieLocation.X > -MeshExtent.X * 1.15f &&
+		LocalZombieLocation.X < MeshExtent.X * 1.15f;
+	const bool bWithinTruckWidth = FMath::Abs(LocalZombieLocation.Y) < MeshExtent.Y * 1.35f;
+	const bool bWithinTruckHeight = FMath::Abs(LocalZombieLocation.Z) < MeshExtent.Z * 1.5f;
+	const bool bTruckBodyImpact = bWithinTruckLength && bWithinTruckWidth && bWithinTruckHeight;
+	const FVector LocalOutwardDirection = FVector(LocalZombieLocation.X, LocalZombieLocation.Y, 0.0f).GetSafeNormal();
+	const FVector WorldOutwardDirection = LocalOutwardDirection.IsNearlyZero()
+		? SafeImpactDirection
+		: GetActorTransform().TransformVectorNoScale(LocalOutwardDirection).GetSafeNormal();
+	const FVector FinalImpactDirection = (SafeImpactDirection * 0.7f + WorldOutwardDirection * 0.9f).GetSafeNormal();
+	const FVector ImpactFlingDirection = FinalImpactDirection.IsNearlyZero() ? SafeImpactDirection : FinalImpactDirection;
 
 	FHitResult DamageHit;
 	DamageHit.ImpactPoint = ImpactPoint;
@@ -637,15 +653,17 @@ void ATruck::ProcessZombieImpact(ABaseZombie* Zombie, const FVector& ImpactPoint
 	UGameplayStatics::ApplyPointDamage(
 		Zombie,
 		Damage,
-		SafeImpactDirection,
+		ImpactFlingDirection,
 		DamageHit,
 		GetController(),
 		this,
 		nullptr);
 
+	const bool bCheatFlingImpact = bTruckBodyImpact && ImpactSpeed >= ZombieImpactMinSpeed;
+
 	if (Zombie->IsAlive() &&
 		(ImpactSpeed >= ZombieImpactFatalSpeed ||
-			(bPinnedCloseFrontImpact && ImpactSpeed >= ZombiePinnedImpactFatalSpeed)))
+			bCheatFlingImpact))
 	{
 		Zombie->Die();
 	}
@@ -653,7 +671,7 @@ void ATruck::ProcessZombieImpact(ABaseZombie* Zombie, const FVector& ImpactPoint
 	if (Zombie->IsAlive())
 	{
 		const FVector LaunchVelocity =
-			SafeImpactDirection * (ZombieImpactKnockback * KnockbackScale) +
+			ImpactFlingDirection * (ZombieImpactKnockback * KnockbackScale * 1.2f) +
 			FVector::UpVector * (ZombieImpactUpwardKnockback * KnockbackScale);
 		Zombie->LaunchCharacter(LaunchVelocity, true, true);
 		return;
@@ -661,7 +679,9 @@ void ATruck::ProcessZombieImpact(ABaseZombie* Zombie, const FVector& ImpactPoint
 
 	if (USkeletalMeshComponent* ZombieMesh = Zombie->GetMesh())
 	{
-		const FVector WorldImpulse = SafeImpactDirection * (ZombieImpactImpulse * KnockbackScale);
+		const FVector WorldImpulse =
+			ImpactFlingDirection * (ZombieImpactImpulse * KnockbackScale * 1.2f) +
+			FVector::UpVector * (ZombieImpactImpulse * 0.2f * KnockbackScale);
 		ZombieMesh->AddImpulseAtLocation(WorldImpulse, ImpactPoint, FName(TEXT("pelvis")));
 	}
 }

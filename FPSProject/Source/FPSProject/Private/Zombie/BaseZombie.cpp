@@ -4,6 +4,7 @@
 #include "Zombie/BaseZombie.h"
 #include "AIController.h"
 #include "BrainComponent.h"
+#include "Characters/FPSBaseCharacter.h"
 #include "Components/HealthComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -94,7 +95,7 @@ void ABaseZombie::OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)
     // 紐쏀?二쇨? ?앸굹???쒖젏???곕?吏 ?곸슜
     if (!bInterrupted) // 以묐떒?섏? ?딆븯?쇰㈃
     {
-        APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(GetWorld(), 0);
+        AFPSBaseCharacter* PlayerPawn = Cast<AFPSBaseCharacter>(UGameplayStatics::GetPlayerPawn(GetWorld(), 0));
         if (PlayerPawn)
         {
             float Distance = FVector::Dist(GetActorLocation(), PlayerPawn->GetActorLocation());
@@ -105,6 +106,8 @@ void ABaseZombie::OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)
                 {
                     PlayerHealth->ApplyDamage(AttackDamage);
                     UE_LOG(LogTemp, Warning, TEXT("Zombie dealt %f damage!"), AttackDamage);
+
+                    PlayerPawn->SetHealth(PlayerHealth->GetHealth(), PlayerHealth->MaxGetHealth());
                 }
             }
             else

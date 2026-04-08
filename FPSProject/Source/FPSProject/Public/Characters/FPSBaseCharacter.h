@@ -114,6 +114,9 @@ public:
 
     UFUNCTION(BlueprintCallable, Category = "Truck")
     bool IsUsingMountedWeapon() const { return bIsUsingMountedWeapon; }
+
+    void SetHealth(float currentHp, float maxHp);   //체력 수정 함수
+
 protected:
     virtual void BeginPlay() override;
 

@@ -39,5 +39,6 @@ public:
 	UProgressBar* HpBar;
 
 	void GetGunAR4();
+	void SetHealth(float CurrentHP, float MaxHP);
 	
 };

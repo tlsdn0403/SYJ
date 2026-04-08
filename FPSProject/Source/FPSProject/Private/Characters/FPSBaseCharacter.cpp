@@ -9,7 +9,7 @@
 #include "Components/HealthComponent.h"
 #include "HUD/InventoryWidget.h"
 #include "HUD/BasicUI.h"
-#include "HUD/BaseUI.h"
+#include "HUD/BaseUI.h"     //이거 타이머 용
 #include "Characters/FPSPlayerController.h"
 #include "Interface/InteractInterface.h"
 #include "Truck/Truck.h"
@@ -899,3 +899,14 @@ TArray<EItemType> AFPSBaseCharacter::OffloadItems()
     return ItemsToGive;
 }
 
+void AFPSBaseCharacter::SetHealth(float currentHp,float maxHp) {
+
+    if (AFPSPlayerController* PC = Cast<AFPSPlayerController>(GetController()))
+    {
+        if (PC->BasicW)
+        {
+            PC->BasicW->SetHealth(currentHp, maxHp);
+        }
+    }
+
+}

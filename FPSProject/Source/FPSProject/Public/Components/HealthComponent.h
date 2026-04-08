@@ -28,6 +28,10 @@ public:
 	// Ã¼·Â Getter
 	UFUNCTION(BlueprintPure, Category = "Health")
 	float GetHealth() const { return Health; }
+	UFUNCTION(BlueprintPure, Category = "Health")
+
+	float MaxGetHealth() const { return MaxHealth; }
+
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;

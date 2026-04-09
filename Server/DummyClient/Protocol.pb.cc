@@ -244,8 +244,89 @@ struct S_FIREDefaultTypeInternal {
   };
 };
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 S_FIREDefaultTypeInternal _S_FIRE_default_instance_;
+PROTOBUF_CONSTEXPR C_ENTER_TRUCK::C_ENTER_TRUCK(
+    ::_pbi::ConstantInitialized): _impl_{
+    /*decltype(_impl_.truck_id_)*/uint64_t{0u}
+  , /*decltype(_impl_.seat_type_)*/0
+  , /*decltype(_impl_._cached_size_)*/{}} {}
+struct C_ENTER_TRUCKDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR C_ENTER_TRUCKDefaultTypeInternal()
+      : _instance(::_pbi::ConstantInitialized{}) {}
+  ~C_ENTER_TRUCKDefaultTypeInternal() {}
+  union {
+    C_ENTER_TRUCK _instance;
+  };
+};
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 C_ENTER_TRUCKDefaultTypeInternal _C_ENTER_TRUCK_default_instance_;
+PROTOBUF_CONSTEXPR S_ENTER_TRUCK::S_ENTER_TRUCK(
+    ::_pbi::ConstantInitialized): _impl_{
+    /*decltype(_impl_.player_id_)*/uint64_t{0u}
+  , /*decltype(_impl_.truck_id_)*/uint64_t{0u}
+  , /*decltype(_impl_.seat_type_)*/0
+  , /*decltype(_impl_._cached_size_)*/{}} {}
+struct S_ENTER_TRUCKDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR S_ENTER_TRUCKDefaultTypeInternal()
+      : _instance(::_pbi::ConstantInitialized{}) {}
+  ~S_ENTER_TRUCKDefaultTypeInternal() {}
+  union {
+    S_ENTER_TRUCK _instance;
+  };
+};
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 S_ENTER_TRUCKDefaultTypeInternal _S_ENTER_TRUCK_default_instance_;
+PROTOBUF_CONSTEXPR C_EXIT_TRUCK::C_EXIT_TRUCK(
+    ::_pbi::ConstantInitialized) {}
+struct C_EXIT_TRUCKDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR C_EXIT_TRUCKDefaultTypeInternal()
+      : _instance(::_pbi::ConstantInitialized{}) {}
+  ~C_EXIT_TRUCKDefaultTypeInternal() {}
+  union {
+    C_EXIT_TRUCK _instance;
+  };
+};
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 C_EXIT_TRUCKDefaultTypeInternal _C_EXIT_TRUCK_default_instance_;
+PROTOBUF_CONSTEXPR S_EXIT_TRUCK::S_EXIT_TRUCK(
+    ::_pbi::ConstantInitialized): _impl_{
+    /*decltype(_impl_.player_id_)*/uint64_t{0u}
+  , /*decltype(_impl_.truck_id_)*/uint64_t{0u}
+  , /*decltype(_impl_.seat_type_)*/0
+  , /*decltype(_impl_._cached_size_)*/{}} {}
+struct S_EXIT_TRUCKDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR S_EXIT_TRUCKDefaultTypeInternal()
+      : _instance(::_pbi::ConstantInitialized{}) {}
+  ~S_EXIT_TRUCKDefaultTypeInternal() {}
+  union {
+    S_EXIT_TRUCK _instance;
+  };
+};
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 S_EXIT_TRUCKDefaultTypeInternal _S_EXIT_TRUCK_default_instance_;
+PROTOBUF_CONSTEXPR C_TRUCK_MOVE::C_TRUCK_MOVE(
+    ::_pbi::ConstantInitialized): _impl_{
+    /*decltype(_impl_.info_)*/nullptr
+  , /*decltype(_impl_._cached_size_)*/{}} {}
+struct C_TRUCK_MOVEDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR C_TRUCK_MOVEDefaultTypeInternal()
+      : _instance(::_pbi::ConstantInitialized{}) {}
+  ~C_TRUCK_MOVEDefaultTypeInternal() {}
+  union {
+    C_TRUCK_MOVE _instance;
+  };
+};
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 C_TRUCK_MOVEDefaultTypeInternal _C_TRUCK_MOVE_default_instance_;
+PROTOBUF_CONSTEXPR S_TRUCK_MOVE::S_TRUCK_MOVE(
+    ::_pbi::ConstantInitialized): _impl_{
+    /*decltype(_impl_.info_)*/nullptr
+  , /*decltype(_impl_._cached_size_)*/{}} {}
+struct S_TRUCK_MOVEDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR S_TRUCK_MOVEDefaultTypeInternal()
+      : _instance(::_pbi::ConstantInitialized{}) {}
+  ~S_TRUCK_MOVEDefaultTypeInternal() {}
+  union {
+    S_TRUCK_MOVE _instance;
+  };
+};
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 S_TRUCK_MOVEDefaultTypeInternal _S_TRUCK_MOVE_default_instance_;
 }  // namespace Protocol
-static ::_pb::Metadata file_level_metadata_Protocol_2eproto[17];
+static ::_pb::Metadata file_level_metadata_Protocol_2eproto[23];
 static constexpr ::_pb::EnumDescriptor const** file_level_enum_descriptors_Protocol_2eproto = nullptr;
 static constexpr ::_pb::ServiceDescriptor const** file_level_service_descriptors_Protocol_2eproto = nullptr;
 
@@ -372,6 +453,52 @@ const uint32_t TableStruct_Protocol_2eproto::offsets[] PROTOBUF_SECTION_VARIABLE
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
   PROTOBUF_FIELD_OFFSET(::Protocol::S_FIRE, _impl_.object_id_),
+  ~0u,  // no _has_bits_
+  PROTOBUF_FIELD_OFFSET(::Protocol::C_ENTER_TRUCK, _internal_metadata_),
+  ~0u,  // no _extensions_
+  ~0u,  // no _oneof_case_
+  ~0u,  // no _weak_field_map_
+  ~0u,  // no _inlined_string_donated_
+  PROTOBUF_FIELD_OFFSET(::Protocol::C_ENTER_TRUCK, _impl_.truck_id_),
+  PROTOBUF_FIELD_OFFSET(::Protocol::C_ENTER_TRUCK, _impl_.seat_type_),
+  ~0u,  // no _has_bits_
+  PROTOBUF_FIELD_OFFSET(::Protocol::S_ENTER_TRUCK, _internal_metadata_),
+  ~0u,  // no _extensions_
+  ~0u,  // no _oneof_case_
+  ~0u,  // no _weak_field_map_
+  ~0u,  // no _inlined_string_donated_
+  PROTOBUF_FIELD_OFFSET(::Protocol::S_ENTER_TRUCK, _impl_.player_id_),
+  PROTOBUF_FIELD_OFFSET(::Protocol::S_ENTER_TRUCK, _impl_.truck_id_),
+  PROTOBUF_FIELD_OFFSET(::Protocol::S_ENTER_TRUCK, _impl_.seat_type_),
+  ~0u,  // no _has_bits_
+  PROTOBUF_FIELD_OFFSET(::Protocol::C_EXIT_TRUCK, _internal_metadata_),
+  ~0u,  // no _extensions_
+  ~0u,  // no _oneof_case_
+  ~0u,  // no _weak_field_map_
+  ~0u,  // no _inlined_string_donated_
+  ~0u,  // no _has_bits_
+  PROTOBUF_FIELD_OFFSET(::Protocol::S_EXIT_TRUCK, _internal_metadata_),
+  ~0u,  // no _extensions_
+  ~0u,  // no _oneof_case_
+  ~0u,  // no _weak_field_map_
+  ~0u,  // no _inlined_string_donated_
+  PROTOBUF_FIELD_OFFSET(::Protocol::S_EXIT_TRUCK, _impl_.player_id_),
+  PROTOBUF_FIELD_OFFSET(::Protocol::S_EXIT_TRUCK, _impl_.truck_id_),
+  PROTOBUF_FIELD_OFFSET(::Protocol::S_EXIT_TRUCK, _impl_.seat_type_),
+  ~0u,  // no _has_bits_
+  PROTOBUF_FIELD_OFFSET(::Protocol::C_TRUCK_MOVE, _internal_metadata_),
+  ~0u,  // no _extensions_
+  ~0u,  // no _oneof_case_
+  ~0u,  // no _weak_field_map_
+  ~0u,  // no _inlined_string_donated_
+  PROTOBUF_FIELD_OFFSET(::Protocol::C_TRUCK_MOVE, _impl_.info_),
+  ~0u,  // no _has_bits_
+  PROTOBUF_FIELD_OFFSET(::Protocol::S_TRUCK_MOVE, _internal_metadata_),
+  ~0u,  // no _extensions_
+  ~0u,  // no _oneof_case_
+  ~0u,  // no _weak_field_map_
+  ~0u,  // no _inlined_string_donated_
+  PROTOBUF_FIELD_OFFSET(::Protocol::S_TRUCK_MOVE, _impl_.info_),
 };
 static const ::_pbi::MigrationSchema schemas[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) = {
   { 0, -1, -1, sizeof(::Protocol::C_LOGIN)},
@@ -391,6 +518,12 @@ static const ::_pbi::MigrationSchema schemas[] PROTOBUF_SECTION_VARIABLE(protode
   { 102, -1, -1, sizeof(::Protocol::S_SPAWN_ITEM)},
   { 109, -1, -1, sizeof(::Protocol::C_FIRE)},
   { 115, -1, -1, sizeof(::Protocol::S_FIRE)},
+  { 122, -1, -1, sizeof(::Protocol::C_ENTER_TRUCK)},
+  { 130, -1, -1, sizeof(::Protocol::S_ENTER_TRUCK)},
+  { 139, -1, -1, sizeof(::Protocol::C_EXIT_TRUCK)},
+  { 145, -1, -1, sizeof(::Protocol::S_EXIT_TRUCK)},
+  { 154, -1, -1, sizeof(::Protocol::C_TRUCK_MOVE)},
+  { 161, -1, -1, sizeof(::Protocol::S_TRUCK_MOVE)},
 };
 
 static const ::_pb::Message* const file_default_instances[] = {
@@ -411,6 +544,12 @@ static const ::_pb::Message* const file_default_instances[] = {
   &::Protocol::_S_SPAWN_ITEM_default_instance_._instance,
   &::Protocol::_C_FIRE_default_instance_._instance,
   &::Protocol::_S_FIRE_default_instance_._instance,
+  &::Protocol::_C_ENTER_TRUCK_default_instance_._instance,
+  &::Protocol::_S_ENTER_TRUCK_default_instance_._instance,
+  &::Protocol::_C_EXIT_TRUCK_default_instance_._instance,
+  &::Protocol::_S_EXIT_TRUCK_default_instance_._instance,
+  &::Protocol::_C_TRUCK_MOVE_default_instance_._instance,
+  &::Protocol::_S_TRUCK_MOVE_default_instance_._instance,
 };
 
 const char descriptor_table_protodef_Protocol_2eproto[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) =
@@ -432,7 +571,17 @@ const char descriptor_table_protodef_Protocol_2eproto[] PROTOBUF_SECTION_VARIABL
   "\n\010playerId\030\001 \001(\004\022\024\n\014itemObjectId\030\002 \001(\004\022\022"
   "\n\nweaponType\030\003 \001(\005\"3\n\014S_SPAWN_ITEM\022#\n\005it"
   "ems\030\001 \003(\0132\024.Protocol.ObjectInfo\"\010\n\006C_FIR"
-  "E\"\033\n\006S_FIRE\022\021\n\tobject_id\030\001 \001(\004b\006proto3"
+  "E\"\033\n\006S_FIRE\022\021\n\tobject_id\030\001 \001(\004\"M\n\rC_ENTE"
+  "R_TRUCK\022\020\n\010truck_id\030\001 \001(\004\022*\n\tseat_type\030\002"
+  " \001(\0162\027.Protocol.TruckSeatType\"`\n\rS_ENTER"
+  "_TRUCK\022\021\n\tplayer_id\030\001 \001(\004\022\020\n\010truck_id\030\002 "
+  "\001(\004\022*\n\tseat_type\030\003 \001(\0162\027.Protocol.TruckS"
+  "eatType\"\016\n\014C_EXIT_TRUCK\"_\n\014S_EXIT_TRUCK\022"
+  "\021\n\tplayer_id\030\001 \001(\004\022\020\n\010truck_id\030\002 \001(\004\022*\n\t"
+  "seat_type\030\003 \001(\0162\027.Protocol.TruckSeatType"
+  "\"/\n\014C_TRUCK_MOVE\022\037\n\004info\030\001 \001(\0132\021.Protoco"
+  "l.PosInfo\"/\n\014S_TRUCK_MOVE\022\037\n\004info\030\001 \001(\0132"
+  "\021.Protocol.PosInfob\006proto3"
   ;
 static const ::_pbi::DescriptorTable* const descriptor_table_Protocol_2eproto_deps[2] = {
   &::descriptor_table_Enum_2eproto,
@@ -440,9 +589,9 @@ static const ::_pbi::DescriptorTable* const descriptor_table_Protocol_2eproto_de
 };
 static ::_pbi::once_flag descriptor_table_Protocol_2eproto_once;
 const ::_pbi::DescriptorTable descriptor_table_Protocol_2eproto = {
-    false, false, 758, descriptor_table_protodef_Protocol_2eproto,
+    false, false, 1146, descriptor_table_protodef_Protocol_2eproto,
     "Protocol.proto",
-    &descriptor_table_Protocol_2eproto_once, descriptor_table_Protocol_2eproto_deps, 2, 17,
+    &descriptor_table_Protocol_2eproto_once, descriptor_table_Protocol_2eproto_deps, 2, 23,
     schemas, file_default_instances, TableStruct_Protocol_2eproto::offsets,
     file_level_metadata_Protocol_2eproto, file_level_enum_descriptors_Protocol_2eproto,
     file_level_service_descriptors_Protocol_2eproto,
@@ -3530,6 +3679,1134 @@ void S_FIRE::InternalSwap(S_FIRE* other) {
       file_level_metadata_Protocol_2eproto[16]);
 }
 
+// ===================================================================
+
+class C_ENTER_TRUCK::_Internal {
+ public:
+};
+
+C_ENTER_TRUCK::C_ENTER_TRUCK(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
+  SharedCtor(arena, is_message_owned);
+  // @@protoc_insertion_point(arena_constructor:Protocol.C_ENTER_TRUCK)
+}
+C_ENTER_TRUCK::C_ENTER_TRUCK(const C_ENTER_TRUCK& from)
+  : ::PROTOBUF_NAMESPACE_ID::Message() {
+  C_ENTER_TRUCK* const _this = this; (void)_this;
+  new (&_impl_) Impl_{
+      decltype(_impl_.truck_id_){}
+    , decltype(_impl_.seat_type_){}
+    , /*decltype(_impl_._cached_size_)*/{}};
+
+  _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+  ::memcpy(&_impl_.truck_id_, &from._impl_.truck_id_,
+    static_cast<size_t>(reinterpret_cast<char*>(&_impl_.seat_type_) -
+    reinterpret_cast<char*>(&_impl_.truck_id_)) + sizeof(_impl_.seat_type_));
+  // @@protoc_insertion_point(copy_constructor:Protocol.C_ENTER_TRUCK)
+}
+
+inline void C_ENTER_TRUCK::SharedCtor(
+    ::_pb::Arena* arena, bool is_message_owned) {
+  (void)arena;
+  (void)is_message_owned;
+  new (&_impl_) Impl_{
+      decltype(_impl_.truck_id_){uint64_t{0u}}
+    , decltype(_impl_.seat_type_){0}
+    , /*decltype(_impl_._cached_size_)*/{}
+  };
+}
+
+C_ENTER_TRUCK::~C_ENTER_TRUCK() {
+  // @@protoc_insertion_point(destructor:Protocol.C_ENTER_TRUCK)
+  if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
+  (void)arena;
+    return;
+  }
+  SharedDtor();
+}
+
+inline void C_ENTER_TRUCK::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+}
+
+void C_ENTER_TRUCK::SetCachedSize(int size) const {
+  _impl_._cached_size_.Set(size);
+}
+
+void C_ENTER_TRUCK::Clear() {
+// @@protoc_insertion_point(message_clear_start:Protocol.C_ENTER_TRUCK)
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  ::memset(&_impl_.truck_id_, 0, static_cast<size_t>(
+      reinterpret_cast<char*>(&_impl_.seat_type_) -
+      reinterpret_cast<char*>(&_impl_.truck_id_)) + sizeof(_impl_.seat_type_));
+  _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
+}
+
+const char* C_ENTER_TRUCK::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  while (!ctx->Done(&ptr)) {
+    uint32_t tag;
+    ptr = ::_pbi::ReadTag(ptr, &tag);
+    switch (tag >> 3) {
+      // uint64 truck_id = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 8)) {
+          _impl_.truck_id_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // .Protocol.TruckSeatType seat_type = 2;
+      case 2:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 16)) {
+          uint64_t val = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+          _internal_set_seat_type(static_cast<::Protocol::TruckSeatType>(val));
+        } else
+          goto handle_unusual;
+        continue;
+      default:
+        goto handle_unusual;
+    }  // switch
+  handle_unusual:
+    if ((tag == 0) || ((tag & 7) == 4)) {
+      CHK_(ptr);
+      ctx->SetLastTag(tag);
+      goto message_done;
+    }
+    ptr = UnknownFieldParse(
+        tag,
+        _internal_metadata_.mutable_unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(),
+        ptr, ctx);
+    CHK_(ptr != nullptr);
+  }  // while
+message_done:
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto message_done;
+#undef CHK_
+}
+
+uint8_t* C_ENTER_TRUCK::_InternalSerialize(
+    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:Protocol.C_ENTER_TRUCK)
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  // uint64 truck_id = 1;
+  if (this->_internal_truck_id() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt64ToArray(1, this->_internal_truck_id(), target);
+  }
+
+  // .Protocol.TruckSeatType seat_type = 2;
+  if (this->_internal_seat_type() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteEnumToArray(
+      2, this->_internal_seat_type(), target);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+        _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:Protocol.C_ENTER_TRUCK)
+  return target;
+}
+
+size_t C_ENTER_TRUCK::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:Protocol.C_ENTER_TRUCK)
+  size_t total_size = 0;
+
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  // uint64 truck_id = 1;
+  if (this->_internal_truck_id() != 0) {
+    total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(this->_internal_truck_id());
+  }
+
+  // .Protocol.TruckSeatType seat_type = 2;
+  if (this->_internal_seat_type() != 0) {
+    total_size += 1 +
+      ::_pbi::WireFormatLite::EnumSize(this->_internal_seat_type());
+  }
+
+  return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
+}
+
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData C_ENTER_TRUCK::_class_data_ = {
+    ::PROTOBUF_NAMESPACE_ID::Message::CopyWithSourceCheck,
+    C_ENTER_TRUCK::MergeImpl
+};
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*C_ENTER_TRUCK::GetClassData() const { return &_class_data_; }
+
+
+void C_ENTER_TRUCK::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
+  auto* const _this = static_cast<C_ENTER_TRUCK*>(&to_msg);
+  auto& from = static_cast<const C_ENTER_TRUCK&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:Protocol.C_ENTER_TRUCK)
+  GOOGLE_DCHECK_NE(&from, _this);
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  if (from._internal_truck_id() != 0) {
+    _this->_internal_set_truck_id(from._internal_truck_id());
+  }
+  if (from._internal_seat_type() != 0) {
+    _this->_internal_set_seat_type(from._internal_seat_type());
+  }
+  _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+}
+
+void C_ENTER_TRUCK::CopyFrom(const C_ENTER_TRUCK& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:Protocol.C_ENTER_TRUCK)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool C_ENTER_TRUCK::IsInitialized() const {
+  return true;
+}
+
+void C_ENTER_TRUCK::InternalSwap(C_ENTER_TRUCK* other) {
+  using std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  ::PROTOBUF_NAMESPACE_ID::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(C_ENTER_TRUCK, _impl_.seat_type_)
+      + sizeof(C_ENTER_TRUCK::_impl_.seat_type_)
+      - PROTOBUF_FIELD_OFFSET(C_ENTER_TRUCK, _impl_.truck_id_)>(
+          reinterpret_cast<char*>(&_impl_.truck_id_),
+          reinterpret_cast<char*>(&other->_impl_.truck_id_));
+}
+
+::PROTOBUF_NAMESPACE_ID::Metadata C_ENTER_TRUCK::GetMetadata() const {
+  return ::_pbi::AssignDescriptors(
+      &descriptor_table_Protocol_2eproto_getter, &descriptor_table_Protocol_2eproto_once,
+      file_level_metadata_Protocol_2eproto[17]);
+}
+
+// ===================================================================
+
+class S_ENTER_TRUCK::_Internal {
+ public:
+};
+
+S_ENTER_TRUCK::S_ENTER_TRUCK(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
+  SharedCtor(arena, is_message_owned);
+  // @@protoc_insertion_point(arena_constructor:Protocol.S_ENTER_TRUCK)
+}
+S_ENTER_TRUCK::S_ENTER_TRUCK(const S_ENTER_TRUCK& from)
+  : ::PROTOBUF_NAMESPACE_ID::Message() {
+  S_ENTER_TRUCK* const _this = this; (void)_this;
+  new (&_impl_) Impl_{
+      decltype(_impl_.player_id_){}
+    , decltype(_impl_.truck_id_){}
+    , decltype(_impl_.seat_type_){}
+    , /*decltype(_impl_._cached_size_)*/{}};
+
+  _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+  ::memcpy(&_impl_.player_id_, &from._impl_.player_id_,
+    static_cast<size_t>(reinterpret_cast<char*>(&_impl_.seat_type_) -
+    reinterpret_cast<char*>(&_impl_.player_id_)) + sizeof(_impl_.seat_type_));
+  // @@protoc_insertion_point(copy_constructor:Protocol.S_ENTER_TRUCK)
+}
+
+inline void S_ENTER_TRUCK::SharedCtor(
+    ::_pb::Arena* arena, bool is_message_owned) {
+  (void)arena;
+  (void)is_message_owned;
+  new (&_impl_) Impl_{
+      decltype(_impl_.player_id_){uint64_t{0u}}
+    , decltype(_impl_.truck_id_){uint64_t{0u}}
+    , decltype(_impl_.seat_type_){0}
+    , /*decltype(_impl_._cached_size_)*/{}
+  };
+}
+
+S_ENTER_TRUCK::~S_ENTER_TRUCK() {
+  // @@protoc_insertion_point(destructor:Protocol.S_ENTER_TRUCK)
+  if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
+  (void)arena;
+    return;
+  }
+  SharedDtor();
+}
+
+inline void S_ENTER_TRUCK::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+}
+
+void S_ENTER_TRUCK::SetCachedSize(int size) const {
+  _impl_._cached_size_.Set(size);
+}
+
+void S_ENTER_TRUCK::Clear() {
+// @@protoc_insertion_point(message_clear_start:Protocol.S_ENTER_TRUCK)
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  ::memset(&_impl_.player_id_, 0, static_cast<size_t>(
+      reinterpret_cast<char*>(&_impl_.seat_type_) -
+      reinterpret_cast<char*>(&_impl_.player_id_)) + sizeof(_impl_.seat_type_));
+  _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
+}
+
+const char* S_ENTER_TRUCK::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  while (!ctx->Done(&ptr)) {
+    uint32_t tag;
+    ptr = ::_pbi::ReadTag(ptr, &tag);
+    switch (tag >> 3) {
+      // uint64 player_id = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 8)) {
+          _impl_.player_id_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // uint64 truck_id = 2;
+      case 2:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 16)) {
+          _impl_.truck_id_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // .Protocol.TruckSeatType seat_type = 3;
+      case 3:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 24)) {
+          uint64_t val = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+          _internal_set_seat_type(static_cast<::Protocol::TruckSeatType>(val));
+        } else
+          goto handle_unusual;
+        continue;
+      default:
+        goto handle_unusual;
+    }  // switch
+  handle_unusual:
+    if ((tag == 0) || ((tag & 7) == 4)) {
+      CHK_(ptr);
+      ctx->SetLastTag(tag);
+      goto message_done;
+    }
+    ptr = UnknownFieldParse(
+        tag,
+        _internal_metadata_.mutable_unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(),
+        ptr, ctx);
+    CHK_(ptr != nullptr);
+  }  // while
+message_done:
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto message_done;
+#undef CHK_
+}
+
+uint8_t* S_ENTER_TRUCK::_InternalSerialize(
+    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:Protocol.S_ENTER_TRUCK)
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  // uint64 player_id = 1;
+  if (this->_internal_player_id() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt64ToArray(1, this->_internal_player_id(), target);
+  }
+
+  // uint64 truck_id = 2;
+  if (this->_internal_truck_id() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt64ToArray(2, this->_internal_truck_id(), target);
+  }
+
+  // .Protocol.TruckSeatType seat_type = 3;
+  if (this->_internal_seat_type() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteEnumToArray(
+      3, this->_internal_seat_type(), target);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+        _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:Protocol.S_ENTER_TRUCK)
+  return target;
+}
+
+size_t S_ENTER_TRUCK::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:Protocol.S_ENTER_TRUCK)
+  size_t total_size = 0;
+
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  // uint64 player_id = 1;
+  if (this->_internal_player_id() != 0) {
+    total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(this->_internal_player_id());
+  }
+
+  // uint64 truck_id = 2;
+  if (this->_internal_truck_id() != 0) {
+    total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(this->_internal_truck_id());
+  }
+
+  // .Protocol.TruckSeatType seat_type = 3;
+  if (this->_internal_seat_type() != 0) {
+    total_size += 1 +
+      ::_pbi::WireFormatLite::EnumSize(this->_internal_seat_type());
+  }
+
+  return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
+}
+
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData S_ENTER_TRUCK::_class_data_ = {
+    ::PROTOBUF_NAMESPACE_ID::Message::CopyWithSourceCheck,
+    S_ENTER_TRUCK::MergeImpl
+};
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*S_ENTER_TRUCK::GetClassData() const { return &_class_data_; }
+
+
+void S_ENTER_TRUCK::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
+  auto* const _this = static_cast<S_ENTER_TRUCK*>(&to_msg);
+  auto& from = static_cast<const S_ENTER_TRUCK&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:Protocol.S_ENTER_TRUCK)
+  GOOGLE_DCHECK_NE(&from, _this);
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  if (from._internal_player_id() != 0) {
+    _this->_internal_set_player_id(from._internal_player_id());
+  }
+  if (from._internal_truck_id() != 0) {
+    _this->_internal_set_truck_id(from._internal_truck_id());
+  }
+  if (from._internal_seat_type() != 0) {
+    _this->_internal_set_seat_type(from._internal_seat_type());
+  }
+  _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+}
+
+void S_ENTER_TRUCK::CopyFrom(const S_ENTER_TRUCK& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:Protocol.S_ENTER_TRUCK)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool S_ENTER_TRUCK::IsInitialized() const {
+  return true;
+}
+
+void S_ENTER_TRUCK::InternalSwap(S_ENTER_TRUCK* other) {
+  using std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  ::PROTOBUF_NAMESPACE_ID::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(S_ENTER_TRUCK, _impl_.seat_type_)
+      + sizeof(S_ENTER_TRUCK::_impl_.seat_type_)
+      - PROTOBUF_FIELD_OFFSET(S_ENTER_TRUCK, _impl_.player_id_)>(
+          reinterpret_cast<char*>(&_impl_.player_id_),
+          reinterpret_cast<char*>(&other->_impl_.player_id_));
+}
+
+::PROTOBUF_NAMESPACE_ID::Metadata S_ENTER_TRUCK::GetMetadata() const {
+  return ::_pbi::AssignDescriptors(
+      &descriptor_table_Protocol_2eproto_getter, &descriptor_table_Protocol_2eproto_once,
+      file_level_metadata_Protocol_2eproto[18]);
+}
+
+// ===================================================================
+
+class C_EXIT_TRUCK::_Internal {
+ public:
+};
+
+C_EXIT_TRUCK::C_EXIT_TRUCK(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::internal::ZeroFieldsBase(arena, is_message_owned) {
+  // @@protoc_insertion_point(arena_constructor:Protocol.C_EXIT_TRUCK)
+}
+C_EXIT_TRUCK::C_EXIT_TRUCK(const C_EXIT_TRUCK& from)
+  : ::PROTOBUF_NAMESPACE_ID::internal::ZeroFieldsBase() {
+  C_EXIT_TRUCK* const _this = this; (void)_this;
+  _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+  // @@protoc_insertion_point(copy_constructor:Protocol.C_EXIT_TRUCK)
+}
+
+
+
+
+
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData C_EXIT_TRUCK::_class_data_ = {
+    ::PROTOBUF_NAMESPACE_ID::internal::ZeroFieldsBase::CopyImpl,
+    ::PROTOBUF_NAMESPACE_ID::internal::ZeroFieldsBase::MergeImpl,
+};
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*C_EXIT_TRUCK::GetClassData() const { return &_class_data_; }
+
+
+
+
+
+
+
+::PROTOBUF_NAMESPACE_ID::Metadata C_EXIT_TRUCK::GetMetadata() const {
+  return ::_pbi::AssignDescriptors(
+      &descriptor_table_Protocol_2eproto_getter, &descriptor_table_Protocol_2eproto_once,
+      file_level_metadata_Protocol_2eproto[19]);
+}
+
+// ===================================================================
+
+class S_EXIT_TRUCK::_Internal {
+ public:
+};
+
+S_EXIT_TRUCK::S_EXIT_TRUCK(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
+  SharedCtor(arena, is_message_owned);
+  // @@protoc_insertion_point(arena_constructor:Protocol.S_EXIT_TRUCK)
+}
+S_EXIT_TRUCK::S_EXIT_TRUCK(const S_EXIT_TRUCK& from)
+  : ::PROTOBUF_NAMESPACE_ID::Message() {
+  S_EXIT_TRUCK* const _this = this; (void)_this;
+  new (&_impl_) Impl_{
+      decltype(_impl_.player_id_){}
+    , decltype(_impl_.truck_id_){}
+    , decltype(_impl_.seat_type_){}
+    , /*decltype(_impl_._cached_size_)*/{}};
+
+  _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+  ::memcpy(&_impl_.player_id_, &from._impl_.player_id_,
+    static_cast<size_t>(reinterpret_cast<char*>(&_impl_.seat_type_) -
+    reinterpret_cast<char*>(&_impl_.player_id_)) + sizeof(_impl_.seat_type_));
+  // @@protoc_insertion_point(copy_constructor:Protocol.S_EXIT_TRUCK)
+}
+
+inline void S_EXIT_TRUCK::SharedCtor(
+    ::_pb::Arena* arena, bool is_message_owned) {
+  (void)arena;
+  (void)is_message_owned;
+  new (&_impl_) Impl_{
+      decltype(_impl_.player_id_){uint64_t{0u}}
+    , decltype(_impl_.truck_id_){uint64_t{0u}}
+    , decltype(_impl_.seat_type_){0}
+    , /*decltype(_impl_._cached_size_)*/{}
+  };
+}
+
+S_EXIT_TRUCK::~S_EXIT_TRUCK() {
+  // @@protoc_insertion_point(destructor:Protocol.S_EXIT_TRUCK)
+  if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
+  (void)arena;
+    return;
+  }
+  SharedDtor();
+}
+
+inline void S_EXIT_TRUCK::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+}
+
+void S_EXIT_TRUCK::SetCachedSize(int size) const {
+  _impl_._cached_size_.Set(size);
+}
+
+void S_EXIT_TRUCK::Clear() {
+// @@protoc_insertion_point(message_clear_start:Protocol.S_EXIT_TRUCK)
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  ::memset(&_impl_.player_id_, 0, static_cast<size_t>(
+      reinterpret_cast<char*>(&_impl_.seat_type_) -
+      reinterpret_cast<char*>(&_impl_.player_id_)) + sizeof(_impl_.seat_type_));
+  _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
+}
+
+const char* S_EXIT_TRUCK::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  while (!ctx->Done(&ptr)) {
+    uint32_t tag;
+    ptr = ::_pbi::ReadTag(ptr, &tag);
+    switch (tag >> 3) {
+      // uint64 player_id = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 8)) {
+          _impl_.player_id_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // uint64 truck_id = 2;
+      case 2:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 16)) {
+          _impl_.truck_id_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // .Protocol.TruckSeatType seat_type = 3;
+      case 3:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 24)) {
+          uint64_t val = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+          _internal_set_seat_type(static_cast<::Protocol::TruckSeatType>(val));
+        } else
+          goto handle_unusual;
+        continue;
+      default:
+        goto handle_unusual;
+    }  // switch
+  handle_unusual:
+    if ((tag == 0) || ((tag & 7) == 4)) {
+      CHK_(ptr);
+      ctx->SetLastTag(tag);
+      goto message_done;
+    }
+    ptr = UnknownFieldParse(
+        tag,
+        _internal_metadata_.mutable_unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(),
+        ptr, ctx);
+    CHK_(ptr != nullptr);
+  }  // while
+message_done:
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto message_done;
+#undef CHK_
+}
+
+uint8_t* S_EXIT_TRUCK::_InternalSerialize(
+    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:Protocol.S_EXIT_TRUCK)
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  // uint64 player_id = 1;
+  if (this->_internal_player_id() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt64ToArray(1, this->_internal_player_id(), target);
+  }
+
+  // uint64 truck_id = 2;
+  if (this->_internal_truck_id() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt64ToArray(2, this->_internal_truck_id(), target);
+  }
+
+  // .Protocol.TruckSeatType seat_type = 3;
+  if (this->_internal_seat_type() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteEnumToArray(
+      3, this->_internal_seat_type(), target);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+        _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:Protocol.S_EXIT_TRUCK)
+  return target;
+}
+
+size_t S_EXIT_TRUCK::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:Protocol.S_EXIT_TRUCK)
+  size_t total_size = 0;
+
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  // uint64 player_id = 1;
+  if (this->_internal_player_id() != 0) {
+    total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(this->_internal_player_id());
+  }
+
+  // uint64 truck_id = 2;
+  if (this->_internal_truck_id() != 0) {
+    total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(this->_internal_truck_id());
+  }
+
+  // .Protocol.TruckSeatType seat_type = 3;
+  if (this->_internal_seat_type() != 0) {
+    total_size += 1 +
+      ::_pbi::WireFormatLite::EnumSize(this->_internal_seat_type());
+  }
+
+  return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
+}
+
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData S_EXIT_TRUCK::_class_data_ = {
+    ::PROTOBUF_NAMESPACE_ID::Message::CopyWithSourceCheck,
+    S_EXIT_TRUCK::MergeImpl
+};
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*S_EXIT_TRUCK::GetClassData() const { return &_class_data_; }
+
+
+void S_EXIT_TRUCK::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
+  auto* const _this = static_cast<S_EXIT_TRUCK*>(&to_msg);
+  auto& from = static_cast<const S_EXIT_TRUCK&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:Protocol.S_EXIT_TRUCK)
+  GOOGLE_DCHECK_NE(&from, _this);
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  if (from._internal_player_id() != 0) {
+    _this->_internal_set_player_id(from._internal_player_id());
+  }
+  if (from._internal_truck_id() != 0) {
+    _this->_internal_set_truck_id(from._internal_truck_id());
+  }
+  if (from._internal_seat_type() != 0) {
+    _this->_internal_set_seat_type(from._internal_seat_type());
+  }
+  _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+}
+
+void S_EXIT_TRUCK::CopyFrom(const S_EXIT_TRUCK& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:Protocol.S_EXIT_TRUCK)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool S_EXIT_TRUCK::IsInitialized() const {
+  return true;
+}
+
+void S_EXIT_TRUCK::InternalSwap(S_EXIT_TRUCK* other) {
+  using std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  ::PROTOBUF_NAMESPACE_ID::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(S_EXIT_TRUCK, _impl_.seat_type_)
+      + sizeof(S_EXIT_TRUCK::_impl_.seat_type_)
+      - PROTOBUF_FIELD_OFFSET(S_EXIT_TRUCK, _impl_.player_id_)>(
+          reinterpret_cast<char*>(&_impl_.player_id_),
+          reinterpret_cast<char*>(&other->_impl_.player_id_));
+}
+
+::PROTOBUF_NAMESPACE_ID::Metadata S_EXIT_TRUCK::GetMetadata() const {
+  return ::_pbi::AssignDescriptors(
+      &descriptor_table_Protocol_2eproto_getter, &descriptor_table_Protocol_2eproto_once,
+      file_level_metadata_Protocol_2eproto[20]);
+}
+
+// ===================================================================
+
+class C_TRUCK_MOVE::_Internal {
+ public:
+  static const ::Protocol::PosInfo& info(const C_TRUCK_MOVE* msg);
+};
+
+const ::Protocol::PosInfo&
+C_TRUCK_MOVE::_Internal::info(const C_TRUCK_MOVE* msg) {
+  return *msg->_impl_.info_;
+}
+void C_TRUCK_MOVE::clear_info() {
+  if (GetArenaForAllocation() == nullptr && _impl_.info_ != nullptr) {
+    delete _impl_.info_;
+  }
+  _impl_.info_ = nullptr;
+}
+C_TRUCK_MOVE::C_TRUCK_MOVE(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
+  SharedCtor(arena, is_message_owned);
+  // @@protoc_insertion_point(arena_constructor:Protocol.C_TRUCK_MOVE)
+}
+C_TRUCK_MOVE::C_TRUCK_MOVE(const C_TRUCK_MOVE& from)
+  : ::PROTOBUF_NAMESPACE_ID::Message() {
+  C_TRUCK_MOVE* const _this = this; (void)_this;
+  new (&_impl_) Impl_{
+      decltype(_impl_.info_){nullptr}
+    , /*decltype(_impl_._cached_size_)*/{}};
+
+  _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+  if (from._internal_has_info()) {
+    _this->_impl_.info_ = new ::Protocol::PosInfo(*from._impl_.info_);
+  }
+  // @@protoc_insertion_point(copy_constructor:Protocol.C_TRUCK_MOVE)
+}
+
+inline void C_TRUCK_MOVE::SharedCtor(
+    ::_pb::Arena* arena, bool is_message_owned) {
+  (void)arena;
+  (void)is_message_owned;
+  new (&_impl_) Impl_{
+      decltype(_impl_.info_){nullptr}
+    , /*decltype(_impl_._cached_size_)*/{}
+  };
+}
+
+C_TRUCK_MOVE::~C_TRUCK_MOVE() {
+  // @@protoc_insertion_point(destructor:Protocol.C_TRUCK_MOVE)
+  if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
+  (void)arena;
+    return;
+  }
+  SharedDtor();
+}
+
+inline void C_TRUCK_MOVE::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+  if (this != internal_default_instance()) delete _impl_.info_;
+}
+
+void C_TRUCK_MOVE::SetCachedSize(int size) const {
+  _impl_._cached_size_.Set(size);
+}
+
+void C_TRUCK_MOVE::Clear() {
+// @@protoc_insertion_point(message_clear_start:Protocol.C_TRUCK_MOVE)
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  if (GetArenaForAllocation() == nullptr && _impl_.info_ != nullptr) {
+    delete _impl_.info_;
+  }
+  _impl_.info_ = nullptr;
+  _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
+}
+
+const char* C_TRUCK_MOVE::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  while (!ctx->Done(&ptr)) {
+    uint32_t tag;
+    ptr = ::_pbi::ReadTag(ptr, &tag);
+    switch (tag >> 3) {
+      // .Protocol.PosInfo info = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
+          ptr = ctx->ParseMessage(_internal_mutable_info(), ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      default:
+        goto handle_unusual;
+    }  // switch
+  handle_unusual:
+    if ((tag == 0) || ((tag & 7) == 4)) {
+      CHK_(ptr);
+      ctx->SetLastTag(tag);
+      goto message_done;
+    }
+    ptr = UnknownFieldParse(
+        tag,
+        _internal_metadata_.mutable_unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(),
+        ptr, ctx);
+    CHK_(ptr != nullptr);
+  }  // while
+message_done:
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto message_done;
+#undef CHK_
+}
+
+uint8_t* C_TRUCK_MOVE::_InternalSerialize(
+    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:Protocol.C_TRUCK_MOVE)
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  // .Protocol.PosInfo info = 1;
+  if (this->_internal_has_info()) {
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(1, _Internal::info(this),
+        _Internal::info(this).GetCachedSize(), target, stream);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+        _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:Protocol.C_TRUCK_MOVE)
+  return target;
+}
+
+size_t C_TRUCK_MOVE::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:Protocol.C_TRUCK_MOVE)
+  size_t total_size = 0;
+
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  // .Protocol.PosInfo info = 1;
+  if (this->_internal_has_info()) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+        *_impl_.info_);
+  }
+
+  return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
+}
+
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData C_TRUCK_MOVE::_class_data_ = {
+    ::PROTOBUF_NAMESPACE_ID::Message::CopyWithSourceCheck,
+    C_TRUCK_MOVE::MergeImpl
+};
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*C_TRUCK_MOVE::GetClassData() const { return &_class_data_; }
+
+
+void C_TRUCK_MOVE::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
+  auto* const _this = static_cast<C_TRUCK_MOVE*>(&to_msg);
+  auto& from = static_cast<const C_TRUCK_MOVE&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:Protocol.C_TRUCK_MOVE)
+  GOOGLE_DCHECK_NE(&from, _this);
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  if (from._internal_has_info()) {
+    _this->_internal_mutable_info()->::Protocol::PosInfo::MergeFrom(
+        from._internal_info());
+  }
+  _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+}
+
+void C_TRUCK_MOVE::CopyFrom(const C_TRUCK_MOVE& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:Protocol.C_TRUCK_MOVE)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool C_TRUCK_MOVE::IsInitialized() const {
+  return true;
+}
+
+void C_TRUCK_MOVE::InternalSwap(C_TRUCK_MOVE* other) {
+  using std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_.info_, other->_impl_.info_);
+}
+
+::PROTOBUF_NAMESPACE_ID::Metadata C_TRUCK_MOVE::GetMetadata() const {
+  return ::_pbi::AssignDescriptors(
+      &descriptor_table_Protocol_2eproto_getter, &descriptor_table_Protocol_2eproto_once,
+      file_level_metadata_Protocol_2eproto[21]);
+}
+
+// ===================================================================
+
+class S_TRUCK_MOVE::_Internal {
+ public:
+  static const ::Protocol::PosInfo& info(const S_TRUCK_MOVE* msg);
+};
+
+const ::Protocol::PosInfo&
+S_TRUCK_MOVE::_Internal::info(const S_TRUCK_MOVE* msg) {
+  return *msg->_impl_.info_;
+}
+void S_TRUCK_MOVE::clear_info() {
+  if (GetArenaForAllocation() == nullptr && _impl_.info_ != nullptr) {
+    delete _impl_.info_;
+  }
+  _impl_.info_ = nullptr;
+}
+S_TRUCK_MOVE::S_TRUCK_MOVE(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
+  SharedCtor(arena, is_message_owned);
+  // @@protoc_insertion_point(arena_constructor:Protocol.S_TRUCK_MOVE)
+}
+S_TRUCK_MOVE::S_TRUCK_MOVE(const S_TRUCK_MOVE& from)
+  : ::PROTOBUF_NAMESPACE_ID::Message() {
+  S_TRUCK_MOVE* const _this = this; (void)_this;
+  new (&_impl_) Impl_{
+      decltype(_impl_.info_){nullptr}
+    , /*decltype(_impl_._cached_size_)*/{}};
+
+  _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+  if (from._internal_has_info()) {
+    _this->_impl_.info_ = new ::Protocol::PosInfo(*from._impl_.info_);
+  }
+  // @@protoc_insertion_point(copy_constructor:Protocol.S_TRUCK_MOVE)
+}
+
+inline void S_TRUCK_MOVE::SharedCtor(
+    ::_pb::Arena* arena, bool is_message_owned) {
+  (void)arena;
+  (void)is_message_owned;
+  new (&_impl_) Impl_{
+      decltype(_impl_.info_){nullptr}
+    , /*decltype(_impl_._cached_size_)*/{}
+  };
+}
+
+S_TRUCK_MOVE::~S_TRUCK_MOVE() {
+  // @@protoc_insertion_point(destructor:Protocol.S_TRUCK_MOVE)
+  if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
+  (void)arena;
+    return;
+  }
+  SharedDtor();
+}
+
+inline void S_TRUCK_MOVE::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+  if (this != internal_default_instance()) delete _impl_.info_;
+}
+
+void S_TRUCK_MOVE::SetCachedSize(int size) const {
+  _impl_._cached_size_.Set(size);
+}
+
+void S_TRUCK_MOVE::Clear() {
+// @@protoc_insertion_point(message_clear_start:Protocol.S_TRUCK_MOVE)
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  if (GetArenaForAllocation() == nullptr && _impl_.info_ != nullptr) {
+    delete _impl_.info_;
+  }
+  _impl_.info_ = nullptr;
+  _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
+}
+
+const char* S_TRUCK_MOVE::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  while (!ctx->Done(&ptr)) {
+    uint32_t tag;
+    ptr = ::_pbi::ReadTag(ptr, &tag);
+    switch (tag >> 3) {
+      // .Protocol.PosInfo info = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
+          ptr = ctx->ParseMessage(_internal_mutable_info(), ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      default:
+        goto handle_unusual;
+    }  // switch
+  handle_unusual:
+    if ((tag == 0) || ((tag & 7) == 4)) {
+      CHK_(ptr);
+      ctx->SetLastTag(tag);
+      goto message_done;
+    }
+    ptr = UnknownFieldParse(
+        tag,
+        _internal_metadata_.mutable_unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(),
+        ptr, ctx);
+    CHK_(ptr != nullptr);
+  }  // while
+message_done:
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto message_done;
+#undef CHK_
+}
+
+uint8_t* S_TRUCK_MOVE::_InternalSerialize(
+    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:Protocol.S_TRUCK_MOVE)
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  // .Protocol.PosInfo info = 1;
+  if (this->_internal_has_info()) {
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(1, _Internal::info(this),
+        _Internal::info(this).GetCachedSize(), target, stream);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+        _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:Protocol.S_TRUCK_MOVE)
+  return target;
+}
+
+size_t S_TRUCK_MOVE::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:Protocol.S_TRUCK_MOVE)
+  size_t total_size = 0;
+
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  // .Protocol.PosInfo info = 1;
+  if (this->_internal_has_info()) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+        *_impl_.info_);
+  }
+
+  return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
+}
+
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData S_TRUCK_MOVE::_class_data_ = {
+    ::PROTOBUF_NAMESPACE_ID::Message::CopyWithSourceCheck,
+    S_TRUCK_MOVE::MergeImpl
+};
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*S_TRUCK_MOVE::GetClassData() const { return &_class_data_; }
+
+
+void S_TRUCK_MOVE::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
+  auto* const _this = static_cast<S_TRUCK_MOVE*>(&to_msg);
+  auto& from = static_cast<const S_TRUCK_MOVE&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:Protocol.S_TRUCK_MOVE)
+  GOOGLE_DCHECK_NE(&from, _this);
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  if (from._internal_has_info()) {
+    _this->_internal_mutable_info()->::Protocol::PosInfo::MergeFrom(
+        from._internal_info());
+  }
+  _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+}
+
+void S_TRUCK_MOVE::CopyFrom(const S_TRUCK_MOVE& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:Protocol.S_TRUCK_MOVE)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool S_TRUCK_MOVE::IsInitialized() const {
+  return true;
+}
+
+void S_TRUCK_MOVE::InternalSwap(S_TRUCK_MOVE* other) {
+  using std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_.info_, other->_impl_.info_);
+}
+
+::PROTOBUF_NAMESPACE_ID::Metadata S_TRUCK_MOVE::GetMetadata() const {
+  return ::_pbi::AssignDescriptors(
+      &descriptor_table_Protocol_2eproto_getter, &descriptor_table_Protocol_2eproto_once,
+      file_level_metadata_Protocol_2eproto[22]);
+}
+
 // @@protoc_insertion_point(namespace_scope)
 }  // namespace Protocol
 PROTOBUF_NAMESPACE_OPEN
@@ -3600,6 +4877,30 @@ Arena::CreateMaybeMessage< ::Protocol::C_FIRE >(Arena* arena) {
 template<> PROTOBUF_NOINLINE ::Protocol::S_FIRE*
 Arena::CreateMaybeMessage< ::Protocol::S_FIRE >(Arena* arena) {
   return Arena::CreateMessageInternal< ::Protocol::S_FIRE >(arena);
+}
+template<> PROTOBUF_NOINLINE ::Protocol::C_ENTER_TRUCK*
+Arena::CreateMaybeMessage< ::Protocol::C_ENTER_TRUCK >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::Protocol::C_ENTER_TRUCK >(arena);
+}
+template<> PROTOBUF_NOINLINE ::Protocol::S_ENTER_TRUCK*
+Arena::CreateMaybeMessage< ::Protocol::S_ENTER_TRUCK >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::Protocol::S_ENTER_TRUCK >(arena);
+}
+template<> PROTOBUF_NOINLINE ::Protocol::C_EXIT_TRUCK*
+Arena::CreateMaybeMessage< ::Protocol::C_EXIT_TRUCK >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::Protocol::C_EXIT_TRUCK >(arena);
+}
+template<> PROTOBUF_NOINLINE ::Protocol::S_EXIT_TRUCK*
+Arena::CreateMaybeMessage< ::Protocol::S_EXIT_TRUCK >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::Protocol::S_EXIT_TRUCK >(arena);
+}
+template<> PROTOBUF_NOINLINE ::Protocol::C_TRUCK_MOVE*
+Arena::CreateMaybeMessage< ::Protocol::C_TRUCK_MOVE >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::Protocol::C_TRUCK_MOVE >(arena);
+}
+template<> PROTOBUF_NOINLINE ::Protocol::S_TRUCK_MOVE*
+Arena::CreateMaybeMessage< ::Protocol::S_TRUCK_MOVE >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::Protocol::S_TRUCK_MOVE >(arena);
 }
 PROTOBUF_NAMESPACE_CLOSE
 

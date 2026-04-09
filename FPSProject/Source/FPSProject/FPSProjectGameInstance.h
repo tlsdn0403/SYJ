@@ -47,6 +47,9 @@ public:
 	void HandleDespawn(const Protocol::S_DESPAWN& DespawnPkt);
 
 	void HandleMove(const Protocol::S_MOVE& MovePkt);
+	void HandleEnterTruck(const Protocol::S_ENTER_TRUCK& pkt);
+	void HandleExitTruck(const Protocol::S_EXIT_TRUCK& pkt);
+	void HandleTruckMove(const Protocol::S_TRUCK_MOVE& pkt);
 
 	void HandleEquipWeapon(const Protocol::S_EQUIP_WEAPON& pkt);
 	void HandleSpawnItem(const Protocol::S_SPAWN_ITEM& pkt);
@@ -54,6 +57,8 @@ public:
 	void ApplyEquippedWeapon(uint64 PlayerId, uint64 ItemId, int32 WeaponType);
 	void RetryPendingWeapon(uint64 PlayerId);
 	TSubclassOf<class AWeaponBase> ResolveWeaponClass(int32 WeaponType) const;
+	class ATruck* FindTruckById(uint64 TruckId);
+	void CacheTruckActors();
 
 public:
 	virtual void Shutdown() override;
@@ -73,6 +78,7 @@ public:
 	TSubclassOf<class AFPSBaseCharacter> OtherPlayerClass;
 	class AFPSBaseCharacter* MyPlayer;
 	TMap<uint64, class AFPSBaseCharacter*> Players;
+	TMap<uint64, class ATruck*> Trucks;
 
 	// [추가] 바닥에 떨어진 아이템(총기 등)들을 ID로 관리하기 위한 맵
 	UPROPERTY()

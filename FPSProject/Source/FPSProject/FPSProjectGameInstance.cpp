@@ -12,8 +12,10 @@
 #include "Enum.pb.h"
 #include "ClientPacketHandler.h"
 #include "Characters/FPSBaseCharacter.h"
+#include "Truck/Truck.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "EngineUtils.h"
 
 void UFPSProjectGameInstance::ConnectToGameServer(const FString& IPAddress)
 {
@@ -134,6 +136,8 @@ void UFPSProjectGameInstance::HandleSpawn(const Protocol::ObjectInfo& ObjectInfo
 	if (World == nullptr)
 		return;
 
+	CacheTruckActors();
+
 	// 중복 처리 체크
 	const uint64 ObjectId = ObjectInfo.object_id();
 	if (Players.Find(ObjectId) != nullptr)
@@ -247,6 +251,151 @@ void UFPSProjectGameInstance::HandleMove(const Protocol::S_MOVE& MovePkt)
 	// 이렇게 갱신해주면 AFPSBaseCharacter::Tick 함수에서 이걸 보고 자연스럽게 걸어갑니다.
 	const Protocol::PosInfo& Info = MovePkt.info();
 	Player->SetDestInfo(Info);
+}
+
+ATruck* UFPSProjectGameInstance::FindTruckById(uint64 TruckId)
+{
+	if (TruckId == 0)
+	{
+		return nullptr;
+	}
+
+	if (ATruck** FoundTruck = Trucks.Find(TruckId))
+	{
+		if (IsValid(*FoundTruck))
+		{
+			return *FoundTruck;
+		}
+
+		Trucks.Remove(TruckId);
+	}
+
+	CacheTruckActors();
+
+	if (ATruck** FoundTruck = Trucks.Find(TruckId))
+	{
+		return IsValid(*FoundTruck) ? *FoundTruck : nullptr;
+	}
+
+	return nullptr;
+}
+
+void UFPSProjectGameInstance::CacheTruckActors()
+{
+	UWorld* World = GetWorld();
+	if (World == nullptr)
+	{
+		return;
+	}
+
+	Trucks.Empty();
+
+	for (TActorIterator<ATruck> It(World); It; ++It)
+	{
+		ATruck* Truck = *It;
+		if (IsValid(Truck) && Truck->NetworkTruckId != 0)
+		{
+			Trucks.Add(Truck->NetworkTruckId, Truck);
+		}
+	}
+}
+
+void UFPSProjectGameInstance::HandleEnterTruck(const Protocol::S_ENTER_TRUCK& pkt)
+{
+	AFPSBaseCharacter* Player = Players.FindRef(pkt.player_id());
+	ATruck* Truck = FindTruckById(pkt.truck_id());
+	if (Player == nullptr || Truck == nullptr)
+	{
+		return;
+	}
+
+	switch (pkt.seat_type())
+	{
+	case Protocol::TRUCK_SEAT_DRIVER:
+		Truck->SetLocallyDriven(Player->IsLocallyControlled());
+		Player->EnterTruckDriverSeat(Truck);
+		if (AController* PlayerController = Player->GetController())
+		{
+			Truck->SetDriverCharacter(Player);
+			PlayerController->Possess(Truck);
+			PlayerController->SetControlRotation(Truck->GetActorRotation());
+		}
+		break;
+	case Protocol::TRUCK_SEAT_CARGO:
+		Player->EnterTruckCargo(Truck);
+		break;
+	case Protocol::TRUCK_SEAT_TURRET:
+		if (AMountedMachineGun* MountedWeapon = Truck->GetMountedWeapon())
+		{
+			Truck->SetMountedWeaponUser(Player);
+			Player->EnterMountedWeapon(Truck, MountedWeapon);
+		}
+		break;
+	default:
+		break;
+	}
+}
+
+void UFPSProjectGameInstance::HandleExitTruck(const Protocol::S_EXIT_TRUCK& pkt)
+{
+	AFPSBaseCharacter* Player = Players.FindRef(pkt.player_id());
+	ATruck* Truck = FindTruckById(pkt.truck_id());
+	if (Player == nullptr || Truck == nullptr)
+	{
+		return;
+	}
+
+	switch (pkt.seat_type())
+	{
+	case Protocol::TRUCK_SEAT_DRIVER:
+		Truck->SetLocallyDriven(false);
+		if (Truck->GetDriverCharacter() == Player)
+		{
+			Truck->SetDriverCharacter(nullptr);
+		}
+		Player->ExitTruckDriverSeat();
+		if (AController* PlayerController = Truck->GetController())
+		{
+			PlayerController->Possess(Player);
+			PlayerController->SetControlRotation(Player->GetActorRotation());
+		}
+		break;
+	case Protocol::TRUCK_SEAT_CARGO:
+		Player->ExitTruckCargo();
+		break;
+	case Protocol::TRUCK_SEAT_TURRET:
+		if (Truck->GetMountedWeaponUser() == Player)
+		{
+			Truck->SetMountedWeaponUser(nullptr);
+		}
+		Player->ExitMountedWeapon();
+		break;
+	default:
+		break;
+	}
+}
+
+void UFPSProjectGameInstance::HandleTruckMove(const Protocol::S_TRUCK_MOVE& pkt)
+{
+	ATruck* Truck = FindTruckById(pkt.info().object_id());
+	if (Truck == nullptr)
+	{
+		return;
+	}
+
+	if (Truck->IsPlayerControlled())
+	{
+		return;
+	}
+
+	const FVector TargetLocation(pkt.info().x(), pkt.info().y(), pkt.info().z());
+	const FRotator TargetRotation(0.0f, pkt.info().yaw(), 0.0f);
+	Truck->SetLocallyDriven(false);
+	Truck->SetActorLocationAndRotation(TargetLocation, TargetRotation);
+	if (USkeletalMeshComponent* TruckMesh = Truck->GetMesh())
+	{
+		TruckMesh->SetWorldLocationAndRotation(TargetLocation, TargetRotation, false, nullptr, ETeleportType::TeleportPhysics);
+	}
 }
 
 void UFPSProjectGameInstance::HandleEquipWeapon(const Protocol::S_EQUIP_WEAPON& pkt)

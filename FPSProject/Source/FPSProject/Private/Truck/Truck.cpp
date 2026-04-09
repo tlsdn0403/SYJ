@@ -14,6 +14,8 @@
 #include "UObject/ConstructorHelpers.h"
 #include "Engine/OverlapResult.h"
 #include "CollisionShape.h"
+#include "ClientPacketHandler.h"
+#include "FPSProject.h"
 
 ATruck::ATruck()
 {
@@ -222,6 +224,13 @@ void ATruck::Tick(float DeltaTime)
 
 	if (IsPlayerControlled())
 	{
+		TruckMovePacketSendTimer += DeltaTime;
+		if (TruckMovePacketSendTimer >= TRUCK_MOVE_PACKET_SEND_DELAY)
+		{
+			TruckMovePacketSendTimer = 0.0f;
+			SendTruckMovePacket();
+		}
+
 		if (!EngineAudioComponent->IsPlaying())
 		{
 			EngineAudioComponent->Play();
@@ -235,6 +244,45 @@ void ATruck::Tick(float DeltaTime)
 		if (EngineAudioComponent->IsPlaying())
 		{
 			EngineAudioComponent->Stop();
+		}
+	}
+}
+
+void ATruck::SendTruckMovePacket()
+{
+	if (NetworkTruckId == 0)
+	{
+		return;
+	}
+
+	Protocol::C_TRUCK_MOVE MovePkt;
+	Protocol::PosInfo* Info = MovePkt.mutable_info();
+	Info->set_object_id(NetworkTruckId);
+	Info->set_x(GetActorLocation().X);
+	Info->set_y(GetActorLocation().Y);
+	Info->set_z(GetActorLocation().Z);
+	Info->set_yaw(GetActorRotation().Yaw);
+	Info->set_state(GetVelocity().SizeSquared() > KINDA_SMALL_NUMBER ? Protocol::MOVE_STATE_RUN : Protocol::MOVE_STATE_IDLE);
+
+	SEND_PACKET(MovePkt);
+}
+
+void ATruck::SetLocallyDriven(bool bLocallyDriven)
+{
+	if (USkeletalMeshComponent* TruckMesh = GetMesh())
+	{
+		TruckMesh->SetSimulatePhysics(bLocallyDriven);
+	}
+
+	if (auto* MoveComp = Cast<UChaosWheeledVehicleMovementComponent>(GetVehicleMovement()))
+	{
+		MoveComp->SetComponentTickEnabled(bLocallyDriven);
+
+		if (!bLocallyDriven)
+		{
+			MoveComp->SetThrottleInput(0.0f);
+			MoveComp->SetSteeringInput(0.0f);
+			MoveComp->SetBrakeInput(1.0f);
 		}
 	}
 }
@@ -505,27 +553,23 @@ void ATruck::Interact_Implementation(AFPSBaseCharacter* Character)
 			return;
 		}
 
-		AController* PlayerController = Character->GetController();
-		if (PlayerController)
+		if (Character->IsLocallyControlled())
 		{
-			Character->EnterTruckDriverSeat(this);
-			if (!Character->IsDrivingTruck())
-			{
-				return;
-			}
-
-			DriverCharacter = Character;
-			PlayerController->Possess(this);
-			PlayerController->SetControlRotation(GetActorRotation());
-			UE_LOG(LogTemp, Log, TEXT("Driver Seat!"));
+			Protocol::C_ENTER_TRUCK EnterPkt;
+			EnterPkt.set_truck_id(NetworkTruckId);
+			EnterPkt.set_seat_type(Protocol::TRUCK_SEAT_DRIVER);
+			SEND_PACKET(EnterPkt);
 		}
 	}
 	else if (Character->GetCurrentTruckInteractType() == ETruckInteractType::CargoSeat)
 	{
 		UE_LOG(LogTemp, Log, TEXT("Cargo Seat!"));
-		if (!Character->IsOnTruckCargo())
+		if (!Character->IsOnTruckCargo() && Character->IsLocallyControlled())
 		{
-			Character->EnterTruckCargo(this);
+			Protocol::C_ENTER_TRUCK EnterPkt;
+			EnterPkt.set_truck_id(NetworkTruckId);
+			EnterPkt.set_seat_type(Protocol::TRUCK_SEAT_CARGO);
+			SEND_PACKET(EnterPkt);
 		}
 	}
 }
@@ -555,9 +599,13 @@ bool ATruck::TryEnterMountedWeapon(AFPSBaseCharacter* Character)
 		return true;
 	}
 
-	MountedWeaponUser = Character;
-	Character->EnterMountedWeapon(this, MountedWeapon);
-	MountedWeapon->SetWeaponUser(Character);
+	if (Character->IsLocallyControlled())
+	{
+		Protocol::C_ENTER_TRUCK EnterPkt;
+		EnterPkt.set_truck_id(NetworkTruckId);
+		EnterPkt.set_seat_type(Protocol::TRUCK_SEAT_TURRET);
+		SEND_PACKET(EnterPkt);
+	}
 	return true;
 }
 
@@ -568,9 +616,7 @@ void ATruck::ExitDriverSeat()
 		return;
 	}
 
-	AController* DriverController = GetController();
 	AFPSBaseCharacter* CharacterToRestore = DriverCharacter;
-	DriverCharacter = nullptr;
 
 	if (auto* MoveComp = Cast<UChaosWheeledVehicleMovementComponent>(GetVehicleMovement()))
 	{
@@ -579,12 +625,10 @@ void ATruck::ExitDriverSeat()
 		MoveComp->SetBrakeInput(1.0f);
 	}
 
-	CharacterToRestore->ExitTruckDriverSeat();
-
-	if (DriverController)
+	if (CharacterToRestore->IsLocallyControlled())
 	{
-		DriverController->Possess(CharacterToRestore);
-		DriverController->SetControlRotation(CharacterToRestore->GetActorRotation());
+		Protocol::C_EXIT_TRUCK ExitPkt;
+		SEND_PACKET(ExitPkt);
 	}
 }
 

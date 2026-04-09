@@ -17,11 +17,120 @@ Room::~Room()
 
 }
 
+Room::TruckState* Room::FindTruckState(uint64 truckId)
+{
+	auto it = _trucks.find(truckId);
+	if (it == _trucks.end())
+		return nullptr;
+
+	return &it->second;
+}
+
+Room::TruckState& Room::GetOrCreateTruckState(uint64 truckId)
+{
+	TruckState& truckState = _trucks[truckId];
+	if (truckState.posInfo.object_id() == 0)
+	{
+		truckState.posInfo.set_object_id(truckId);
+		truckState.posInfo.set_state(Protocol::MOVE_STATE_IDLE);
+	}
+
+	return truckState;
+}
+
+bool Room::IsTruckSeatOccupied(const TruckState& truckState, Protocol::TruckSeatType seatType) const
+{
+	switch (seatType)
+	{
+	case Protocol::TRUCK_SEAT_DRIVER:
+		return truckState.driverPlayerId != 0;
+	case Protocol::TRUCK_SEAT_CARGO:
+		return truckState.cargoPlayerId != 0;
+	case Protocol::TRUCK_SEAT_TURRET:
+		return truckState.turretPlayerId != 0;
+	default:
+		return true;
+	}
+}
+
+void Room::SetTruckSeatOccupant(TruckState& truckState, Protocol::TruckSeatType seatType, uint64 playerId)
+{
+	switch (seatType)
+	{
+	case Protocol::TRUCK_SEAT_DRIVER:
+		truckState.driverPlayerId = playerId;
+		break;
+	case Protocol::TRUCK_SEAT_CARGO:
+		truckState.cargoPlayerId = playerId;
+		break;
+	case Protocol::TRUCK_SEAT_TURRET:
+		truckState.turretPlayerId = playerId;
+		break;
+	default:
+		break;
+	}
+}
+
+void Room::ClearTruckSeatOccupant(TruckState& truckState, Protocol::TruckSeatType seatType, uint64 playerId)
+{
+	switch (seatType)
+	{
+	case Protocol::TRUCK_SEAT_DRIVER:
+		if (truckState.driverPlayerId == playerId)
+			truckState.driverPlayerId = 0;
+		break;
+	case Protocol::TRUCK_SEAT_CARGO:
+		if (truckState.cargoPlayerId == playerId)
+			truckState.cargoPlayerId = 0;
+		break;
+	case Protocol::TRUCK_SEAT_TURRET:
+		if (truckState.turretPlayerId == playerId)
+			truckState.turretPlayerId = 0;
+		break;
+	default:
+		break;
+	}
+}
+
+void Room::ClearPlayerTruckState(PlayerRef player)
+{
+	if (player == nullptr)
+		return;
+
+	player->bIsInTruck = false;
+	player->currentTruckId = 0;
+	player->currentTruckSeatType = Protocol::TRUCK_SEAT_NONE;
+}
+
+void Room::ForceExitTruck(PlayerRef player)
+{
+	if (player == nullptr || player->bIsInTruck == false)
+		return;
+
+	const uint64 playerId = player->objectInfo->object_id();
+	const uint64 truckId = player->currentTruckId;
+	const Protocol::TruckSeatType seatType = player->currentTruckSeatType;
+
+	TruckState* truckState = FindTruckState(truckId);
+	if (truckState != nullptr)
+		ClearTruckSeatOccupant(*truckState, seatType, playerId);
+
+	ClearPlayerTruckState(player);
+
+	Protocol::S_EXIT_TRUCK exitPkt;
+	exitPkt.set_player_id(playerId);
+	exitPkt.set_truck_id(truckId);
+	exitPkt.set_seat_type(seatType);
+
+	SendBufferRef sendBuffer = ServerPacketHandler::MakeSendBuffer(exitPkt);
+	Broadcast(sendBuffer);
+}
+
 bool Room::EnterRoom(ObjectRef object, bool randPos /*= true*/)
 {
 	bool success = AddObject(object);
 
-	// ·£´ı À§Ä¡
+	// ëœë¤ ìœ„ì¹˜
 	if (randPos)
 	{
 		object->posInfo->set_x(Utils::GetRandom(0.f, 500.f));
@@ -30,7 +139,7 @@ bool Room::EnterRoom(ObjectRef object, bool randPos /*= true*/)
 		object->posInfo->set_yaw(Utils::GetRandom(0.f, 100.f));
 	}
 
-	// ÀÔÀå »ç½ÇÀ» ½ÅÀÔ ÇÃ·¹ÀÌ¾î¿¡°Ô ¾Ë¸°´Ù
+	// ì…ì¥ ì‚¬ì‹¤ì„ ì‹ ì… í”Œë ˆì´ì–´ì—ê²Œ ì•Œë¦°ë‹¤
 	if (auto player = dynamic_pointer_cast<Player>(object))
 	{
 		Protocol::S_ENTER_GAME enterGamePkt;
@@ -45,7 +154,7 @@ bool Room::EnterRoom(ObjectRef object, bool randPos /*= true*/)
 			session->Send(sendBuffer);
 	}
 
-	// ÀÔÀå »ç½ÇÀ» ´Ù¸¥ ÇÃ·¹ÀÌ¾î¿¡°Ô ¾Ë¸°´Ù
+	// ì…ì¥ ì‚¬ì‹¤ì„ ë‹¤ë¥¸ í”Œë ˆì´ì–´ì—ê²Œ ì•Œë¦°ë‹¤
 	{
 		Protocol::S_SPAWN spawnPkt;
 
@@ -56,7 +165,7 @@ bool Room::EnterRoom(ObjectRef object, bool randPos /*= true*/)
 		Broadcast(sendBuffer, object->objectInfo->object_id());
 	}
 
-	// ±âÁ¸ ÀÔÀåÇÑ ÇÃ·¹ÀÌ¾î ¸ñ·ÏÀ» ½ÅÀÔ ÇÃ·¹ÀÌ¾îÇÑÅ× Àü¼ÛÇØÁØ´Ù
+	// ê¸°ì¡´ ì…ì¥í•œ í”Œë ˆì´ì–´ ëª©ë¡ì„ ì‹ ì… í”Œë ˆì´ì–´í•œí…Œ ì „ì†¡í•´ì¤€ë‹¤
 	if (auto player = dynamic_pointer_cast<Player>(object))
 	{
 		Protocol::S_SPAWN spawnPkt;
@@ -89,7 +198,7 @@ bool Room::LeaveRoom(ObjectRef object)
 	const uint64 objectId = object->objectInfo->object_id();
 	bool success = RemoveObject(objectId);
 
-	// ÅğÀå »ç½ÇÀ» ÅğÀåÇÏ´Â ÇÃ·¹ÀÌ¾î¿¡°Ô ¾Ë¸°´Ù
+	// í‡´ì¥ ì‚¬ì‹¤ì„ í‡´ì¥í•˜ëŠ” í”Œë ˆì´ì–´ì—ê²Œ ì•Œë¦°ë‹¤
 	if (auto player = dynamic_pointer_cast<Player>(object))
 	{
 		Protocol::S_LEAVE_GAME leaveGamePkt;
@@ -99,7 +208,7 @@ bool Room::LeaveRoom(ObjectRef object)
 			session->Send(sendBuffer);
 	}
 
-	// ÅğÀå »ç½ÇÀ» ¾Ë¸°´Ù
+	// í‡´ì¥ ì‚¬ì‹¤ì„ ì•Œë¦°ë‹¤
 	{
 		Protocol::S_DESPAWN despawnPkt;
 		despawnPkt.add_object_ids(objectId);
@@ -125,7 +234,7 @@ bool Room::HandleEnterPlayer(PlayerRef player)
 	Protocol::S_SPAWN_ITEM spawnItemPkt;
 	Protocol::ObjectInfo* itemInfo = spawnItemPkt.add_items();
 
-	itemInfo->set_object_id(1); // ÀÌ ¹«±âÀÇ °íÀ¯ ¹øÈ£´Â 1¹ø!
+	itemInfo->set_object_id(1); // ì´ ë¬´ê¸°ì˜ ê³ ìœ  ë²ˆí˜¸ëŠ” 1ë²ˆ!
 	itemInfo->set_object_type(Protocol::OBJECT_TYPE_ITEM);
 	itemInfo->set_weapon_type(Protocol::WEAPON_TYPE_RIFLE);
 
@@ -135,7 +244,7 @@ bool Room::HandleEnterPlayer(PlayerRef player)
 	pos->set_z(30.0f);
 	pos->set_yaw(0.0f);
 
-	// ¹æ±İ Á¢¼ÓÇÑ ÇÃ·¹ÀÌ¾î¿¡°Ô ÆĞÅ¶ Àü¼Û
+	// ë°©ê¸ˆ ì ‘ì†í•œ í”Œë ˆì´ì–´ì—ê²Œ íŒ¨í‚· ì „ì†¡
 	SendBufferRef itemBuffer = ServerPacketHandler::MakeSendBuffer(spawnItemPkt);
 	player->session.lock()->Send(itemBuffer);
 
@@ -146,16 +255,18 @@ bool Room::HandleLeavePlayer(PlayerRef player)
 {
 	if (player == nullptr) return false;
 
-	// ³ª°¡´Â À¯ÀúÀÇ ID¸¦ ¹Ì¸® ±â¾ïÇØµÒ
+	ForceExitTruck(player);
+
+	// ë‚˜ê°€ëŠ” ìœ ì €ì˜ IDë¥¼ ë¯¸ë¦¬ ê¸°ì–µí•´ë‘ 
 	uint64 leaveId = player->objectInfo->object_id();
 
-	// ±âÁ¸¿¡ ¸¸µé¾îµĞ ¹æ ÅğÀå ·ÎÁ÷ ½ÇÇà (¼­¹ö ³»ºÎ ÀåºÎ¿¡¼­ Áö¿ì´Â ¿ªÇÒ)
+	// ê¸°ì¡´ì— ë§Œë“¤ì–´ë‘” ë°© í‡´ì¥ ë¡œì§ ì‹¤í–‰ (ì„œë²„ ë‚´ë¶€ ì¥ë¶€ì—ì„œ ì§€ìš°ëŠ” ì—­í• )
 	bool success = LeaveRoom(player);
 
-	// ÅğÀå¿¡ ½ÇÆĞÇß°Å³ª ÀÌ¹Ì ³ª°£ À¯Àú¶ó¸é ¿©±â¼­ ³¡³¿
+	// í‡´ì¥ì— ì‹¤íŒ¨í–ˆê±°ë‚˜ ì´ë¯¸ ë‚˜ê°„ ìœ ì €ë¼ë©´ ì—¬ê¸°ì„œ ëëƒ„
 	if (success == false) return false;
 
-	// ¹æ¿¡ ³²¾ÆÀÖ´Â ´Ù¸¥ »ç¶÷µé¿¡°Ô "¾ê ³ª°¬´Ù"°í ¼Ò¹®³»±â!
+	// ë°©ì— ë‚¨ì•„ìˆëŠ” ë‹¤ë¥¸ ì‚¬ëŒë“¤ì—ê²Œ "ì–˜ ë‚˜ê°”ë‹¤"ê³  ì†Œë¬¸ë‚´ê¸°!
 	Protocol::S_LEAVE_GAME leavePkt;
 	leavePkt.set_object_id(leaveId);
 
@@ -171,11 +282,14 @@ void Room::HandleMove(Protocol::C_MOVE pkt)
 	if (_objects.find(objectId) == _objects.end())
 		return;
 
-	// Àû¿ë
+	// ì ìš©
 	PlayerRef player = dynamic_pointer_cast<Player>(_objects[objectId]);
+	if (player == nullptr || player->bIsInTruck)
+		return;
+
 	player->posInfo->CopyFrom(pkt.info());
 
-	// ÀÌµ¿ »ç½ÇÀ» ¾Ë¸°´Ù (º»ÀÎ Æ÷ÇÔ? »©°í?)
+	// ì´ë™ ì‚¬ì‹¤ì„ ì•Œë¦°ë‹¤ (ë³¸ì¸ í¬í•¨? ë¹¼ê³ ?)
 	{
 		Protocol::S_MOVE movePkt;
 		{
@@ -192,17 +306,17 @@ void Room::HandleEquipWeapon(PlayerRef player, Protocol::C_EQUIP_WEAPON pkt)
 	if (player == nullptr)
 		return;
 
-	// ÀÌ ÇÃ·¹ÀÌ¾îÀÇ ±¸Á¶Ã¼ Á¤º¸ °»½Å
-	// (Âü°í: Áö±İÀº ¹«Á¶°Ç ¶óÀÌÇÃÀ» ÁÖ¿ü´Ù°í °¡Á¤ÇÏ°í ÇÏµåÄÚµùÇÕ´Ï´Ù. ³ªÁß¿¡´Â ¸Ê¿¡ ¶³¾îÁø ¾ÆÀÌÅÛ ID¸¦ Á¶È¸ÇØ¼­ Å¸ÀÔÀ» Ã£¾Æ¾ß ÇÕ´Ï´Ù.)
+	// ì´ í”Œë ˆì´ì–´ì˜ êµ¬ì¡°ì²´ ì •ë³´ ê°±ì‹ 
+	// (ì°¸ê³ : ì§€ê¸ˆì€ ë¬´ì¡°ê±´ ë¼ì´í”Œì„ ì£¼ì› ë‹¤ê³  ê°€ì •í•˜ê³  í•˜ë“œì½”ë”©í•©ë‹ˆë‹¤. ë‚˜ì¤‘ì—ëŠ” ë§µì— ë–¨ì–´ì§„ ì•„ì´í…œ IDë¥¼ ì¡°íšŒí•´ì„œ íƒ€ì…ì„ ì°¾ì•„ì•¼ í•©ë‹ˆë‹¤.)
 	player->objectInfo->set_weapon_type(Protocol::WEAPON_TYPE_RIFLE);
 
-	// ´Ù¸¥ »ç¶÷µé¿¡°Ô »Ñ¸± S_EQUIP_WEAPON ÆĞÅ¶ Á¶¸³
+	// ë‹¤ë¥¸ ì‚¬ëŒë“¤ì—ê²Œ ë¿Œë¦´ S_EQUIP_WEAPON íŒ¨í‚· ì¡°ë¦½
 	Protocol::S_EQUIP_WEAPON equipPkt;
-	equipPkt.set_playerid(player->objectInfo->object_id()); // ´©°¡ ÁÖ¿ü´ÂÁö (º»ÀÎ)
-	equipPkt.set_itemobjectid(pkt.itemobjectid());          // ¾î¶² ¾ÆÀÌÅÛÀ» ÁÖ¿ü´ÂÁö (Å¬¶ó°¡ º¸³»ÁØ ¸ÊÀÇ ÃÑ±â ID)
-	equipPkt.set_weapontype(Protocol::WEAPON_TYPE_RIFLE);   // ¹«½¼ Å¸ÀÔÀÎÁö
+	equipPkt.set_playerid(player->objectInfo->object_id()); // ëˆ„ê°€ ì£¼ì› ëŠ”ì§€ (ë³¸ì¸)
+	equipPkt.set_itemobjectid(pkt.itemobjectid());          // ì–´ë–¤ ì•„ì´í…œì„ ì£¼ì› ëŠ”ì§€ (í´ë¼ê°€ ë³´ë‚´ì¤€ ë§µì˜ ì´ê¸° ID)
+	equipPkt.set_weapontype(Protocol::WEAPON_TYPE_RIFLE);   // ë¬´ìŠ¨ íƒ€ì…ì¸ì§€
 
-	// ¹æ¿¡ ÀÖ´Â ¸ğµç »ç¶÷¿¡°Ô ¼Ò¹®³»±â (Broadcast)
+	// ë°©ì— ìˆëŠ” ëª¨ë“  ì‚¬ëŒì—ê²Œ ì†Œë¬¸ë‚´ê¸° (Broadcast)
 	SendBufferRef sendBuffer = ServerPacketHandler::MakeSendBuffer(equipPkt);
 	Broadcast(sendBuffer);
 }
@@ -214,11 +328,109 @@ void Room::HandleFire(PlayerRef player, Protocol::C_FIRE pkt)
 	Protocol::S_FIRE broadcastPkt;
 	broadcastPkt.set_object_id(player->objectInfo->object_id());
 
-	// ¹æ¿¡ ÀÖ´Â ¸ğµÎ¿¡°Ô ½ú´Ù°í ¾Ë¸²
+	// ë°©ì— ìˆëŠ” ëª¨ë‘ì—ê²Œ ìˆë‹¤ê³  ì•Œë¦¼
 	SendBufferRef sendBuffer = ServerPacketHandler::MakeSendBuffer(broadcastPkt);
 	Broadcast(sendBuffer);
 
-	cout << "[Server] " << player->objectInfo->object_id() << "¹ø À¯Àú ÃÑ±â ¹ß»ç! ³²µé¿¡°Ô ºê·ÎµåÄ³½ºÆ® ¿Ï·á." << endl;
+	cout << "[Server] " << player->objectInfo->object_id() << "ë²ˆ ìœ ì € ì´ê¸° ë°œì‚¬! ë‚¨ë“¤ì—ê²Œ ë¸Œë¡œë“œìºìŠ¤íŠ¸ ì™„ë£Œ." << endl;
+}
+
+void Room::HandleEnterTruck(PlayerRef player, Protocol::C_ENTER_TRUCK pkt)
+{
+	if (player == nullptr)
+		return;
+
+	const uint64 playerId = player->objectInfo->object_id();
+	const uint64 truckId = pkt.truck_id();
+	const Protocol::TruckSeatType seatType = pkt.seat_type();
+
+	if (truckId == 0 || seatType == Protocol::TRUCK_SEAT_NONE)
+		return;
+
+	if (player->bIsInTruck)
+		return;
+
+	TruckState& truckState = GetOrCreateTruckState(truckId);
+	if (IsTruckSeatOccupied(truckState, seatType))
+		return;
+
+	SetTruckSeatOccupant(truckState, seatType, playerId);
+	player->bIsInTruck = true;
+	player->currentTruckId = truckId;
+	player->currentTruckSeatType = seatType;
+
+	if (seatType == Protocol::TRUCK_SEAT_DRIVER)
+	{
+		truckState.posInfo.set_x(player->posInfo->x());
+		truckState.posInfo.set_y(player->posInfo->y());
+		truckState.posInfo.set_z(player->posInfo->z());
+		truckState.posInfo.set_yaw(player->posInfo->yaw());
+		truckState.posInfo.set_state(player->posInfo->state());
+	}
+
+	Protocol::S_ENTER_TRUCK enterPkt;
+	enterPkt.set_player_id(playerId);
+	enterPkt.set_truck_id(truckId);
+	enterPkt.set_seat_type(seatType);
+
+	SendBufferRef sendBuffer = ServerPacketHandler::MakeSendBuffer(enterPkt);
+	Broadcast(sendBuffer);
+}
+
+void Room::HandleExitTruck(PlayerRef player, Protocol::C_EXIT_TRUCK pkt)
+{
+	UNREFERENCED_PARAMETER(pkt);
+
+	if (player == nullptr || player->bIsInTruck == false)
+		return;
+
+	const uint64 playerId = player->objectInfo->object_id();
+	const uint64 truckId = player->currentTruckId;
+	const Protocol::TruckSeatType seatType = player->currentTruckSeatType;
+
+	TruckState* truckState = FindTruckState(truckId);
+	if (truckState == nullptr)
+	{
+		ClearPlayerTruckState(player);
+		return;
+	}
+
+	ClearTruckSeatOccupant(*truckState, seatType, playerId);
+	ClearPlayerTruckState(player);
+
+	Protocol::S_EXIT_TRUCK exitPkt;
+	exitPkt.set_player_id(playerId);
+	exitPkt.set_truck_id(truckId);
+	exitPkt.set_seat_type(seatType);
+
+	SendBufferRef sendBuffer = ServerPacketHandler::MakeSendBuffer(exitPkt);
+	Broadcast(sendBuffer);
+}
+
+void Room::HandleTruckMove(PlayerRef player, Protocol::C_TRUCK_MOVE pkt)
+{
+	if (player == nullptr || player->bIsInTruck == false)
+		return;
+
+	if (player->currentTruckSeatType != Protocol::TRUCK_SEAT_DRIVER)
+		return;
+
+	const uint64 truckId = player->currentTruckId;
+	TruckState* truckState = FindTruckState(truckId);
+	if (truckState == nullptr)
+		return;
+
+	if (truckState->driverPlayerId != player->objectInfo->object_id())
+		return;
+
+	truckState->posInfo.CopyFrom(pkt.info());
+	truckState->posInfo.set_object_id(truckId);
+
+	Protocol::S_TRUCK_MOVE movePkt;
+	movePkt.mutable_info()->CopyFrom(truckState->posInfo);
+
+	SendBufferRef sendBuffer = ServerPacketHandler::MakeSendBuffer(movePkt);
+	Broadcast(sendBuffer);
 }
 
 void Room::UpdateTick()
@@ -235,7 +447,7 @@ RoomRef Room::GetRoomRef()
 
 bool Room::AddObject(ObjectRef object)
 {
-	// ÀÖ´Ù¸é ¹®Á¦°¡ ÀÖ´Ù.
+	// ìˆë‹¤ë©´ ë¬¸ì œê°€ ìˆë‹¤.
 	if (_objects.find(object->objectInfo->object_id()) != _objects.end())
 		return false;
 
@@ -248,14 +460,17 @@ bool Room::AddObject(ObjectRef object)
 
 bool Room::RemoveObject(uint64 objectId)
 {
-	// ¾ø´Ù¸é ¹®Á¦°¡ ÀÖ´Ù.
+	// ì—†ë‹¤ë©´ ë¬¸ì œê°€ ìˆë‹¤.
 	if (_objects.find(objectId) == _objects.end())
 		return false;
 
 	ObjectRef object = _objects[objectId];
 	PlayerRef player = dynamic_pointer_cast<Player>(object);
 	if (player)
+	{
 		player->room.store(weak_ptr<Room>());
+		ClearPlayerTruckState(player);
+	}
 
 	_objects.erase(objectId);
 

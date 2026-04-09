@@ -41,6 +41,9 @@ public:
 
 	virtual void BeginPlay() override;
 
+	UPROPERTY(EditInstanceOnly, Category = "Network")
+	uint64 NetworkTruckId = 0;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Interaction")
 	UInteractTriggerComponent* DriverSeatInteractTrigger;
 
@@ -133,6 +136,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Turret")
 	AMountedMachineGun* GetMountedWeapon() const { return MountedWeapon; }
 
+	void SetDriverCharacter(AFPSBaseCharacter* Character) { DriverCharacter = Character; }
+	AFPSBaseCharacter* GetDriverCharacter() const { return DriverCharacter; }
+	void SetMountedWeaponUser(AFPSBaseCharacter* Character) { MountedWeaponUser = Character; }
+	AFPSBaseCharacter* GetMountedWeaponUser() const { return MountedWeaponUser; }
+	void SetLocallyDriven(bool bLocallyDriven);
+
 	UFUNCTION(BlueprintCallable, Category = "Turret")
 	bool TryEnterMountedWeapon(AFPSBaseCharacter* Character);
 
@@ -157,6 +166,7 @@ protected:
 	void MoveForward(float Value);
 	void MoveRight(float Value);
 	void Brake(float Value);
+	void SendTruckMovePacket();
 	void CheckZombieImpactSweep();
 	void ProcessZombieImpact(ABaseZombie* Zombie, const FVector& ImpactPoint, const FVector& ImpactDirection, float ImpactSpeed);
 
@@ -237,6 +247,8 @@ protected:
 private:
 	bool bIsBrakingSoundPlaying = false;
 	bool bBrakePressedLastFrame = false;
+	float TruckMovePacketSendTimer = 0.0f;
+	static constexpr float TRUCK_MOVE_PACKET_SEND_DELAY = 0.05f;
 
 	UPROPERTY()
 	AMountedMachineGun* MountedWeapon = nullptr;

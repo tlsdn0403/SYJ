@@ -847,7 +847,11 @@ void AFPSBaseCharacter::Interact()
 	if (bIsUsingMountedWeapon)
 	{
 		StopFire();
-		ExitMountedWeapon();
+		if (IsLocallyControlled())
+		{
+			Protocol::C_EXIT_TRUCK ExitPkt;
+			SEND_PACKET(ExitPkt);
+		}
 		return;
 	}
 
@@ -867,7 +871,11 @@ void AFPSBaseCharacter::Interact()
 			return;
 		}
 
-		ExitTruckCargo();
+		if (IsLocallyControlled())
+		{
+			Protocol::C_EXIT_TRUCK ExitPkt;
+			SEND_PACKET(ExitPkt);
+		}
 		return;
 	}
 

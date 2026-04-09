@@ -210,3 +210,66 @@ bool Handle_S_FIRE(PacketSessionRef& session, Protocol::S_FIRE& pkt)
 
 	return true;
 }
+
+bool Handle_S_ENTER_TRUCK(PacketSessionRef& session, Protocol::S_ENTER_TRUCK& pkt)
+{
+	Protocol::S_ENTER_TRUCK* pktCopy = new Protocol::S_ENTER_TRUCK(pkt);
+
+	AsyncTask(ENamedThreads::GameThread, [pktCopy]()
+		{
+			UWorld* World = GetGameWorld();
+			if (World)
+			{
+				if (auto* GameInstance = Cast<UFPSProjectGameInstance>(World->GetGameInstance()))
+				{
+					GameInstance->HandleEnterTruck(*pktCopy);
+				}
+			}
+
+			delete pktCopy;
+		});
+
+	return true;
+}
+
+bool Handle_S_EXIT_TRUCK(PacketSessionRef& session, Protocol::S_EXIT_TRUCK& pkt)
+{
+	Protocol::S_EXIT_TRUCK* pktCopy = new Protocol::S_EXIT_TRUCK(pkt);
+
+	AsyncTask(ENamedThreads::GameThread, [pktCopy]()
+		{
+			UWorld* World = GetGameWorld();
+			if (World)
+			{
+				if (auto* GameInstance = Cast<UFPSProjectGameInstance>(World->GetGameInstance()))
+				{
+					GameInstance->HandleExitTruck(*pktCopy);
+				}
+			}
+
+			delete pktCopy;
+		});
+
+	return true;
+}
+
+bool Handle_S_TRUCK_MOVE(PacketSessionRef& session, Protocol::S_TRUCK_MOVE& pkt)
+{
+	Protocol::S_TRUCK_MOVE* pktCopy = new Protocol::S_TRUCK_MOVE(pkt);
+
+	AsyncTask(ENamedThreads::GameThread, [pktCopy]()
+		{
+			UWorld* World = GetGameWorld();
+			if (World)
+			{
+				if (auto* GameInstance = Cast<UFPSProjectGameInstance>(World->GetGameInstance()))
+				{
+					GameInstance->HandleTruckMove(*pktCopy);
+				}
+			}
+
+			delete pktCopy;
+		});
+
+	return true;
+}

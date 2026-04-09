@@ -12,7 +12,7 @@ public:
 
 public:
 	weak_ptr<GameSession> session;
-
-
+	bool bIsInTruck = false;
+	uint64 currentTruckId = 0;
+	Protocol::TruckSeatType currentTruckSeatType = Protocol::TRUCK_SEAT_NONE;
 };
-

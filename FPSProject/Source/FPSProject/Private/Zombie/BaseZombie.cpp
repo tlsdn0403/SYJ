@@ -96,7 +96,7 @@ void ABaseZombie::OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)
     if (!bInterrupted) // 以묐떒?섏? ?딆븯?쇰㈃
     {
         AFPSBaseCharacter* PlayerPawn = Cast<AFPSBaseCharacter>(UGameplayStatics::GetPlayerPawn(GetWorld(), 0));
-        if (PlayerPawn)
+        if (PlayerPawn) 
         {
             float Distance = FVector::Dist(GetActorLocation(), PlayerPawn->GetActorLocation());
             if (Distance <= AttackRange)

@@ -45,3 +45,11 @@ enum WeaponType
 	WEAPON_TYPE_NONE = 0;
 	WEAPON_TYPE_RIFLE = 1;
 }
+
+enum TruckSeatType
+{
+	TRUCK_SEAT_NONE = 0;
+    TRUCK_SEAT_DRIVER = 1;
+    TRUCK_SEAT_CARGO = 2;
+    TRUCK_SEAT_TURRET = 3;
+}

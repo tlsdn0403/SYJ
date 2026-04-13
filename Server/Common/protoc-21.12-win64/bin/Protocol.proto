@@ -94,3 +94,37 @@ message S_FIRE
 {
 	uint64 object_id = 1; // 누가 쐈는지 알려주는 번호
 }
+
+message C_ENTER_TRUCK
+{
+    uint64 truck_id = 1;
+    TruckSeatType seat_type = 2;
+}
+
+message S_ENTER_TRUCK	
+{
+      uint64 player_id = 1;
+      uint64 truck_id = 2;
+      TruckSeatType seat_type = 3;
+}
+
+message C_EXIT_TRUCK
+{
+}
+
+message S_EXIT_TRUCK
+{
+      uint64 player_id = 1;
+      uint64 truck_id = 2;
+	  TruckSeatType seat_type = 3;
+}
+
+message C_TRUCK_MOVE
+{
+      PosInfo info = 1;
+}
+
+message S_TRUCK_MOVE
+{
+      PosInfo info = 1;
+}

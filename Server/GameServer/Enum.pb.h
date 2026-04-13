@@ -206,6 +206,33 @@ inline bool WeaponType_Parse(
   return ::PROTOBUF_NAMESPACE_ID::internal::ParseNamedEnum<WeaponType>(
     WeaponType_descriptor(), name, value);
 }
+enum TruckSeatType : int {
+  TRUCK_SEAT_NONE = 0,
+  TRUCK_SEAT_DRIVER = 1,
+  TRUCK_SEAT_CARGO = 2,
+  TRUCK_SEAT_TURRET = 3,
+  TruckSeatType_INT_MIN_SENTINEL_DO_NOT_USE_ = std::numeric_limits<int32_t>::min(),
+  TruckSeatType_INT_MAX_SENTINEL_DO_NOT_USE_ = std::numeric_limits<int32_t>::max()
+};
+bool TruckSeatType_IsValid(int value);
+constexpr TruckSeatType TruckSeatType_MIN = TRUCK_SEAT_NONE;
+constexpr TruckSeatType TruckSeatType_MAX = TRUCK_SEAT_TURRET;
+constexpr int TruckSeatType_ARRAYSIZE = TruckSeatType_MAX + 1;
+
+const ::PROTOBUF_NAMESPACE_ID::EnumDescriptor* TruckSeatType_descriptor();
+template<typename T>
+inline const std::string& TruckSeatType_Name(T enum_t_value) {
+  static_assert(::std::is_same<T, TruckSeatType>::value ||
+    ::std::is_integral<T>::value,
+    "Incorrect type passed to function TruckSeatType_Name.");
+  return ::PROTOBUF_NAMESPACE_ID::internal::NameOfEnum(
+    TruckSeatType_descriptor(), enum_t_value);
+}
+inline bool TruckSeatType_Parse(
+    ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, TruckSeatType* value) {
+  return ::PROTOBUF_NAMESPACE_ID::internal::ParseNamedEnum<TruckSeatType>(
+    TruckSeatType_descriptor(), name, value);
+}
 // ===================================================================
 
 
@@ -257,6 +284,11 @@ template <> struct is_proto_enum< ::Protocol::WeaponType> : ::std::true_type {};
 template <>
 inline const EnumDescriptor* GetEnumDescriptor< ::Protocol::WeaponType>() {
   return ::Protocol::WeaponType_descriptor();
+}
+template <> struct is_proto_enum< ::Protocol::TruckSeatType> : ::std::true_type {};
+template <>
+inline const EnumDescriptor* GetEnumDescriptor< ::Protocol::TruckSeatType>() {
+  return ::Protocol::TruckSeatType_descriptor();
 }
 
 PROTOBUF_NAMESPACE_CLOSE

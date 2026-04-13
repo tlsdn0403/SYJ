@@ -377,8 +377,13 @@ void ABaseZombie::Die()
     }
 
     GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-    // 二쎌쓣 ?뚮뒗 ?꾩껜 ?섍렇??    GetMesh()->SetSimulatePhysics(true);
-    // 紐⑤뱺 堉덇? 臾쇰━ ?곹뼢??諛쏅룄濡?    GetMesh()->SetAllBodiesBelowSimulatePhysics(FName("pelvis"), true, true);
+
+    if (USkeletalMeshComponent* MeshComp = GetMesh())
+    {
+        MeshComp->SetSimulatePhysics(true);
+        MeshComp->SetAllBodiesBelowSimulatePhysics(FName("pelvis"), true, true);
+    }
+
     SetLifeSpan(5.f);
 }
 

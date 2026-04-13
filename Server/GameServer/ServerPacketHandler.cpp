@@ -20,7 +20,7 @@ bool Handle_INVALID(PacketSessionRef& session, BYTE* buffer, int32 len)
 bool Handle_C_LOGIN(PacketSessionRef& session, Protocol::C_LOGIN& pkt)
 {
 	std::string clientName = pkt.nickname();
-	std::cout << "[Server] ·Î±×ÀÎ ¿äÃ» µé¾î¿È! ´Ð³×ÀÓ: " << clientName << std::endl;
+	std::cout << "[Server] ë¡œê·¸ì¸ ìš”ì²­ ë“¤ì–´ì˜´! ë‹‰ë„¤ìž„: " << clientName << std::endl;
 
 	Protocol::S_LOGIN loginPkt;
 
@@ -43,10 +43,10 @@ bool Handle_C_LOGIN(PacketSessionRef& session, Protocol::C_LOGIN& pkt)
 
 bool Handle_C_ENTER_GAME(PacketSessionRef& session, Protocol::C_ENTER_GAME& pkt)
 {
-	// ÇÃ·¹ÀÌ¾î »ý¼º
+	// í”Œë ˆì´ì–´ ìƒì„±
 	PlayerRef player = ObjectUtils::CreatePlayer(static_pointer_cast<GameSession>(session));
 
-	// ¹æ¿¡ ÀÔÀå
+	// ë°©ì— ìž…ìž¥
 	GRoom->DoAsync(&Room::HandleEnterPlayer, player);
 	//GRoom->HandleEnterPlayerLocked(player);
 
@@ -100,12 +100,12 @@ bool Handle_C_EQUIP_WEAPON(PacketSessionRef& session, Protocol::C_EQUIP_WEAPON& 
 	if (player == nullptr)
 		return false;
 
-	// ÇÃ·¹ÀÌ¾î°¡ ¼ÓÇÑ ¹æ(Room)À» Ã£À½
+	// í”Œë ˆì´ì–´ê°€ ì†í•œ ë°©(Room)ì„ ì°¾ìŒ
 	RoomRef room = player->room.load().lock();
 	if (room == nullptr)
 		return false;
 
-	// ¹æ¿¡ ³Ñ±æ ¶§ ÀÓ½Ã °´Ã¼·Î º¹»ç
+	// ë°©ì— ë„˜ê¸¸ ë•Œ ìž„ì‹œ ê°ì²´ë¡œ ë³µì‚¬
 	room->DoAsync(&Room::HandleEquipWeapon, player, Protocol::C_EQUIP_WEAPON(pkt));
 
 	return true;
@@ -124,6 +124,57 @@ bool Handle_C_FIRE(PacketSessionRef& session, Protocol::C_FIRE& pkt)
 		return false;
 
 	room->DoAsync(&Room::HandleFire, player, Protocol::C_FIRE(pkt));
+
+	return true;
+}
+
+bool Handle_C_ENTER_TRUCK(PacketSessionRef& session, Protocol::C_ENTER_TRUCK& pkt)
+{
+	auto gameSession = static_pointer_cast<GameSession>(session);
+
+	PlayerRef player = gameSession->player.load();
+	if (player == nullptr)
+		return false;
+
+	RoomRef room = player->room.load().lock();
+	if (room == nullptr)
+		return false;
+
+	room->DoAsync(&Room::HandleEnterTruck, player, Protocol::C_ENTER_TRUCK(pkt));
+
+	return true;
+}
+
+bool Handle_C_EXIT_TRUCK(PacketSessionRef& session, Protocol::C_EXIT_TRUCK& pkt)
+{
+	auto gameSession = static_pointer_cast<GameSession>(session);
+
+	PlayerRef player = gameSession->player.load();
+	if (player == nullptr)
+		return false;
+
+	RoomRef room = player->room.load().lock();
+	if (room == nullptr)
+		return false;
+
+	room->DoAsync(&Room::HandleExitTruck, player, Protocol::C_EXIT_TRUCK(pkt));
+
+	return true;
+}
+
+bool Handle_C_TRUCK_MOVE(PacketSessionRef& session, Protocol::C_TRUCK_MOVE& pkt)
+{
+	auto gameSession = static_pointer_cast<GameSession>(session);
+
+	PlayerRef player = gameSession->player.load();
+	if (player == nullptr)
+		return false;
+
+	RoomRef room = player->room.load().lock();
+	if (room == nullptr)
+		return false;
+
+	room->DoAsync(&Room::HandleTruckMove, player, Protocol::C_TRUCK_MOVE(pkt));
 
 	return true;
 }

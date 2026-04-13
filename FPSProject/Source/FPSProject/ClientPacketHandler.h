@@ -27,6 +27,12 @@ enum : uint16
 	PKT_S_SPAWN_ITEM = 1014,
 	PKT_C_FIRE = 1015,
 	PKT_S_FIRE = 1016,
+	PKT_C_ENTER_TRUCK = 1017,
+	PKT_S_ENTER_TRUCK = 1018,
+	PKT_C_EXIT_TRUCK = 1019,
+	PKT_S_EXIT_TRUCK = 1020,
+	PKT_C_TRUCK_MOVE = 1021,
+	PKT_S_TRUCK_MOVE = 1022,
 };
 
 // Custom Handlers
@@ -41,6 +47,9 @@ bool Handle_S_CHAT(PacketSessionRef& session, Protocol::S_CHAT& pkt);
 bool Handle_S_EQUIP_WEAPON(PacketSessionRef& session, Protocol::S_EQUIP_WEAPON& pkt);
 bool Handle_S_SPAWN_ITEM(PacketSessionRef& session, Protocol::S_SPAWN_ITEM& pkt);
 bool Handle_S_FIRE(PacketSessionRef& session, Protocol::S_FIRE& pkt);
+bool Handle_S_ENTER_TRUCK(PacketSessionRef& session, Protocol::S_ENTER_TRUCK& pkt);
+bool Handle_S_EXIT_TRUCK(PacketSessionRef& session, Protocol::S_EXIT_TRUCK& pkt);
+bool Handle_S_TRUCK_MOVE(PacketSessionRef& session, Protocol::S_TRUCK_MOVE& pkt);
 
 class ClientPacketHandler
 {
@@ -59,6 +68,9 @@ public:
 		GPacketHandler[PKT_S_EQUIP_WEAPON] = [](PacketSessionRef& session, BYTE* buffer, int32 len) { return HandlePacket<Protocol::S_EQUIP_WEAPON>(Handle_S_EQUIP_WEAPON, session, buffer, len); };
 		GPacketHandler[PKT_S_SPAWN_ITEM] = [](PacketSessionRef& session, BYTE* buffer, int32 len) { return HandlePacket<Protocol::S_SPAWN_ITEM>(Handle_S_SPAWN_ITEM, session, buffer, len); };
 		GPacketHandler[PKT_S_FIRE] = [](PacketSessionRef& session, BYTE* buffer, int32 len) { return HandlePacket<Protocol::S_FIRE>(Handle_S_FIRE, session, buffer, len); };
+		GPacketHandler[PKT_S_ENTER_TRUCK] = [](PacketSessionRef& session, BYTE* buffer, int32 len) { return HandlePacket<Protocol::S_ENTER_TRUCK>(Handle_S_ENTER_TRUCK, session, buffer, len); };
+		GPacketHandler[PKT_S_EXIT_TRUCK] = [](PacketSessionRef& session, BYTE* buffer, int32 len) { return HandlePacket<Protocol::S_EXIT_TRUCK>(Handle_S_EXIT_TRUCK, session, buffer, len); };
+		GPacketHandler[PKT_S_TRUCK_MOVE] = [](PacketSessionRef& session, BYTE* buffer, int32 len) { return HandlePacket<Protocol::S_TRUCK_MOVE>(Handle_S_TRUCK_MOVE, session, buffer, len); };
 	}
 
 	static bool HandlePacket(PacketSessionRef& session, BYTE* buffer, int32 len)
@@ -73,6 +85,9 @@ public:
 	static SendBufferRef MakeSendBuffer(Protocol::C_CHAT& pkt) { return MakeSendBuffer(pkt, PKT_C_CHAT); }
 	static SendBufferRef MakeSendBuffer(Protocol::C_EQUIP_WEAPON& pkt) { return MakeSendBuffer(pkt, PKT_C_EQUIP_WEAPON); }
 	static SendBufferRef MakeSendBuffer(Protocol::C_FIRE& pkt) { return MakeSendBuffer(pkt, PKT_C_FIRE); }
+	static SendBufferRef MakeSendBuffer(Protocol::C_ENTER_TRUCK& pkt) { return MakeSendBuffer(pkt, PKT_C_ENTER_TRUCK); }
+	static SendBufferRef MakeSendBuffer(Protocol::C_EXIT_TRUCK& pkt) { return MakeSendBuffer(pkt, PKT_C_EXIT_TRUCK); }
+	static SendBufferRef MakeSendBuffer(Protocol::C_TRUCK_MOVE& pkt) { return MakeSendBuffer(pkt, PKT_C_TRUCK_MOVE); }
 
 private:
 	template<typename PacketType, typename ProcessFunc>

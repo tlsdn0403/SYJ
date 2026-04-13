@@ -10,9 +10,11 @@
 
 class AFPSBaseCharacter;
 class AActor;
+class ABaseZombie;
 class AMountedMachineGun;
 class UBoxComponent;
 class USceneComponent;
+class UPrimitiveComponent;
 class UStaticMeshComponent;
 class USoundBase;
 class UWidgetComponent;
@@ -38,6 +40,9 @@ public:
 	ATruck();
 
 	virtual void BeginPlay() override;
+
+	UPROPERTY(EditInstanceOnly, Category = "Network")
+	uint64 NetworkTruckId = 0;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Interaction")
 	UInteractTriggerComponent* DriverSeatInteractTrigger;
@@ -131,6 +136,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Turret")
 	AMountedMachineGun* GetMountedWeapon() const { return MountedWeapon; }
 
+	void SetDriverCharacter(AFPSBaseCharacter* Character) { DriverCharacter = Character; }
+	AFPSBaseCharacter* GetDriverCharacter() const { return DriverCharacter; }
+	void SetMountedWeaponUser(AFPSBaseCharacter* Character) { MountedWeaponUser = Character; }
+	AFPSBaseCharacter* GetMountedWeaponUser() const { return MountedWeaponUser; }
+	void SetLocallyDriven(bool bLocallyDriven);
+
 	UFUNCTION(BlueprintCallable, Category = "Turret")
 	bool TryEnterMountedWeapon(AFPSBaseCharacter* Character);
 
@@ -145,6 +156,9 @@ public:
 	UFUNCTION()
 	void ExitDriverSeat();
 
+	UFUNCTION()
+	void OnTruckMeshHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
+
 protected:
 	virtual void Tick(float DeltaTime) override;
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
@@ -152,6 +166,9 @@ protected:
 	void MoveForward(float Value);
 	void MoveRight(float Value);
 	void Brake(float Value);
+	void SendTruckMovePacket();
+	void CheckZombieImpactSweep();
+	void ProcessZombieImpact(ABaseZombie* Zombie, const FVector& ImpactPoint, const FVector& ImpactDirection, float ImpactSpeed);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GameLogic")
 	int32 TotalLoadedItems = 0;
@@ -197,8 +214,41 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Turret", meta = (AllowPrivateAccess = "true"))
 	float MountedWeaponUseDistance = 180.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Zombie")
+	float ZombieImpactMinSpeed = 250.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Zombie")
+	float ZombieImpactFatalSpeed = 700.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Zombie")
+	float ZombiePinnedImpactFatalSpeed = 450.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Zombie")
+	float ZombieImpactMinDamage = 50.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Zombie")
+	float ZombieImpactMaxDamage = 200.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Zombie")
+	float ZombieImpactKnockback = 1600.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Zombie")
+	float ZombieImpactUpwardKnockback = 450.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Zombie")
+	float ZombieImpactImpulse = 260000.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Zombie")
+	float ZombieImpactCooldown = 0.35f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
+	float BrakeSoundMinSpeed = 300.0f;
 private:
 	bool bIsBrakingSoundPlaying = false;
+	bool bBrakePressedLastFrame = false;
+	float TruckMovePacketSendTimer = 0.0f;
+	static constexpr float TRUCK_MOVE_PACKET_SEND_DELAY = 0.05f;
 
 	UPROPERTY()
 	AMountedMachineGun* MountedWeapon = nullptr;
@@ -208,4 +258,6 @@ private:
 
 	UPROPERTY()
 	AFPSBaseCharacter* DriverCharacter = nullptr;
+
+	TMap<TObjectPtr<ABaseZombie>, float> LastZombieImpactTimes;
 };

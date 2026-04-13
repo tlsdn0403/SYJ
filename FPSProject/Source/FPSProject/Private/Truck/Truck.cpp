@@ -3,13 +3,19 @@
 #include "GameFramework/PlayerController.h"
 #include "Characters/FPSBaseCharacter.h"
 #include "Components/BoxComponent.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "Components/WidgetComponent.h"
 #include "Blueprint/UserWidget.h"
 #include "HUD/InteractUIClass.h"
 #include "Kismet/GameplayStatics.h"
 #include "Sound/SoundBase.h"
 #include "Weapon/MountedMachineGun.h"
+#include "Zombie/BaseZombie.h"
 #include "UObject/ConstructorHelpers.h"
+#include "Engine/OverlapResult.h"
+#include "CollisionShape.h"
+#include "ClientPacketHandler.h"
+#include "FPSProject.h"
 
 ATruck::ATruck()
 {
@@ -159,6 +165,12 @@ void ATruck::BeginPlay()
 {
 	Super::BeginPlay();
 
+	if (USkeletalMeshComponent* TruckMesh = GetMesh())
+	{
+		TruckMesh->SetNotifyRigidBodyCollision(true);
+		TruckMesh->OnComponentHit.AddDynamic(this, &ATruck::OnTruckMeshHit);
+	}
+
 	if (EngineSoundCue)
 	{
 		EngineAudioComponent->SetSound(EngineSoundCue);
@@ -208,8 +220,17 @@ void ATruck::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	CheckZombieImpactSweep();
+
 	if (IsPlayerControlled())
 	{
+		TruckMovePacketSendTimer += DeltaTime;
+		if (TruckMovePacketSendTimer >= TRUCK_MOVE_PACKET_SEND_DELAY)
+		{
+			TruckMovePacketSendTimer = 0.0f;
+			SendTruckMovePacket();
+		}
+
 		if (!EngineAudioComponent->IsPlaying())
 		{
 			EngineAudioComponent->Play();
@@ -223,6 +244,45 @@ void ATruck::Tick(float DeltaTime)
 		if (EngineAudioComponent->IsPlaying())
 		{
 			EngineAudioComponent->Stop();
+		}
+	}
+}
+
+void ATruck::SendTruckMovePacket()
+{
+	if (NetworkTruckId == 0)
+	{
+		return;
+	}
+
+	Protocol::C_TRUCK_MOVE MovePkt;
+	Protocol::PosInfo* Info = MovePkt.mutable_info();
+	Info->set_object_id(NetworkTruckId);
+	Info->set_x(GetActorLocation().X);
+	Info->set_y(GetActorLocation().Y);
+	Info->set_z(GetActorLocation().Z);
+	Info->set_yaw(GetActorRotation().Yaw);
+	Info->set_state(GetVelocity().SizeSquared() > KINDA_SMALL_NUMBER ? Protocol::MOVE_STATE_RUN : Protocol::MOVE_STATE_IDLE);
+
+	SEND_PACKET(MovePkt);
+}
+
+void ATruck::SetLocallyDriven(bool bLocallyDriven)
+{
+	if (USkeletalMeshComponent* TruckMesh = GetMesh())
+	{
+		TruckMesh->SetSimulatePhysics(bLocallyDriven);
+	}
+
+	if (auto* MoveComp = Cast<UChaosWheeledVehicleMovementComponent>(GetVehicleMovement()))
+	{
+		MoveComp->SetComponentTickEnabled(bLocallyDriven);
+
+		if (!bLocallyDriven)
+		{
+			MoveComp->SetThrottleInput(0.0f);
+			MoveComp->SetSteeringInput(0.0f);
+			MoveComp->SetBrakeInput(1.0f);
 		}
 	}
 }
@@ -324,18 +384,76 @@ void ATruck::Brake(float Value)
 		MoveComp->SetBrakeInput(Value);
 
 		const float Speed = GetVelocity().Size();
-		if (Value > 0.5f && Speed > 300.0f && !bIsBrakingSoundPlaying)
+		const bool bBrakePressed = Value > 0.5f;
+		if (bBrakePressed && !bBrakePressedLastFrame && Speed > BrakeSoundMinSpeed)
 		{
 			if (BrakeSound)
 			{
 				UGameplayStatics::PlaySoundAtLocation(this, BrakeSound, GetActorLocation());
-				bIsBrakingSoundPlaying = true;
-
-				FTimerHandle Handle;
-				GetWorld()->GetTimerManager().SetTimer(Handle, [this]() {
-					bIsBrakingSoundPlaying = false;
-				}, 1.0f, false);
 			}
+		}
+
+		bBrakePressedLastFrame = bBrakePressed;
+	}
+}
+
+void ATruck::CheckZombieImpactSweep()
+{
+	USkeletalMeshComponent* TruckMesh = GetMesh();
+	if (!TruckMesh)
+	{
+		return;
+	}
+
+	const FVector VehicleVelocity = GetVelocity();
+	const float ImpactSpeed = VehicleVelocity.Size();
+	if (ImpactSpeed < ZombieImpactMinSpeed)
+	{
+		return;
+	}
+
+	const FVector ImpactDirection = VehicleVelocity.GetSafeNormal();
+	if (ImpactDirection.IsNearlyZero())
+	{
+		return;
+	}
+
+	const FBoxSphereBounds Bounds = TruckMesh->Bounds;
+	const FVector SweepCenter = Bounds.Origin;
+	const FVector SweepExtent(
+		Bounds.BoxExtent.X * 1.12f,
+		Bounds.BoxExtent.Y * 1.35f,
+		Bounds.BoxExtent.Z * 1.18f);
+
+	TArray<FOverlapResult> Overlaps;
+	FCollisionObjectQueryParams ObjectQueryParams;
+	ObjectQueryParams.AddObjectTypesToQuery(ECC_Pawn);
+
+	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(TruckZombieImpactSweep), false, this);
+
+	if (!GetWorld()->OverlapMultiByObjectType(
+		Overlaps,
+		SweepCenter,
+		GetActorQuat(),
+		ObjectQueryParams,
+		FCollisionShape::MakeBox(SweepExtent),
+		QueryParams))
+	{
+		return;
+	}
+
+	for (const FOverlapResult& Overlap : Overlaps)
+	{
+		if (ABaseZombie* Zombie = Cast<ABaseZombie>(Overlap.GetActor()))
+		{
+			FVector ImpactPoint = Zombie->GetActorLocation();
+			FVector ClosestPoint;
+			if (TruckMesh->GetClosestPointOnCollision(Zombie->GetActorLocation(), ClosestPoint) >= 0.0f)
+			{
+				ImpactPoint = ClosestPoint;
+			}
+
+			ProcessZombieImpact(Zombie, ImpactPoint, ImpactDirection, ImpactSpeed);
 		}
 	}
 }
@@ -435,27 +553,23 @@ void ATruck::Interact_Implementation(AFPSBaseCharacter* Character)
 			return;
 		}
 
-		AController* PlayerController = Character->GetController();
-		if (PlayerController)
+		if (Character->IsLocallyControlled())
 		{
-			Character->EnterTruckDriverSeat(this);
-			if (!Character->IsDrivingTruck())
-			{
-				return;
-			}
-
-			DriverCharacter = Character;
-			PlayerController->Possess(this);
-			PlayerController->SetControlRotation(GetActorRotation());
-			UE_LOG(LogTemp, Log, TEXT("Driver Seat!"));
+			Protocol::C_ENTER_TRUCK EnterPkt;
+			EnterPkt.set_truck_id(NetworkTruckId);
+			EnterPkt.set_seat_type(Protocol::TRUCK_SEAT_DRIVER);
+			SEND_PACKET(EnterPkt);
 		}
 	}
 	else if (Character->GetCurrentTruckInteractType() == ETruckInteractType::CargoSeat)
 	{
 		UE_LOG(LogTemp, Log, TEXT("Cargo Seat!"));
-		if (!Character->IsOnTruckCargo())
+		if (!Character->IsOnTruckCargo() && Character->IsLocallyControlled())
 		{
-			Character->EnterTruckCargo(this);
+			Protocol::C_ENTER_TRUCK EnterPkt;
+			EnterPkt.set_truck_id(NetworkTruckId);
+			EnterPkt.set_seat_type(Protocol::TRUCK_SEAT_CARGO);
+			SEND_PACKET(EnterPkt);
 		}
 	}
 }
@@ -485,9 +599,13 @@ bool ATruck::TryEnterMountedWeapon(AFPSBaseCharacter* Character)
 		return true;
 	}
 
-	MountedWeaponUser = Character;
-	Character->EnterMountedWeapon(this, MountedWeapon);
-	MountedWeapon->SetWeaponUser(Character);
+	if (Character->IsLocallyControlled())
+	{
+		Protocol::C_ENTER_TRUCK EnterPkt;
+		EnterPkt.set_truck_id(NetworkTruckId);
+		EnterPkt.set_seat_type(Protocol::TRUCK_SEAT_TURRET);
+		SEND_PACKET(EnterPkt);
+	}
 	return true;
 }
 
@@ -498,9 +616,7 @@ void ATruck::ExitDriverSeat()
 		return;
 	}
 
-	AController* DriverController = GetController();
 	AFPSBaseCharacter* CharacterToRestore = DriverCharacter;
-	DriverCharacter = nullptr;
 
 	if (auto* MoveComp = Cast<UChaosWheeledVehicleMovementComponent>(GetVehicleMovement()))
 	{
@@ -509,12 +625,108 @@ void ATruck::ExitDriverSeat()
 		MoveComp->SetBrakeInput(1.0f);
 	}
 
-	CharacterToRestore->ExitTruckDriverSeat();
-
-	if (DriverController)
+	if (CharacterToRestore->IsLocallyControlled())
 	{
-		DriverController->Possess(CharacterToRestore);
-		DriverController->SetControlRotation(CharacterToRestore->GetActorRotation());
+		Protocol::C_EXIT_TRUCK ExitPkt;
+		SEND_PACKET(ExitPkt);
+	}
+}
+
+void ATruck::OnTruckMeshHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
+{
+	if (!OtherActor || OtherActor == this)
+	{
+		return;
+	}
+
+	ABaseZombie* Zombie = Cast<ABaseZombie>(OtherActor);
+	if (!Zombie || !Zombie->IsAlive())
+	{
+		return;
+	}
+
+	ProcessZombieImpact(Zombie, Hit.ImpactPoint, GetVelocity().GetSafeNormal(), GetVelocity().Size());
+}
+
+void ATruck::ProcessZombieImpact(ABaseZombie* Zombie, const FVector& ImpactPoint, const FVector& ImpactDirection, float ImpactSpeed)
+{
+	if (!Zombie || !Zombie->IsAlive() || ImpactSpeed < ZombieImpactMinSpeed)
+	{
+		return;
+	}
+
+	const float CurrentTime = GetWorld()->GetTimeSeconds();
+	if (const float* LastImpactTime = LastZombieImpactTimes.Find(Zombie))
+	{
+		if (CurrentTime - *LastImpactTime < ZombieImpactCooldown)
+		{
+			return;
+		}
+	}
+
+	LastZombieImpactTimes.Add(Zombie, CurrentTime);
+
+	const FVector SafeImpactDirection = ImpactDirection.IsNearlyZero() ? GetActorForwardVector() : ImpactDirection.GetSafeNormal();
+	const float Damage = FMath::GetMappedRangeValueClamped(
+		FVector2D(ZombieImpactMinSpeed, ZombieImpactFatalSpeed),
+		FVector2D(ZombieImpactMinDamage, ZombieImpactMaxDamage),
+		ImpactSpeed);
+	const float KnockbackScale = FMath::GetMappedRangeValueClamped(
+		FVector2D(ZombieImpactMinSpeed, ZombieImpactFatalSpeed),
+		FVector2D(1.0f, 1.6f),
+		ImpactSpeed);
+	const FVector LocalZombieLocation = GetActorTransform().InverseTransformPosition(Zombie->GetActorLocation());
+	const FVector MeshExtent = GetMesh() ? GetMesh()->Bounds.BoxExtent : FVector(150.0f, 100.0f, 100.0f);
+	const bool bWithinTruckLength =
+		LocalZombieLocation.X > -MeshExtent.X * 1.15f &&
+		LocalZombieLocation.X < MeshExtent.X * 1.15f;
+	const bool bWithinTruckWidth = FMath::Abs(LocalZombieLocation.Y) < MeshExtent.Y * 1.35f;
+	const bool bWithinTruckHeight = FMath::Abs(LocalZombieLocation.Z) < MeshExtent.Z * 1.5f;
+	const bool bTruckBodyImpact = bWithinTruckLength && bWithinTruckWidth && bWithinTruckHeight;
+	const FVector LocalOutwardDirection = FVector(LocalZombieLocation.X, LocalZombieLocation.Y, 0.0f).GetSafeNormal();
+	const FVector WorldOutwardDirection = LocalOutwardDirection.IsNearlyZero()
+		? SafeImpactDirection
+		: GetActorTransform().TransformVectorNoScale(LocalOutwardDirection).GetSafeNormal();
+	const FVector FinalImpactDirection = (SafeImpactDirection * 0.7f + WorldOutwardDirection * 0.9f).GetSafeNormal();
+	const FVector ImpactFlingDirection = FinalImpactDirection.IsNearlyZero() ? SafeImpactDirection : FinalImpactDirection;
+
+	FHitResult DamageHit;
+	DamageHit.ImpactPoint = ImpactPoint;
+	DamageHit.Location = ImpactPoint;
+
+	UGameplayStatics::ApplyPointDamage(
+		Zombie,
+		Damage,
+		ImpactFlingDirection,
+		DamageHit,
+		GetController(),
+		this,
+		nullptr);
+
+	const bool bCheatFlingImpact = bTruckBodyImpact && ImpactSpeed >= ZombieImpactMinSpeed;
+
+	if (Zombie->IsAlive() &&
+		(ImpactSpeed >= ZombieImpactFatalSpeed ||
+			bCheatFlingImpact))
+	{
+		Zombie->Die();
+	}
+
+	if (Zombie->IsAlive())
+	{
+		const FVector LaunchVelocity =
+			ImpactFlingDirection * (ZombieImpactKnockback * KnockbackScale * 1.2f) +
+			FVector::UpVector * (ZombieImpactUpwardKnockback * KnockbackScale);
+		Zombie->LaunchCharacter(LaunchVelocity, true, true);
+		return;
+	}
+
+	if (USkeletalMeshComponent* ZombieMesh = Zombie->GetMesh())
+	{
+		const FVector WorldImpulse =
+			ImpactFlingDirection * (ZombieImpactImpulse * KnockbackScale * 1.2f) +
+			FVector::UpVector * (ZombieImpactImpulse * 0.2f * KnockbackScale);
+		ZombieMesh->AddImpulseAtLocation(WorldImpulse, ImpactPoint, FName(TEXT("pelvis")));
 	}
 }
 

@@ -6,6 +6,7 @@
 #include "Engine/GameInstance.h"
 #include "Tickable.h"
 #include "FPSProject.h"
+#include "Enum.pb.h"
 #include "FPSProjectGameInstance.generated.h"
 
 /**
@@ -15,6 +16,12 @@ UCLASS()
 class FPSPROJECT_API UFPSProjectGameInstance : public UGameInstance, public FTickableGameObject
 {
 	GENERATED_BODY()
+
+	struct FPendingEquippedWeapon
+	{
+		uint64 ItemId = 0;
+		int32 WeaponType = Protocol::WEAPON_TYPE_NONE;
+	};
 
 public:
 	UFUNCTION(BlueprintCallable, Category = "Network")
@@ -40,10 +47,18 @@ public:
 	void HandleDespawn(const Protocol::S_DESPAWN& DespawnPkt);
 
 	void HandleMove(const Protocol::S_MOVE& MovePkt);
+	void HandleEnterTruck(const Protocol::S_ENTER_TRUCK& pkt);
+	void HandleExitTruck(const Protocol::S_EXIT_TRUCK& pkt);
+	void HandleTruckMove(const Protocol::S_TRUCK_MOVE& pkt);
 
 	void HandleEquipWeapon(const Protocol::S_EQUIP_WEAPON& pkt);
 	void HandleSpawnItem(const Protocol::S_SPAWN_ITEM& pkt);
 	void HandleFire(const Protocol::S_FIRE& pkt);
+	void ApplyEquippedWeapon(uint64 PlayerId, uint64 ItemId, int32 WeaponType);
+	void RetryPendingWeapon(uint64 PlayerId);
+	TSubclassOf<class AWeaponBase> ResolveWeaponClass(int32 WeaponType) const;
+	class ATruck* FindTruckById(uint64 TruckId);
+	void CacheTruckActors();
 
 public:
 	virtual void Shutdown() override;
@@ -63,11 +78,17 @@ public:
 	TSubclassOf<class AFPSBaseCharacter> OtherPlayerClass;
 	class AFPSBaseCharacter* MyPlayer;
 	TMap<uint64, class AFPSBaseCharacter*> Players;
+	TMap<uint64, class ATruck*> Trucks;
 
 	// [추가] 바닥에 떨어진 아이템(총기 등)들을 ID로 관리하기 위한 맵
 	UPROPERTY()
 	TMap<uint64, AActor*> FieldItems;
 
+	TMap<uint64, FPendingEquippedWeapon> PendingWeaponsByPlayer;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Network|Class")
-	TSubclassOf<class AWeaponBase> DefaultWeaponClass;
+	TSubclassOf<class AWeaponBase> DefaultWeaponClass;	// 바닥에 떨어진 무기 스폰할 때 사용할 기본 무기 클래스
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Network|Class")
+	TSubclassOf<class AWeaponBase> DefaultEquippedWeaponClass;	// 손에 장착된 무기 스폰할 때 사용할 기본 무기 클래스
 };

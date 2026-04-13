@@ -4,6 +4,7 @@
 #include "FPSProjectGameInstance.h"
 #include "Kismet/GameplayStatics.h"
 #include "Engine/Engine.h"
+#include "Async/Async.h"
 
 UWorld* GetGameWorld()
 {
@@ -29,26 +30,35 @@ bool Handle_INVALID(PacketSessionRef& session, BYTE* buffer, int32 len)
 
 bool Handle_S_LOGIN(PacketSessionRef& session, Protocol::S_LOGIN& pkt)
 {
-	UWorld* World = GetGameWorld();
-	if (World)
-	{
-		UGameplayStatics::OpenLevel(World, TEXT("sinwoo_test"));
-	}
+	AsyncTask(ENamedThreads::GameThread, []()
+		{
+			UWorld* World = GetGameWorld();
+			if (World)
+			{
+				UGameplayStatics::OpenLevel(World, TEXT("sinwoo_test"));
+			}
+		});
 
 	return true;
 }
 
 bool Handle_S_ENTER_GAME(PacketSessionRef& session, Protocol::S_ENTER_GAME& pkt)
 {
-	UWorld* World = GetGameWorld();
-	if (World)
-	{
-		if (auto* GameInstance = Cast<UFPSProjectGameInstance>(World->GetGameInstance()))
+	Protocol::S_ENTER_GAME* pktCopy = new Protocol::S_ENTER_GAME(pkt);
+
+	AsyncTask(ENamedThreads::GameThread, [pktCopy]()
 		{
-			// 입장 성공 시 스폰 처리
-			GameInstance->HandleSpawn(pkt);
-		}
-	}
+			UWorld* World = GetGameWorld();
+			if (World)
+			{
+				if (auto* GameInstance = Cast<UFPSProjectGameInstance>(World->GetGameInstance()))
+				{
+					GameInstance->HandleSpawn(*pktCopy);
+				}
+			}
+
+			delete pktCopy;
+		});
 
 	return true;
 }
@@ -70,42 +80,63 @@ bool Handle_S_LEAVE_GAME(PacketSessionRef& session, Protocol::S_LEAVE_GAME& pkt)
 
 bool Handle_S_SPAWN(PacketSessionRef& session, Protocol::S_SPAWN& pkt)
 {
-	UWorld* World = GetGameWorld();
-	if (World)
-	{
-		if (auto* GameInstance = Cast<UFPSProjectGameInstance>(World->GetGameInstance()))
+	Protocol::S_SPAWN* pktCopy = new Protocol::S_SPAWN(pkt);
+
+	AsyncTask(ENamedThreads::GameThread, [pktCopy]()
 		{
-			GameInstance->HandleSpawn(pkt);
-		}
-	}
+			UWorld* World = GetGameWorld();
+			if (World)
+			{
+				if (auto* GameInstance = Cast<UFPSProjectGameInstance>(World->GetGameInstance()))
+				{
+					GameInstance->HandleSpawn(*pktCopy);
+				}
+			}
+
+			delete pktCopy;
+		});
 
 	return true;
 }
 
 bool Handle_S_DESPAWN(PacketSessionRef& session, Protocol::S_DESPAWN& pkt)
 {
-	UWorld* World = GetGameWorld();
-	if (World)
-	{
-		if (auto* GameInstance = Cast<UFPSProjectGameInstance>(World->GetGameInstance()))
+	Protocol::S_DESPAWN* pktCopy = new Protocol::S_DESPAWN(pkt);
+
+	AsyncTask(ENamedThreads::GameThread, [pktCopy]()
 		{
-			GameInstance->HandleDespawn(pkt);
-		}
-	}
+			UWorld* World = GetGameWorld();
+			if (World)
+			{
+				if (auto* GameInstance = Cast<UFPSProjectGameInstance>(World->GetGameInstance()))
+				{
+					GameInstance->HandleDespawn(*pktCopy);
+				}
+			}
+
+			delete pktCopy;
+		});
 
 	return true;
 }
 
 bool Handle_S_MOVE(PacketSessionRef& session, Protocol::S_MOVE& pkt)
 {
-	UWorld* World = GetGameWorld();
-	if (World)
-	{
-		if (auto* GameInstance = Cast<UFPSProjectGameInstance>(World->GetGameInstance()))
+	Protocol::S_MOVE* pktCopy = new Protocol::S_MOVE(pkt);
+
+	AsyncTask(ENamedThreads::GameThread, [pktCopy]()
 		{
-			GameInstance->HandleMove(pkt);
-		}
-	}
+			UWorld* World = GetGameWorld();
+			if (World)
+			{
+				if (auto* GameInstance = Cast<UFPSProjectGameInstance>(World->GetGameInstance()))
+				{
+					GameInstance->HandleMove(*pktCopy);
+				}
+			}
+
+			delete pktCopy;
+		});
 
 	return true;
 }
@@ -119,56 +150,124 @@ bool Handle_S_CHAT(PacketSessionRef& session, Protocol::S_CHAT& pkt)
 
 bool Handle_S_EQUIP_WEAPON(PacketSessionRef& session, Protocol::S_EQUIP_WEAPON& pkt)
 {
-	UWorld* World = GetGameWorld();
-	if (World)
-	{
-		if (auto* GameInstance = Cast<UFPSProjectGameInstance>(World->GetGameInstance()))
+	Protocol::S_EQUIP_WEAPON* pktCopy = new Protocol::S_EQUIP_WEAPON(pkt);
+
+	AsyncTask(ENamedThreads::GameThread, [pktCopy]()
 		{
-			GameInstance->HandleEquipWeapon(pkt);
-		}
-	}
+			UWorld* World = GetGameWorld();
+			if (World)
+			{
+				if (auto* GameInstance = Cast<UFPSProjectGameInstance>(World->GetGameInstance()))
+				{
+					GameInstance->HandleEquipWeapon(*pktCopy);
+				}
+			}
+
+			delete pktCopy;
+		});
 	
 	return true;
 }
 
 bool Handle_S_SPAWN_ITEM(PacketSessionRef& session, Protocol::S_SPAWN_ITEM& pkt)
 {
-	UWorld* World = GetGameWorld();
-	if (World)
-	{
-		if (auto* GameInstance = Cast<UFPSProjectGameInstance>(World->GetGameInstance()))
+	Protocol::S_SPAWN_ITEM* pktCopy = new Protocol::S_SPAWN_ITEM(pkt);
+
+	AsyncTask(ENamedThreads::GameThread, [pktCopy]()
 		{
-			// GameInstance에게 스폰 처리를 맡김
-			GameInstance->HandleSpawnItem(pkt);
-		}
-	}
+			UWorld* World = GetGameWorld();
+			if (World)
+			{
+				if (auto* GameInstance = Cast<UFPSProjectGameInstance>(World->GetGameInstance()))
+				{
+					GameInstance->HandleSpawnItem(*pktCopy);
+				}
+			}
+
+			delete pktCopy;
+		});
+
 	return true;
 }
 
 bool Handle_S_FIRE(PacketSessionRef& session, Protocol::S_FIRE& pkt)
 {
-	// 1. 메인 스레드에서 안전하게 쓰기 위해 패킷 복사본 만들기
 	Protocol::S_FIRE* pktCopy = new Protocol::S_FIRE(pkt);
 
-	// 2. 메인 스레드(GameThread)에게 작업 넘기기
 	AsyncTask(ENamedThreads::GameThread, [pktCopy]()
 		{
-			// 3. 현재 켜져 있는 월드와 게임 인스턴스 찾기
-			if (GEngine && GEngine->GetWorldContexts().Num() > 0)
+			UWorld* World = GetGameWorld();
+			if (World)
 			{
-				UWorld* World = GEngine->GetWorldContexts()[0].World();
-				if (World)
+				if (auto* GameInstance = Cast<UFPSProjectGameInstance>(World->GetGameInstance()))
 				{
-					UFPSProjectGameInstance* GI = Cast<UFPSProjectGameInstance>(World->GetGameInstance());
-					if (GI)
-					{
-						// 4. 이전에 우리가 GameInstance에 만들어둔 진짜 실행 함수 호출!
-						GI->HandleFire(*pktCopy);
-					}
+					GameInstance->HandleFire(*pktCopy);
 				}
 			}
 
-			// 5. 다 썼으면 메모리 누수 안 나게 삭제!
+			delete pktCopy;
+		});
+
+	return true;
+}
+
+bool Handle_S_ENTER_TRUCK(PacketSessionRef& session, Protocol::S_ENTER_TRUCK& pkt)
+{
+	Protocol::S_ENTER_TRUCK* pktCopy = new Protocol::S_ENTER_TRUCK(pkt);
+
+	AsyncTask(ENamedThreads::GameThread, [pktCopy]()
+		{
+			UWorld* World = GetGameWorld();
+			if (World)
+			{
+				if (auto* GameInstance = Cast<UFPSProjectGameInstance>(World->GetGameInstance()))
+				{
+					GameInstance->HandleEnterTruck(*pktCopy);
+				}
+			}
+
+			delete pktCopy;
+		});
+
+	return true;
+}
+
+bool Handle_S_EXIT_TRUCK(PacketSessionRef& session, Protocol::S_EXIT_TRUCK& pkt)
+{
+	Protocol::S_EXIT_TRUCK* pktCopy = new Protocol::S_EXIT_TRUCK(pkt);
+
+	AsyncTask(ENamedThreads::GameThread, [pktCopy]()
+		{
+			UWorld* World = GetGameWorld();
+			if (World)
+			{
+				if (auto* GameInstance = Cast<UFPSProjectGameInstance>(World->GetGameInstance()))
+				{
+					GameInstance->HandleExitTruck(*pktCopy);
+				}
+			}
+
+			delete pktCopy;
+		});
+
+	return true;
+}
+
+bool Handle_S_TRUCK_MOVE(PacketSessionRef& session, Protocol::S_TRUCK_MOVE& pkt)
+{
+	Protocol::S_TRUCK_MOVE* pktCopy = new Protocol::S_TRUCK_MOVE(pkt);
+
+	AsyncTask(ENamedThreads::GameThread, [pktCopy]()
+		{
+			UWorld* World = GetGameWorld();
+			if (World)
+			{
+				if (auto* GameInstance = Cast<UFPSProjectGameInstance>(World->GetGameInstance()))
+				{
+					GameInstance->HandleTruckMove(*pktCopy);
+				}
+			}
+
 			delete pktCopy;
 		});
 

@@ -757,26 +757,28 @@ void AFPSBaseCharacter::SetDestInfo(const Protocol::PosInfo& Info)
     SetPlayerInfo(Info);
 }
 
-void AFPSBaseCharacter::EquipWeaponFromField(AWeaponBase* Weapon)
+
+void AFPSBaseCharacter::EquipWeapon(AWeaponBase* Weapon)
 {
     if (Weapon == nullptr) return;
 
-    Weapon->SetActorEnableCollision(false); 
+    DestroyEquippedWeapon();
 
-    // 소켓에 총 물리적으로 붙이기
+    Weapon->SetWeaponCollisionEnabled(false);
+    Weapon->SetWeaponHidden(false);
+
     const FName SocketName = TEXT("Gun_socket");
     Weapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, SocketName);
-    Weapon->SetActorRelativeLocation(FVector(-35.209697f, 2.353551f, 0.508678f));
-    Weapon->SetActorRelativeRotation(FRotator(1.090108f, -88.966904f, -4.015320f));
-    Weapon->SetActorRelativeScale3D(FVector(0.15f, 0.15f, 0.15f));
 
-    // 현재 무기 변수 세팅
+    Weapon->SetActorRelativeLocation(FVector(-7.640821f, 4.648937f, -1.158742f));
+    Weapon->SetActorRelativeRotation(FRotator(-6.316770f, -264.543091f, 2.009403f));
+    Weapon->SetActorRelativeScale3D(FVector(1.0f, 1.0f, 1.0f));
+
     SetCurrentWeapon(Weapon);
 
-    // 무기에게 주인 인식
     Weapon->SetWeaponUser(this);
+    Weapon->SetOwner(this);
 
-    // 내 캐릭터라면 인벤토리 UI 업데이트
     if (IsLocallyControlled())
     {
         if (AFPSPlayerController* PC = Cast<AFPSPlayerController>(GetController()))
@@ -788,8 +790,21 @@ void AFPSBaseCharacter::EquipWeaponFromField(AWeaponBase* Weapon)
         }
     }
 
-    Weapon->SetOwner(this);
-    UE_LOG(LogTemp, Log, TEXT("[Network] %s가 바닥에 있는 무기(%s)를 장착했습니다."), *GetName(), *Weapon->GetName());
+    UE_LOG(LogTemp, Log, TEXT("[Network] %s가 무기(%s)를 장착했습니다."), *GetName(), *Weapon->GetName());
+}
+
+void AFPSBaseCharacter::DestroyEquippedWeapon()
+{
+    if (CurrentWeapon == nullptr)
+    {
+        return;
+    }
+
+    AWeaponBase* WeaponToDestroy = CurrentWeapon;
+    ClearCurrentWeapon();
+
+    WeaponToDestroy->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+    WeaponToDestroy->Destroy();
 }
 
 void AFPSBaseCharacter::SendMovePacket()

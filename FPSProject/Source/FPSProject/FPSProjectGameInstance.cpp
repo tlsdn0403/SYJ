@@ -9,10 +9,13 @@
 #include "PacketSession.h"
 #include "Weapon/WeaponBase.h"
 #include "Protocol.pb.h"
+#include "Enum.pb.h"
 #include "ClientPacketHandler.h"
 #include "Characters/FPSBaseCharacter.h"
+#include "Truck/Truck.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "EngineUtils.h"
 
 void UFPSProjectGameInstance::ConnectToGameServer(const FString& IPAddress)
 {
@@ -40,13 +43,6 @@ void UFPSProjectGameInstance::ConnectToGameServer(const FString& IPAddress)
 		// Session
 		GameServerSession = MakeShared<PacketSession>(Socket);
 		GameServerSession->Run();
-
-		//// TEMP : Lobby에서 캐릭터 선택창 등
-		//{
-		//	Protocol::C_LOGIN Pkt;
-		//	SendBufferRef SendBuffer = ClientPacketHandler::MakeSendBuffer(Pkt);
-		//	SendPacket(SendBuffer);
-		//}
 	}
 	else
 	{
@@ -140,6 +136,8 @@ void UFPSProjectGameInstance::HandleSpawn(const Protocol::ObjectInfo& ObjectInfo
 	if (World == nullptr)
 		return;
 
+	CacheTruckActors();
+
 	// 중복 처리 체크
 	const uint64 ObjectId = ObjectInfo.object_id();
 	if (Players.Find(ObjectId) != nullptr)
@@ -160,6 +158,7 @@ void UFPSProjectGameInstance::HandleSpawn(const Protocol::ObjectInfo& ObjectInfo
 				MyPlayer->SetPlayerInfo(ObjectInfo.pos_info()); // 내 고유 ID와 위치 정보 세팅
 				MyPlayer->SetActorLocation(SpawnLocation);
 				Players.Add(ObjectId, MyPlayer);               // 맵에 등록
+				RetryPendingWeapon(ObjectId);
 			}
 		}
 	}
@@ -173,6 +172,7 @@ void UFPSProjectGameInstance::HandleSpawn(const Protocol::ObjectInfo& ObjectInfo
 		{
 			OtherPlayer->SetPlayerInfo(ObjectInfo.pos_info()); // 타겟 유저의 ID와 위치 정보 세팅
 			Players.Add(ObjectId, OtherPlayer);               // 맵에 등록
+			RetryPendingWeapon(ObjectId);
 		}
 	}
 }
@@ -253,26 +253,247 @@ void UFPSProjectGameInstance::HandleMove(const Protocol::S_MOVE& MovePkt)
 	Player->SetDestInfo(Info);
 }
 
+ATruck* UFPSProjectGameInstance::FindTruckById(uint64 TruckId)
+{
+	if (TruckId == 0)
+	{
+		return nullptr;
+	}
+
+	if (ATruck** FoundTruck = Trucks.Find(TruckId))
+	{
+		if (IsValid(*FoundTruck))
+		{
+			return *FoundTruck;
+		}
+
+		Trucks.Remove(TruckId);
+	}
+
+	CacheTruckActors();
+
+	if (ATruck** FoundTruck = Trucks.Find(TruckId))
+	{
+		return IsValid(*FoundTruck) ? *FoundTruck : nullptr;
+	}
+
+	return nullptr;
+}
+
+void UFPSProjectGameInstance::CacheTruckActors()
+{
+	UWorld* World = GetWorld();
+	if (World == nullptr)
+	{
+		return;
+	}
+
+	Trucks.Empty();
+
+	for (TActorIterator<ATruck> It(World); It; ++It)
+	{
+		ATruck* Truck = *It;
+		if (IsValid(Truck) && Truck->NetworkTruckId != 0)
+		{
+			Trucks.Add(Truck->NetworkTruckId, Truck);
+		}
+	}
+}
+
+void UFPSProjectGameInstance::HandleEnterTruck(const Protocol::S_ENTER_TRUCK& pkt)
+{
+	AFPSBaseCharacter* Player = Players.FindRef(pkt.player_id());
+	ATruck* Truck = FindTruckById(pkt.truck_id());
+	if (Player == nullptr || Truck == nullptr)
+	{
+		return;
+	}
+
+	switch (pkt.seat_type())
+	{
+	case Protocol::TRUCK_SEAT_DRIVER:
+		Truck->SetLocallyDriven(Player->IsLocallyControlled());
+		Player->EnterTruckDriverSeat(Truck);
+		if (AController* PlayerController = Player->GetController())
+		{
+			Truck->SetDriverCharacter(Player);
+			PlayerController->Possess(Truck);
+			PlayerController->SetControlRotation(Truck->GetActorRotation());
+		}
+		break;
+	case Protocol::TRUCK_SEAT_CARGO:
+		Player->EnterTruckCargo(Truck);
+		break;
+	case Protocol::TRUCK_SEAT_TURRET:
+		if (AMountedMachineGun* MountedWeapon = Truck->GetMountedWeapon())
+		{
+			Truck->SetMountedWeaponUser(Player);
+			Player->EnterMountedWeapon(Truck, MountedWeapon);
+		}
+		break;
+	default:
+		break;
+	}
+}
+
+void UFPSProjectGameInstance::HandleExitTruck(const Protocol::S_EXIT_TRUCK& pkt)
+{
+	AFPSBaseCharacter* Player = Players.FindRef(pkt.player_id());
+	ATruck* Truck = FindTruckById(pkt.truck_id());
+	if (Player == nullptr || Truck == nullptr)
+	{
+		return;
+	}
+
+	switch (pkt.seat_type())
+	{
+	case Protocol::TRUCK_SEAT_DRIVER:
+		Truck->SetLocallyDriven(false);
+		if (Truck->GetDriverCharacter() == Player)
+		{
+			Truck->SetDriverCharacter(nullptr);
+		}
+		Player->ExitTruckDriverSeat();
+		if (AController* PlayerController = Truck->GetController())
+		{
+			PlayerController->Possess(Player);
+			PlayerController->SetControlRotation(Player->GetActorRotation());
+		}
+		break;
+	case Protocol::TRUCK_SEAT_CARGO:
+		Player->ExitTruckCargo();
+		break;
+	case Protocol::TRUCK_SEAT_TURRET:
+		if (Truck->GetMountedWeaponUser() == Player)
+		{
+			Truck->SetMountedWeaponUser(nullptr);
+		}
+		Player->ExitMountedWeapon();
+		break;
+	default:
+		break;
+	}
+}
+
+void UFPSProjectGameInstance::HandleTruckMove(const Protocol::S_TRUCK_MOVE& pkt)
+{
+	ATruck* Truck = FindTruckById(pkt.info().object_id());
+	if (Truck == nullptr)
+	{
+		return;
+	}
+
+	if (Truck->IsPlayerControlled())
+	{
+		return;
+	}
+
+	const FVector TargetLocation(pkt.info().x(), pkt.info().y(), pkt.info().z());
+	const FRotator TargetRotation(0.0f, pkt.info().yaw(), 0.0f);
+	Truck->SetLocallyDriven(false);
+	Truck->SetActorLocationAndRotation(TargetLocation, TargetRotation);
+	if (USkeletalMeshComponent* TruckMesh = Truck->GetMesh())
+	{
+		TruckMesh->SetWorldLocationAndRotation(TargetLocation, TargetRotation, false, nullptr, ETeleportType::TeleportPhysics);
+	}
+}
+
 void UFPSProjectGameInstance::HandleEquipWeapon(const Protocol::S_EQUIP_WEAPON& pkt)
 {
-	uint64 PlayerId = pkt.playerid();
-	uint64 ItemId = pkt.itemobjectid();
+	ApplyEquippedWeapon(pkt.playerid(), pkt.itemobjectid(), pkt.weapontype());
+}
 
-	// 누가 주웠는지 찾기
+void UFPSProjectGameInstance::ApplyEquippedWeapon(uint64 PlayerId, uint64 ItemId, int32 WeaponType)
+{
 	AFPSBaseCharacter* TargetPlayer = Players.Contains(PlayerId) ? Players[PlayerId] : nullptr;
+	UE_LOG(LogTemp, Warning, TEXT("[EquipDebug] ApplyEquippedWeapon Start PlayerId=%llu ItemId=%llu WeaponType=%d HasPlayer=%s"),
+		PlayerId,
+		ItemId,
+		WeaponType,
+		TargetPlayer ? TEXT("true") : TEXT("false"));
 
-	// 바닥에 있는 총 찾기 (FieldItems 맵에 등록해둔 것)
+	if (TargetPlayer == nullptr)
+	{
+		FPendingEquippedWeapon& PendingWeapon = PendingWeaponsByPlayer.FindOrAdd(PlayerId);
+		PendingWeapon.ItemId = ItemId;
+		PendingWeapon.WeaponType = WeaponType;
+		UE_LOG(LogTemp, Warning, TEXT("[Network] 플레이어가 아직 없어 무기 장착을 보류합니다. PlayerId=%llu, ItemId=%llu, WeaponType=%d"),
+			PlayerId, ItemId, WeaponType);
+		return;
+	}
+
 	if (FieldItems.Contains(ItemId))
 	{
-		AWeaponBase* WeaponActor = Cast<AWeaponBase>(FieldItems[ItemId]);
-
-		if (TargetPlayer && WeaponActor)
+		if (AActor* FieldItemActor = FieldItems[ItemId])
 		{
-			TargetPlayer->EquipWeaponFromField(WeaponActor);
-
-			// 이제 바닥에 없으니 관리 목록에서 제거!
-			FieldItems.Remove(ItemId);
+			UE_LOG(LogTemp, Warning, TEXT("[EquipDebug] Destroy FieldItem Actor ItemId=%llu Actor=%s"),
+				ItemId,
+				*GetNameSafe(FieldItemActor));
+			FieldItemActor->Destroy();
 		}
+		FieldItems.Remove(ItemId);
+	}
+
+	TSubclassOf<AWeaponBase> WeaponClass = ResolveWeaponClass(WeaponType);
+	UE_LOG(LogTemp, Warning, TEXT("[EquipDebug] ResolveWeaponClass PlayerId=%llu WeaponType=%d Class=%s"),
+		PlayerId,
+		WeaponType,
+		*GetNameSafe(WeaponClass.Get()));
+	if (WeaponClass == nullptr)
+	{
+		UE_LOG(LogTemp, Error, TEXT("[Network] 장착용 무기 클래스가 없어 장착할 수 없습니다. PlayerId=%llu, ItemId=%llu, WeaponType=%d"),
+			PlayerId, ItemId, WeaponType);
+		return;
+	}
+
+	UWorld* World = GetWorld();
+	if (World == nullptr)
+	{
+		return;
+	}
+
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.Owner = TargetPlayer;
+	SpawnParams.Instigator = TargetPlayer;
+	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+	AWeaponBase* EquippedWeapon = World->SpawnActor<AWeaponBase>(WeaponClass, FVector::ZeroVector, FRotator::ZeroRotator, SpawnParams);
+	if (EquippedWeapon == nullptr)
+	{
+		UE_LOG(LogTemp, Error, TEXT("[Network] 장착용 무기 액터 스폰에 실패했습니다. PlayerId=%llu, ItemId=%llu"), PlayerId, ItemId);
+		return;
+	}
+
+	EquippedWeapon->ItemObjectId = ItemId;
+	TargetPlayer->EquipWeapon(EquippedWeapon);
+	UE_LOG(LogTemp, Warning, TEXT("[EquipDebug] Equip Success PlayerId=%llu ItemId=%llu Weapon=%s CurrentWeapon=%s IsLocal=%s"),
+		PlayerId,
+		ItemId,
+		*GetNameSafe(EquippedWeapon),
+		*GetNameSafe(TargetPlayer->GetCurrentWeapon()),
+		TargetPlayer->IsLocallyControlled() ? TEXT("true") : TEXT("false"));
+	PendingWeaponsByPlayer.Remove(PlayerId);
+}
+
+void UFPSProjectGameInstance::RetryPendingWeapon(uint64 PlayerId)
+{
+	const FPendingEquippedWeapon* PendingWeapon = PendingWeaponsByPlayer.Find(PlayerId);
+	if (PendingWeapon == nullptr)
+	{
+		return;
+	}
+
+	ApplyEquippedWeapon(PlayerId, PendingWeapon->ItemId, PendingWeapon->WeaponType);
+}
+
+TSubclassOf<AWeaponBase> UFPSProjectGameInstance::ResolveWeaponClass(int32 WeaponType) const
+{
+	switch (WeaponType)
+	{
+	case Protocol::WEAPON_TYPE_RIFLE:
+		return DefaultEquippedWeaponClass ? DefaultEquippedWeaponClass : DefaultWeaponClass;
+	default:
+		return DefaultEquippedWeaponClass ? DefaultEquippedWeaponClass : DefaultWeaponClass;
 	}
 }
 
@@ -328,6 +549,12 @@ void UFPSProjectGameInstance::HandleFire(const Protocol::S_FIRE& pkt)
 	if (Players.Contains(ShooterId))
 	{
 		AFPSBaseCharacter* Shooter = Players[ShooterId];
+		UE_LOG(LogTemp, Warning, TEXT("[FireDebug] ShooterId=%llu HasPlayer=true Shooter=%s IsLocal=%s HasWeapon=%s Weapon=%s"),
+			ShooterId,
+			*GetNameSafe(Shooter),
+			(Shooter && Shooter->IsLocallyControlled()) ? TEXT("true") : TEXT("false"),
+			(Shooter && Shooter->GetCurrentWeapon()) ? TEXT("true") : TEXT("false"),
+			Shooter ? *GetNameSafe(Shooter->GetCurrentWeapon()) : TEXT("null"));
 
 		if (Shooter && !Shooter->IsLocallyControlled() && Shooter->GetCurrentWeapon())
 		{
@@ -338,6 +565,10 @@ void UFPSProjectGameInstance::HandleFire(const Protocol::S_FIRE& pkt)
 			// 도착은 했는데 조건에 걸려서 실행이 안 됐을 경우!
 			UE_LOG(LogTemp, Error, TEXT("[Network] 에러: 캐릭터를 찾았으나 RemoteFire 조건(무기 장착 등)을 만족하지 못함!"));
 		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("[FireDebug] ShooterId=%llu HasPlayer=false"), ShooterId);
 	}
 }
 

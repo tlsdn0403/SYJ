@@ -24,6 +24,7 @@ ABaseZombie::ABaseZombie()
 
     //硫붿돩??肄쒕━???ㅼ젙
     ZombieMesh->SetCollisionProfileName(TEXT("CharacterMesh"));
+    ZombieMesh->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
 
     HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComponent"));
 }
@@ -31,6 +32,11 @@ ABaseZombie::ABaseZombie()
 void ABaseZombie::BeginPlay()
 {
     Super::BeginPlay();
+
+    if (ZombieMesh)
+    {
+        ZombieMesh->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
+    }
 
     if (HealthComponent)
     {

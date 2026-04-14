@@ -112,8 +112,9 @@ void AWeaponBase::Fire()
 			FRotator CameraRotation;
 			Character->GetWeaponAimViewPoint(CameraLocation, CameraRotation);
 
+			const FVector AimDirection = CameraRotation.Vector().GetSafeNormal();
 			FVector TraceStart = CameraLocation;
-			FVector TraceEnd = TraceStart + CameraRotation.Vector() * AimTraceDistance;
+			FVector TraceEnd = TraceStart + AimDirection * AimTraceDistance;
 
 			FHitResult HitResult;
 			FCollisionQueryParams QueryParams;
@@ -121,7 +122,8 @@ void AWeaponBase::Fire()
 			QueryParams.AddIgnoredActor(Character);
 
 			const bool bHit = World->LineTraceSingleByChannel(HitResult, TraceStart, TraceEnd, ECC_Visibility, QueryParams);
-			FVector TargetLocation = bHit ? HitResult.Location : TraceEnd;
+			FVector TargetLocation = bHit ? HitResult.ImpactPoint : TraceEnd;
+			AActor* AimHitActor = bHit ? HitResult.GetActor() : nullptr;
 
 			FHitResult MuzzleHitResult;
 			FCollisionQueryParams MuzzleQueryParams;
@@ -137,10 +139,19 @@ void AWeaponBase::Fire()
 
 			if (bMuzzleBlocked)
 			{
-				TargetLocation = MuzzleHitResult.Location;
+				const bool bHitSameAimActor = AimHitActor && MuzzleHitResult.GetActor() == AimHitActor;
+				if (!bHitSameAimActor)
+				{
+					TargetLocation = MuzzleHitResult.ImpactPoint;
+				}
 			}
 
 			FVector FireDirection = (TargetLocation - FireLocation).GetSafeNormal();
+			if (FireDirection.IsNearlyZero() || FVector::DotProduct(FireDirection, AimDirection) <= 0.0f)
+			{
+				FireDirection = AimDirection;
+			}
+
 			const float SpreadAngleDegrees = GetCurrentSpreadAngleDegrees();
 			if (SpreadAngleDegrees > 0.0f)
 			{

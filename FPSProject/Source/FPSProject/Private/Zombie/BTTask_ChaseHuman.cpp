@@ -5,8 +5,31 @@
 #include "Zombie/BaseZombie.h"
 #include "AIController.h"
 #include "BehaviorTree/BlackboardComponent.h"
+#include "Components/PrimitiveComponent.h"
 #include "NavigationSystem.h"
 #include "GameFramework/CharacterMovementComponent.h"
+
+namespace
+{
+    FVector GetClosestPointOnTarget(AActor* TargetActor, const FVector& FromLocation)
+    {
+        if (TargetActor)
+        {
+            if (UPrimitiveComponent* PrimitiveComponent = Cast<UPrimitiveComponent>(TargetActor->GetRootComponent()))
+            {
+                FVector ClosestPoint = TargetActor->GetActorLocation();
+                if (PrimitiveComponent->GetClosestPointOnCollision(FromLocation, ClosestPoint) >= 0.0f)
+                {
+                    return ClosestPoint;
+                }
+            }
+
+            return TargetActor->GetActorLocation();
+        }
+
+        return FromLocation;
+    }
+}
 
 
 UBTTask_ChaseHuman::UBTTask_ChaseHuman()
@@ -30,7 +53,7 @@ EBTNodeResult::Type UBTTask_ChaseHuman::ExecuteTask(UBehaviorTreeComponent& Owne
     }
 
 
-    UE_LOG(LogTemp, Warning, TEXT("Zombie chasing player at location: %s"), *TargetActor->GetActorLocation().ToString());
+    UE_LOG(LogTemp, Warning, TEXT("Zombie chasing target at location: %s"), *TargetActor->GetActorLocation().ToString());
 
     // 이동 중이므로 In Progress 반환 (계속 실행)
     return EBTNodeResult::InProgress;
@@ -57,7 +80,8 @@ void UBTTask_ChaseHuman::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* Node
         return;
     }
 
-    float Distance = FVector::Dist(ZombieCharacter->GetActorLocation(), TargetActor->GetActorLocation());
+    const FVector TargetReachPoint = GetClosestPointOnTarget(TargetActor, ZombieCharacter->GetActorLocation());
+    float Distance = FVector::Dist(ZombieCharacter->GetActorLocation(), TargetReachPoint);
 
     // 공격 범위에 도달하면 성공 반환 (공격으로 전환)
     if (Distance <= StopDistance)
@@ -67,7 +91,7 @@ void UBTTask_ChaseHuman::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* Node
         return;
     }
 
-    // 매 틱마다 플레이어 위치 업데이트
+    // 매 틱마다 타겟 위치 업데이트
     AIController->MoveToActor(TargetActor, StopDistance);
 
     UE_LOG(LogTemp, Log, TEXT("Chasing... Distance: %f"), Distance);

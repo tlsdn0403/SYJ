@@ -3,6 +3,7 @@
 
 #include "Zombie/BTTask_Attack.h"
 #include "AIController.h"
+#include "BehaviorTree/BlackboardComponent.h"
 #include "Zombie/BaseZombie.h"
 
 UBTTask_Attack::UBTTask_Attack()
@@ -25,7 +26,13 @@ EBTNodeResult::Type UBTTask_Attack::ExecuteTask(UBehaviorTreeComponent& OwnerCom
 	{
 		return EBTNodeResult::Failed;
 	}
-	Zombie->Attack();
+	AActor* TargetActor = nullptr;
+	if (UBlackboardComponent* BlackboardComponent = OwnerComp.GetBlackboardComponent())
+	{
+		TargetActor = Cast<AActor>(BlackboardComponent->GetValueAsObject(FName("TargetPlayer")));
+	}
 
-	return EBTNodeResult::Type();
+	Zombie->Attack(TargetActor);
+
+	return EBTNodeResult::Succeeded;
 }

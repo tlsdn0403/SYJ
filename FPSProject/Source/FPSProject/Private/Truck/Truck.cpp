@@ -3,6 +3,7 @@
 #include "GameFramework/PlayerController.h"
 #include "Characters/FPSBaseCharacter.h"
 #include "Components/BoxComponent.h"
+#include "Components/HealthComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/WidgetComponent.h"
 #include "Blueprint/UserWidget.h"
@@ -43,6 +44,8 @@ ATruck::ATruck()
 	TurretSeatInteractTrigger->InitSphereRadius(200.0f);
 	TurretSeatInteractTrigger->InteractType = ETruckInteractType::TurretSeat;
 	TurretSeatInteractTrigger->SetRelativeLocation(FVector(-80.0f, 0.0f, 140.0f));
+
+	HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComponent"));
 
 	CargoRidePoint = CreateDefaultSubobject<USceneComponent>(TEXT("CargoRidePoint"));
 	CargoRidePoint->SetupAttachment(RootComponent);

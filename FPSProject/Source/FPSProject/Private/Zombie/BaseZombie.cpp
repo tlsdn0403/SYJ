@@ -7,6 +7,7 @@
 #include "Characters/FPSBaseCharacter.h"
 #include "Components/HealthComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "Components/PrimitiveComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/KismetMathLibrary.h" 
 #include "NiagaraFunctionLibrary.h"
@@ -54,7 +55,18 @@ void ABaseZombie::Tick(float DeltaTime)
 
 void ABaseZombie::Attack()
 {
+    Attack(UGameplayStatics::GetPlayerPawn(GetWorld(), 0));
+}
+
+void ABaseZombie::Attack(AActor* TargetActor)
+{
     if (!bIsAlive || bIsAttacking) return;
+
+    CurrentAttackTarget = TargetActor ? TargetActor : UGameplayStatics::GetPlayerPawn(GetWorld(), 0);
+    if (!CurrentAttackTarget)
+    {
+        return;
+    }
 
     bIsAttacking = true;
 
@@ -76,22 +88,59 @@ void ABaseZombie::Attack()
     else
     {
         // 몽타주가 없으면 바로 대미지를 준다.
-        // --- 플레이어에게 대미지 ---
-        APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(GetWorld(), 0);
-        if (PlayerPawn)
-        {
-            float Distance = FVector::Dist(GetActorLocation(), PlayerPawn->GetActorLocation());
-            if (Distance <= AttackRange)
-            {
-                UHealthComponent* PlayerHealth = PlayerPawn->FindComponentByClass<UHealthComponent>();
-                if (PlayerHealth)
-                {
-                    PlayerHealth->ApplyDamage(AttackDamage);
-                    UE_LOG(LogTemp, Warning, TEXT("Zombie dealt %f damage!"), AttackDamage);
-                }
-            }
-        }
+        ApplyAttackDamage(CurrentAttackTarget);
+        CurrentAttackTarget = nullptr;
         bIsAttacking = false;
+    }
+}
+
+FVector ABaseZombie::GetAttackPointForTarget(AActor* TargetActor) const
+{
+    if (!TargetActor)
+    {
+        return GetActorLocation();
+    }
+
+    if (UPrimitiveComponent* PrimitiveComponent = Cast<UPrimitiveComponent>(TargetActor->GetRootComponent()))
+    {
+        FVector ClosestPoint = TargetActor->GetActorLocation();
+        if (PrimitiveComponent->GetClosestPointOnCollision(GetActorLocation(), ClosestPoint) >= 0.0f)
+        {
+            return ClosestPoint;
+        }
+    }
+
+    return TargetActor->GetActorLocation();
+}
+
+void ABaseZombie::ApplyAttackDamage(AActor* TargetActor)
+{
+    if (!TargetActor)
+    {
+        return;
+    }
+
+    const FVector AttackPoint = GetAttackPointForTarget(TargetActor);
+    const float Distance = FVector::Dist(GetActorLocation(), AttackPoint);
+    if (Distance > AttackRange)
+    {
+        UE_LOG(LogTemp, Log, TEXT("Attack missed - target moved away"));
+        return;
+    }
+
+    UHealthComponent* TargetHealth = TargetActor->FindComponentByClass<UHealthComponent>();
+    if (!TargetHealth)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("Zombie attacked %s, but it has no HealthComponent"), *GetNameSafe(TargetActor));
+        return;
+    }
+
+    TargetHealth->ApplyDamage(AttackDamage);
+    UE_LOG(LogTemp, Warning, TEXT("Zombie dealt %f damage to %s!"), AttackDamage, *GetNameSafe(TargetActor));
+
+    if (AFPSBaseCharacter* PlayerPawn = Cast<AFPSBaseCharacter>(TargetActor))
+    {
+        PlayerPawn->SetHealth(TargetHealth->GetHealth(), TargetHealth->MaxGetHealth());
     }
 }
 
@@ -101,28 +150,13 @@ void ABaseZombie::OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)
     // 몽타주가 끝나는 시점에 대미지 적용
     if (!bInterrupted) // 중단되지 않았다면
     {
-        AFPSBaseCharacter* PlayerPawn = Cast<AFPSBaseCharacter>(UGameplayStatics::GetPlayerPawn(GetWorld(), 0));
-        if (PlayerPawn) 
-        {
-            float Distance = FVector::Dist(GetActorLocation(), PlayerPawn->GetActorLocation());
-            if (Distance <= AttackRange)
-            {
-                UHealthComponent* PlayerHealth = PlayerPawn->FindComponentByClass<UHealthComponent>();
-                if (PlayerHealth)
-                {
-                    PlayerHealth->ApplyDamage(AttackDamage);
-                    UE_LOG(LogTemp, Warning, TEXT("Zombie dealt %f damage!"), AttackDamage);
-
-                    PlayerPawn->SetHealth(PlayerHealth->GetHealth(), PlayerHealth->MaxGetHealth());
-                }
-            }
-            else
-            {
-                UE_LOG(LogTemp, Log, TEXT("Attack missed - player moved away"));
-            }
-        }
+        AActor* TargetActor = IsValid(CurrentAttackTarget)
+            ? CurrentAttackTarget
+            : UGameplayStatics::GetPlayerPawn(GetWorld(), 0);
+        ApplyAttackDamage(TargetActor);
     }
 
+    CurrentAttackTarget = nullptr;
     bIsAttacking = false;
     UE_LOG(LogTemp, Log, TEXT("Attack Montage Ended"));
 }

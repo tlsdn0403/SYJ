@@ -8,6 +8,7 @@ class UHealthComponent;
 class UAnimMontage;
 class UParticleSystem;
 class UNiagaraSystem;
+class AActor;
 
 /** 좀비 상태를 나타내는 열거형 */
 UENUM(BlueprintType)
@@ -42,6 +43,7 @@ public:
     bool IsAttacking() const { return bIsAttacking; }
 
     void Attack();
+    void Attack(AActor* TargetActor);
 
     UFUNCTION(BlueprintCallable, Category = "Zombie")
     void Die();
@@ -107,12 +109,17 @@ private:
 
 
     // --- 내부 헬퍼 함수 (클래스 내부에서만 사용되는 함수) ---
+    FVector GetAttackPointForTarget(AActor* TargetActor) const;
+    void ApplyAttackDamage(AActor* TargetActor);
     void InitializeBoneDurability();
     FName GetParentBoneForDamage(FName HitBoneName);
     void ProcessBoneDamage(FName BoneName, float Damage, FVector ImpactPoint, FVector ImpactDirection);
     void DismemberLimb(FName BoneName, FVector Impulse, FVector HitLocation);
     void StartCrawling();
     bool IsLegBone(FName BoneName) const;
+
+    UPROPERTY()
+    AActor* CurrentAttackTarget = nullptr;
 
     UFUNCTION()
     void OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);

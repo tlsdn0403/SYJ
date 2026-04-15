@@ -5,12 +5,29 @@
 #include "Zombie/BaseZombie.h"
 #include "AIController.h"
 #include "BehaviorTree/BlackboardComponent.h"
+#include "Characters/FPSBaseCharacter.h"
 #include "Components/PrimitiveComponent.h"
 #include "NavigationSystem.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Truck/Truck.h"
 
 namespace
 {
+    AActor* ResolveChaseTarget(AActor* BlackboardTarget)
+    {
+        AFPSBaseCharacter* PlayerCharacter = Cast<AFPSBaseCharacter>(BlackboardTarget);
+        if (PlayerCharacter &&
+            IsValid(PlayerCharacter->CurrentTruck) &&
+            (PlayerCharacter->IsDrivingTruck() ||
+                PlayerCharacter->IsOnTruckCargo() ||
+                PlayerCharacter->IsUsingMountedWeapon()))
+        {
+            return PlayerCharacter->CurrentTruck;
+        }
+
+        return BlackboardTarget;
+    }
+
     FVector GetClosestPointOnTarget(AActor* TargetActor, const FVector& FromLocation)
     {
         if (TargetActor)
@@ -46,8 +63,9 @@ EBTNodeResult::Type UBTTask_ChaseHuman::ExecuteTask(UBehaviorTreeComponent& Owne
 {
 	AAIController* AIController = OwnerComp.GetAIOwner();  //AI 컨트롤러 가져오기
 	ABaseZombie* ZombieCharacter = AIController ? Cast<ABaseZombie>(AIController->GetPawn()) : nullptr; // 좀비 캐릭터 가져오기
-    AActor* TargetActor = Cast<AActor>(OwnerComp.GetBlackboardComponent()->GetValueAsObject(TargetPlayerKey.SelectedKeyName));   // Blackboard에서 플레이어 타겟 가져오기
-    if (!TargetActor|| !AIController || !ZombieCharacter || !ZombieCharacter->IsAlive())
+    AActor* BlackboardTarget = Cast<AActor>(OwnerComp.GetBlackboardComponent()->GetValueAsObject(TargetPlayerKey.SelectedKeyName));   // Blackboard에서 플레이어 타겟 가져오기
+    AActor* TargetActor = ResolveChaseTarget(BlackboardTarget);
+    if (!TargetActor || !AIController || !ZombieCharacter || !ZombieCharacter->IsAlive())
     {
         return EBTNodeResult::Failed; // 하나라도 없으면 실패 반환
     }
@@ -71,7 +89,8 @@ void UBTTask_ChaseHuman::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* Node
     }
 
     ABaseZombie* ZombieCharacter = Cast<ABaseZombie>(AIController->GetPawn());
-    AActor* TargetActor = Cast<AActor>(OwnerComp.GetBlackboardComponent()->GetValueAsObject(TargetPlayerKey.SelectedKeyName));
+    AActor* BlackboardTarget = Cast<AActor>(OwnerComp.GetBlackboardComponent()->GetValueAsObject(TargetPlayerKey.SelectedKeyName));
+    AActor* TargetActor = ResolveChaseTarget(BlackboardTarget);
 
     if (!ZombieCharacter || !TargetActor || !ZombieCharacter->IsAlive())
     {

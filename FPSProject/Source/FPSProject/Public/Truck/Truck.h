@@ -246,6 +246,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Zombie")
 	float ZombieImpactCooldown = 0.35f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Zombie")
+	float ZombieImpactContactTolerance = 35.0f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
 	float BrakeSoundMinSpeed = 300.0f;
 private:

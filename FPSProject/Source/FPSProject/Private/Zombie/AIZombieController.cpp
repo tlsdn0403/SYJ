@@ -98,7 +98,8 @@ void AAIZombieController::Tick(float DeltaSeconds)
             // 플레이어가 트럭에 타고 있으면 트럭에 시선 고정.
             SetFocus(TargetActor);
             // 플레이어 또는 플레이어가 탄 트럭을 블랙보드에 저장 → 행동트리가 이걸 보고 추적/공격
-            GetBlackboardComponent()->SetValueAsObject(TargetPlayerKey, TargetActor);
+            // Blackboard 키는 BT 자산 호환을 위해 플레이어로 유지하고, 실제 공격 대상은 태스크에서 해석한다.
+            GetBlackboardComponent()->SetValueAsObject(TargetPlayerKey, PlayerPawn);
 			GetBlackboardComponent()->SetValueAsVector(FName("PlayerLocation"), TargetActor->GetActorLocation());
             
         }

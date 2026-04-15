@@ -3,6 +3,7 @@
 #include "GameFramework/PlayerController.h"
 #include "Characters/FPSBaseCharacter.h"
 #include "Components/BoxComponent.h"
+#include "Components/CapsuleComponent.h"
 #include "Components/HealthComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/WidgetComponent.h"
@@ -451,9 +452,22 @@ void ATruck::CheckZombieImpactSweep()
 		{
 			FVector ImpactPoint = Zombie->GetActorLocation();
 			FVector ClosestPoint;
+			float DistanceToTruck = TNumericLimits<float>::Max();
 			if (TruckMesh->GetClosestPointOnCollision(Zombie->GetActorLocation(), ClosestPoint) >= 0.0f)
 			{
 				ImpactPoint = ClosestPoint;
+				DistanceToTruck = FVector::Dist(Zombie->GetActorLocation(), ClosestPoint);
+			}
+
+			float AllowedContactDistance = ZombieImpactContactTolerance;
+			if (const UCapsuleComponent* ZombieCapsule = Zombie->GetCapsuleComponent())
+			{
+				AllowedContactDistance += ZombieCapsule->GetScaledCapsuleRadius();
+			}
+
+			if (DistanceToTruck > AllowedContactDistance)
+			{
+				continue;
 			}
 
 			ProcessZombieImpact(Zombie, ImpactPoint, ImpactDirection, ImpactSpeed);
@@ -726,7 +740,7 @@ void ATruck::ProcessZombieImpact(ABaseZombie* Zombie, const FVector& ImpactPoint
 		this,
 		nullptr);
 	// 좀비 즉사 조건
-	const bool bCheatFlingImpact = bTruckBodyImpact && ImpactSpeed >= ZombieImpactMinSpeed;
+	const bool bCheatFlingImpact = bTruckBodyImpact && ImpactSpeed >= ZombiePinnedImpactFatalSpeed;
 
 	if (Zombie->IsAlive() &&
 		(ImpactSpeed >= ZombieImpactFatalSpeed ||

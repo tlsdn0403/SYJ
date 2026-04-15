@@ -18,7 +18,7 @@ void UObjectPoolSubSystem::Deinitialize()
 
 bool UObjectPoolSubSystem::ShouldCreateSubsystem(UObject* Outer) const
 {
-    // °ÔÀÓ ¿ùµå¿¡¼­¸¸ »ı¼º
+    // ê²Œì„ ì›”ë“œì—ì„œë§Œ ìƒì„±
     if (UWorld* World = Cast<UWorld>(Outer))
     {
         return World->IsGameWorld();
@@ -32,18 +32,18 @@ void UObjectPoolSubSystem::InitializePool(TSubclassOf<AActor> ActorClass, int32 
 
     UClass* ClassPtr = ActorClass.Get();
 
-    // ÀÌ¹Ì Ç®ÀÌ ÀÖÀ¸¸é ½ºÅµ
+    // ì´ë¯¸ í’€ì´ ìˆìœ¼ë©´ ìŠ¤í‚µ
     if (AvailablePools.Contains(ClassPtr) && AvailablePools[ClassPtr].Num() > 0)
     {
         UE_LOG(LogTemp, Warning, TEXT("Pool for %s already exists"), *ActorClass->GetName());
         return;
     }
 
-    // Ç® ¹è¿­ ÃÊ±âÈ­
+    // í’€ ë°°ì—´ ì´ˆê¸°í™”
     AvailablePools.Add(ClassPtr, TArray<AActor*>());
     ActivePools.Add(ClassPtr, TArray<AActor*>());
 
-    // Actor ¹Ì¸® »ı¼º
+    // Actor ë¯¸ë¦¬ ìƒì„±
     for (int32 i = 0; i < PoolSize; i++)
     {
         AActor* Actor = CreateNewActor(ActorClass);
@@ -67,14 +67,14 @@ AActor* UObjectPoolSubSystem::SpawnFromPool(TSubclassOf<AActor> ActorClass,
     UClass* ClassPtr = ActorClass.Get();
     AActor* Actor = nullptr;
 
-    // Ç®¿¡ »ç¿ë °¡´ÉÇÑ Actor°¡ ÀÖ´Â °æ¿ì
+    // í’€ì— ì‚¬ìš© ê°€ëŠ¥í•œ Actorê°€ ìˆëŠ” ê²½ìš°
     if (AvailablePools.Contains(ClassPtr) && AvailablePools[ClassPtr].Num() > 0)
     {
         Actor = AvailablePools[ClassPtr].Pop();
     }
     else
     {
-        // Ç®ÀÌ ºñ¾îÀÖÀ¸¸é »õ·Î »ı¼º
+        // í’€ì´ ë¹„ì–´ìˆìœ¼ë©´ ìƒˆë¡œ ìƒì„±
         Actor = CreateNewActor(ActorClass);
 
         if (!ActivePools.Contains(ClassPtr))
@@ -85,14 +85,14 @@ AActor* UObjectPoolSubSystem::SpawnFromPool(TSubclassOf<AActor> ActorClass,
 
     if (Actor)
     {
-        // À§Ä¡ ¼³Á¤
+        // ìœ„ì¹˜ ì„¤ì •
         Actor->SetActorLocation(Location);
         Actor->SetActorRotation(Rotation);
 
-        // È°¼ºÈ­
+        // í™œì„±í™”
         ActivateActor(Actor);
 
-        // ÀÎÅÍÆäÀÌ½º OnPoolSpawn È£Ãâ
+        // ì¸í„°í˜ì´ìŠ¤ OnPoolSpawn í˜¸ì¶œ
         if (Actor->Implements<UFPSPoolableInterface>())
         {
             IFPSPoolableInterface::Execute_OnPoolSpawn(Actor, Location, Rotation);
@@ -110,16 +110,16 @@ void UObjectPoolSubSystem::ReturnToPool(AActor* Actor)
 
     UClass* ClassPtr = Actor->GetClass();
 
-    // ºñÈ°¼ºÈ­
+    // ë¹„í™œì„±í™”
     DeactivateActor(Actor);
 
-    // Active¿¡¼­ Á¦°Å
+    // Activeì—ì„œ ì œê±°
     if (ActivePools.Contains(ClassPtr))
     {
         ActivePools[ClassPtr].Remove(Actor);
     }
 
-    // Available¿¡ Ãß°¡
+    // Availableì— ì¶”ê°€
     if (!AvailablePools.Contains(ClassPtr))
     {
         AvailablePools.Add(ClassPtr, TArray<AActor*>());
@@ -176,13 +176,13 @@ void UObjectPoolSubSystem::DeactivateActor(AActor* Actor)
 {
     if (!Actor) return;
 
-    // ÀÎÅÍÆäÀÌ½º OnPoolDeactivate È£Ãâ
+    // ì¸í„°í˜ì´ìŠ¤ OnPoolDeactivate í˜¸ì¶œ
     if (Actor->Implements<UFPSPoolableInterface>())
     {
         IFPSPoolableInterface::Execute_OnPoolDeactivate(Actor);
     }
 
-    // ±âº» ºñÈ°¼ºÈ­
+    // ê¸°ë³¸ ë¹„í™œì„±í™”
     Actor->SetActorHiddenInGame(true);
     Actor->SetActorEnableCollision(false);
     Actor->SetActorTickEnabled(false);
@@ -193,12 +193,12 @@ void UObjectPoolSubSystem::ActivateActor(AActor* Actor)
 {
     if (!Actor) return;
 
-    // ±âº» È°¼ºÈ­
+    // ê¸°ë³¸ í™œì„±í™”
     Actor->SetActorHiddenInGame(false);
     Actor->SetActorEnableCollision(true);
     Actor->SetActorTickEnabled(true);
 
-    // ÀÎÅÍÆäÀÌ½º OnPoolActivate È£Ãâ
+    // ì¸í„°í˜ì´ìŠ¤ OnPoolActivate í˜¸ì¶œ
     if (Actor->Implements<UFPSPoolableInterface>())
     {
         IFPSPoolableInterface::Execute_OnPoolActivate(Actor);

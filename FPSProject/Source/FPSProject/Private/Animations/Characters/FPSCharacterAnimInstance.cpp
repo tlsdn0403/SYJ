@@ -7,18 +7,18 @@
 
 void UFPSCharacterAnimInstance::NativeInitializeAnimation()
 {
-	//ºÎ¸ğÇÔ¼ö ºñ¾îÀÖ¾î¼­ SUPERÈ£Ãâ ÇÒ ÇÊ¿ä¾ø´Ù
-	OwningCharacter = Cast<AFPSBaseCharacter>(TryGetPawnOwner());  //¾Ö´Ï¸ŞÀÌ¼Ç ÀÎ½ºÅÏ½º°¡ ¼ÒÀ¯ÇÑ ÆùÀ» °¡Á®¿È
+	//ë¶€ëª¨í•¨ìˆ˜ ë¹„ì–´ìˆì–´ì„œ SUPERí˜¸ì¶œ í•  í•„ìš”ì—†ë‹¤
+	OwningCharacter = Cast<AFPSBaseCharacter>(TryGetPawnOwner());  //ì• ë‹ˆë©”ì´ì…˜ ì¸ìŠ¤í„´ìŠ¤ê°€ ì†Œìœ í•œ í°ì„ ê°€ì ¸ì˜´
 
 	if (OwningCharacter)
 	{
-		OwningMovementComponent = OwningCharacter->GetCharacterMovement(); //Ä³¸¯ÅÍ ¹«ºê¸ÕÆ® ÄÄÆ÷³ÍÆ®¸¦ °¡Á®¿È
+		OwningMovementComponent = OwningCharacter->GetCharacterMovement(); //ìºë¦­í„° ë¬´ë¸Œë¨¼íŠ¸ ì»´í¬ë„ŒíŠ¸ë¥¼ ê°€ì ¸ì˜´
 	}
 }
 
 void UFPSCharacterAnimInstance::NativeThreadSafeUpdateAnimation(float DeltaSeconds)
 {
-	//ºÎ¸ğÇÔ¼ö ºñ¾îÀÖ¾î¼­ SUPERÈ£Ãâ ÇÒ ÇÊ¿ä¾ø´Ù
+	//ë¶€ëª¨í•¨ìˆ˜ ë¹„ì–´ìˆì–´ì„œ SUPERí˜¸ì¶œ í•  í•„ìš”ì—†ë‹¤
 	if(! OwningCharacter || ! OwningMovementComponent)
 	{
 		return;

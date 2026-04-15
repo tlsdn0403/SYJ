@@ -22,7 +22,7 @@ protected:
 	UPROPERTY(EditAnyWhere)
 	class UBehaviorTree* ZombieBehaviorTree;
 
-	// ºí·¢º¸µå Å° ÀÌ¸§
+	// ë¸”ë™ë³´ë“œ í‚¤ ì´ë¦„
 	static const FName TargetPlayerKey;
 
 public:

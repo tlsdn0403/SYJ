@@ -26,11 +26,11 @@ protected:
 
 public:
 
-	// ½½·ÔµéÀ» ´ãÀ» ¹Ú½º =======================================================================================
+	// ìŠ¬ë¡¯ë“¤ì„ ë‹´ì„ ë°•ìŠ¤ =======================================================================================
 	UPROPERTY(meta = (BindWidget))	//
-	UHorizontalBox* SlotBox;	//UHorizontalBox = UI À§Á¬µéÀ» ¡°°¡·Î·Î ÀÚµ¿ Á¤·ÄÇØ¼­ ´ã¾ÆÁÖ´Â ÄÁÅ×ÀÌ³Ê(»óÀÚ)¡± °´Ã¼
+	UHorizontalBox* SlotBox;	//UHorizontalBox = UI ìœ„ì ¯ë“¤ì„ â€œê°€ë¡œë¡œ ìë™ ì •ë ¬í•´ì„œ ë‹´ì•„ì£¼ëŠ” ì»¨í…Œì´ë„ˆ(ìƒì)â€ ê°ì²´
 
-	// ½½·Ô À§Á¬ ¹è¿­
+	// ìŠ¬ë¡¯ ìœ„ì ¯ ë°°ì—´
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory")
 	TSubclassOf<USlotWidget> SlotWidgetClass;
 	
@@ -52,7 +52,7 @@ public:
 	UPROPERTY()
 	TArray<USlotWidget*> SlotWidgets;
 
-	void SelectSlot(int32 slotnum);	// ½½·Ô ¼±ÅÃ½Ã ±ôºıÀÌ´Â È¿°ú
+	void SelectSlot(int32 slotnum);	// ìŠ¬ë¡¯ ì„ íƒì‹œ ê¹œë¹¡ì´ëŠ” íš¨ê³¼
 	void PlayAin_Slot(int32 SlotIndex);
 	/*UPROPERTY()
 	USlotWidget* SlotW;*/

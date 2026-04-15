@@ -5,20 +5,20 @@
 #include "Components/TextBlock.h"
 
 /*
-NativeOnInitialized : À§Á¬ÀÌ »ý¼ºµÉ ¶§ µü ÇÑ ¹ø È£Ãâ,  ¿¡µðÅÍ ÆíÁý ½Ã¿¡µµ »ý¼ºµÉ ¶§ È£Ãâ
-NativeConstruct : AddToViewport ½Ã È£Ãâ, Viewport ¿¡ Add µÉ ¶§¸¶´Ù È£ÃâµÊ
-NativeDestruct : RemoveFromParent(RemoveFromViewport) ½Ã È£Ãâ, Viewport ¿¡¼­ Á¦°ÅµÉ ¶§¸¶´Ù È£ÃâµÊ
+NativeOnInitialized : ìœ„ì ¯ì´ ìƒì„±ë  ë•Œ ë”± í•œ ë²ˆ í˜¸ì¶œ,  ì—ë””í„° íŽ¸ì§‘ ì‹œì—ë„ ìƒì„±ë  ë•Œ í˜¸ì¶œ
+NativeConstruct : AddToViewport ì‹œ í˜¸ì¶œ, Viewport ì— Add ë  ë•Œë§ˆë‹¤ í˜¸ì¶œë¨
+NativeDestruct : RemoveFromParent(RemoveFromViewport) ì‹œ í˜¸ì¶œ, Viewport ì—ì„œ ì œê±°ë  ë•Œë§ˆë‹¤ í˜¸ì¶œë¨
 */
 
 void UBaseUI::NativeConstruct()
 {
-	Super::NativeConstruct(); // ºÎ¸ð Å¬·¡½ºÀÇ NativeConstruct È£Ãâ
+	Super::NativeConstruct(); // ë¶€ëª¨ í´ëž˜ìŠ¤ì˜ NativeConstruct í˜¸ì¶œ
 
 	if (TimerText)
 	{
 		TimerText->SetText(FText::FromString(TEXT("05:00")));
 		/*
-			SetText()´Â FText¸¸ ¹Þ±â ¶§¹®¿¡ 
+			SetText()ëŠ” FTextë§Œ ë°›ê¸° ë•Œë¬¸ì—
 		*/
 		GetWorld()->GetTimerManager().SetTimer(TimerHandle,this,&UBaseUI::UpdateTimer,1.0f,true);
 	}
@@ -36,7 +36,7 @@ void UBaseUI:: UpdateTimer()
 	if (totalTime <= 5) {
 		PlayAni_PopUp();
 	}
-	else if (totalTime <= 20)	//20ÃÊ ÀÌÇÏÀÏ ¶§ Áøµ¿ ¾Ö´Ï¸ÞÀÌ¼Ç ½ÇÇà
+	else if (totalTime <= 20)	//20ì´ˆ ì´í•˜ì¼ ë•Œ ì§„ë™ ì• ë‹ˆë©”ì´ì…˜ ì‹¤í–‰
 	{
 		PlayAni_Vibration();
 	}

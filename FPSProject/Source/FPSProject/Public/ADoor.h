@@ -8,7 +8,7 @@
 #include "ADoor.generated.h"
 
 
-//»óÈ£ÀÛ¿ëÀÌ ÀÖÀ»¶§¸¸ È°µ¿ÇÒ °ÍÀÌ¶ó ±× ¿Ü ÀÌº¥Æ®°¡ ÇÊ¿ä¾ø
+//ìƒí˜¸ì‘ìš©ì´ ìˆì„ë•Œë§Œ í™œë™í•  ê²ƒì´ë¼ ê·¸ ì™¸ ì´ë²¤íŠ¸ê°€ í•„ìš”ì—†
 
 class UWidgetComponent;
 class UInteractTriggerComponent;
@@ -33,21 +33,21 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 	UPROPERTY(VisibleAnywhere, Category = "Components")
-	USceneComponent* SceneRoot;	//¿©·¯ ÄÄÆ÷³ÍÆ®¸¦ ¹­¾îÁÖ´Â ¿ªÇÒ, À§Á¬µµ Ãß°¡µÉ °ÍÀÌ±â¿¡ Ãß°¡.
+	USceneComponent* SceneRoot;	//ì—¬ëŸ¬ ì»´í¬ë„ŒíŠ¸ë¥¼ ë¬¶ì–´ì£¼ëŠ” ì—­í• , ìœ„ì ¯ë„ ì¶”ê°€ë  ê²ƒì´ê¸°ì— ì¶”ê°€.
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	UStaticMeshComponent* DoorMeshComp;
 
-	// »óÈ£ÀÛ¿ë ¹üÀ§ ÄÄÆ÷³ÍÆ®
+	// ìƒí˜¸ì‘ìš© ë²”ìœ„ ì»´í¬ë„ŒíŠ¸
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Interaction")
 	UInteractTriggerComponent* InteractTrigger;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Interaction")
 	UWidgetComponent* WidgetComp;
 
-	// ÀÎÅÍÆäÀÌ½º ÇÔ¼ö ¿À¹ö¶óÀÌµå (FÅ° ´­·¶À» ¶§ ½ÇÇàµÉ ³»¿ë)
+	// ì¸í„°í˜ì´ìŠ¤ í•¨ìˆ˜ ì˜¤ë²„ë¼ì´ë“œ (Fí‚¤ ëˆŒë €ì„ ë•Œ ì‹¤í–‰ë  ë‚´ìš©)
 	virtual void Interact_Implementation(AFPSBaseCharacter* Character) override;
 
-	bool bOpen = false;	//f -´İÈû t -¿­¸²
+	bool bOpen = false;	//f -ë‹«í˜ t -ì—´ë¦¼
 	FRotator OriginalRotation;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "setting")
@@ -59,7 +59,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "setting")
 	float MoveTime = 3.f;
 
-	//µ¨¸®°ÔÀÌÆ® ÇÔ¼ö (Æ®¸®°Å ÄÄÆ÷³ÍÆ®ÀÇ ÀÌº¥Æ®¿¡ ¹ÙÀÎµù µÉ ÇÔ¼ö)
+	//ë¸ë¦¬ê²Œì´íŠ¸ í•¨ìˆ˜ (íŠ¸ë¦¬ê±° ì»´í¬ë„ŒíŠ¸ì˜ ì´ë²¤íŠ¸ì— ë°”ì¸ë”© ë  í•¨ìˆ˜)
 	UFUNCTION()
 	void WidgetStart(AActor* OtherActor);
 
@@ -67,5 +67,5 @@ public:
 	void WidgetEnd(AActor* OtherActor);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "setting")
-	UMaterialInterface* OverlayMaterial;	//¿À¹ö·¹ÀÌ ¸ŞÅÍ¸®¾ó
+	UMaterialInterface* OverlayMaterial;	//ì˜¤ë²„ë ˆì´ ë©”í„°ë¦¬ì–¼
 };

@@ -10,18 +10,18 @@ void AAR4::AttachWeapon(AFPSBaseCharacter* TargetCharacter)
     Character = TargetCharacter;
     if (!Character) return;
 
-    // ºÎÂøÇÒ ¸Ş½¬ ¼±ÅÃ 
+    // ë¶€ì°©í•  ë©”ì‰¬ ì„ íƒ
     USkeletalMeshComponent* AttachMesh = Character->GetMesh();
 
-    // ºÎÂø Æ®·£½ºÆû ¼³Á¤
+    // ë¶€ì°© íŠ¸ëœìŠ¤í¼ ì„¤ì •
     FAttachmentTransformRules AttachmentRules(EAttachmentRule::SnapToTarget, true);
     AttachToComponent(AttachMesh, AttachmentRules, AttachSocketName);
 
-    // ºÎÂø ÈÄ ¹«±â  À§Ä¡, È¸Àü Á¶Á¤
+    // ë¶€ì°© í›„ ë¬´ê¸°  ìœ„ì¹˜, íšŒì „ ì¡°ì •
     WeaponMesh->SetRelativeLocation(FVector(-7.640821f, 4.648937f, -1.158742f));
     WeaponMesh->SetRelativeRotation(FRotator(-6.316770f, -264.543091f, 2.009403f));
 
-    // Ä³¸¯ÅÍÀÇ CurrentWeapon ¾÷µ¥ÀÌÆ®
+    // ìºë¦­í„°ì˜ CurrentWeapon ì—…ë°ì´íŠ¸
     Character->SetCurrentWeapon(this);
 
 
@@ -31,6 +31,6 @@ void AAR4::Fire()
 {
 	Super::Fire();
 
-    //°¢ ÃÑ±â¸¶´Ù ¼ÒÄÏ ÀÌ¸§ÀÌ ´Ş¶ó¼­ ÀÌ·¸°Ô Ã³¸®
+    //ê° ì´ê¸°ë§ˆë‹¤ ì†Œì¼“ ì´ë¦„ì´ ë‹¬ë¼ì„œ ì´ë ‡ê²Œ ì²˜ë¦¬
     UGameplayStatics::SpawnEmitterAttached(GunParticleEffect, WeaponMesh, TEXT("b_gun_muzzleflash"));
 }

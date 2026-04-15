@@ -16,7 +16,7 @@ void AC_House2Floor::OnConstruction(const FTransform& Transform)
 		for (int j = 0; j < Fwidth; ++j)
 		{
 			if (i == HoleX && j == HoleY)
-				continue; // °è´Ü ±¸¸Û
+				continue; // ê³„ë‹¨ êµ¬ë©
 
 			Instances.Add(FTransform(FVector(i * 400.f, j * 400.f, 302.f)));
 		}

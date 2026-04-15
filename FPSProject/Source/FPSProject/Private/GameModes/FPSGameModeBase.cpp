@@ -10,8 +10,8 @@ void AFPSGameModeBase::StartPlay()
 
     check(GEngine != nullptr);
 
-    // µð¹ö±× ¸Þ½ÃÁö¸¦ 5ÃÊ°£ Ç¥½ÃÇÕ´Ï´Ù. 
-    // -1 'Å°' °ª ½ÇÇàÀÎÀÚ°¡ ¸Þ½ÃÁö°¡ ¾÷µ¥ÀÌÆ®µÇ°Å³ª »õ·Î°íÄ§µÇÁö ¾Êµµ·Ï ¹æÁöÇÕ´Ï´Ù.
+    // ë””ë²„ê·¸ ë©”ì‹œì§€ë¥¼ 5ì´ˆê°„ í‘œì‹œí•©ë‹ˆë‹¤.
+    // -1 'í‚¤' ê°’ ì‹¤í–‰ì¸ìžê°€ ë©”ì‹œì§€ê°€ ì—…ë°ì´íŠ¸ë˜ê±°ë‚˜ ìƒˆë¡œê³ ì¹¨ë˜ì§€ ì•Šë„ë¡ ë°©ì§€í•©ë‹ˆë‹¤.
     GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Hello World, this is FPSGameMode!"));
 
 	PlayerControllerClass = AFPSPlayerController::StaticClass();

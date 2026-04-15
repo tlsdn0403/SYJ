@@ -7,7 +7,7 @@
 AC_House1::AC_House1()
 {
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = false;	//Æ½ ¾È¾µ°Å¶ó false·Î ¼³Á¤
+	PrimaryActorTick.bCanEverTick = false;	//í‹± ì•ˆì“¸ê±°ë¼ falseë¡œ ì„¤ì •
 
 	Root = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
 	SetRootComponent(Root);
@@ -44,7 +44,7 @@ AC_House1::AC_House1()
 	}
 }
 
-//BeginPlay()¿¡¼­ ÇÏ¸é ½ÇÇà½Ã¿¡¸¸ º¸ÀÌ°í ¿¡µğÅÍ»ó¿¡¼­´Â ¾Èº¸ÀÌ±â ¶§¹®¿¡ OnConstruction()¿¡¼­ Ã³¸®
+//BeginPlay()ì—ì„œ í•˜ë©´ ì‹¤í–‰ì‹œì—ë§Œ ë³´ì´ê³  ì—ë””í„°ìƒì—ì„œëŠ” ì•ˆë³´ì´ê¸° ë•Œë¬¸ì— OnConstruction()ì—ì„œ ì²˜ë¦¬
 void AC_House1::OnConstruction(const FTransform& Transform)		
 {
 	Super::OnConstruction(Transform);
@@ -56,12 +56,12 @@ void AC_House1::OnConstruction(const FTransform& Transform)
 		UE_LOG(LogTemp, Warning, TEXT("HISM_Floor StaticMesh is NULL"));
 		return;
 	}
-	// AddInstance ÇÑ ¹ø¸¶´Ù ·»´õ »óÅÂ °»½Å, Æ®¸® Àç°è»ê µîÀÇ ¿À¹öÇìµå°¡ ¹ß»ıÇÏ¹Ç·Î ¿©·¯¹ø È£ÃâÀº ºñÈ¿À²Àû.
-	// µû¶ó¼­ ¿©·¯ ÀÎ½ºÅÏ½º¸¦ Ãß°¡ÇÒ ¶§´Â ¹Ì¸® ClearInstances()·Î ºñ¿ì°í ÇÑ²¨¹ø¿¡ Ãß°¡ÇÏ´Â °ÍÀÌ È¿À²Àû.
-	//±Ùµ¥ 6°³¸é °Á °Å±â¼­ °Å±â·¡. 
+	// AddInstance í•œ ë²ˆë§ˆë‹¤ ë Œë” ìƒíƒœ ê°±ì‹ , íŠ¸ë¦¬ ì¬ê³„ì‚° ë“±ì˜ ì˜¤ë²„í—¤ë“œê°€ ë°œìƒí•˜ë¯€ë¡œ ì—¬ëŸ¬ë²ˆ í˜¸ì¶œì€ ë¹„íš¨ìœ¨ì .
+	// ë”°ë¼ì„œ ì—¬ëŸ¬ ì¸ìŠ¤í„´ìŠ¤ë¥¼ ì¶”ê°€í•  ë•ŒëŠ” ë¯¸ë¦¬ ClearInstances()ë¡œ ë¹„ìš°ê³  í•œêº¼ë²ˆì— ì¶”ê°€í•˜ëŠ” ê²ƒì´ íš¨ìœ¨ì .
+	//ê·¼ë° 6ê°œë©´ ê± ê±°ê¸°ì„œ ê±°ê¸°ë˜.
 
 	TArray<FTransform> Instances;
-	Instances.Reserve(6);	//¹Ì¸® ¸Ş¸ğ¸® ÇÒ´ç
+	Instances.Reserve(6);	//ë¯¸ë¦¬ ë©”ëª¨ë¦¬ í• ë‹¹
 
 	for (int i = 0; i < 3; ++i)
 	{

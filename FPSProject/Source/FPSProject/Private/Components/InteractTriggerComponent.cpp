@@ -8,7 +8,7 @@
 void UInteractTriggerComponent::BeginPlay()
 {
 	Super::BeginPlay();
-	// °ãÄ§ ÀÌº¥Æ® ¹ÙÀÎµù
+	// ê²¹ì¹¨ ì´ë²¤íŠ¸ ë°”ì¸ë”©
 	OnComponentBeginOverlap.AddDynamic(this, &UInteractTriggerComponent::OnOverlapBegin);
 	OnComponentEndOverlap.AddDynamic(this, &UInteractTriggerComponent::OnOverlapEnd);
 }
@@ -18,18 +18,18 @@ void UInteractTriggerComponent::OnOverlapBegin(UPrimitiveComponent* OverlappedCo
 	AFPSBaseCharacter* Character = Cast<AFPSBaseCharacter>(OtherActor);
 	if (Character && Character->IsPlayerControlled())
 	{
-		// Ä³¸¯ÅÍ¿¡°Ô ³ª¶û »óÈ£ÀÛ¿ë °¡´ÉÇÏ´Ù°í ¾Ë¸²
+		// ìºë¦­í„°ì—ê²Œ ë‚˜ë‘ ìƒí˜¸ì‘ìš© ê°€ëŠ¥í•˜ë‹¤ê³  ì•Œë¦¼
 		Character->SetInteractableActor(GetOwner());
 
 
-		// ÀÎÅÍ·ºÆ® ÄÄÆ÷³ÍÆ® Å¸ÀÔ
+		// ì¸í„°ë ‰íŠ¸ ì»´í¬ë„ŒíŠ¸ íƒ€ì…
 		Character->SetCurrentTruckInteractType(InteractType);
 		
 		
 	}
 	if (!OtherActor || OtherActor == GetOwner()) return;
 
-	// µ¨¸®°ÔÀÌÆ® ÀÌº¥Æ® ¹ß»ı (¹®ÀÌ AddDynamicÀ¸·Î µè°í ÀÖ¾î¾ß ÇÔ)
+	// ë¸ë¦¬ê²Œì´íŠ¸ ì´ë²¤íŠ¸ ë°œìƒ (ë¬¸ì´ AddDynamicìœ¼ë¡œ ë“£ê³  ìˆì–´ì•¼ í•¨)
 	OnEnter.Broadcast(OtherActor);
 }
 
@@ -38,18 +38,18 @@ void UInteractTriggerComponent::OnOverlapEnd(UPrimitiveComponent* OverlappedComp
 	AFPSBaseCharacter* Character = Cast<AFPSBaseCharacter>(OtherActor);
 	if (Character && Character->IsPlayerControlled())
 	{
-		// ¹üÀ§ ¹ÛÀ¸·Î ³ª°¡¸é »óÈ£ÀÛ¿ë ´ë»ó ÇØÁ¦
+		// ë²”ìœ„ ë°–ìœ¼ë¡œ ë‚˜ê°€ë©´ ìƒí˜¸ì‘ìš© ëŒ€ìƒ í•´ì œ
 		if (Character->GetCurrentInteractableActor() == GetOwner())
 		{
 			Character->SetInteractableActor(nullptr);
 		}
 		if (Character->GetCurrentTruckInteractType() != ETruckInteractType::None) {
-			// ÀÎÅÍ·ºÆ® ÄÄÆ÷³ÍÆ® Å¸ÀÔ
+			// ì¸í„°ë ‰íŠ¸ ì»´í¬ë„ŒíŠ¸ íƒ€ì…
 			Character->SetCurrentTruckInteractType(ETruckInteractType::None);
 		}
 		if (!OtherActor || OtherActor == GetOwner()) return;
 
-		// µ¨¸®°ÔÀÌÆ® ÀÌº¥Æ® ¹ß»ı
+		// ë¸ë¦¬ê²Œì´íŠ¸ ì´ë²¤íŠ¸ ë°œìƒ
 		OnExit.Broadcast(OtherActor);
 	}
 }

@@ -9,7 +9,7 @@
 /**
  * 
  */
-class UTextBlock;	// Àü¹æ ¼±¾ğ
+class UTextBlock;	// ì „ë°© ì„ ì–¸
 class UCanvasPanel;
 
 UCLASS()
@@ -18,24 +18,24 @@ class FPSPROJECT_API UBaseUI : public UUserWidget
 	GENERATED_BODY()
 
 	/*
-	meta= (BindWidget) :UMGÀ§Á¬ ÀÚµ¿ ¹ÙÀÎµù, C++ ¸â¹ö º¯¼ö¿Í UMG À§Á¬À» ¿¬°á. 
+	meta= (BindWidget) :UMGìœ„ì ¯ ìë™ ë°”ì¸ë”©, C++ ë©¤ë²„ ë³€ìˆ˜ì™€ UMG ìœ„ì ¯ì„ ì—°ê²°.
 	*/
 
 	UPROPERTY(BlueprintReadOnly, meta = (BindWidget, AllowPrivateAccess = "true"))
 	TObjectPtr<UCanvasPanel> RootCanvas;
 
 	UPROPERTY(BlueprintReadOnly, meta = (BindWidget, AllowPrivateAccess = "true"))
-	//UTextBlock* TimerText; << ÀÌ°Ç ¿¾³¯¹æ¹ı
-	TObjectPtr<UTextBlock>TimerText; //UE5¿¡¼± ÀÌ ¹æ½Ä »ç¿ë
+	//UTextBlock* TimerText; << ì´ê±´ ì˜›ë‚ ë°©ë²•
+	TObjectPtr<UTextBlock>TimerText; //UE5ì—ì„  ì´ ë°©ì‹ ì‚¬ìš©
 
 protected:
 	virtual void NativeConstruct() override;
 
 	UPROPERTY(meta=(BindWidgetAnim, AllowPrivateAccess), Transient)
 	/*
-	Transient < ÀÌ ¼Ó¼ºÀº °´Ã¼°¡ Á÷·ÄÈ­µÇÁö ¾Êµµ·Ï ÁöÁ¤, Áï ÀúÀåÀÌ³ª ·Îµå ½Ã¿¡ ÀÌ º¯¼öÀÇ °ªÀÌ Æ÷ÇÔµÇÁö ¾ÊÀ½. => ¾Ö´Ï µ¥ÀÌÅÍ ÀúÀåx¶ó ·Îµù½Ã Ç×»ó »õ·Î ÃÊ±âÈ­ µÊ.
+	Transient < ì´ ì†ì„±ì€ ê°ì²´ê°€ ì§ë ¬í™”ë˜ì§€ ì•Šë„ë¡ ì§€ì •, ì¦‰ ì €ì¥ì´ë‚˜ ë¡œë“œ ì‹œì— ì´ ë³€ìˆ˜ì˜ ê°’ì´ í¬í•¨ë˜ì§€ ì•ŠìŒ. => ì• ë‹ˆ ë°ì´í„° ì €ì¥xë¼ ë¡œë”©ì‹œ í•­ìƒ ìƒˆë¡œ ì´ˆê¸°í™” ë¨.
 	*/
-	UWidgetAnimation* TCountVibration;	//º¯¼ö ÀÌ¸§Àº ¾Ö´Ï ÀÌ¸§°ú µ¿ÀÏÇØ¾ßÇÔ.
+	UWidgetAnimation* TCountVibration;	//ë³€ìˆ˜ ì´ë¦„ì€ ì• ë‹ˆ ì´ë¦„ê³¼ ë™ì¼í•´ì•¼í•¨.
 
 	UPROPERTY(meta = (BindWidgetAnim, AllowPrivateAccess), Transient)
 	UWidgetAnimation* TPopUp;	

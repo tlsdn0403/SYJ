@@ -13,11 +13,11 @@ AADoor::AADoor()
 {
 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
-	// Scene Component¸¦ »ı¼ºÇÏ°í ·çÆ®·Î ¼³Á¤
+	// Scene Componentë¥¼ ìƒì„±í•˜ê³  ë£¨íŠ¸ë¡œ ì„¤ì •
 	SceneRoot = CreateDefaultSubobject<USceneComponent>(TEXT("SceneRoot"));
 	SetRootComponent(SceneRoot);
 
-	// Static Mesh Component¸¦ »ı¼ºÇÏ°í Scene Component¿¡ Attach
+	// Static Mesh Componentë¥¼ ìƒì„±í•˜ê³  Scene Componentì— Attach
 	DoorMeshComp = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("StaticMesh"));
 	DoorMeshComp->SetupAttachment(SceneRoot);
 
@@ -26,10 +26,10 @@ AADoor::AADoor()
 	WidgetComp->SetTwoSided(true);
 	WidgetComp->SetWidgetSpace(EWidgetSpace::Screen);
 
-	// Æ®¸®°Å ÄÄÆ÷³ÍÆ® »ı¼º ¹× ºÎÂø
+	// íŠ¸ë¦¬ê±° ì»´í¬ë„ŒíŠ¸ ìƒì„± ë° ë¶€ì°©
 	InteractTrigger = CreateDefaultSubobject<UInteractTriggerComponent>(TEXT("InteractTrigger"));
 	InteractTrigger->SetupAttachment(SceneRoot);
-	InteractTrigger->InitSphereRadius(200.0f); // ¹üÀ§ ¼³Á¤
+	InteractTrigger->InitSphereRadius(200.0f); // ë²”ìœ„ ì„¤ì •
 
 }
 
@@ -39,9 +39,9 @@ void AADoor::BeginPlay()
 	Super::BeginPlay();
 	if (WidgetComp) WidgetComp->InitWidget();
 
-	OriginalRotation = DoorMeshComp->GetRelativeRotation(); //¹®ÀÌ Ã³À½¿¡ ¾î¶² ¹æÇâÀ» ÇâÇÏ°í ÀÖ´ÂÁö ÀúÀå
-	Target = OriginalRotation; // Ã³À½ ¸ñÇ¥µµ ¿ø·¡ °¢µµ
-	//µ¨¸®°ÔÀÌÆ® ¹ÙÀÎµù (Æ®¸®°Å ÄÄÆ÷³ÍÆ®ÀÇ OnEnter ÀÌº¥Æ®¸¦ µèµµ·Ï ¼³Á¤)
+	OriginalRotation = DoorMeshComp->GetRelativeRotation(); //ë¬¸ì´ ì²˜ìŒì— ì–´ë–¤ ë°©í–¥ì„ í–¥í•˜ê³  ìˆëŠ”ì§€ ì €ì¥
+	Target = OriginalRotation; // ì²˜ìŒ ëª©í‘œë„ ì›ë˜ ê°ë„
+	//ë¸ë¦¬ê²Œì´íŠ¸ ë°”ì¸ë”© (íŠ¸ë¦¬ê±° ì»´í¬ë„ŒíŠ¸ì˜ OnEnter ì´ë²¤íŠ¸ë¥¼ ë“£ë„ë¡ ì„¤ì •)
 	InteractTrigger->OnEnter.AddDynamic(this, &AADoor::WidgetStart);
 	InteractTrigger->OnExit.AddDynamic(this, &AADoor::WidgetEnd);
 	if (UInteractUIClass* UI = Cast<UInteractUIClass>(WidgetComp->GetUserWidgetObject()))
@@ -90,7 +90,7 @@ void AADoor::WidgetStart(AActor* OtherActor)
 	if (!Cast<AFPSBaseCharacter>(OtherActor)) return;
 	if (UInteractUIClass* UI = Cast<UInteractUIClass>(WidgetComp->GetUserWidgetObject()))
 	{
-		UI->PlayAni_PopUp(bOpen); // À§Á¬ Å¬·¡½º¿¡ ¸¸µç ÇÔ¼ö
+		UI->PlayAni_PopUp(bOpen); // ìœ„ì ¯ í´ë˜ìŠ¤ì— ë§Œë“  í•¨ìˆ˜
 
 	}
 
@@ -105,7 +105,7 @@ void AADoor::WidgetEnd(AActor* OtherActor)
 	if (!Cast<AFPSBaseCharacter>(OtherActor)) return;
 	if (UInteractUIClass* UI = Cast<UInteractUIClass>(WidgetComp->GetUserWidgetObject()))
 	{
-		UI->RePlayAni_PopUp(); // À§Á¬ Å¬·¡½º¿¡ ¸¸µç ÇÔ¼ö
+		UI->RePlayAni_PopUp(); // ìœ„ì ¯ í´ë˜ìŠ¤ì— ë§Œë“  í•¨ìˆ˜
 
 	}
 	if (DoorMeshComp && OverlayMaterial)

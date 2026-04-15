@@ -9,7 +9,7 @@
 /**
  * 
  */
- // Ç®¸µ °¡´ÉÇÑ Actor¸¦ À§ÇÑ ÀÎÅÍÆäÀÌ½º
+ // í’€ë§ ê°€ëŠ¥í•œ Actorë¥¼ ìœ„í•œ ì¸í„°í˜ì´ìŠ¤
 UINTERFACE(MinimalAPI, Blueprintable)
 class UFPSPoolableInterface : public UInterface
 {
@@ -21,17 +21,17 @@ class FPSPROJECT_API IFPSPoolableInterface
     GENERATED_BODY()
 
 public:
-    //Ç®¸µÀ» ¾²°í½Í´Ù¸é ¾Æ·¡ 3°¡Áö ÇÔ¼ö°¡ ÀÖ¾î¾ß ÇÑ´Ù
+    //í’€ë§ì„ ì“°ê³ ì‹¶ë‹¤ë©´ ì•„ë˜ 3ê°€ì§€ í•¨ìˆ˜ê°€ ìˆì–´ì•¼ í•œë‹¤
   
-    // Ç®¿¡¼­ ²¨³¾ ¶§ È£Ãâ
+    // í’€ì—ì„œ êº¼ë‚¼ ë•Œ í˜¸ì¶œ
     UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Pool")
     void OnPoolActivate();
 
-    // Ç®¿¡ ¹İÈ¯µÉ ¶§ È£Ãâ
+    // í’€ì— ë°˜í™˜ë  ë•Œ í˜¸ì¶œ
     UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Pool")
     void OnPoolDeactivate();
 
-    // ½ºÆù À§Ä¡ ¼³Á¤
+    // ìŠ¤í° ìœ„ì¹˜ ì„¤ì •
     UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Pool")
     void OnPoolSpawn(const FVector& Location, const FRotator& Rotation);
 };
@@ -41,24 +41,24 @@ class FPSPROJECT_API UObjectPoolSubSystem : public UWorldSubsystem
 	GENERATED_BODY()
 	
 public:
-    // Subsystem »ı¸íÁÖ±â
+    // Subsystem ìƒëª…ì£¼ê¸°
     virtual void Initialize(FSubsystemCollectionBase& Collection) override;
     virtual void Deinitialize() override;
     virtual bool ShouldCreateSubsystem(UObject* Outer) const override;
 
-    // Ç® ÃÊ±âÈ­
+    // í’€ ì´ˆê¸°í™”
     UFUNCTION(BlueprintCallable, Category = "Pool")
     void InitializePool(TSubclassOf<AActor> ActorClass, int32 PoolSize = 20);
 
-    // Ç®¿¡¼­ Actor °¡Á®¿À±â
+    // í’€ì—ì„œ Actor ê°€ì ¸ì˜¤ê¸°
     UFUNCTION(BlueprintCallable, Category = "Pool")
     AActor* SpawnFromPool(TSubclassOf<AActor> ActorClass, const FVector& Location, const FRotator& Rotation);
 
-    // Ç®¿¡ ¹İÈ¯
+    // í’€ì— ë°˜í™˜
     UFUNCTION(BlueprintCallable, Category = "Pool")
     void ReturnToPool(AActor* Actor);
 
-    // ¸ğµç Ç® Á¤¸®
+    // ëª¨ë“  í’€ ì •ë¦¬
     UFUNCTION(BlueprintCallable, Category = "Pool")
     void ClearAllPools();
 
@@ -67,9 +67,9 @@ private:
     void DeactivateActor(AActor* Actor);
     void ActivateActor(AActor* Actor);
 
-    // Å¬·¡½ºº° »ç¿ë °¡´ÉÇÑ Actor Ç®
+    // í´ë˜ìŠ¤ë³„ ì‚¬ìš© ê°€ëŠ¥í•œ Actor í’€
     TMap<UClass*, TArray<AActor*>> AvailablePools;
 
-    // Å¬·¡½ºº° »ç¿ë ÁßÀÎ Actor Ç®
+    // í´ë˜ìŠ¤ë³„ ì‚¬ìš© ì¤‘ì¸ Actor í’€
     TMap<UClass*, TArray<AActor*>> ActivePools;
 };

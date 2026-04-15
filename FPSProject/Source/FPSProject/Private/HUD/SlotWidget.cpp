@@ -5,7 +5,7 @@
 #include "Components/Image.h"
 #include "Engine/Texture2D.h"  
 
-//À§Á¬Àº ¿¢ÅÍ°¡ ¾Æ´Ô. À§Á¬¿¡´Â BeginPlay °°Àº °³³äÀÌ ¾øÀ½. ±×·¡¼­ NativeConstruct() »ç¿ë
+//ìœ„ì ¯ì€ ì—‘í„°ê°€ ì•„ë‹˜. ìœ„ì ¯ì—ëŠ” BeginPlay ê°™ì€ ê°œë…ì´ ì—†ìŒ. ê·¸ë˜ì„œ NativeConstruct() ì‚¬ìš©
 
 void USlotWidget::NativeConstruct()
 {
@@ -17,8 +17,8 @@ void USlotWidget::SetItem(UTexture2D* IconTexture)
 {
 	if (!IconTexture || !ItemIcon)  return;
 
-	ItemIcon->SetBrushFromTexture(IconTexture, false); //true: ÀÌ¹ÌÁö Å©±â¸¦ ÅØ½ºÃ³ Å©±â¿¡ ¸ÂÃã
-	//false: ÅØ½ºÃ³¸¦ ÀÌ¹ÌÁö Å©±â¿¡ ¸ÂÃã
+	ItemIcon->SetBrushFromTexture(IconTexture, false); //true: ì´ë¯¸ì§€ í¬ê¸°ë¥¼ í…ìŠ¤ì²˜ í¬ê¸°ì— ë§ì¶¤
+	//false: í…ìŠ¤ì²˜ë¥¼ ì´ë¯¸ì§€ í¬ê¸°ì— ë§ì¶¤
 }
 
 void USlotWidget::ClearSlot()

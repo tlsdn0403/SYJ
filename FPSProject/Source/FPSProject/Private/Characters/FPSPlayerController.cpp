@@ -18,9 +18,9 @@ void AFPSPlayerController::BeginPlay()
 	InventoryW = CreateWidget<UInventoryWidget>(this, InvenWidgetClass);
 	TimerW = CreateWidget<UBaseUI>(this, TimerWidgetClass);
 	BasicW = CreateWidget<UBasicUI>(this, BasicWidgetClass);
-	//¿©±â¼­ À§Á¬ »ı¼º ÈÄ ÇÃ·¹ÀÌ¾î¿¡¼­ ºäÆ÷Æ®¿¡ Ãß°¡ÇÔ. ¿©±â¼­ ºäÆ÷Æ® Ãß°¡ÇÏ¸é ¼ø¼­¶§¹®¿¡ È­¸é¿¡ ¾È±×·ÁÁü. 
+	//ì—¬ê¸°ì„œ ìœ„ì ¯ ìƒì„± í›„ í”Œë ˆì´ì–´ì—ì„œ ë·°í¬íŠ¸ì— ì¶”ê°€í•¨. ì—¬ê¸°ì„œ ë·°í¬íŠ¸ ì¶”ê°€í•˜ë©´ ìˆœì„œë•Œë¬¸ì— í™”ë©´ì— ì•ˆê·¸ë ¤ì§.
 
-	//ÀÔ·Â ½Ã½ºÅÛ µî·Ï 
+	//ì…ë ¥ ì‹œìŠ¤í…œ ë“±ë¡
 	UEnhancedInputLocalPlayerSubsystem* Subsystem =
 		ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer());
 
@@ -50,40 +50,40 @@ void AFPSPlayerController::Pressed1(const FInputActionValue& Value)
 {
 	UE_LOG(LogTemp, Warning, TEXT("1 Key Pressed"));
 
-	// ¿©±â¼­ ÀÎº¥Åä¸® / ¹«±â º¯°æ / ½½·Ô ¼±ÅÃ Ã³¸®
-	InventoryW->SelectSlot(0); // ¿¹½Ã·Î ½½·Ô 1 ¼±ÅÃ
+	// ì—¬ê¸°ì„œ ì¸ë²¤í† ë¦¬ / ë¬´ê¸° ë³€ê²½ / ìŠ¬ë¡¯ ì„ íƒ ì²˜ë¦¬
+	InventoryW->SelectSlot(0); // ì˜ˆì‹œë¡œ ìŠ¬ë¡¯ 1 ì„ íƒ
 }
 
 void AFPSPlayerController::Pressed2(const FInputActionValue& Value)
 {
 	UE_LOG(LogTemp, Warning, TEXT("2 Key Pressed"));
 
-	// ¿©±â¼­ ÀÎº¥Åä¸® / ¹«±â º¯°æ / ½½·Ô ¼±ÅÃ Ã³¸®
-	InventoryW->SelectSlot(1); // ¿¹½Ã·Î ½½·Ô 1 ¼±ÅÃ
+	// ì—¬ê¸°ì„œ ì¸ë²¤í† ë¦¬ / ë¬´ê¸° ë³€ê²½ / ìŠ¬ë¡¯ ì„ íƒ ì²˜ë¦¬
+	InventoryW->SelectSlot(1); // ì˜ˆì‹œë¡œ ìŠ¬ë¡¯ 1 ì„ íƒ
 }
 
 void AFPSPlayerController::Pressed3(const FInputActionValue& Value)
 {
 	UE_LOG(LogTemp, Warning, TEXT("1 Key Pressed"));
 
-	// ¿©±â¼­ ÀÎº¥Åä¸® / ¹«±â º¯°æ / ½½·Ô ¼±ÅÃ Ã³¸®
-	InventoryW->SelectSlot(2); // ¿¹½Ã·Î ½½·Ô 1 ¼±ÅÃ
+	// ì—¬ê¸°ì„œ ì¸ë²¤í† ë¦¬ / ë¬´ê¸° ë³€ê²½ / ìŠ¬ë¡¯ ì„ íƒ ì²˜ë¦¬
+	InventoryW->SelectSlot(2); // ì˜ˆì‹œë¡œ ìŠ¬ë¡¯ 1 ì„ íƒ
 }
 
 void AFPSPlayerController::Pressed4(const FInputActionValue& Value)
 {
 	UE_LOG(LogTemp, Warning, TEXT("1 Key Pressed"));
 
-	// ¿©±â¼­ ÀÎº¥Åä¸® / ¹«±â º¯°æ / ½½·Ô ¼±ÅÃ Ã³¸®
-	InventoryW->SelectSlot(3); // ¿¹½Ã·Î ½½·Ô 1 ¼±ÅÃ
+	// ì—¬ê¸°ì„œ ì¸ë²¤í† ë¦¬ / ë¬´ê¸° ë³€ê²½ / ìŠ¬ë¡¯ ì„ íƒ ì²˜ë¦¬
+	InventoryW->SelectSlot(3); // ì˜ˆì‹œë¡œ ìŠ¬ë¡¯ 1 ì„ íƒ
 }
 
 void AFPSPlayerController::Pressed5(const FInputActionValue& Value)
 {
 	UE_LOG(LogTemp, Warning, TEXT("1 Key Pressed"));
 
-	// ¿©±â¼­ ÀÎº¥Åä¸® / ¹«±â º¯°æ / ½½·Ô ¼±ÅÃ Ã³¸®
-	InventoryW->SelectSlot(4); // ¿¹½Ã·Î ½½·Ô 1 ¼±ÅÃ
+	// ì—¬ê¸°ì„œ ì¸ë²¤í† ë¦¬ / ë¬´ê¸° ë³€ê²½ / ìŠ¬ë¡¯ ì„ íƒ ì²˜ë¦¬
+	InventoryW->SelectSlot(4); // ì˜ˆì‹œë¡œ ìŠ¬ë¡¯ 1 ì„ íƒ
 }
 
 void AFPSPlayerController::PickUp_Item(UTexture2D* image)

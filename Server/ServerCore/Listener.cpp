@@ -88,7 +88,7 @@ void Listener::RegisterAccept(AcceptEvent* acceptEvent)
 		const int32 errorCode = ::WSAGetLastError();
 		if (errorCode != WSA_IO_PENDING)
 		{
-			// ÀÏ´Ü ´Ù½Ã Accept °É¾îÁØ´Ù
+			// ì¼ë‹¨ ë‹¤ì‹œ Accept ê±¸ì–´ì¤€ë‹¤
 			RegisterAccept(acceptEvent);
 		}
 	}

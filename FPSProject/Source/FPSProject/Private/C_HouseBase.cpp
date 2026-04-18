@@ -31,7 +31,7 @@ void AC_HouseBase::OnConstruction(const FTransform& Transform)
 	}
 
 	TArray<FTransform> Instances;
-	Instances.Reserve(Fwidth*Flength);	//¹Ì¸® ¸Þ¸ð¸® ÇÒ´ç
+	Instances.Reserve(Fwidth*Flength);	//ë¯¸ë¦¬ ë©”ëª¨ë¦¬ í• ë‹¹
 
 	for (int i = 0; i < Flength; ++i)
 	{

@@ -4,10 +4,10 @@
 #include "Components/SphereComponent.h"
 #include "PickUpWeaponComponent.generated.h"
 
-// Ä³¸¯ÅÍ Å¬·¡½º(¼öÁ¤ ÇÊ¿ä)
+// ìºë¦­í„° í´ë˜ìŠ¤(ìˆ˜ì • í•„ìš”)
 class AFPSBaseCharacter;
 
-// ¹«±â ÇÈ¾÷ µ¨¸®°ÔÀÌÆ® ¼±¾ğ
+// ë¬´ê¸° í”½ì—… ë¸ë¦¬ê²Œì´íŠ¸ ì„ ì–¸
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnWeaponPickUp, AFPSBaseCharacter*, PickUpCharacter);
 
 UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
@@ -25,7 +25,7 @@ protected:
 	void OnSphereBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
 public:
-	// ºí·çÇÁ¸°Æ®¿¡¼­ ¹ÙÀÎµù °¡´ÉÇÑ µ¨¸®°ÔÀÌÆ®
+	// ë¸”ë£¨í”„ë¦°íŠ¸ì—ì„œ ë°”ì¸ë”© ê°€ëŠ¥í•œ ë¸ë¦¬ê²Œì´íŠ¸
 	UPROPERTY(BlueprintAssignable, Category = "Interaction")
 	FOnWeaponPickUp OnPickUp;
 };

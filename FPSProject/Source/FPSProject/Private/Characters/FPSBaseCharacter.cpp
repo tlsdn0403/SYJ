@@ -27,6 +27,7 @@ AFPSBaseCharacter::AFPSBaseCharacter()
     CameraBoom->SetupAttachment(RootComponent);
     CameraBoom->TargetArmLength = 300.0f;
     CameraBoom->bUsePawnControlRotation = true;
+    CameraBoom->bDoCollisionTest = false;
 
     ThirdPersonCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("ThirdPersonCamera"));
     ThirdPersonCameraComponent->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);

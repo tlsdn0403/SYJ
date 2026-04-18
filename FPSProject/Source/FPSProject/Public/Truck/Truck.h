@@ -12,6 +12,7 @@ class AFPSBaseCharacter;
 class AActor;
 class ABaseZombie;
 class AMountedMachineGun;
+class UHealthComponent;
 class UBoxComponent;
 class USceneComponent;
 class UPrimitiveComponent;
@@ -52,6 +53,9 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Interaction")
 	UInteractTriggerComponent* TurretSeatInteractTrigger;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
+	UHealthComponent* HealthComponent;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Driver")
 	USceneComponent* DriverSeatPoint;
@@ -241,6 +245,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Zombie")
 	float ZombieImpactCooldown = 0.35f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Zombie")
+	float ZombieImpactContactTolerance = 35.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
 	float BrakeSoundMinSpeed = 300.0f;

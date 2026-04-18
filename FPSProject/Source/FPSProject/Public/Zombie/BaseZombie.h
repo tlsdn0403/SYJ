@@ -8,8 +8,9 @@ class UHealthComponent;
 class UAnimMontage;
 class UParticleSystem;
 class UNiagaraSystem;
+class AActor;
 
-/** Á»ºñ »óÅÂ¸¦ ³ªÅ¸³»´Â ¿­°ÅÇü */
+/** ì¢€ë¹„ ìƒíƒœë¥¼ ë‚˜íƒ€ë‚´ëŠ” ì—´ê±°í˜• */
 UENUM(BlueprintType)
 enum class EZombieMovementState : uint8
 {
@@ -26,7 +27,7 @@ class FPSPROJECT_API ABaseZombie : public ACharacter
 public:
     ABaseZombie();
 
-    // --- ÀÎÅÍÆäÀÌ½º ¼½¼Ç (Public) ---
+    // --- ì¸í„°í˜ì´ìŠ¤ ì„¹ì…˜ (Public) ---
     virtual void Tick(float DeltaTime) override;
 
     UFUNCTION(BlueprintCallable, Category = "Zombie")
@@ -42,6 +43,8 @@ public:
     bool IsAttacking() const { return bIsAttacking; }
 
     void Attack();
+    void Attack(AActor* TargetActor);
+    bool IsTargetInAttackRange(AActor* TargetActor) const;
 
     UFUNCTION(BlueprintCallable, Category = "Zombie")
     void Die();
@@ -49,11 +52,11 @@ public:
 protected:
     virtual void BeginPlay() override;
 
-    /** Á»ºñ ´ë¹ÌÁö Ã³¸® ³»ºÎ ·ÎÁ÷ */
+    /** ì¢€ë¹„ ëŒ€ë¯¸ì§€ ì²˜ë¦¬ ë‚´ë¶€ ë¡œì§ */
     UFUNCTION()
     void OnZombieDamaged(float NewHealth, float Damage, const FHitResult& Hit);
 
-    // --- »ó¼Ó Å¬·¡½º¿¡¼­ Á¢±Ù °¡´ÉÇÑ ÄÄÆ÷³ÍÆ® ¹× ¿¡¼Â ---
+    // --- ìƒì† í´ë˜ìŠ¤ì—ì„œ ì ‘ê·¼ ê°€ëŠ¥í•œ ì»´í¬ë„ŒíŠ¸ ë° ì—ì…‹ ---
     UPROPERTY(VisibleDefaultsOnly, Category = "Zombie|Mesh")
     USkeletalMeshComponent* ZombieMesh;
 
@@ -72,11 +75,11 @@ protected:
 private:
 
 
-    // 8¹ÙÀÌÆ® ¿µ¿ª Æ÷ÀÎÅÍ ¹× ÄÁÅ×ÀÌ³Ê
+    // 8ë°”ì´íŠ¸ ì˜ì—­ í¬ì¸í„° ë° ì»¨í…Œì´ë„ˆ
     TMap<FName, float> BoneDurability;
     TSet<FName> BrokenBones;
 
-    //4¹ÙÀÌÆ® float, int32
+    //4ë°”ì´íŠ¸ float, int32
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zombie|Attack", meta = (AllowPrivateAccess = "true"))
     float AttackDamage = 15.0f;
 
@@ -97,7 +100,7 @@ private:
     EZombieMovementState MovementState;
 
 
-    // 1¹ÙÀÌÆ® 
+    // 1ë°”ì´íŠ¸
     UPROPERTY(BlueprintReadOnly, Category = "Zombie", meta = (AllowPrivateAccess = "true"))
     bool bIsAlive = true;
 
@@ -106,13 +109,33 @@ private:
 
 
 
-    // --- ³»ºÎ ÇïÆÛ ÇÔ¼ö (Å¬·¡½º ³»ºÎ¿¡¼­¸¸ »ç¿ëµÇ´Â ÇÔ¼ö) ---
+    // --- ë‚´ë¶€ í—¬í¼ í•¨ìˆ˜ (í´ë˜ìŠ¤ ë‚´ë¶€ì—ì„œë§Œ ì‚¬ìš©ë˜ëŠ” í•¨ìˆ˜) ---
+    FVector GetAttackPointForTarget(AActor* TargetActor) const;
+    void ApplyAttackDamage(AActor* TargetActor);
+    void ApplyAnimationDesync();
     void InitializeBoneDurability();
     FName GetParentBoneForDamage(FName HitBoneName);
     void ProcessBoneDamage(FName BoneName, float Damage, FVector ImpactPoint, FVector ImpactDirection);
     void DismemberLimb(FName BoneName, FVector Impulse, FVector HitLocation);
     void StartCrawling();
     bool IsLegBone(FName BoneName) const;
+
+    UPROPERTY()
+    AActor* CurrentAttackTarget = nullptr;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zombie|Animation", meta = (AllowPrivateAccess = "true"))
+    float MinAnimationRateScale = 0.92f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zombie|Animation", meta = (AllowPrivateAccess = "true"))
+    float MaxAnimationRateScale = 1.08f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zombie|Animation", meta = (AllowPrivateAccess = "true"))
+    float MaxAnimationStartOffset = 1.5f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zombie|Animation", meta = (AllowPrivateAccess = "true"))
+    float AttackMontagePlayRateVariance = 0.08f;
+
+    float AnimationRateScale = 1.0f;
 
     UFUNCTION()
     void OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);

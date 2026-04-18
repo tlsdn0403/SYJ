@@ -3,6 +3,8 @@
 #include "GameFramework/PlayerController.h"
 #include "Characters/FPSBaseCharacter.h"
 #include "Components/BoxComponent.h"
+#include "Components/CapsuleComponent.h"
+#include "Components/HealthComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/WidgetComponent.h"
 #include "Blueprint/UserWidget.h"
@@ -43,6 +45,8 @@ ATruck::ATruck()
 	TurretSeatInteractTrigger->InitSphereRadius(200.0f);
 	TurretSeatInteractTrigger->InteractType = ETruckInteractType::TurretSeat;
 	TurretSeatInteractTrigger->SetRelativeLocation(FVector(-80.0f, 0.0f, 140.0f));
+
+	HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComponent"));
 
 	CargoRidePoint = CreateDefaultSubobject<USceneComponent>(TEXT("CargoRidePoint"));
 	CargoRidePoint->SetupAttachment(RootComponent);
@@ -448,9 +452,22 @@ void ATruck::CheckZombieImpactSweep()
 		{
 			FVector ImpactPoint = Zombie->GetActorLocation();
 			FVector ClosestPoint;
+			float DistanceToTruck = TNumericLimits<float>::Max();
 			if (TruckMesh->GetClosestPointOnCollision(Zombie->GetActorLocation(), ClosestPoint) >= 0.0f)
 			{
 				ImpactPoint = ClosestPoint;
+				DistanceToTruck = FVector::Dist(Zombie->GetActorLocation(), ClosestPoint);
+			}
+
+			float AllowedContactDistance = ZombieImpactContactTolerance;
+			if (const UCapsuleComponent* ZombieCapsule = Zombie->GetCapsuleComponent())
+			{
+				AllowedContactDistance += ZombieCapsule->GetScaledCapsuleRadius();
+			}
+
+			if (DistanceToTruck > AllowedContactDistance)
+			{
+				continue;
 			}
 
 			ProcessZombieImpact(Zombie, ImpactPoint, ImpactDirection, ImpactSpeed);
@@ -634,11 +651,12 @@ void ATruck::ExitDriverSeat()
 
 void ATruck::OnTruckMeshHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
 {
+	// 유효한 엑터인지 검사
 	if (!OtherActor || OtherActor == this)
 	{
 		return;
 	}
-
+	// 좀비가 아니거나 죽었으면 무시
 	ABaseZombie* Zombie = Cast<ABaseZombie>(OtherActor);
 	if (!Zombie || !Zombie->IsAlive())
 	{
@@ -650,11 +668,13 @@ void ATruck::OnTruckMeshHit(UPrimitiveComponent* HitComponent, AActor* OtherActo
 
 void ATruck::ProcessZombieImpact(ABaseZombie* Zombie, const FVector& ImpactPoint, const FVector& ImpactDirection, float ImpactSpeed)
 {
+	// 속도가 느리거나 좀비가 죽으면 무시
 	if (!Zombie || !Zombie->IsAlive() || ImpactSpeed < ZombieImpactMinSpeed)
 	{
 		return;
 	}
 
+	// 좀비를 여러 번 쳐버리는 것을 방지
 	const float CurrentTime = GetWorld()->GetTimeSeconds();
 	if (const float* LastImpactTime = LastZombieImpactTimes.Find(Zombie))
 	{
@@ -663,37 +683,54 @@ void ATruck::ProcessZombieImpact(ABaseZombie* Zombie, const FVector& ImpactPoint
 			return;
 		}
 	}
-
+	// LastZombieImpactTimes 맵에 좀비의 마지막 충돌 시간을 업데이트
 	LastZombieImpactTimes.Add(Zombie, CurrentTime);
 
+
+	// 전달받은 충돌 방향이 거의 0 이면 트럭 전방으로 간주
 	const FVector SafeImpactDirection = ImpactDirection.IsNearlyZero() ? GetActorForwardVector() : ImpactDirection.GetSafeNormal();
+
+	// 좀비가 받을 데미지 속도에 따라 계산.
 	const float Damage = FMath::GetMappedRangeValueClamped(
 		FVector2D(ZombieImpactMinSpeed, ZombieImpactFatalSpeed),
 		FVector2D(ZombieImpactMinDamage, ZombieImpactMaxDamage),
 		ImpactSpeed);
+
+	// 좀비의 넉백을 속도에 따라 조절
 	const float KnockbackScale = FMath::GetMappedRangeValueClamped(
 		FVector2D(ZombieImpactMinSpeed, ZombieImpactFatalSpeed),
 		FVector2D(1.0f, 1.6f),
 		ImpactSpeed);
+
+
+	// 좀비의 위치를 트럭의 로컬 좌표로 변경
 	const FVector LocalZombieLocation = GetActorTransform().InverseTransformPosition(Zombie->GetActorLocation());
+	// 트럭 메쉬 크기를 가져옴
 	const FVector MeshExtent = GetMesh() ? GetMesh()->Bounds.BoxExtent : FVector(150.0f, 100.0f, 100.0f);
+	// 좀비가 트럭 몸체 범위 안에 있는지 검사
 	const bool bWithinTruckLength =
 		LocalZombieLocation.X > -MeshExtent.X * 1.15f &&
 		LocalZombieLocation.X < MeshExtent.X * 1.15f;
 	const bool bWithinTruckWidth = FMath::Abs(LocalZombieLocation.Y) < MeshExtent.Y * 1.35f;
 	const bool bWithinTruckHeight = FMath::Abs(LocalZombieLocation.Z) < MeshExtent.Z * 1.5f;
 	const bool bTruckBodyImpact = bWithinTruckLength && bWithinTruckWidth && bWithinTruckHeight;
+
+	// 트럭 중심에서 좀비가 어느 위치에 있는지
 	const FVector LocalOutwardDirection = FVector(LocalZombieLocation.X, LocalZombieLocation.Y, 0.0f).GetSafeNormal();
+	// 월드 좌표계로 트럭 중심에서 좀비가 있는 방향을 변환
 	const FVector WorldOutwardDirection = LocalOutwardDirection.IsNearlyZero()
 		? SafeImpactDirection
 		: GetActorTransform().TransformVectorNoScale(LocalOutwardDirection).GetSafeNormal();
+	// 좀비를 날려버릴 방향 결정
 	const FVector FinalImpactDirection = (SafeImpactDirection * 0.7f + WorldOutwardDirection * 0.9f).GetSafeNormal();
 	const FVector ImpactFlingDirection = FinalImpactDirection.IsNearlyZero() ? SafeImpactDirection : FinalImpactDirection;
 
+	// 좀비에게 데미지 줄 HitResult 생성
 	FHitResult DamageHit;
 	DamageHit.ImpactPoint = ImpactPoint;
 	DamageHit.Location = ImpactPoint;
 
+	// 좀비에게 데미지를 줌
 	UGameplayStatics::ApplyPointDamage(
 		Zombie,
 		Damage,
@@ -702,8 +739,8 @@ void ATruck::ProcessZombieImpact(ABaseZombie* Zombie, const FVector& ImpactPoint
 		GetController(),
 		this,
 		nullptr);
-
-	const bool bCheatFlingImpact = bTruckBodyImpact && ImpactSpeed >= ZombieImpactMinSpeed;
+	// 좀비 즉사 조건
+	const bool bCheatFlingImpact = bTruckBodyImpact && ImpactSpeed >= ZombiePinnedImpactFatalSpeed;
 
 	if (Zombie->IsAlive() &&
 		(ImpactSpeed >= ZombieImpactFatalSpeed ||
@@ -711,7 +748,7 @@ void ATruck::ProcessZombieImpact(ABaseZombie* Zombie, const FVector& ImpactPoint
 	{
 		Zombie->Die();
 	}
-
+	// 살아있다면 캐릭터를 넉백
 	if (Zombie->IsAlive())
 	{
 		const FVector LaunchVelocity =
@@ -720,7 +757,7 @@ void ATruck::ProcessZombieImpact(ABaseZombie* Zombie, const FVector& ImpactPoint
 		Zombie->LaunchCharacter(LaunchVelocity, true, true);
 		return;
 	}
-
+	// 죽은 경우 레그돌 하여 넉백
 	if (USkeletalMeshComponent* ZombieMesh = Zombie->GetMesh())
 	{
 		const FVector WorldImpulse =

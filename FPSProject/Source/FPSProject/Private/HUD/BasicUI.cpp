@@ -33,19 +33,19 @@ void UBasicUI::SetHealth(float CurrentHP,float MaxHP) {
 
 	if (Ratio > 0.6f)
 	{
-		HpColor = FLinearColor(0.06f, 0.406f, 0.04f, 0.5f); // ÃÊ·Ï
+		HpColor = FLinearColor(0.06f, 0.406f, 0.04f, 0.5f); // ì´ˆë¡
 	}
 	else if (Ratio > 0.3f)
 	{
-		HpColor = FLinearColor(1.f, 0.235f, 0.07f, 0.5f); // ÁÖÈ²
+		HpColor = FLinearColor(1.f, 0.235f, 0.07f, 0.5f); // ì£¼í™©
 	}
 	else
 	{
-		HpColor = FLinearColor(0.443f, 0.047f, 0.044f, 0.5f); // »¡°­
+		HpColor = FLinearColor(0.443f, 0.047f, 0.044f, 0.5f); // ë¹¨ê°•
 	}
 
 	HpBar->SetFillColorAndOpacity(HpColor);
-	HpColor.A = 1.0f; // ÅØ½ºÆ®´Â Åõ¸íµµ 1·Î °íÁ¤`
+	HpColor.A = 1.0f; // í…ìŠ¤íŠ¸ëŠ” íˆ¬ëª…ë„ 1ë¡œ ê³ ì •`
 	HpText->SetColorAndOpacity(HpColor);
 	HpBar->SetPercent(Ratio);
 	HpText->SetText(FText::FromString(FString::FromInt(CurrentHP)));

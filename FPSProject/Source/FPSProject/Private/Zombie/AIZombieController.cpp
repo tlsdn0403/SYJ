@@ -5,11 +5,30 @@
 #include "Zombie/BaseZombie.h"
 #include "BehaviorTree/BehaviorTree.h"
 #include "BehaviorTree/BlackboardComponent.h"
+#include "Characters/FPSBaseCharacter.h"
 #include "Kismet/GameplayStatics.h"
+#include "Truck/Truck.h"
 
 
 const FName AAIZombieController::TargetPlayerKey = FName("TargetPlayer");
 
+namespace
+{
+    AActor* ResolveZombieTarget(APawn* PlayerPawn)
+    {
+        AFPSBaseCharacter* PlayerCharacter = Cast<AFPSBaseCharacter>(PlayerPawn);
+        if (PlayerCharacter &&
+            IsValid(PlayerCharacter->CurrentTruck) &&
+            (PlayerCharacter->IsDrivingTruck() ||
+                PlayerCharacter->IsOnTruckCargo() ||
+                PlayerCharacter->IsUsingMountedWeapon()))
+        {
+            return PlayerCharacter->CurrentTruck;
+        }
+
+        return PlayerPawn;
+    }
+}
 
 void AAIZombieController::BeginPlay()
 {
@@ -20,7 +39,6 @@ void AAIZombieController::BeginPlay()
 	{
 		RunBehaviorTree(ZombieBehaviorTree);
 	}
-
 }
 
 void AAIZombieController::Tick(float DeltaSeconds)
@@ -42,39 +60,83 @@ void AAIZombieController::Tick(float DeltaSeconds)
         }
     }
 
-    // 매 프레임 플레이어를 찾아서 Blackboard에 저장
-    PlayerPawn = UGameplayStatics::GetPlayerPawn(GetWorld(), 0);
-
-    if (PlayerPawn && GetBlackboardComponent())
+    UBlackboardComponent* BlackboardComponent = GetBlackboardComponent();
+    if (!BlackboardComponent)
     {
-        // 시야 체크 
-        bool bCanSee = LineOfSightTo(PlayerPawn);
+        return;
+    }
 
-        if (bCanSee && GetPawn())
+    PlayerPawn = UGameplayStatics::GetPlayerPawn(GetWorld(), 0);
+    if (!PlayerPawn)
+    {
+        ClearFocus(EAIFocusPriority::Gameplay);
+        BlackboardComponent->ClearValue(TargetPlayerKey);
+        bHasKnownTarget = false;
+        return;
+    }
+
+    AActor* TargetActor = ResolveZombieTarget(PlayerPawn);
+    if (!TargetActor)
+    {
+        ClearFocus(EAIFocusPriority::Gameplay);
+        BlackboardComponent->ClearValue(TargetPlayerKey);
+        bHasKnownTarget = false;
+        return;
+    }
+
+    const bool bTargetIsTruck = TargetActor != PlayerPawn;
+    const float CurrentTime = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0f;
+
+    bool bCanDetectTarget = false;
+    if (bTargetIsTruck)
+    {
+        const float DistanceSq = GetPawn()
+            ? FVector::DistSquared(GetPawn()->GetActorLocation(), TargetActor->GetActorLocation())
+            : 0.0f;
+
+        // 트럭은 크고 소리가 나는 목표라서, 앞 좀비에게 시야가 가려져도 일정 거리 안에서는 계속 추적한다.
+        bCanDetectTarget =
+            DistanceSq <= FMath::Square(TruckAwarenessDistance) ||
+            LineOfSightTo(TargetActor) ||
+            LineOfSightTo(PlayerPawn);
+    }
+    else
+    {
+        bCanDetectTarget = LineOfSightTo(PlayerPawn);
+
+        if (bCanDetectTarget && GetPawn())
         {
-            FVector Forward = GetPawn()->GetActorForwardVector();
-            FVector TargetDir = (PlayerPawn->GetActorLocation() - GetPawn()->GetActorLocation()).GetSafeNormal();
-            float DotProduct = FVector::DotProduct(Forward, TargetDir);
-            if (DotProduct < 0.7f)
+            const FVector Forward = GetPawn()->GetActorForwardVector();
+            const FVector TargetDir = (TargetActor->GetActorLocation() - GetPawn()->GetActorLocation()).GetSafeNormal();
+            const float DotProduct = FVector::DotProduct(Forward, TargetDir);
+            if (DotProduct < SightDotThreshold)
             {
-                bCanSee = false;
+                bCanDetectTarget = false;
             }
         }
+    }
 
-        if (bCanSee)
-        {
-            //플레이어에게 시선 고정.
-            SetFocus(PlayerPawn);
-            // 플레이어를 블랙보드에 저장 → 행동트리가 이걸 보고 추적/공격
-            GetBlackboardComponent()->SetValueAsObject(TargetPlayerKey, PlayerPawn);
-			GetBlackboardComponent()->SetValueAsVector(FName("PlayerLocation"), PlayerPawn->GetActorLocation());
-            
-        }
-        else
-        {
-			ClearFocus(EAIFocusPriority::Gameplay);
-            // 시야 밖이면 타겟 지우기 → 행동트리가 대기 상태
-            GetBlackboardComponent()->ClearValue(TargetPlayerKey);
-        }
+    if (bCanDetectTarget)
+    {
+        bHasKnownTarget = true;
+        LastTargetSeenTime = CurrentTime;
+        LastKnownTargetLocation = TargetActor->GetActorLocation();
+    }
+
+    const float MemoryDuration = bTargetIsTruck ? TruckTargetMemoryDuration : TargetMemoryDuration;
+    const bool bCanUseMemory = bHasKnownTarget && (CurrentTime - LastTargetSeenTime) <= MemoryDuration;
+
+    if (bCanDetectTarget || bCanUseMemory)
+    {
+        SetFocus(TargetActor);
+        BlackboardComponent->SetValueAsObject(TargetPlayerKey, PlayerPawn);
+        BlackboardComponent->SetValueAsVector(
+            FName("PlayerLocation"),
+            bCanDetectTarget ? TargetActor->GetActorLocation() : LastKnownTargetLocation);
+    }
+    else
+    {
+        ClearFocus(EAIFocusPriority::Gameplay);
+        BlackboardComponent->ClearValue(TargetPlayerKey);
     }
 }

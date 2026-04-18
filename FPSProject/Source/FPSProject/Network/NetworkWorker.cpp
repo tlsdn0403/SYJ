@@ -52,7 +52,7 @@ void RecvWorker::Destroy()
 
 bool RecvWorker::ReceivePacket(TArray<uint8>& OutPacket)
 {
-	// ÆĞÅ¶ Çì´õ ÆÄ½Ì
+	// íŒ¨í‚· í—¤ë” íŒŒì‹±
 	const int32 HeaderSize = sizeof(FPacketHeader);
 	TArray<uint8> HeaderBuffer;
 	HeaderBuffer.AddZeroed(HeaderSize);
@@ -60,17 +60,17 @@ bool RecvWorker::ReceivePacket(TArray<uint8>& OutPacket)
 	if (ReceiveDesiredBytes(HeaderBuffer.GetData(), HeaderSize) == false)
 		return false;
 
-	// ID, Size ÃßÃâ
+	// ID, Size ì¶”ì¶œ
 	FPacketHeader Header;
 	{
 		FMemoryReader Reader(HeaderBuffer);
 		Reader << Header;
 	}
 
-	// ÆĞÅ¶ Çì´õ º¹»ç
+	// íŒ¨í‚· í—¤ë” ë³µì‚¬
 	OutPacket = HeaderBuffer;
 
-	// ÆĞÅ¶ ³»¿ë ÆÄ½Ì
+	// íŒ¨í‚· ë‚´ìš© íŒŒì‹±
 	TArray<uint8> PayloadBuffer;
 	const int32 PayloadSize = Header.PacketSize - HeaderSize;
 	if (PayloadSize == 0)
@@ -86,7 +86,7 @@ bool RecvWorker::ReceivePacket(TArray<uint8>& OutPacket)
 
 bool RecvWorker::ReceiveDesiredBytes(uint8* Results, int32 Size)
 {
-	// ¹æ¾î ÄÚµå Ãß°¡!
+	// ë°©ì–´ ì½”ë“œ ì¶”ê°€!
 	if (Socket == nullptr)
 		return false;
 

@@ -22,10 +22,27 @@ protected:
 	UPROPERTY(EditAnyWhere)
 	class UBehaviorTree* ZombieBehaviorTree;
 
-	// ∫Ì∑¢∫∏µÂ ≈∞ ¿Ã∏ß
+	// Î∏îÎûôÎ≥¥Îìú ÌÇ§ Ïù¥Î¶Ñ
 	static const FName TargetPlayerKey;
 
 public:
 	APawn* PlayerPawn;
+
+private:
+	UPROPERTY(EditAnywhere, Category = "AI|Perception")
+	float SightDotThreshold = 0.7f;
+
+	UPROPERTY(EditAnywhere, Category = "AI|Perception")
+	float TargetMemoryDuration = 1.5f;
+
+	UPROPERTY(EditAnywhere, Category = "AI|Perception")
+	float TruckTargetMemoryDuration = 8.0f;
+
+	UPROPERTY(EditAnywhere, Category = "AI|Perception")
+	float TruckAwarenessDistance = 6000.0f;
+
+	float LastTargetSeenTime = -100000.0f;
+	FVector LastKnownTargetLocation = FVector::ZeroVector;
+	bool bHasKnownTarget = false;
 
 };

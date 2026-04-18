@@ -26,17 +26,17 @@ protected:
 	UWidgetAnimation* SelectAni;
 
 public:
-	// ½½·Ô ÀÌ¹ÌÁö (¼ÕÀÌ³ª ¾ÆÀÌÅÛ ¾ÆÀÌÄÜ µé¾î°¨)	meta = (BindWidget)
+	// ìŠ¬ë¡¯ ì´ë¯¸ì§€ (ì†ì´ë‚˜ ì•„ì´í…œ ì•„ì´ì½˜ ë“¤ì–´ê°)	meta = (BindWidget)
 	UPROPERTY(meta = (BindWidget))
 	UImage* ItemIcon;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Slot")
-	UTexture2D* BaseTexture;	// ÀÌ°Ç UMG¿¡¼­ ±×·¡ÇÁ ¼Ó¼º µé¾î°¡¾ß ¶ß´Â º¯¼ö.
+	UTexture2D* BaseTexture;	// ì´ê±´ UMGì—ì„œ ê·¸ë˜í”„ ì†ì„± ë“¤ì–´ê°€ì•¼ ëœ¨ëŠ” ë³€ìˆ˜.
 
 	bool Selected{ false };
 
 	void SetItem(UTexture2D* IconTexture);
-	void ClearSlot();	// ºóÄ­À¸·Î µ¹¸®±â
+	void ClearSlot();	// ë¹ˆì¹¸ìœ¼ë¡œ ëŒë¦¬ê¸°
 
 	void PlayAni_Select();
 	void StopAni_Select();

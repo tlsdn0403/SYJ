@@ -102,8 +102,20 @@ void AFPSProjectile::FireInDirection(const FVector& ShootDirection)
 {
     if (ProjectileMovementComponent)
     {
-        // ProjectileMovementComponent의 초기 속도를 발사 방향에 맞춰 설정
-        ProjectileMovementComponent->Velocity = ShootDirection * ProjectileMovementComponent->InitialSpeed;
+        FVector SafeDirection = ShootDirection.GetSafeNormal();
+        if (SafeDirection.IsNearlyZero())
+        {
+            SafeDirection = GetActorForwardVector();
+        }
+
+        if (CollisionComponent)
+        {
+            ProjectileMovementComponent->SetUpdatedComponent(CollisionComponent);
+        }
+
+        ProjectileMovementComponent->Activate(true);
+        ProjectileMovementComponent->Velocity = SafeDirection * ProjectileMovementComponent->InitialSpeed;
+        ProjectileMovementComponent->UpdateComponentVelocity();
 	}
 }
 
@@ -167,8 +179,14 @@ void AFPSProjectile::OnPoolActivate_Implementation()
     // ProjectileMovementComponent 활성화
     if (ProjectileMovementComponent)
     {
-        ProjectileMovementComponent->SetActive(true);
+        if (CollisionComponent)
+        {
+            ProjectileMovementComponent->SetUpdatedComponent(CollisionComponent);
+        }
+
+        ProjectileMovementComponent->Activate(true);
         ProjectileMovementComponent->Velocity = FVector::ZeroVector;
+        ProjectileMovementComponent->UpdateComponentVelocity();
     }
 
     // 수명 타이머 시작
@@ -190,7 +208,7 @@ void AFPSProjectile::OnPoolDeactivate_Implementation()
     if (ProjectileMovementComponent)
     {
         ProjectileMovementComponent->StopMovementImmediately();
-        ProjectileMovementComponent->SetActive(false);
+        ProjectileMovementComponent->Deactivate();
     }
 }
 
@@ -199,10 +217,21 @@ void AFPSProjectile::OnPoolSpawn_Implementation(const FVector& Location, const F
     SetActorLocation(Location);
     SetActorRotation(Rotation);
 
+    if (CollisionComponent)
+    {
+        CollisionComponent->ClearMoveIgnoreActors();
+    }
+
     // 속도 리셋
     if (ProjectileMovementComponent)
     {
+        if (CollisionComponent)
+        {
+            ProjectileMovementComponent->SetUpdatedComponent(CollisionComponent);
+        }
+
         ProjectileMovementComponent->Velocity = FVector::ZeroVector;
+        ProjectileMovementComponent->UpdateComponentVelocity();
     }
 }
 

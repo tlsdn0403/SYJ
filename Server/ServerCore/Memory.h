@@ -11,7 +11,7 @@ class Memory
 {
 	enum
 	{
-		// ~1024±îÁö 32´ÜÀ§, ~2048±îÁö 128´ÜÀ§, ~4096±îÁö 256´ÜÀ§
+		// ~1024ê¹Œì§€ 32ë‹¨ìœ„, ~2048ê¹Œì§€ 128ë‹¨ìœ„, ~4096ê¹Œì§€ 256ë‹¨ìœ„
 		POOL_COUNT = (1024 / 32) + (1024 / 128) + (2048 / 256),
 		MAX_ALLOC_SIZE = 4096
 	};
@@ -26,8 +26,8 @@ public:
 private:
 	vector<MemoryPool*> _pools;
 
-	// ¸Þ¸ð¸® Å©±â <-> ¸Þ¸ð¸® Ç®
-	// O(1) ºü¸£°Ô Ã£±â À§ÇÑ Å×ÀÌºí
+	// ë©”ëª¨ë¦¬ í¬ê¸° <-> ë©”ëª¨ë¦¬ í’€
+	// O(1) ë¹ ë¥´ê²Œ ì°¾ê¸° ìœ„í•œ í…Œì´ë¸”
 	MemoryPool* _poolTable[MAX_ALLOC_SIZE + 1];
 };
 

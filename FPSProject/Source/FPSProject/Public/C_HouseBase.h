@@ -35,7 +35,7 @@ public:
 	TArray<FTransform> PillarOffsets;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MySettings")
-	int32 Fwidth = 3;	//¹Ù´Ú °¡·ÎÄ­¼ö
+	int32 Fwidth = 3;	//ë°”ë‹¥ ê°€ë¡œì¹¸ìˆ˜
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MySettings")
-	int32 Flength = 1;	//¹Ù´Ú ¼¼·ÎÄ­¼ö
+	int32 Flength = 1;	//ë°”ë‹¥ ì„¸ë¡œì¹¸ìˆ˜
 };

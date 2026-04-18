@@ -22,12 +22,13 @@ namespace
                 PlayerCharacter->IsOnTruckCargo() ||
                 PlayerCharacter->IsUsingMountedWeapon()))
         {
+			// 플레이어가 트럭을 운전 중이거나 트럭 화물칸에 있거나 트럭 탑승 무기를 사용 중이면 트럭을 타겟으로 설정
             return PlayerCharacter->CurrentTruck;
         }
 
         return BlackboardTarget;
     }
-
+	// 타겟 엑터의 중심이 아니라, 타겟 엑터의 콜리전에서 FromLocation에 가장 가까운 지점을 반환하는 함수
     FVector GetClosestPointOnTarget(AActor* TargetActor, const FVector& FromLocation)
     {
         if (TargetActor)
@@ -35,16 +36,37 @@ namespace
             if (UPrimitiveComponent* PrimitiveComponent = Cast<UPrimitiveComponent>(TargetActor->GetRootComponent()))
             {
                 FVector ClosestPoint = TargetActor->GetActorLocation();
+                // 최근점접 설정 성공시 그 값을 리턴
                 if (PrimitiveComponent->GetClosestPointOnCollision(FromLocation, ClosestPoint) >= 0.0f)
                 {
                     return ClosestPoint;
                 }
             }
-
+			// 최근점접 설정을 못하면 타겟의 중심 위치를 리턴
             return TargetActor->GetActorLocation();
         }
 
         return FromLocation;
+    }
+
+    // 타겟의 가장 합리적임 목표지점을 구함
+    FVector GetMovePointOnNavigation(AActor* TargetActor, const FVector& FromLocation)
+    {
+        // 타겟의 가장 가까운 지점
+        const FVector TargetReachPoint = GetClosestPointOnTarget(TargetActor, FromLocation);
+        if (UNavigationSystemV1* NavSystem = UNavigationSystemV1::GetCurrent(TargetActor))
+        {
+			//투영 결과 담을 변수
+            FNavLocation ProjectedLocation;
+			// 탐색 범위 설정 (이 범위안에 nav mesh) 있는지 찾음
+            const FVector QueryExtent(300.0f, 300.0f, 300.0f);
+            if (NavSystem->ProjectPointToNavigation(TargetReachPoint, ProjectedLocation, QueryExtent))
+            {
+                return ProjectedLocation.Location;
+            }
+        }
+
+        return TargetReachPoint;
     }
 }
 
@@ -110,8 +132,8 @@ void UBTTask_ChaseHuman::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* Node
         return;
     }
 
-    // 매 틱마다 타겟 위치 업데이트
-    AIController->MoveToActor(TargetActor, StopDistance);
+    const FVector MoveGoalLocation = GetMovePointOnNavigation(TargetActor, ZombieCharacter->GetActorLocation());
+    AIController->MoveToLocation(MoveGoalLocation, StopDistance);
 
     UE_LOG(LogTemp, Log, TEXT("Chasing... Distance: %f"), Distance);
 }

@@ -12,23 +12,22 @@
 
 const FName AAIZombieController::TargetPlayerKey = FName("TargetPlayer");
 
-namespace
-{
-    AActor* ResolveZombieTarget(APawn* PlayerPawn)
-    {
-        AFPSBaseCharacter* PlayerCharacter = Cast<AFPSBaseCharacter>(PlayerPawn);
-        if (PlayerCharacter &&
-            PlayerCharacter->CurrentTruck &&
-            (PlayerCharacter->IsDrivingTruck() ||
-                PlayerCharacter->IsOnTruckCargo() ||
-                PlayerCharacter->IsUsingMountedWeapon()))
-        {
-            return PlayerCharacter->CurrentTruck;
-        }
 
-        return PlayerPawn;
+AActor* ResolveZombieTarget(APawn* PlayerPawn)
+{
+    AFPSBaseCharacter* PlayerCharacter = Cast<AFPSBaseCharacter>(PlayerPawn);
+    if (PlayerCharacter &&
+        PlayerCharacter->CurrentTruck &&
+        (PlayerCharacter->IsDrivingTruck() ||
+            PlayerCharacter->IsOnTruckCargo() ||
+            PlayerCharacter->IsUsingMountedWeapon()))
+    {
+        return PlayerCharacter->CurrentTruck;
     }
+
+    return PlayerPawn;
 }
+
 
 
 void AAIZombieController::BeginPlay()

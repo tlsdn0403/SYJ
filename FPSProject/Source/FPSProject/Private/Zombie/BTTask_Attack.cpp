@@ -46,11 +46,22 @@ EBTNodeResult::Type UBTTask_Attack::ExecuteTask(UBehaviorTreeComponent& OwnerCom
 	{
 		return EBTNodeResult::Failed;
 	}
+
+	if (Zombie->IsAttacking())
+	{
+		return EBTNodeResult::Succeeded;
+	}
+
 	AActor* TargetActor = nullptr;
 	if (UBlackboardComponent* BlackboardComponent = OwnerComp.GetBlackboardComponent())
 	{
 		AActor* BlackboardTarget = Cast<AActor>(BlackboardComponent->GetValueAsObject(FName("TargetPlayer")));
 		TargetActor = ResolveAttackTarget(BlackboardTarget);
+	}
+
+	if (!Zombie->IsTargetInAttackRange(TargetActor))
+	{
+		return EBTNodeResult::Failed;
 	}
 
 	Zombie->Attack(TargetActor);

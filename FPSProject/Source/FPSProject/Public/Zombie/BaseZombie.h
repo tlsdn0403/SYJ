@@ -44,6 +44,7 @@ public:
 
     void Attack();
     void Attack(AActor* TargetActor);
+    bool IsTargetInAttackRange(AActor* TargetActor) const;
 
     UFUNCTION(BlueprintCallable, Category = "Zombie")
     void Die();
@@ -111,6 +112,7 @@ private:
     // --- 내부 헬퍼 함수 (클래스 내부에서만 사용되는 함수) ---
     FVector GetAttackPointForTarget(AActor* TargetActor) const;
     void ApplyAttackDamage(AActor* TargetActor);
+    void ApplyAnimationDesync();
     void InitializeBoneDurability();
     FName GetParentBoneForDamage(FName HitBoneName);
     void ProcessBoneDamage(FName BoneName, float Damage, FVector ImpactPoint, FVector ImpactDirection);
@@ -120,6 +122,20 @@ private:
 
     UPROPERTY()
     AActor* CurrentAttackTarget = nullptr;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zombie|Animation", meta = (AllowPrivateAccess = "true"))
+    float MinAnimationRateScale = 0.92f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zombie|Animation", meta = (AllowPrivateAccess = "true"))
+    float MaxAnimationRateScale = 1.08f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zombie|Animation", meta = (AllowPrivateAccess = "true"))
+    float MaxAnimationStartOffset = 1.5f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zombie|Animation", meta = (AllowPrivateAccess = "true"))
+    float AttackMontagePlayRateVariance = 0.08f;
+
+    float AnimationRateScale = 1.0f;
 
     UFUNCTION()
     void OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);

@@ -44,6 +44,7 @@ void ABaseZombie::BeginPlay()
 		HealthComponent->OnDamaged.AddDynamic(this, &ABaseZombie::OnZombieDamaged); // 대미지를 입을 때 OnZombieDamaged 호출
     }
 
+    ApplyAnimationDesync();
     InitializeBoneDurability();
 }
 
@@ -77,7 +78,10 @@ void ABaseZombie::Attack(AActor* TargetActor)
     if (AnimInstance && AttackMontage)
     {
         // 1.0 배속으로 공격 몽타주 재생
-        AnimInstance->Montage_Play(AttackMontage, 1.0f);
+        const float AttackPlayRate = FMath::Max(
+            0.1f,
+            AnimationRateScale * FMath::FRandRange(1.0f - AttackMontagePlayRateVariance, 1.0f + AttackMontagePlayRateVariance));
+        AnimInstance->Montage_Play(AttackMontage, AttackPlayRate);
 
         UE_LOG(LogTemp, Warning, TEXT("Zombie %s Montage!"), *GetName());
         // 몽타주가 끝나면 OnAttackMontageEnded 호출
@@ -111,6 +115,43 @@ FVector ABaseZombie::GetAttackPointForTarget(AActor* TargetActor) const
     }
 
     return TargetActor->GetActorLocation();
+}
+
+bool ABaseZombie::IsTargetInAttackRange(AActor* TargetActor) const
+{
+    if (!TargetActor)
+    {
+        return false;
+    }
+
+    const FVector AttackPoint = GetAttackPointForTarget(TargetActor);
+    return FVector::Dist(GetActorLocation(), AttackPoint) <= AttackRange;
+}
+
+void ABaseZombie::ApplyAnimationDesync()
+{
+    USkeletalMeshComponent* MeshComp = GetMesh();
+    if (!MeshComp)
+    {
+        return;
+    }
+
+    // 최대, 최소 애니메이션 재생 속도
+    const float MinRate = FMath::Min(MinAnimationRateScale, MaxAnimationRateScale);
+    const float MaxRate = FMath::Max(MinAnimationRateScale, MaxAnimationRateScale);
+
+    // 랜덤 재생속도
+    AnimationRateScale = FMath::FRandRange(MinRate, MaxRate);
+    // 메쉬 전체 애니메이션 재생 속도에 적용
+    MeshComp->GlobalAnimRateScale = AnimationRateScale;
+
+    // 시작 오프셋 설정
+    const float StartOffset = FMath::FRandRange(0.0f, FMath::Max(0.0f, MaxAnimationStartOffset));
+    if (StartOffset > KINDA_SMALL_NUMBER && MeshComp->GetAnimInstance())
+    {
+        MeshComp->TickAnimation(StartOffset, false);
+        MeshComp->RefreshBoneTransforms();
+    }
 }
 
 void ABaseZombie::ApplyAttackDamage(AActor* TargetActor)

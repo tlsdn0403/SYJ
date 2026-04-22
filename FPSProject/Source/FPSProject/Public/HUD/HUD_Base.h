@@ -21,9 +21,9 @@ public:
 	virtual void BeginPlay() override;
 private:
 
-    //ÀÎº¥Åä¸® À§Á¬
+    //ì¸ë²¤í† ë¦¬ ìœ„ì ¯
     UPROPERTY(EditAnywhere, Category = "UI")
-    TSubclassOf<UInventoryWidget> InventoryClass; //¾î¶² À§Á¬ »ç¿ëÇÒ°ÍÀÎÁö¿¡ ´ëÇÑ º¯¼ö
+    TSubclassOf<UInventoryWidget> InventoryClass; //ì–´ë–¤ ìœ„ì ¯ ì‚¬ìš©í• ê²ƒì¸ì§€ì— ëŒ€í•œ ë³€ìˆ˜
 
     UPROPERTY()
     UInventoryWidget* InventoryWidget;

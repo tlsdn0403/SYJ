@@ -21,7 +21,7 @@ class FPSPROJECT_API AStartModeController : public APlayerController
 protected:
 	virtual void BeginPlay() override;
 public:
-	// ½ÃÀÛÈ­¸é À§Á¬
+	// ì‹œìž‘í™”ë©´ ìœ„ì ¯
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "StartScreen")
 	TSubclassOf<UStartScreenClass> StartScreenWidgetClass;
 

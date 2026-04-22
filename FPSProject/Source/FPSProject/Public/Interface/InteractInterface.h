@@ -22,7 +22,7 @@ class FPSPROJECT_API IInteractInterface
 
 	// Add interface functions to this class. This is the class that will be inherited to implement this interface.
 public:
-	// »óÈ£ÀÛ¿ë ½ÇÇà ÇÔ¼ö (FÅ°¸¦ ´­·¶À» ¶§ È£Ãâ)
+	// ìƒí˜¸ì‘ìš© ì‹¤í–‰ í•¨ìˆ˜ (Fí‚¤ë¥¼ ëˆŒë €ì„ ë•Œ í˜¸ì¶œ)
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Interaction")
 	void Interact(class AFPSBaseCharacter* Character);
 };

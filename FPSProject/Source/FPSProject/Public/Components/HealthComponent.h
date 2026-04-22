@@ -6,9 +6,9 @@
 #include "Components/ActorComponent.h"
 #include "HealthComponent.generated.h"
 
-// Á»ºñ ºĞÇØ¸¦ À§ÇØ ÇÇ°İ Á¤º¸¸¦ ¾Ë·ÁÁÖ´Â µ¨¸®°ÔÀÌÆ®
+// ì¢€ë¹„ ë¶„í•´ë¥¼ ìœ„í•´ í”¼ê²© ì •ë³´ë¥¼ ì•Œë ¤ì£¼ëŠ” ë¸ë¦¬ê²Œì´íŠ¸
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnDamagedByBullet, float, Health, float, Damage, const FHitResult&, HitResult);
-// ±×³É µ¥¹ÌÁö¸¦ ³Ñ°ÜÁÖ´Â µ¨¸®°ÔÀÌÆ®
+// ê·¸ëƒ¥ ë°ë¯¸ì§€ë¥¼ ë„˜ê²¨ì£¼ëŠ” ë¸ë¦¬ê²Œì´íŠ¸
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnHealthChanged, float, NewHealth, float, Damage);
 
 
@@ -21,11 +21,11 @@ public:
 	// Sets default values for this component's properties
 	UHealthComponent();
 
-	// ¿ÜºÎ¿¡¼­ Á÷Á¢ µ¥¹ÌÁö¸¦ ÁÖ´Â ÇÔ¼ö (Á»ºñ °ø°İ¿ë)
+	// ì™¸ë¶€ì—ì„œ ì§ì ‘ ë°ë¯¸ì§€ë¥¼ ì£¼ëŠ” í•¨ìˆ˜ (ì¢€ë¹„ ê³µê²©ìš©)
 	UFUNCTION(BlueprintCallable, Category = "Health")
 	void ApplyDamage(float Damage);
 	
-	// Ã¼·Â Getter
+	// ì²´ë ¥ Getter
 	UFUNCTION(BlueprintPure, Category = "Health")
 	float GetHealth() const { return Health; }
 	UFUNCTION(BlueprintPure, Category = "Health")
@@ -53,7 +53,7 @@ public:
 	FOnDamagedByBullet OnDamaged;
 	
 
-	// Ã¼·Â º¯µ¿ ÀÌº¥Æ® (UI µî)
+	// ì²´ë ¥ ë³€ë™ ì´ë²¤íŠ¸ (UI ë“±)
 	UPROPERTY(BlueprintAssignable, Category = "Health")
 	FOnHealthChanged OnHealthChanged;
 };

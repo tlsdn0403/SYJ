@@ -17,11 +17,11 @@ class FPSPROJECT_API AHUD_CrossHair : public AHUD
 	GENERATED_BODY()
 
 protected:
-    // È­¸é Áß¾Ó¿¡ ±×·ÁÁü
+    // í™”ë©´ ì¤‘ì•™ì— ê·¸ë ¤ì§
     UPROPERTY(EditDefaultsOnly)
     UTexture2D* CrosshairTexture;
 
 public:
-    // HUDÀÇ ±âº» µå·Î Äİ
+    // HUDì˜ ê¸°ë³¸ ë“œë¡œ ì½œ
     virtual void DrawHUD() override;
 };

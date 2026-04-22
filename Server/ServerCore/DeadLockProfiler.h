@@ -25,9 +25,9 @@ private:
 	Mutex _lock;
 
 private:
-	vector<int32>	_discoveredOrder; // ³ëµå°¡ ¹ß°ßµÈ ¼ø¼­¸¦ ±â·ÏÇÏ´Â ¹è¿­
-	int32			_discoveredCount = 0; // ³ëµå°¡ ¹ß°ßµÈ ¼ø¼­
-	vector<bool>	_finished; // Dfs(i)°¡ Á¾·á µÇ¾ú´ÂÁö ¿©ºÎ
+	vector<int32>	_discoveredOrder; // ë…¸ë“œê°€ ë°œê²¬ëœ ìˆœì„œë¥¼ ê¸°ë¡í•˜ëŠ” ë°°ì—´
+	int32			_discoveredCount = 0; // ë…¸ë“œê°€ ë°œê²¬ëœ ìˆœì„œ
+	vector<bool>	_finished; // Dfs(i)ê°€ ì¢…ë£Œ ë˜ì—ˆëŠ”ì§€ ì—¬ë¶€
 	vector<int32>	_parent;
 };
 

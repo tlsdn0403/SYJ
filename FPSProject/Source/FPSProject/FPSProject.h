@@ -7,7 +7,7 @@
 struct PacketHeader
 {
 	uint16 size;
-	uint16 id; // ÇÁ·ÎÅäÄİID (ex. 1=·Î±×ÀÎ, 2=ÀÌµ¿¿äÃ»)
+	uint16 id; // í”„ë¡œí† ì½œID (ex. 1=ë¡œê·¸ì¸, 2=ì´ë™ìš”ì²­)
 };
 
 class SendBuffer : public TSharedFromThis<SendBuffer>

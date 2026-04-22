@@ -20,7 +20,7 @@ void AStartModeController::BeginPlay() {
 
 void AStartModeController::StartGame()
 {
-	// UI »ý¼º, ¾Ö´Ï¸ÞÀÌ¼Ç µî
+	// UI ìƒì„±, ì• ë‹ˆë©”ì´ì…˜ ë“±
 	StartSW->AddToViewport();
 	StartSW->PlayAni_Start();
 }

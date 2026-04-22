@@ -169,8 +169,9 @@ void AMountedMachineGun::Fire()
 	const FVector CameraLocation = GetCameraLocation();
 	const FRotator CameraRotation = GetCameraRotation();
 
+	const FVector AimDirection = CameraRotation.Vector().GetSafeNormal();
 	const FVector TraceStart = CameraLocation;
-	const FVector TraceEnd = TraceStart + CameraRotation.Vector() * 10000.0f;
+	const FVector TraceEnd = TraceStart + AimDirection * 10000.0f;
 
 	FHitResult HitResult;
 	FCollisionQueryParams QueryParams;
@@ -182,7 +183,8 @@ void AMountedMachineGun::Fire()
 	}
 
 	const bool bHit = GetWorld()->LineTraceSingleByChannel(HitResult, TraceStart, TraceEnd, ECC_Visibility, QueryParams);
-	FVector TargetLocation = bHit ? HitResult.Location : TraceEnd;
+	FVector TargetLocation = bHit ? HitResult.ImpactPoint : TraceEnd;
+	AActor* AimHitActor = bHit ? HitResult.GetActor() : nullptr;
 
 	FVector FireLocation = GetActorLocation();
 	if (GunMesh && MuzzleSocketName != NAME_None && GunMesh->DoesSocketExist(MuzzleSocketName))
@@ -212,10 +214,19 @@ void AMountedMachineGun::Fire()
 
 	if (bMuzzleBlocked)
 	{
-		TargetLocation = MuzzleHitResult.Location;
+		const bool bHitSameAimActor = AimHitActor && MuzzleHitResult.GetActor() == AimHitActor;
+		if (!bHitSameAimActor)
+		{
+			TargetLocation = MuzzleHitResult.ImpactPoint;
+		}
 	}
 
-	const FVector FireDirection = (TargetLocation - FireLocation).GetSafeNormal();
+	FVector FireDirection = (TargetLocation - FireLocation).GetSafeNormal();
+	if (FireDirection.IsNearlyZero() || FVector::DotProduct(FireDirection, AimDirection) <= 0.0f)
+	{
+		FireDirection = AimDirection;
+	}
+
 	const FRotator FireRotation = FireDirection.Rotation();
 
 	if (UObjectPoolSubSystem* PoolSubsystem = GetWorld()->GetSubsystem<UObjectPoolSubSystem>())

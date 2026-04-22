@@ -29,7 +29,7 @@ public:
 	TSharedPtr<class RecvWorker> RecvWorkerThread;
 	TSharedPtr<class SendWorker> SendWorkerThread;
 
-	// GameThread¿Í NetworkThread°¡ µ¥ÀÌÅÍ ÁÖ°í ¹Ş´Â °ø¿ë Å¥.
+	// GameThreadì™€ NetworkThreadê°€ ë°ì´í„° ì£¼ê³  ë°›ëŠ” ê³µìš© í.
 	TQueue<TArray<uint8>> RecvPacketQueue;
 	TQueue<SendBufferRef> SendPacketQueue;
 };

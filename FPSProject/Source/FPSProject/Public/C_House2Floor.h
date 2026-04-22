@@ -18,7 +18,7 @@ protected:
 public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MySettings")
-	int32 HoleX = 3;	//¹Ù´Ú °¡·ÎÄ­¼ö
+	int32 HoleX = 3;	//ë°”ë‹¥ ê°€ë¡œì¹¸ìˆ˜
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MySettings")
-	int32 HoleY = 1;	//¹Ù´Ú ¼¼·ÎÄ­¼ö
+	int32 HoleY = 1;	//ë°”ë‹¥ ì„¸ë¡œì¹¸ìˆ˜
 };

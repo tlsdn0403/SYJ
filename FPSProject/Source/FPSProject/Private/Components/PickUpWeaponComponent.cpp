@@ -3,7 +3,7 @@
 #include "Components/PickUpWeaponComponent.h"
 #include "Characters/FPSBaseCharacter.h"
 #include "Weapon/WeaponBase.h"
-#include "Engine/Engine.h" // µð¹ö±× ¸Þ½ÃÁö Ãâ·Â¿ë
+#include "Engine/Engine.h" // ë””ë²„ê·¸ ë©”ì‹œì§€ ì¶œë ¥ìš©
 #include "Characters/FPSPlayerController.h"
 #include "HUD/InventoryWidget.h"
 #include "ClientPacketHandler.h"
@@ -35,7 +35,7 @@ void UPickUpWeaponComponent::OnSphereBeginOverlap(UPrimitiveComponent* Overlappe
 
 		OnComponentBeginOverlap.RemoveAll(this);
 
-		// ³» Ä³¸¯ÅÍ°¡ ¹«±â¸¦ ÁÖ¿üÀ¸´Ï ¼­¹ö·Î ÆÐÅ¶ Àü¼Û!
+		// ë‚´ ìºë¦­í„°ê°€ ë¬´ê¸°ë¥¼ ì£¼ì› ìœ¼ë‹ˆ ì„œë²„ë¡œ íŒ¨í‚· ì „ì†¡!
 		Protocol::C_EQUIP_WEAPON EquipPkt;
 		EquipPkt.set_itemobjectid(Weapon->ItemObjectId);
 		SEND_PACKET(EquipPkt);

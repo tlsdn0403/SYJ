@@ -13,7 +13,7 @@ class UProjectileMovementComponent;
 class UParticleSystem;
 
 UCLASS()
-class FPSPROJECT_API AFPSProjectile : public AActor , public IFPSPoolableInterface  //Ç®¸µ ÀÎÅÍÆäÀÌ½º »ó¼Ó Ãß°¡
+class FPSPROJECT_API AFPSProjectile : public AActor , public IFPSPoolableInterface  //í’€ë§ ì¸í„°í˜ì´ìŠ¤ ìƒì† ì¶”ê°€
 {
 	GENERATED_BODY()
 	
@@ -21,12 +21,12 @@ public:
 	// Sets default values for this actor's properties
 	AFPSProjectile();
 
-	// FPSPoolableInterface ±¸Çö  
+	// FPSPoolableInterface êµ¬í˜„
 	virtual void OnPoolActivate_Implementation() override;
 	virtual void OnPoolDeactivate_Implementation() override;
 	virtual void OnPoolSpawn_Implementation(const FVector& Location, const FRotator& Rotation) override;
 
-	// Ç®·Î ¹İÈ¯ (Destroy ´ë½Å »ç¿ë) 
+	// í’€ë¡œ ë°˜í™˜ (Destroy ëŒ€ì‹  ì‚¬ìš©)
 	UFUNCTION(BlueprintCallable, Category = "Pool")
 	void ReturnToPool();
 
@@ -34,45 +34,45 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
-	// ÀÚµ¿ ¹İÈ¯ Å¸ÀÌ¸Ó
+	// ìë™ ë°˜í™˜ íƒ€ì´ë¨¸
 	FTimerHandle LifetimeTimerHandle;
 
-	// ÃÑ¾Ë ¼ö¸í (ÃÊ)
+	// ì´ì•Œ ìˆ˜ëª… (ì´ˆ)
 	UPROPERTY(EditDefaultsOnly, Category = "Pool")
 	float LifetimeSeconds = 3.0f;
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
-	// ½ºÇÇ¾î Äİ¸®Àü ÄÄÆ÷³ÍÆ®
+	// ìŠ¤í”¼ì–´ ì½œë¦¬ì „ ì»´í¬ë„ŒíŠ¸
 	UPROPERTY(VisibleDefaultsOnly, Category = Projectile)
 	USphereComponent* CollisionComponent;
 
-	// ¹ß»çÃ¼ ÀÌµ¿ ÄÄÆ÷³ÍÆ®
+	// ë°œì‚¬ì²´ ì´ë™ ì»´í¬ë„ŒíŠ¸
 	UPROPERTY(VisibleAnywhere, Category = Movement)
 	UProjectileMovementComponent* ProjectileMovementComponent;
 
 
-	// ¹ß»çÃ¼ ¸Ş½Ã
+	// ë°œì‚¬ì²´ ë©”ì‹œ
 	UPROPERTY(VisibleDefaultsOnly, Category = Projectile)
 	UStaticMeshComponent* ProjectileMeshComponent;
 
-	// ¹ß»çÃ¼ ¸ÓÆ¼¸®¾ó
+	// ë°œì‚¬ì²´ ë¨¸í‹°ë¦¬ì–¼
 	UPROPERTY(VisibleDefaultsOnly, Category = Movement)
 	UMaterialInstanceDynamic* ProjectileMaterialInstance;
 
 
-	// ÃÑ¾ËÀÌ µ¹ÀÌ¶û ÇÇ°İ½Ã ÀÌÆåÆ®
+	// ì´ì•Œì´ ëŒì´ë‘ í”¼ê²©ì‹œ ì´í™íŠ¸
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
 	UParticleSystem* StoneImpactEffect;
 
 
 
 
-	// ¹ß»ç ¹æÇâÀ¸·ÎÀÇ ¹ß»çÃ¼ ¼Óµµ¸¦ ÃÊ±âÈ­
+	// ë°œì‚¬ ë°©í–¥ìœ¼ë¡œì˜ ë°œì‚¬ì²´ ì†ë„ë¥¼ ì´ˆê¸°í™”
 	void FireInDirection(const FVector& ShootDirection);
 
-	// ¹ß»çÃ¼°¡ Ãæµ¹ÀÌ ÀÏ¾î³¯ ¶§ È£ÃâµÇ´Â ÇÔ¼ö
+	// ë°œì‚¬ì²´ê°€ ì¶©ëŒì´ ì¼ì–´ë‚  ë•Œ í˜¸ì¶œë˜ëŠ” í•¨ìˆ˜
 	UFUNCTION()
 	void OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComponent, FVector NormalImpulse, const FHitResult& Hit);
 

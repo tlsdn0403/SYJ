@@ -19,7 +19,7 @@ class FPSPROJECT_API UFPSCharacterAnimInstance : public UFPSBaseAnimInstance
 public:
 	virtual void NativeInitializeAnimation()override;
 
-	//°ÔÀÓ ½º·¹µå°¡ ¾Æ´Ñ ¿öÄ¿ ½º·¹µå¿¡¼­ ÀÛµ¿ÇÔ
+	//ê²Œì„ ìŠ¤ë ˆë“œê°€ ì•„ë‹Œ ì›Œì»¤ ìŠ¤ë ˆë“œì—ì„œ ì‘ë™í•¨
 	virtual void NativeThreadSafeUpdateAnimation(float DeltaSeconds) override;
 
 protected:
@@ -33,5 +33,5 @@ protected:
 	float GroundSpeed;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animdata|LocalmotionData")
-	bool bHasAcceleration;  //°¡¼Óµµ°¡ ÀÖ´ÂÁö ¿©ºÎ
+	bool bHasAcceleration;  //ê°€ì†ë„ê°€ ìˆëŠ”ì§€ ì—¬ë¶€
 };

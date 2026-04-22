@@ -17,9 +17,9 @@ UENUM(BlueprintType)
 enum class EItemType : uint8
 {
 	None        UMETA(DisplayName = "None"),
-	Ammo        UMETA(DisplayName = "Ammo"),      // ÃÑ¾Ë
-	Fuel        UMETA(DisplayName = "Fuel"),      // ¿¬·á
-	MedicalKit  UMETA(DisplayName = "Medical Kit")  // ±¸±Ş»óÀÚ
+	Ammo        UMETA(DisplayName = "Ammo"),      // ì´ì•Œ
+	Fuel        UMETA(DisplayName = "Fuel"),      // ì—°ë£Œ
+	MedicalKit  UMETA(DisplayName = "Medical Kit")  // êµ¬ê¸‰ìƒì
 };
 
 UCLASS()
@@ -34,41 +34,41 @@ public:
 	UPROPERTY(VisibleAnywhere, Category = "Components")
 	USceneComponent* SceneRoot;
 
-	// »óÈ£ÀÛ¿ë ¹üÀ§ ÄÄÆ÷³ÍÆ®
+	// ìƒí˜¸ì‘ìš© ë²”ìœ„ ì»´í¬ë„ŒíŠ¸
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Interaction")
 	UInteractTriggerComponent* InteractTrigger;
 
-	// ¿¡µğÅÍ¿¡¼­ ÀÌ ¾ÆÀÌÅÛÀÌ ¹ºÁö ¼³Á¤ÇÒ º¯¼ö
+	// ì—ë””í„°ì—ì„œ ì´ ì•„ì´í…œì´ ë­”ì§€ ì„¤ì •í•  ë³€ìˆ˜
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item Properties")
-	EItemType ItemType = EItemType::None; // ±âº»°ª None
+	EItemType ItemType = EItemType::None; // ê¸°ë³¸ê°’ None
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Interaction")
 	UWidgetComponent* WidgetComp;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "setting")
-	UMaterialInterface* OverlayMaterial;	//¿À¹ö·¹ÀÌ ¸ŞÅÍ¸®¾ó
+	UMaterialInterface* OverlayMaterial;	//ì˜¤ë²„ë ˆì´ ë©”í„°ë¦¬ì–¼
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "setting")
-	FText setText;	//¾ÆÀÌÅÛ ÀÌ¸§
+	FText setText;	//ì•„ì´í…œ ì´ë¦„
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "setting")
-	UTexture2D* itemimage;	//¾ÆÀÌÅÛÀÌ¹ÌÁö
+	UTexture2D* itemimage;	//ì•„ì´í…œì´ë¯¸ì§€
 
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
-	// ¾ÆÀÌÅÛ mesh
+	// ì•„ì´í…œ mesh
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	UStaticMeshComponent* MeshComp;
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
-	// ÀÎÅÍÆäÀÌ½º ÇÔ¼ö ¿À¹ö¶óÀÌµå (FÅ° ´­·¶À» ¶§ ½ÇÇàµÉ ³»¿ë)
+	// ì¸í„°í˜ì´ìŠ¤ í•¨ìˆ˜ ì˜¤ë²„ë¼ì´ë“œ (Fí‚¤ ëˆŒë €ì„ ë•Œ ì‹¤í–‰ë  ë‚´ìš©)
 	virtual void Interact_Implementation(AFPSBaseCharacter* Character) override;
 
-	//µ¨¸®°ÔÀÌÆ® ÇÔ¼ö (Æ®¸®°Å ÄÄÆ÷³ÍÆ®ÀÇ ÀÌº¥Æ®¿¡ ¹ÙÀÎµù µÉ ÇÔ¼ö)
+	//ë¸ë¦¬ê²Œì´íŠ¸ í•¨ìˆ˜ (íŠ¸ë¦¬ê±° ì»´í¬ë„ŒíŠ¸ì˜ ì´ë²¤íŠ¸ì— ë°”ì¸ë”© ë  í•¨ìˆ˜)
 	UFUNCTION()
 	void WidgetStart(AActor* OtherActor);
 

@@ -5,34 +5,94 @@
 #include "Zombie/BaseZombie.h"
 #include "AIController.h"
 #include "BehaviorTree/BlackboardComponent.h"
+#include "Characters/FPSBaseCharacter.h"
+#include "Components/PrimitiveComponent.h"
 #include "NavigationSystem.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Truck/Truck.h"
 
+namespace
+{
+    AActor* ResolveChaseTarget(AActor* BlackboardTarget)
+    {
+        AFPSBaseCharacter* PlayerCharacter = Cast<AFPSBaseCharacter>(BlackboardTarget);
+        if (PlayerCharacter &&
+            IsValid(PlayerCharacter->CurrentTruck) &&
+            (PlayerCharacter->IsDrivingTruck() ||
+                PlayerCharacter->IsOnTruckCargo() ||
+                PlayerCharacter->IsUsingMountedWeapon()))
+        {
+            return PlayerCharacter->CurrentTruck;
+        }
+
+        return BlackboardTarget;
+    }
+
+    FVector GetClosestPointOnTarget(AActor* TargetActor, const FVector& FromLocation)
+    {
+        if (!TargetActor)
+        {
+            return FromLocation;
+        }
+
+        if (UPrimitiveComponent* PrimitiveComponent = Cast<UPrimitiveComponent>(TargetActor->GetRootComponent()))
+        {
+            FVector ClosestPoint = TargetActor->GetActorLocation();
+            if (PrimitiveComponent->GetClosestPointOnCollision(FromLocation, ClosestPoint) >= 0.0f)
+            {
+                return ClosestPoint;
+            }
+        }
+
+        return TargetActor->GetActorLocation();
+    }
+
+    FVector GetMovePointOnNavigation(AActor* TargetActor, const FVector& FromLocation)
+    {
+        const FVector TargetReachPoint = GetClosestPointOnTarget(TargetActor, FromLocation);
+        if (!TargetActor)
+        {
+            return TargetReachPoint;
+        }
+
+        if (UNavigationSystemV1* NavSystem = UNavigationSystemV1::GetCurrent(TargetActor))
+        {
+            FNavLocation ProjectedLocation;
+            const FVector QueryExtent(300.0f, 300.0f, 300.0f);
+            if (NavSystem->ProjectPointToNavigation(TargetReachPoint, ProjectedLocation, QueryExtent))
+            {
+                return ProjectedLocation.Location;
+            }
+        }
+
+        return TargetReachPoint;
+    }
+}
 
 UBTTask_ChaseHuman::UBTTask_ChaseHuman()
 {
 	NodeName = TEXT("Chase Human");
-	// Blackboard 키 초기화
 	TargetPlayerKey.SelectedKeyName = FName("TargetPlayer");
-
-	// TickTask 활성화 (매 틱마다 실행)
     bNotifyTick = true;
 }
 
 EBTNodeResult::Type UBTTask_ChaseHuman::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
-	AAIController* AIController = OwnerComp.GetAIOwner();  //AI 컨트롤러 가져오기
-	ABaseZombie* ZombieCharacter = AIController ? Cast<ABaseZombie>(AIController->GetPawn()) : nullptr; // 좀비 캐릭터 가져오기
-    AActor* TargetActor = Cast<AActor>(OwnerComp.GetBlackboardComponent()->GetValueAsObject(TargetPlayerKey.SelectedKeyName));   // Blackboard에서 플레이어 타겟 가져오기
-    if (!TargetActor|| !AIController || !ZombieCharacter || !ZombieCharacter->IsAlive())
+	AAIController* AIController = OwnerComp.GetAIOwner();
+	ABaseZombie* ZombieCharacter = AIController ? Cast<ABaseZombie>(AIController->GetPawn()) : nullptr;
+    UBlackboardComponent* BlackboardComponent = OwnerComp.GetBlackboardComponent();
+    AActor* BlackboardTarget = BlackboardComponent
+        ? Cast<AActor>(BlackboardComponent->GetValueAsObject(TargetPlayerKey.SelectedKeyName))
+        : nullptr;
+    AActor* TargetActor = ResolveChaseTarget(BlackboardTarget);
+
+    if (!TargetActor || !AIController || !ZombieCharacter || !ZombieCharacter->IsAlive())
     {
-        return EBTNodeResult::Failed; // 하나라도 없으면 실패 반환
+        return EBTNodeResult::Failed;
     }
 
+    UE_LOG(LogTemp, Warning, TEXT("Zombie chasing target at location: %s"), *TargetActor->GetActorLocation().ToString());
 
-    UE_LOG(LogTemp, Warning, TEXT("Zombie chasing player at location: %s"), *TargetActor->GetActorLocation().ToString());
-
-    // 이동 중이므로 In Progress 반환 (계속 실행)
     return EBTNodeResult::InProgress;
 }
 
@@ -48,7 +108,11 @@ void UBTTask_ChaseHuman::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* Node
     }
 
     ABaseZombie* ZombieCharacter = Cast<ABaseZombie>(AIController->GetPawn());
-    AActor* TargetActor = Cast<AActor>(OwnerComp.GetBlackboardComponent()->GetValueAsObject(TargetPlayerKey.SelectedKeyName));
+    UBlackboardComponent* BlackboardComponent = OwnerComp.GetBlackboardComponent();
+    AActor* BlackboardTarget = BlackboardComponent
+        ? Cast<AActor>(BlackboardComponent->GetValueAsObject(TargetPlayerKey.SelectedKeyName))
+        : nullptr;
+    AActor* TargetActor = ResolveChaseTarget(BlackboardTarget);
 
     if (!ZombieCharacter || !TargetActor || !ZombieCharacter->IsAlive())
     {
@@ -57,9 +121,9 @@ void UBTTask_ChaseHuman::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* Node
         return;
     }
 
-    float Distance = FVector::Dist(ZombieCharacter->GetActorLocation(), TargetActor->GetActorLocation());
+    const FVector TargetReachPoint = GetClosestPointOnTarget(TargetActor, ZombieCharacter->GetActorLocation());
+    const float Distance = FVector::Dist(ZombieCharacter->GetActorLocation(), TargetReachPoint);
 
-    // 공격 범위에 도달하면 성공 반환 (공격으로 전환)
     if (Distance <= StopDistance)
     {
         UE_LOG(LogTemp, Warning, TEXT("In attack range! Distance: %f"), Distance);
@@ -67,8 +131,8 @@ void UBTTask_ChaseHuman::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* Node
         return;
     }
 
-    // 매 틱마다 플레이어 위치 업데이트
-    AIController->MoveToActor(TargetActor, StopDistance);
+    const FVector MoveGoalLocation = GetMovePointOnNavigation(TargetActor, ZombieCharacter->GetActorLocation());
+    AIController->MoveToLocation(MoveGoalLocation, StopDistance);
 
     UE_LOG(LogTemp, Log, TEXT("Chasing... Distance: %f"), Distance);
 }

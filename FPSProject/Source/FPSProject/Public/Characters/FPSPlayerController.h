@@ -27,7 +27,7 @@ protected:
 	virtual void SetupInputComponent() override;
 public:
 
-	// ÀÎº¥Åä¸® À§Á¬
+	// ì¸ë²¤í† ë¦¬ ìœ„ì ¯
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory")
 	TSubclassOf<UInventoryWidget> InvenWidgetClass;
 
@@ -35,14 +35,14 @@ public:
 	UInventoryWidget* InventoryW;
 
 
-	// Å¸ÀÌ¸Ó À§Á¬
+	// íƒ€ì´ë¨¸ ìœ„ì ¯
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory")
 	TSubclassOf<UBaseUI> TimerWidgetClass;
 
 	UPROPERTY()
 	UBaseUI* TimerW;
 
-	//±âº» À§Á¬
+	//ê¸°ë³¸ ìœ„ì ¯
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory")
 	TSubclassOf<UBasicUI> BasicWidgetClass;
 
@@ -51,7 +51,7 @@ public:
 
 
 public:
-	// ÀÔ·Â ¾×¼Ç
+	// ì…ë ¥ ì•¡ì…˜
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
 	UInputMappingContext* PlayerMappingContext;
 
@@ -71,7 +71,7 @@ public:
 	UInputAction* IA_SelectSlot5;
 
 
-	// ½ÇÁ¦ ½ÇÇà ÇÔ¼ö
+	// ì‹¤ì œ ì‹¤í–‰ í•¨ìˆ˜
 	UFUNCTION()
 	void Pressed1(const FInputActionValue& InputValue);
 

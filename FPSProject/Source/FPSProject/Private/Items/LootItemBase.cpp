@@ -26,10 +26,10 @@ ALootItemBase::ALootItemBase()
     WidgetComp->SetTwoSided(true);
     WidgetComp->SetWidgetSpace(EWidgetSpace::Screen);
 
-	// Æ®¸®°Å ÄÄÆ÷³ÍÆ® »ı¼º ¹× ºÎÂø
+	// íŠ¸ë¦¬ê±° ì»´í¬ë„ŒíŠ¸ ìƒì„± ë° ë¶€ì°©
 	InteractTrigger = CreateDefaultSubobject<UInteractTriggerComponent>(TEXT("InteractTrigger"));
 	InteractTrigger->SetupAttachment(RootComponent);
-	InteractTrigger->InitSphereRadius(20.0f); // ¹üÀ§ ¼³Á¤
+	InteractTrigger->InitSphereRadius(20.0f); // ë²”ìœ„ ì„¤ì •
 }
 
 // Called when the game starts or when spawned
@@ -58,10 +58,10 @@ void ALootItemBase::Interact_Implementation(AFPSBaseCharacter* Character)
 {
     if (Character)
     {
-        // Ä³¸¯ÅÍ ÀÎº¥Åä¸®¿¡ Ãß°¡ ½Ãµµ
+        // ìºë¦­í„° ì¸ë²¤í† ë¦¬ì— ì¶”ê°€ ì‹œë„
         if (Character->AddItem(this->ItemType))
         {
-            // ¼º°øÇÏ¸é ¾ÆÀÌÅÛ »èÁ¦
+            // ì„±ê³µí•˜ë©´ ì•„ì´í…œ ì‚­ì œ
 			if (AFPSPlayerController* PC = Character->GetController<AFPSPlayerController>())
 			{
 				PC->PickUp_Item(itemimage);
@@ -70,7 +70,7 @@ void ALootItemBase::Interact_Implementation(AFPSBaseCharacter* Character)
         }
         else
         {
-            // ÀÎº¥Åä¸®°¡ ²Ë Ã¡À» ¶§ ·ÎÁ÷
+            // ì¸ë²¤í† ë¦¬ê°€ ê½‰ ì°¼ì„ ë•Œ ë¡œì§
 			UE_LOG(LogTemp, Warning, TEXT("Cannot pick up item: Inventory is full."));
         }
 
@@ -83,7 +83,7 @@ void ALootItemBase::WidgetStart(AActor* OtherActor)
 	if (!Cast<AFPSBaseCharacter>(OtherActor)) return;
 	if (UInteractUIClass* UI = Cast<UInteractUIClass>(WidgetComp->GetUserWidgetObject()))
 	{
-		UI->PlayAni_PopUp(true); // À§Á¬ Å¬·¡½º¿¡ ¸¸µç ÇÔ¼ö
+		UI->PlayAni_PopUp(true); // ìœ„ì ¯ í´ë˜ìŠ¤ì— ë§Œë“  í•¨ìˆ˜
 
 	}
 
@@ -98,7 +98,7 @@ void ALootItemBase::WidgetEnd(AActor* OtherActor)
 	if (!Cast<AFPSBaseCharacter>(OtherActor)) return;
 	if (UInteractUIClass* UI = Cast<UInteractUIClass>(WidgetComp->GetUserWidgetObject()))
 	{
-		UI->RePlayAni_PopUp(); // À§Á¬ Å¬·¡½º¿¡ ¸¸µç ÇÔ¼ö
+		UI->RePlayAni_PopUp(); // ìœ„ì ¯ í´ë˜ìŠ¤ì— ë§Œë“  í•¨ìˆ˜
 
 	}
 	if (MeshComp && OverlayMaterial)

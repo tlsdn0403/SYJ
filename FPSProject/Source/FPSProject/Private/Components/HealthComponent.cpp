@@ -11,7 +11,7 @@ UHealthComponent::UHealthComponent()
 	PrimaryComponentTick.bCanEverTick = true;
 
 	// ...
-	Health = MaxHealth;							 // Ã¼·ÂÀ» ÃÖ´ë Ã¼·ÂÀ¸·Î »ı¼º µÉ ¶§ ÃÊ±âÈ­
+	Health = MaxHealth;							 // ì²´ë ¥ì„ ìµœëŒ€ ì²´ë ¥ìœ¼ë¡œ ìƒì„± ë  ë•Œ ì´ˆê¸°í™”
 }
 
 
@@ -38,13 +38,13 @@ void UHealthComponent::PointDamageTaken(AActor* DamagedActor, float Damage, ACon
 	OnDamaged.Broadcast(Health, Damage, DummyHit);
 }
 
-// HitResult ³Ñ°ÜÁÖÁö ¾Ê´Â µ¥¹ÌÁö ÇÔ¼ö.
+// HitResult ë„˜ê²¨ì£¼ì§€ ì•ŠëŠ” ë°ë¯¸ì§€ í•¨ìˆ˜.
 void UHealthComponent::ApplyDamage(float Damage)
 {
 	if (Damage <= 0.f) return;
 
 	Health -= Damage;
-	Health = FMath::Max(Health, 0.f);  	// Ã¼·Â À½¼ö ¹æÁö
+	Health = FMath::Max(Health, 0.f);  	// ì²´ë ¥ ìŒìˆ˜ ë°©ì§€
 
 	UE_LOG(LogTemp, Warning, TEXT("ApplyDamage: %f, Remaining Health: %f"), Damage, Health);
 

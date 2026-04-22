@@ -158,6 +158,12 @@ void UFPSProjectGameInstance::HandleSpawn(const Protocol::ObjectInfo& ObjectInfo
 				MyPlayer->SetPlayerInfo(ObjectInfo.pos_info()); // 내 고유 ID와 위치 정보 세팅
 				MyPlayer->SetActorLocation(SpawnLocation);
 				Players.Add(ObjectId, MyPlayer);               // 맵에 등록
+				UE_LOG(LogTemp, Warning,
+					TEXT("[TruckDebug] SpawnMine ObjectId=%llu MyPlayer=%s Local=%d Pawn=%s"),
+					ObjectId,
+					*GetNameSafe(MyPlayer),
+					MyPlayer->IsLocallyControlled() ? 1 : 0,
+					*GetNameSafe(PC->GetPawn()));
 				RetryPendingWeapon(ObjectId);
 			}
 		}
@@ -172,6 +178,11 @@ void UFPSProjectGameInstance::HandleSpawn(const Protocol::ObjectInfo& ObjectInfo
 		{
 			OtherPlayer->SetPlayerInfo(ObjectInfo.pos_info()); // 타겟 유저의 ID와 위치 정보 세팅
 			Players.Add(ObjectId, OtherPlayer);               // 맵에 등록
+			UE_LOG(LogTemp, Warning,
+				TEXT("[TruckDebug] SpawnOther ObjectId=%llu OtherPlayer=%s Local=%d"),
+				ObjectId,
+				*GetNameSafe(OtherPlayer),
+				OtherPlayer->IsLocallyControlled() ? 1 : 0);
 			RetryPendingWeapon(ObjectId);
 		}
 	}
@@ -280,6 +291,30 @@ ATruck* UFPSProjectGameInstance::FindTruckById(uint64 TruckId)
 	return nullptr;
 }
 
+AFPSBaseCharacter* UFPSProjectGameInstance::ResolvePlayerById(uint64 PlayerId) const
+{
+	if (MyPlayer && MyPlayer->GetPlayerInfo() && MyPlayer->GetPlayerInfo()->object_id() == PlayerId)
+	{
+		return MyPlayer;
+	}
+
+	if (UWorld* World = GetWorld())
+	{
+		if (APlayerController* PlayerController = UGameplayStatics::GetPlayerController(World, 0))
+		{
+			if (AFPSBaseCharacter* LocalPawn = Cast<AFPSBaseCharacter>(PlayerController->GetPawn()))
+			{
+				if (LocalPawn->GetPlayerInfo() && LocalPawn->GetPlayerInfo()->object_id() == PlayerId)
+				{
+					return LocalPawn;
+				}
+			}
+		}
+	}
+
+	return Players.FindRef(PlayerId);
+}
+
 void UFPSProjectGameInstance::CacheTruckActors()
 {
 	UWorld* World = GetWorld();
@@ -302,8 +337,27 @@ void UFPSProjectGameInstance::CacheTruckActors()
 
 void UFPSProjectGameInstance::HandleEnterTruck(const Protocol::S_ENTER_TRUCK& pkt)
 {
-	AFPSBaseCharacter* Player = Players.FindRef(pkt.player_id());
+	AFPSBaseCharacter* Player = ResolvePlayerById(pkt.player_id());
+	AFPSBaseCharacter* MappedPlayer = Players.FindRef(pkt.player_id());
 	ATruck* Truck = FindTruckById(pkt.truck_id());
+	APlayerController* LocalPlayerController = UGameplayStatics::GetPlayerController(this, 0);
+	AFPSBaseCharacter* LocalPawn = LocalPlayerController ? Cast<AFPSBaseCharacter>(LocalPlayerController->GetPawn()) : nullptr;
+	UE_LOG(LogTemp, Warning,
+		TEXT("[TruckDebug] HandleEnterTruck PlayerId=%llu TruckId=%llu SeatType=%d HasPlayer=%d HasTruck=%d Player=%s Truck=%s MyPlayer=%s MyPlayerId=%llu MappedPlayer=%s MappedPlayerId=%llu LocalPawn=%s LocalPawnId=%llu"),
+		pkt.player_id(),
+		pkt.truck_id(),
+		static_cast<int32>(pkt.seat_type()),
+		Player ? 1 : 0,
+		Truck ? 1 : 0,
+		*GetNameSafe(Player),
+		*GetNameSafe(Truck),
+		*GetNameSafe(MyPlayer),
+		MyPlayer && MyPlayer->GetPlayerInfo() ? MyPlayer->GetPlayerInfo()->object_id() : 0,
+		*GetNameSafe(MappedPlayer),
+		MappedPlayer && MappedPlayer->GetPlayerInfo() ? MappedPlayer->GetPlayerInfo()->object_id() : 0,
+		*GetNameSafe(LocalPawn),
+		LocalPawn && LocalPawn->GetPlayerInfo() ? LocalPawn->GetPlayerInfo()->object_id() : 0);
+
 	if (Player == nullptr || Truck == nullptr)
 	{
 		return;
@@ -319,6 +373,14 @@ void UFPSProjectGameInstance::HandleEnterTruck(const Protocol::S_ENTER_TRUCK& pk
 			Truck->SetDriverCharacter(Player);
 			PlayerController->Possess(Truck);
 			PlayerController->SetControlRotation(Truck->GetActorRotation());
+			UE_LOG(LogTemp, Warning,
+				TEXT("[TruckDebug] EnterDriver Player=%s Truck=%s Controller=%s ViewTarget=%s TruckLoc=%s MeshLoc=%s"),
+				*GetNameSafe(Player),
+				*GetNameSafe(Truck),
+				*GetNameSafe(PlayerController),
+				*GetNameSafe(PlayerController->GetViewTarget()),
+				*Truck->GetActorLocation().ToString(),
+				Truck->GetMesh() ? *Truck->GetMesh()->GetComponentLocation().ToString() : TEXT("NoMesh"));
 		}
 		break;
 	case Protocol::TRUCK_SEAT_CARGO:
@@ -338,8 +400,18 @@ void UFPSProjectGameInstance::HandleEnterTruck(const Protocol::S_ENTER_TRUCK& pk
 
 void UFPSProjectGameInstance::HandleExitTruck(const Protocol::S_EXIT_TRUCK& pkt)
 {
-	AFPSBaseCharacter* Player = Players.FindRef(pkt.player_id());
+	AFPSBaseCharacter* Player = ResolvePlayerById(pkt.player_id());
 	ATruck* Truck = FindTruckById(pkt.truck_id());
+	UE_LOG(LogTemp, Warning,
+		TEXT("[TruckDebug] HandleExitTruck PlayerId=%llu TruckId=%llu SeatType=%d HasPlayer=%d HasTruck=%d Player=%s Truck=%s"),
+		pkt.player_id(),
+		pkt.truck_id(),
+		static_cast<int32>(pkt.seat_type()),
+		Player ? 1 : 0,
+		Truck ? 1 : 0,
+		*GetNameSafe(Player),
+		*GetNameSafe(Truck));
+
 	if (Player == nullptr || Truck == nullptr)
 	{
 		return;
@@ -383,15 +455,19 @@ void UFPSProjectGameInstance::HandleTruckMove(const Protocol::S_TRUCK_MOVE& pkt)
 		return;
 	}
 
-	if (Truck->IsPlayerControlled())
+	if (Truck->IsLocallyDriven())
 	{
+		UE_LOG(LogTemp, Warning,
+			TEXT("[TruckDebug] IgnoreRemoteTruckMove Truck=%s TruckId=%llu"),
+			*GetNameSafe(Truck),
+			pkt.info().object_id());
 		return;
 	}
 
 	const FVector TargetLocation(pkt.info().x(), pkt.info().y(), pkt.info().z());
 	const FRotator TargetRotation(0.0f, pkt.info().yaw(), 0.0f);
 	Truck->SetLocallyDriven(false);
-	Truck->SetActorLocationAndRotation(TargetLocation, TargetRotation);
+	Truck->SetActorLocationAndRotation(TargetLocation, TargetRotation, false, nullptr, ETeleportType::TeleportPhysics);
 	if (USkeletalMeshComponent* TruckMesh = Truck->GetMesh())
 	{
 		TruckMesh->SetWorldLocationAndRotation(TargetLocation, TargetRotation, false, nullptr, ETeleportType::TeleportPhysics);

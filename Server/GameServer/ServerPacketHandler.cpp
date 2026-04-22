@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "ServerPacketHandler.h"
 #include "BufferReader.h"
 #include "BufferWriter.h"
@@ -43,8 +43,19 @@ bool Handle_C_LOGIN(PacketSessionRef& session, Protocol::C_LOGIN& pkt)
 
 bool Handle_C_ENTER_GAME(PacketSessionRef& session, Protocol::C_ENTER_GAME& pkt)
 {
+	auto gameSession = static_pointer_cast<GameSession>(session);
+	if (gameSession == nullptr)
+		return false;
+
+	if (PlayerRef existingPlayer = gameSession->player.load())
+	{
+		std::cout << "[Server][EnterGame] Duplicate C_ENTER_GAME ignored. ExistingPlayerId="
+			<< existingPlayer->objectInfo->object_id() << std::endl;
+		return true;
+	}
+
 	// 플레이어 생성
-	PlayerRef player = ObjectUtils::CreatePlayer(static_pointer_cast<GameSession>(session));
+	PlayerRef player = ObjectUtils::CreatePlayer(gameSession);
 
 	// 방에 입장
 	GRoom->DoAsync(&Room::HandleEnterPlayer, player);

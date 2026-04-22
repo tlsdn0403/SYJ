@@ -58,6 +58,7 @@ public:
 	void RetryPendingWeapon(uint64 PlayerId);
 	TSubclassOf<class AWeaponBase> ResolveWeaponClass(int32 WeaponType) const;
 	class ATruck* FindTruckById(uint64 TruckId);
+	class AFPSBaseCharacter* ResolvePlayerById(uint64 PlayerId) const;
 	void CacheTruckActors();
 
 public:

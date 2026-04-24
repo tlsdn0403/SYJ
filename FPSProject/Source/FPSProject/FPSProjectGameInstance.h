@@ -1,6 +1,4 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
-
-#pragma once
+﻿#pragma once
 
 #include "CoreMinimal.h"
 #include "Engine/GameInstance.h"
@@ -50,6 +48,7 @@ public:
 	void HandleEnterTruck(const Protocol::S_ENTER_TRUCK& pkt);
 	void HandleExitTruck(const Protocol::S_EXIT_TRUCK& pkt);
 	void HandleTruckMove(const Protocol::S_TRUCK_MOVE& pkt);
+	void HandleToggleDoor(const Protocol::S_TOGGLE_DOOR& pkt);
 
 	void HandleEquipWeapon(const Protocol::S_EQUIP_WEAPON& pkt);
 	void HandleSpawnItem(const Protocol::S_SPAWN_ITEM& pkt);
@@ -58,8 +57,15 @@ public:
 	void RetryPendingWeapon(uint64 PlayerId);
 	TSubclassOf<class AWeaponBase> ResolveWeaponClass(int32 WeaponType) const;
 	class ATruck* FindTruckById(uint64 TruckId);
+	class AADoor* FindDoorById(int32 DoorId);
 	class AFPSBaseCharacter* ResolvePlayerById(uint64 PlayerId) const;
 	void CacheTruckActors();
+	void CacheDoorActors();
+	bool IsConnectedToGameServer() const;
+	bool ShouldUseLocalInteractionFallback() const;
+	bool TryPickupWeaponLocally(class AFPSBaseCharacter* Character, class AWeaponBase* Weapon);
+	bool TryEnterTruckLocally(class AFPSBaseCharacter* Character, class ATruck* Truck, Protocol::TruckSeatType SeatType);
+	bool TryExitTruckLocally(class AFPSBaseCharacter* Character);
 
 public:
 	virtual void Shutdown() override;
@@ -80,6 +86,7 @@ public:
 	class AFPSBaseCharacter* MyPlayer;
 	TMap<uint64, class AFPSBaseCharacter*> Players;
 	TMap<uint64, class ATruck*> Trucks;
+	TMap<int32, class AADoor*> Doors;
 
 	// [추가] 바닥에 떨어진 아이템(총기 등)들을 ID로 관리하기 위한 맵
 	UPROPERTY()

@@ -1,7 +1,4 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
-
-
-#include "FPSProjectGameInstance.h"
+﻿#include "FPSProjectGameInstance.h"
 #include "Sockets.h"
 #include "Common/TcpSocketBuilder.h"
 #include "Serialization/ArrayWriter.h"
@@ -13,6 +10,7 @@
 #include "ClientPacketHandler.h"
 #include "Characters/FPSBaseCharacter.h"
 #include "Truck/Truck.h"
+#include "ADoor.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "EngineUtils.h"
@@ -125,6 +123,123 @@ void UFPSProjectGameInstance::SendPacketStatic(SendBufferRef SendBuffer)
 			GI->SendPacket(SendBuffer);
 		}
 	}
+}
+
+bool UFPSProjectGameInstance::IsConnectedToGameServer() const
+{
+	return Socket != nullptr && GameServerSession != nullptr;
+}
+
+bool UFPSProjectGameInstance::ShouldUseLocalInteractionFallback() const
+{
+	return !IsConnectedToGameServer();
+}
+
+bool UFPSProjectGameInstance::TryPickupWeaponLocally(AFPSBaseCharacter* Character, AWeaponBase* Weapon)
+{
+	if (!ShouldUseLocalInteractionFallback() || Character == nullptr || Weapon == nullptr)
+	{
+		return false;
+	}
+
+	FieldItems.Remove(Weapon->ItemObjectId);
+	Weapon->SetOwner(Character);
+	Weapon->SetInstigator(Character);
+	Character->EquipWeapon(Weapon);
+	return true;
+}
+
+bool UFPSProjectGameInstance::TryEnterTruckLocally(AFPSBaseCharacter* Character, ATruck* Truck, Protocol::TruckSeatType SeatType)
+{
+	if (!ShouldUseLocalInteractionFallback() || Character == nullptr || Truck == nullptr)
+	{
+		return false;
+	}
+
+	switch (SeatType)
+	{
+	case Protocol::TRUCK_SEAT_DRIVER:
+		if (Truck->GetDriverCharacter() && Truck->GetDriverCharacter() != Character)
+		{
+			return true;
+		}
+
+		Truck->SetLocallyDriven(Character->IsLocallyControlled());
+		Truck->SetDriverCharacter(Character);
+		Character->EnterTruckDriverSeat(Truck);
+		if (AController* PlayerController = Character->GetController())
+		{
+			PlayerController->Possess(Truck);
+			PlayerController->SetControlRotation(Truck->GetActorRotation());
+		}
+		return true;
+
+	case Protocol::TRUCK_SEAT_CARGO:
+		Character->EnterTruckCargo(Truck);
+		return true;
+
+	case Protocol::TRUCK_SEAT_TURRET:
+		if (AMountedMachineGun* MountedWeapon = Truck->GetMountedWeapon())
+		{
+			Truck->SetMountedWeaponUser(Character);
+			Character->EnterMountedWeapon(Truck, MountedWeapon);
+		}
+		return true;
+
+	default:
+		return false;
+	}
+}
+
+bool UFPSProjectGameInstance::TryExitTruckLocally(AFPSBaseCharacter* Character)
+{
+	if (!ShouldUseLocalInteractionFallback() || Character == nullptr)
+	{
+		return false;
+	}
+
+	ATruck* Truck = Character->CurrentTruck;
+
+	if (Character->IsDrivingTruck())
+	{
+		if (Truck == nullptr)
+		{
+			return true;
+		}
+
+		Truck->SetLocallyDriven(false);
+		if (Truck->GetDriverCharacter() == Character)
+		{
+			Truck->SetDriverCharacter(nullptr);
+		}
+
+		Character->ExitTruckDriverSeat();
+		if (AController* PlayerController = Truck->GetController())
+		{
+			PlayerController->Possess(Character);
+			PlayerController->SetControlRotation(Character->GetActorRotation());
+		}
+		return true;
+	}
+
+	if (Character->IsUsingMountedWeapon())
+	{
+		if (Truck && Truck->GetMountedWeaponUser() == Character)
+		{
+			Truck->SetMountedWeaponUser(nullptr);
+		}
+
+		Character->ExitMountedWeapon();
+		return true;
+	}
+
+	if (Character->IsOnTruckCargo())
+	{
+		Character->ExitTruckCargo();
+		return true;
+	}
+
+	return false;
 }
 
 void UFPSProjectGameInstance::HandleSpawn(const Protocol::ObjectInfo& ObjectInfo, bool IsMine)
@@ -291,6 +406,33 @@ ATruck* UFPSProjectGameInstance::FindTruckById(uint64 TruckId)
 	return nullptr;
 }
 
+AADoor* UFPSProjectGameInstance::FindDoorById(int32 DoorId)
+{
+	if (DoorId == 0)
+	{
+		return nullptr;
+	}
+
+	if (AADoor** FoundDoor = Doors.Find(DoorId))
+	{
+		if (IsValid(*FoundDoor))
+		{
+			return *FoundDoor;
+		}
+
+		Doors.Remove(DoorId);
+	}
+
+	CacheDoorActors();
+
+	if (AADoor** FoundDoor = Doors.Find(DoorId))
+	{
+		return IsValid(*FoundDoor) ? *FoundDoor : nullptr;
+	}
+
+	return nullptr;
+}
+
 AFPSBaseCharacter* UFPSProjectGameInstance::ResolvePlayerById(uint64 PlayerId) const
 {
 	if (MyPlayer && MyPlayer->GetPlayerInfo() && MyPlayer->GetPlayerInfo()->object_id() == PlayerId)
@@ -331,6 +473,26 @@ void UFPSProjectGameInstance::CacheTruckActors()
 		if (IsValid(Truck) && Truck->NetworkTruckId != 0)
 		{
 			Trucks.Add(Truck->NetworkTruckId, Truck);
+		}
+	}
+}
+
+void UFPSProjectGameInstance::CacheDoorActors()
+{
+	UWorld* World = GetWorld();
+	if (World == nullptr)
+	{
+		return;
+	}
+
+	Doors.Empty();
+
+	for (TActorIterator<AADoor> It(World); It; ++It)
+	{
+		AADoor* Door = *It;
+		if (IsValid(Door) && Door->NetworkDoorId != 0)
+		{
+			Doors.Add(Door->NetworkDoorId, Door);
 		}
 	}
 }
@@ -471,6 +633,14 @@ void UFPSProjectGameInstance::HandleTruckMove(const Protocol::S_TRUCK_MOVE& pkt)
 	if (USkeletalMeshComponent* TruckMesh = Truck->GetMesh())
 	{
 		TruckMesh->SetWorldLocationAndRotation(TargetLocation, TargetRotation, false, nullptr, ETeleportType::TeleportPhysics);
+	}
+}
+
+void UFPSProjectGameInstance::HandleToggleDoor(const Protocol::S_TOGGLE_DOOR& pkt)
+{
+	if (AADoor* Door = FindDoorById(pkt.door_id()))
+	{
+		Door->ApplyDoorState(pkt.is_open());
 	}
 }
 
@@ -665,4 +835,3 @@ TStatId UFPSProjectGameInstance::GetStatId() const
 {
 	RETURN_QUICK_DECLARE_CYCLE_STAT(UFPSProjectGameInstance, STATGROUP_Tickables);
 }
-

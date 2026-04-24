@@ -248,6 +248,19 @@ bool Room::HandleEnterPlayer(PlayerRef player)
 	SendBufferRef itemBuffer = ServerPacketHandler::MakeSendBuffer(spawnItemPkt);
 	player->session.lock()->Send(itemBuffer);
 
+	if (auto session = player->session.lock())
+	{
+		for (const auto& doorPair : _doors)
+		{
+			Protocol::S_TOGGLE_DOOR doorPkt;
+			doorPkt.set_door_id(doorPair.first);
+			doorPkt.set_is_open(doorPair.second);
+
+			SendBufferRef doorBuffer = ServerPacketHandler::MakeSendBuffer(doorPkt);
+			session->Send(doorBuffer);
+		}
+	}
+
 	return true;
 }
 
@@ -430,6 +443,25 @@ void Room::HandleTruckMove(PlayerRef player, Protocol::C_TRUCK_MOVE pkt)
 	movePkt.mutable_info()->CopyFrom(truckState->posInfo);
 
 	SendBufferRef sendBuffer = ServerPacketHandler::MakeSendBuffer(movePkt);
+	Broadcast(sendBuffer);
+}
+
+void Room::HandleToggleDoor(PlayerRef player, Protocol::C_TOGGLE_DOOR pkt)
+{
+	UNREFERENCED_PARAMETER(player);
+
+	const uint64 doorId = pkt.door_id();
+	if (doorId == 0)
+		return;
+
+	bool& bIsOpen = _doors[doorId];
+	bIsOpen = !bIsOpen;
+
+	Protocol::S_TOGGLE_DOOR doorPkt;
+	doorPkt.set_door_id(doorId);
+	doorPkt.set_is_open(bIsOpen);
+
+	SendBufferRef sendBuffer = ServerPacketHandler::MakeSendBuffer(doorPkt);
 	Broadcast(sendBuffer);
 }
 

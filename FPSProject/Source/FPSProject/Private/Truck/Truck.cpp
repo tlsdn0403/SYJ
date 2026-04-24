@@ -18,6 +18,7 @@
 #include "CollisionShape.h"
 #include "ClientPacketHandler.h"
 #include "FPSProject.h"
+#include "FPSProjectGameInstance.h"
 
 ATruck::ATruck()
 {
@@ -628,6 +629,14 @@ void ATruck::Interact_Implementation(AFPSBaseCharacter* Character)
 
 		if (Character->IsLocallyControlled())
 		{
+			if (UFPSProjectGameInstance* GameInstance = Cast<UFPSProjectGameInstance>(Character->GetGameInstance()))
+			{
+				if (GameInstance->TryEnterTruckLocally(Character, this, Protocol::TRUCK_SEAT_DRIVER))
+				{
+					return;
+				}
+			}
+
 			Protocol::C_ENTER_TRUCK EnterPkt;
 			EnterPkt.set_truck_id(NetworkTruckId);
 			EnterPkt.set_seat_type(Protocol::TRUCK_SEAT_DRIVER);
@@ -639,6 +648,14 @@ void ATruck::Interact_Implementation(AFPSBaseCharacter* Character)
 		UE_LOG(LogTemp, Log, TEXT("Cargo Seat!"));
 		if (!Character->IsOnTruckCargo() && Character->IsLocallyControlled())
 		{
+			if (UFPSProjectGameInstance* GameInstance = Cast<UFPSProjectGameInstance>(Character->GetGameInstance()))
+			{
+				if (GameInstance->TryEnterTruckLocally(Character, this, Protocol::TRUCK_SEAT_CARGO))
+				{
+					return;
+				}
+			}
+
 			Protocol::C_ENTER_TRUCK EnterPkt;
 			EnterPkt.set_truck_id(NetworkTruckId);
 			EnterPkt.set_seat_type(Protocol::TRUCK_SEAT_CARGO);
@@ -674,6 +691,14 @@ bool ATruck::TryEnterMountedWeapon(AFPSBaseCharacter* Character)
 
 	if (Character->IsLocallyControlled())
 	{
+		if (UFPSProjectGameInstance* GameInstance = Cast<UFPSProjectGameInstance>(Character->GetGameInstance()))
+		{
+			if (GameInstance->TryEnterTruckLocally(Character, this, Protocol::TRUCK_SEAT_TURRET))
+			{
+				return true;
+			}
+		}
+
 		Protocol::C_ENTER_TRUCK EnterPkt;
 		EnterPkt.set_truck_id(NetworkTruckId);
 		EnterPkt.set_seat_type(Protocol::TRUCK_SEAT_TURRET);
@@ -700,6 +725,14 @@ void ATruck::ExitDriverSeat()
 
 	if (CharacterToRestore->IsLocallyControlled())
 	{
+		if (UFPSProjectGameInstance* GameInstance = Cast<UFPSProjectGameInstance>(CharacterToRestore->GetGameInstance()))
+		{
+			if (GameInstance->TryExitTruckLocally(CharacterToRestore))
+			{
+				return;
+			}
+		}
+
 		Protocol::C_EXIT_TRUCK ExitPkt;
 		SEND_PACKET(ExitPkt);
 	}

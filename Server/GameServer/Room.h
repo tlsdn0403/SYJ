@@ -19,6 +19,7 @@ public:
 	void HandleEnterTruck(PlayerRef player, Protocol::C_ENTER_TRUCK pkt);
 	void HandleExitTruck(PlayerRef player, Protocol::C_EXIT_TRUCK pkt);
 	void HandleTruckMove(PlayerRef player, Protocol::C_TRUCK_MOVE pkt);
+	void HandleToggleDoor(PlayerRef player, Protocol::C_TOGGLE_DOOR pkt);
 
 public:
 	void UpdateTick();
@@ -51,6 +52,7 @@ private:
 private:
 	unordered_map<uint64, ObjectRef> _objects;
 	unordered_map<uint64, TruckState> _trucks;
+	unordered_map<uint64, bool> _doors;
 };
 
 extern RoomRef GRoom;

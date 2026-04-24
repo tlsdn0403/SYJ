@@ -3,10 +3,11 @@
 #include "Components/PickUpWeaponComponent.h"
 #include "Characters/FPSBaseCharacter.h"
 #include "Weapon/WeaponBase.h"
-#include "Engine/Engine.h" // 디버그 메시지 출력용
+#include "Engine/Engine.h"
 #include "Characters/FPSPlayerController.h"
 #include "HUD/InventoryWidget.h"
 #include "ClientPacketHandler.h"
+#include "FPSProjectGameInstance.h"
 #include "Protocol.pb.h"
 
 UPickUpWeaponComponent::UPickUpWeaponComponent()
@@ -31,11 +32,21 @@ void UPickUpWeaponComponent::OnSphereBeginOverlap(UPrimitiveComponent* Overlappe
 	if (Character && Character->IsLocallyControlled())
 	{
 		AWeaponBase* Weapon = Cast<AWeaponBase>(GetOwner());
-		if (Weapon == nullptr) return;
+		if (Weapon == nullptr)
+		{
+			return;
+		}
 
 		OnComponentBeginOverlap.RemoveAll(this);
 
-		// 내 캐릭터가 무기를 주웠으니 서버로 패킷 전송!
+		if (UFPSProjectGameInstance* GameInstance = Cast<UFPSProjectGameInstance>(Character->GetGameInstance()))
+		{
+			if (GameInstance->TryPickupWeaponLocally(Character, Weapon))
+			{
+				return;
+			}
+		}
+
 		Protocol::C_EQUIP_WEAPON EquipPkt;
 		EquipPkt.set_itemobjectid(Weapon->ItemObjectId);
 		SEND_PACKET(EquipPkt);

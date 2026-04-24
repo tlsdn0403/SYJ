@@ -1,23 +1,20 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
-
 #include "ADoor.h"
 #include "HUD/InteractUIClass.h"
 #include "Components/WidgetComponent.h"
 #include "Components/InteractTriggerComponent.h"
 #include "Characters/FPSBaseCharacter.h"
 #include "Materials/MaterialInterface.h"
+#include "FPSProjectGameInstance.h"
+#include "ClientPacketHandler.h"
+#include "Protocol.pb.h"
 
-// Sets default values
 AADoor::AADoor()
 {
-	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
-	// Scene Component를 생성하고 루트로 설정
+
 	SceneRoot = CreateDefaultSubobject<USceneComponent>(TEXT("SceneRoot"));
 	SetRootComponent(SceneRoot);
 
-	// Static Mesh Component를 생성하고 Scene Component에 Attach
 	DoorMeshComp = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("StaticMesh"));
 	DoorMeshComp->SetupAttachment(SceneRoot);
 
@@ -26,72 +23,80 @@ AADoor::AADoor()
 	WidgetComp->SetTwoSided(true);
 	WidgetComp->SetWidgetSpace(EWidgetSpace::Screen);
 
-	// 트리거 컴포넌트 생성 및 부착
 	InteractTrigger = CreateDefaultSubobject<UInteractTriggerComponent>(TEXT("InteractTrigger"));
 	InteractTrigger->SetupAttachment(SceneRoot);
-	InteractTrigger->InitSphereRadius(200.0f); // 범위 설정
-
+	InteractTrigger->InitSphereRadius(200.0f);
 }
 
-// Called when the game starts or when spawned
 void AADoor::BeginPlay()
 {
 	Super::BeginPlay();
-	if (WidgetComp) WidgetComp->InitWidget();
 
-	OriginalRotation = DoorMeshComp->GetRelativeRotation(); //문이 처음에 어떤 방향을 향하고 있는지 저장
-	Target = OriginalRotation; // 처음 목표도 원래 각도
-	//델리게이트 바인딩 (트리거 컴포넌트의 OnEnter 이벤트를 듣도록 설정)
+	if (WidgetComp)
+	{
+		WidgetComp->InitWidget();
+	}
+
+	OriginalRotation = DoorMeshComp->GetRelativeRotation();
+	Target = OriginalRotation;
+
 	InteractTrigger->OnEnter.AddDynamic(this, &AADoor::WidgetStart);
 	InteractTrigger->OnExit.AddDynamic(this, &AADoor::WidgetEnd);
-	if (UInteractUIClass* UI = Cast<UInteractUIClass>(WidgetComp->GetUserWidgetObject()))
-	{
-		UI->SetDoorInteractText(bOpen);
-	}
+
+	ApplyDoorState(bOpen);
 }
 
-// Called every frame
 void AADoor::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	FRotator Current = DoorMeshComp->GetRelativeRotation();
-
-	FRotator NewRot = FMath::RInterpTo(Current, Target, DeltaTime, MoveTime);
+	const FRotator Current = DoorMeshComp->GetRelativeRotation();
+	const FRotator NewRot = FMath::RInterpTo(Current, Target, DeltaTime, MoveTime);
 	DoorMeshComp->SetRelativeRotation(NewRot);
-	//WidgetComp->SetRelativeRotation(NewRot);
 }
 
 void AADoor::Interact_Implementation(AFPSBaseCharacter* Character)
 {
-	if (!Character) return;
-
-
-	bOpen = !bOpen;
-
-	if (bOpen)
+	if (Character == nullptr)
 	{
-		Target = OriginalRotation + MoveDir;
+		return;
 	}
-	else
+
+	if (UFPSProjectGameInstance* GameInstance = Cast<UFPSProjectGameInstance>(Character->GetGameInstance()))
 	{
-		Target = OriginalRotation;
+		if (GameInstance->ShouldUseLocalInteractionFallback() || NetworkDoorId == 0)
+		{
+			ApplyDoorState(!bOpen);
+			return;
+		}
 	}
+
+	Protocol::C_TOGGLE_DOOR ToggleDoorPkt;
+	ToggleDoorPkt.set_door_id(NetworkDoorId);
+	SEND_PACKET(ToggleDoorPkt);
+}
+
+void AADoor::ApplyDoorState(bool bShouldOpen)
+{
+	bOpen = bShouldOpen;
+	Target = bOpen ? (OriginalRotation + MoveDir) : OriginalRotation;
+
 	if (UInteractUIClass* UI = Cast<UInteractUIClass>(WidgetComp->GetUserWidgetObject()))
 	{
 		UI->SetDoorInteractText(bOpen);
 	}
-
 }
-
 
 void AADoor::WidgetStart(AActor* OtherActor)
 {
-	if (!Cast<AFPSBaseCharacter>(OtherActor)) return;
+	if (!Cast<AFPSBaseCharacter>(OtherActor))
+	{
+		return;
+	}
+
 	if (UInteractUIClass* UI = Cast<UInteractUIClass>(WidgetComp->GetUserWidgetObject()))
 	{
-		UI->PlayAni_PopUp(bOpen); // 위젯 클래스에 만든 함수
-
+		UI->PlayAni_PopUp(bOpen);
 	}
 
 	if (DoorMeshComp && OverlayMaterial)
@@ -102,12 +107,16 @@ void AADoor::WidgetStart(AActor* OtherActor)
 
 void AADoor::WidgetEnd(AActor* OtherActor)
 {
-	if (!Cast<AFPSBaseCharacter>(OtherActor)) return;
+	if (!Cast<AFPSBaseCharacter>(OtherActor))
+	{
+		return;
+	}
+
 	if (UInteractUIClass* UI = Cast<UInteractUIClass>(WidgetComp->GetUserWidgetObject()))
 	{
-		UI->RePlayAni_PopUp(); // 위젯 클래스에 만든 함수
-
+		UI->RePlayAni_PopUp();
 	}
+
 	if (DoorMeshComp && OverlayMaterial)
 	{
 		DoorMeshComp->SetOverlayMaterial(nullptr);

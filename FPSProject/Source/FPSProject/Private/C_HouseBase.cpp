@@ -1,12 +1,10 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-
 #include "C_HouseBase.h"
+#include "ADoor.h"
 
-// Sets default values
 AC_HouseBase::AC_HouseBase()
 {
- 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = false;
 
 	Root = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
@@ -19,7 +17,6 @@ AC_HouseBase::AC_HouseBase()
 	HISM_Pillar->SetupAttachment(Root);
 }
 
-
 void AC_HouseBase::OnConstruction(const FTransform& Transform)
 {
 	Super::OnConstruction(Transform);
@@ -31,11 +28,11 @@ void AC_HouseBase::OnConstruction(const FTransform& Transform)
 	}
 
 	TArray<FTransform> Instances;
-	Instances.Reserve(Fwidth*Flength);	//미리 메모리 할당
+	Instances.Reserve(Fwidth * Flength);
 
-	for (int i = 0; i < Flength; ++i)
+	for (int32 i = 0; i < Flength; ++i)
 	{
-		for (int j = 0; j < Fwidth; ++j)
+		for (int32 j = 0; j < Fwidth; ++j)
 		{
 			Instances.Add(FTransform(FVector(i * 400.f, j * 400.f, 0.f)));
 		}
@@ -49,4 +46,27 @@ void AC_HouseBase::OnConstruction(const FTransform& Transform)
 		Instances.Add(Offset);
 	}
 	HISM_Pillar->AddInstances(Instances, false);
+
+	TArray<UChildActorComponent*> ChildActorComponents;
+	GetComponents<UChildActorComponent>(ChildActorComponents);
+
+	ChildActorComponents.Sort([](const UChildActorComponent& A, const UChildActorComponent& B)
+	{
+		return A.GetName() < B.GetName();
+	});
+
+	int32 DoorIndex = 0;
+	for (UChildActorComponent* ChildActorComponent : ChildActorComponents)
+	{
+		if (ChildActorComponent == nullptr)
+		{
+			continue;
+		}
+
+		if (AADoor* Door = Cast<AADoor>(ChildActorComponent->GetChildActor()))
+		{
+			Door->NetworkDoorId = DoorNetworkIds.IsValidIndex(DoorIndex) ? DoorNetworkIds[DoorIndex] : 0;
+			++DoorIndex;
+		}
+	}
 }

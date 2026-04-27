@@ -273,3 +273,24 @@ bool Handle_S_TRUCK_MOVE(PacketSessionRef& session, Protocol::S_TRUCK_MOVE& pkt)
 
 	return true;
 }
+
+bool Handle_S_TOGGLE_DOOR(PacketSessionRef& session, Protocol::S_TOGGLE_DOOR& pkt)
+{
+	Protocol::S_TOGGLE_DOOR* pktCopy = new Protocol::S_TOGGLE_DOOR(pkt);
+
+	AsyncTask(ENamedThreads::GameThread, [pktCopy]()
+		{
+			UWorld* World = GetGameWorld();
+			if (World)
+			{
+				if (auto* GameInstance = Cast<UFPSProjectGameInstance>(World->GetGameInstance()))
+				{
+					GameInstance->HandleToggleDoor(*pktCopy);
+				}
+			}
+
+			delete pktCopy;
+		});
+
+	return true;
+}

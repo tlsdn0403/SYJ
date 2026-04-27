@@ -33,6 +33,8 @@ enum : uint16
 	PKT_S_EXIT_TRUCK = 1020,
 	PKT_C_TRUCK_MOVE = 1021,
 	PKT_S_TRUCK_MOVE = 1022,
+	PKT_C_TOGGLE_DOOR = 1023,
+	PKT_S_TOGGLE_DOOR = 1024,
 };
 
 // Custom Handlers
@@ -50,6 +52,7 @@ bool Handle_S_FIRE(PacketSessionRef& session, Protocol::S_FIRE& pkt);
 bool Handle_S_ENTER_TRUCK(PacketSessionRef& session, Protocol::S_ENTER_TRUCK& pkt);
 bool Handle_S_EXIT_TRUCK(PacketSessionRef& session, Protocol::S_EXIT_TRUCK& pkt);
 bool Handle_S_TRUCK_MOVE(PacketSessionRef& session, Protocol::S_TRUCK_MOVE& pkt);
+bool Handle_S_TOGGLE_DOOR(PacketSessionRef& session, Protocol::S_TOGGLE_DOOR& pkt);
 
 class ClientPacketHandler
 {
@@ -71,6 +74,7 @@ public:
 		GPacketHandler[PKT_S_ENTER_TRUCK] = [](PacketSessionRef& session, BYTE* buffer, int32 len) { return HandlePacket<Protocol::S_ENTER_TRUCK>(Handle_S_ENTER_TRUCK, session, buffer, len); };
 		GPacketHandler[PKT_S_EXIT_TRUCK] = [](PacketSessionRef& session, BYTE* buffer, int32 len) { return HandlePacket<Protocol::S_EXIT_TRUCK>(Handle_S_EXIT_TRUCK, session, buffer, len); };
 		GPacketHandler[PKT_S_TRUCK_MOVE] = [](PacketSessionRef& session, BYTE* buffer, int32 len) { return HandlePacket<Protocol::S_TRUCK_MOVE>(Handle_S_TRUCK_MOVE, session, buffer, len); };
+		GPacketHandler[PKT_S_TOGGLE_DOOR] = [](PacketSessionRef& session, BYTE* buffer, int32 len) { return HandlePacket<Protocol::S_TOGGLE_DOOR>(Handle_S_TOGGLE_DOOR, session, buffer, len); };
 	}
 
 	static bool HandlePacket(PacketSessionRef& session, BYTE* buffer, int32 len)
@@ -88,6 +92,7 @@ public:
 	static SendBufferRef MakeSendBuffer(Protocol::C_ENTER_TRUCK& pkt) { return MakeSendBuffer(pkt, PKT_C_ENTER_TRUCK); }
 	static SendBufferRef MakeSendBuffer(Protocol::C_EXIT_TRUCK& pkt) { return MakeSendBuffer(pkt, PKT_C_EXIT_TRUCK); }
 	static SendBufferRef MakeSendBuffer(Protocol::C_TRUCK_MOVE& pkt) { return MakeSendBuffer(pkt, PKT_C_TRUCK_MOVE); }
+	static SendBufferRef MakeSendBuffer(Protocol::C_TOGGLE_DOOR& pkt) { return MakeSendBuffer(pkt, PKT_C_TOGGLE_DOOR); }
 
 private:
 	template<typename PacketType, typename ProcessFunc>

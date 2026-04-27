@@ -4,32 +4,31 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "Components/ChildActorComponent.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
-
 #include "C_House1.generated.h"
 
 UCLASS()
 class FPSPROJECT_API AC_House1 : public AActor
 {
 	GENERATED_BODY()
-	
-public:	
-	// Sets default values for this actor's properties
+
+public:
 	AC_House1();
 
 protected:
-	// Called when the game starts or when spawned
-	//virtual void BeginPlay() override;
 	virtual void OnConstruction(const FTransform& Transform) override;
 
-public:	
+public:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Network")
+	TArray<int32> DoorNetworkIds;
 
 	UPROPERTY(VisibleAnywhere)
 	USceneComponent* Root;
 
 	UPROPERTY(VisibleAnywhere)
 	UHierarchicalInstancedStaticMeshComponent* HISM_Floor;
-	
+
 	UPROPERTY(VisibleAnywhere)
 	UHierarchicalInstancedStaticMeshComponent* HISM_Pillar;
 
@@ -44,5 +43,4 @@ public:
 
 	UPROPERTY(EditAnywhere)
 	TArray<UStaticMeshComponent*> EtcComponents;
-
 };

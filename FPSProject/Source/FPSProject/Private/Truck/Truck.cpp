@@ -18,6 +18,7 @@
 #include "CollisionShape.h"
 #include "ClientPacketHandler.h"
 #include "FPSProject.h"
+#include "FPSProjectGameInstance.h"
 
 ATruck::ATruck()
 {
@@ -226,8 +227,37 @@ void ATruck::Tick(float DeltaTime)
 
 	CheckZombieImpactSweep();
 
-	if (IsPlayerControlled())
+	if (bIsLocallyDriven)
 	{
+		DebugTransformLogTimer += DeltaTime;
+		if (DebugTransformLogTimer >= 1.0f)
+		{
+			DebugTransformLogTimer = 0.0f;
+
+			const FVector ActorLocation = GetActorLocation();
+			const FRotator ActorRotation = GetActorRotation();
+			const USkeletalMeshComponent* TruckMesh = GetMesh();
+			const FVector MeshLocation = TruckMesh ? TruckMesh->GetComponentLocation() : FVector::ZeroVector;
+			const FRotator MeshRotation = TruckMesh ? TruckMesh->GetComponentRotation() : FRotator::ZeroRotator;
+
+			AController* CurrentController = GetController();
+			AActor* ViewTarget = CurrentController ? CurrentController->GetViewTarget() : nullptr;
+			const FVector ViewLocation = ViewTarget ? ViewTarget->GetActorLocation() : FVector::ZeroVector;
+			const FRotator ViewRotation = ViewTarget ? ViewTarget->GetActorRotation() : FRotator::ZeroRotator;
+
+			UE_LOG(LogTemp, Warning,
+				TEXT("[TruckDebug] Truck=%s ActorLoc=%s ActorRot=%s MeshLoc=%s MeshRot=%s ViewTarget=%s ViewLoc=%s ViewRot=%s Driver=%s"),
+				*GetName(),
+				*ActorLocation.ToString(),
+				*ActorRotation.ToString(),
+				*MeshLocation.ToString(),
+				*MeshRotation.ToString(),
+				*GetNameSafe(ViewTarget),
+				*ViewLocation.ToString(),
+				*ViewRotation.ToString(),
+				*GetNameSafe(DriverCharacter));
+		}
+
 		TruckMovePacketSendTimer += DeltaTime;
 		if (TruckMovePacketSendTimer >= TRUCK_MOVE_PACKET_SEND_DELAY)
 		{
@@ -273,10 +303,14 @@ void ATruck::SendTruckMovePacket()
 
 void ATruck::SetLocallyDriven(bool bLocallyDriven)
 {
-	if (USkeletalMeshComponent* TruckMesh = GetMesh())
-	{
-		TruckMesh->SetSimulatePhysics(bLocallyDriven);
-	}
+	bIsLocallyDriven = bLocallyDriven;
+
+	UE_LOG(LogTemp, Warning,
+		TEXT("[TruckDebug] SetLocallyDriven Truck=%s bLocallyDriven=%d Controller=%s IsPlayerControlled=%d"),
+		*GetNameSafe(this),
+		bLocallyDriven ? 1 : 0,
+		*GetNameSafe(GetController()),
+		IsPlayerControlled() ? 1 : 0);
 
 	if (auto* MoveComp = Cast<UChaosWheeledVehicleMovementComponent>(GetVehicleMovement()))
 	{
@@ -287,6 +321,15 @@ void ATruck::SetLocallyDriven(bool bLocallyDriven)
 			MoveComp->SetThrottleInput(0.0f);
 			MoveComp->SetSteeringInput(0.0f);
 			MoveComp->SetBrakeInput(1.0f);
+		}
+	}
+
+	if (USkeletalMeshComponent* TruckMesh = GetMesh())
+	{
+		// Remote trucks are driven by replicated transforms, not local vehicle physics.
+		if (!bLocallyDriven && TruckMesh->IsSimulatingPhysics())
+		{
+			TruckMesh->SetSimulatePhysics(false);
 		}
 	}
 }
@@ -515,6 +558,14 @@ void ATruck::AddCargoVisual(EItemType ItemType)
 
 void ATruck::Interact_Implementation(AFPSBaseCharacter* Character)
 {
+	UE_LOG(LogTemp, Warning,
+		TEXT("[TruckDebug] Interact Truck=%s Character=%s InteractType=%d Local=%d Driver=%s"),
+		*GetNameSafe(this),
+		*GetNameSafe(Character),
+		Character ? static_cast<int32>(Character->GetCurrentTruckInteractType()) : -1,
+		Character && Character->IsLocallyControlled() ? 1 : 0,
+		*GetNameSafe(DriverCharacter));
+
 	if (!Character)
 	{
 		return;
@@ -564,6 +615,12 @@ void ATruck::Interact_Implementation(AFPSBaseCharacter* Character)
 	// 운전석 탑승
 	if (Character->GetCurrentTruckInteractType() == ETruckInteractType::DriverSeat)
 	{
+		UE_LOG(LogTemp, Warning,
+			TEXT("[TruckDebug] DriverSeatRequest Truck=%s Character=%s Local=%d"),
+			*GetNameSafe(this),
+			*GetNameSafe(Character),
+			Character->IsLocallyControlled() ? 1 : 0);
+
 		if (DriverCharacter && DriverCharacter != Character)
 		{
 			UE_LOG(LogTemp, Warning, TEXT("Driver seat already occupied by %s"), *GetNameSafe(DriverCharacter));
@@ -572,6 +629,14 @@ void ATruck::Interact_Implementation(AFPSBaseCharacter* Character)
 
 		if (Character->IsLocallyControlled())
 		{
+			if (UFPSProjectGameInstance* GameInstance = Cast<UFPSProjectGameInstance>(Character->GetGameInstance()))
+			{
+				if (GameInstance->TryEnterTruckLocally(Character, this, Protocol::TRUCK_SEAT_DRIVER))
+				{
+					return;
+				}
+			}
+
 			Protocol::C_ENTER_TRUCK EnterPkt;
 			EnterPkt.set_truck_id(NetworkTruckId);
 			EnterPkt.set_seat_type(Protocol::TRUCK_SEAT_DRIVER);
@@ -583,6 +648,14 @@ void ATruck::Interact_Implementation(AFPSBaseCharacter* Character)
 		UE_LOG(LogTemp, Log, TEXT("Cargo Seat!"));
 		if (!Character->IsOnTruckCargo() && Character->IsLocallyControlled())
 		{
+			if (UFPSProjectGameInstance* GameInstance = Cast<UFPSProjectGameInstance>(Character->GetGameInstance()))
+			{
+				if (GameInstance->TryEnterTruckLocally(Character, this, Protocol::TRUCK_SEAT_CARGO))
+				{
+					return;
+				}
+			}
+
 			Protocol::C_ENTER_TRUCK EnterPkt;
 			EnterPkt.set_truck_id(NetworkTruckId);
 			EnterPkt.set_seat_type(Protocol::TRUCK_SEAT_CARGO);
@@ -618,6 +691,14 @@ bool ATruck::TryEnterMountedWeapon(AFPSBaseCharacter* Character)
 
 	if (Character->IsLocallyControlled())
 	{
+		if (UFPSProjectGameInstance* GameInstance = Cast<UFPSProjectGameInstance>(Character->GetGameInstance()))
+		{
+			if (GameInstance->TryEnterTruckLocally(Character, this, Protocol::TRUCK_SEAT_TURRET))
+			{
+				return true;
+			}
+		}
+
 		Protocol::C_ENTER_TRUCK EnterPkt;
 		EnterPkt.set_truck_id(NetworkTruckId);
 		EnterPkt.set_seat_type(Protocol::TRUCK_SEAT_TURRET);
@@ -644,6 +725,14 @@ void ATruck::ExitDriverSeat()
 
 	if (CharacterToRestore->IsLocallyControlled())
 	{
+		if (UFPSProjectGameInstance* GameInstance = Cast<UFPSProjectGameInstance>(CharacterToRestore->GetGameInstance()))
+		{
+			if (GameInstance->TryExitTruckLocally(CharacterToRestore))
+			{
+				return;
+			}
+		}
+
 		Protocol::C_EXIT_TRUCK ExitPkt;
 		SEND_PACKET(ExitPkt);
 	}

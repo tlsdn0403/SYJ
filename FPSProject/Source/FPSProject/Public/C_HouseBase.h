@@ -4,23 +4,24 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "Components/ChildActorComponent.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
-
 #include "C_HouseBase.generated.h"
 
 UCLASS()
 class FPSPROJECT_API AC_HouseBase : public AActor
 {
 	GENERATED_BODY()
-	
-public:	
-	// Sets default values for this actor's properties
+
+public:
 	AC_HouseBase();
 
 protected:
 	virtual void OnConstruction(const FTransform& Transform) override;
 
 public:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Network")
+	TArray<int32> DoorNetworkIds;
 
 	UPROPERTY(VisibleAnywhere)
 	USceneComponent* Root;
@@ -35,7 +36,8 @@ public:
 	TArray<FTransform> PillarOffsets;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MySettings")
-	int32 Fwidth = 3;	//바닥 가로칸수
+	int32 Fwidth = 3;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MySettings")
-	int32 Flength = 1;	//바닥 세로칸수
+	int32 Flength = 1;
 };

@@ -145,6 +145,7 @@ public:
 	void SetMountedWeaponUser(AFPSBaseCharacter* Character) { MountedWeaponUser = Character; }
 	AFPSBaseCharacter* GetMountedWeaponUser() const { return MountedWeaponUser; }
 	void SetLocallyDriven(bool bLocallyDriven);
+	bool IsLocallyDriven() const { return bIsLocallyDriven; }
 
 	UFUNCTION(BlueprintCallable, Category = "Turret")
 	bool TryEnterMountedWeapon(AFPSBaseCharacter* Character);
@@ -252,9 +253,11 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
 	float BrakeSoundMinSpeed = 300.0f;
 private:
+	bool bIsLocallyDriven = false;
 	bool bIsBrakingSoundPlaying = false;
 	bool bBrakePressedLastFrame = false;
 	float TruckMovePacketSendTimer = 0.0f;
+	float DebugTransformLogTimer = 0.0f;
 	static constexpr float TRUCK_MOVE_PACKET_SEND_DELAY = 0.05f;
 
 	UPROPERTY()

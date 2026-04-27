@@ -14,6 +14,9 @@ struct FStage2LoadedTile
 	GENERATED_BODY()
 
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "Stage2")
+	TSoftObjectPtr<UWorld> SourceLevel = nullptr;
+
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Stage2")
 	TObjectPtr<ULevelStreamingDynamic> StreamingLevel = nullptr;
 
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "Stage2")
@@ -21,6 +24,12 @@ struct FStage2LoadedTile
 
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "Stage2")
 	EStage2TileType TileType = EStage2TileType::Straight;
+
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Stage2")
+	FTransform RequestedEntryTransform;
+
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Stage2")
+	FTransform AppliedLevelTransform;
 
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "Stage2")
 	bool bInitialized = false;
@@ -113,6 +122,7 @@ private:
 	int32 ConsecutiveLeftTurns = 0;
 	int32 ConsecutiveRightTurns = 0;
 	FRandomStream RandomStream;
+	TMap<FSoftObjectPath, FTransform> CachedEntryLocalTransforms;
 
 	bool TrySpawnTileLevel(const TSoftObjectPtr<UWorld>& TileLevel, EStage2TileType TileType, const FTransform& SpawnTransform);
 	void TryFinalizeLoadedTiles();

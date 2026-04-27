@@ -109,12 +109,18 @@ bool AStage2TileManager::TrySpawnTileLevel(const TSoftObjectPtr<UWorld>& TileLev
 		return false;
 	}
 
+	FTransform LevelTransformToApply = SpawnTransform;
+	const FSoftObjectPath LevelPath = TileLevel.ToSoftObjectPath();
+	if (const FTransform* CachedEntryLocalTransform = CachedEntryLocalTransforms.Find(LevelPath))
+	{
+		LevelTransformToApply = CachedEntryLocalTransform->Inverse() * SpawnTransform;
+	}
+
 	bool bLoadSucceeded = false;
 	ULevelStreamingDynamic* StreamingLevel = ULevelStreamingDynamic::LoadLevelInstanceBySoftObjectPtr(
 		this,
 		TileLevel,
-		SpawnTransform.GetLocation(),
-		SpawnTransform.Rotator(),
+		LevelTransformToApply,
 		bLoadSucceeded);
 
 	if (!bLoadSucceeded || !StreamingLevel)
@@ -123,15 +129,19 @@ bool AStage2TileManager::TrySpawnTileLevel(const TSoftObjectPtr<UWorld>& TileLev
 	}
 
 	FStage2LoadedTile& LoadedTile = ActiveTiles.AddDefaulted_GetRef();
+	LoadedTile.SourceLevel = TileLevel;
 	LoadedTile.StreamingLevel = StreamingLevel;
 	LoadedTile.TileType = TileType;
+	LoadedTile.RequestedEntryTransform = SpawnTransform;
+	LoadedTile.AppliedLevelTransform = LevelTransformToApply;
 	LoadedTile.bInitialized = false;
 
 	if (bVerboseLog)
 	{
-		UE_LOG(LogTemp, Log, TEXT("Stage2TileManager: Requested load for %s at %s"),
+		UE_LOG(LogTemp, Log, TEXT("Stage2TileManager: Requested load for %s | Requested=%s | Applied=%s"),
 			*TileLevel.ToSoftObjectPath().ToString(),
-			*SpawnTransform.GetLocation().ToString());
+			*SpawnTransform.GetLocation().ToString(),
+			*LevelTransformToApply.GetLocation().ToString());
 	}
 
 	return true;
@@ -151,7 +161,7 @@ void AStage2TileManager::TryFinalizeLoadedTiles()
 				continue;
 			}
 
-			if (!LoadedTile.StreamingLevel->IsLevelLoaded())
+			if (!LoadedTile.StreamingLevel->IsLevelLoaded() || !LoadedTile.StreamingLevel->IsLevelVisible())
 			{
 				continue;
 			}
@@ -190,6 +200,12 @@ void AStage2TileManager::FinalizeLoadedTile(int32 TileIndex)
 
 	AStage2TileMarker* TileMarker = LoadedTile.TileMarker;
 	const EStage2TileType TileType = LoadedTile.TileType;
+	const FSoftObjectPath SourceLevelPath = LoadedTile.SourceLevel.ToSoftObjectPath();
+
+	if (SourceLevelPath.IsValid())
+	{
+		CachedEntryLocalTransforms.Add(SourceLevelPath, TileMarker->GetEntryTransform().GetRelativeTransform(LoadedTile.AppliedLevelTransform));
+	}
 
 	TileMarker->ResetNextTileTrigger();
 	TileMarker->SetNextTileTriggerEnabled(TileType != EStage2TileType::Goal);
@@ -233,7 +249,17 @@ void AStage2TileManager::UpdateNextSpawnTransformFromTile(const AStage2TileMarke
 		return;
 	}
 
-	NextSpawnTransform = TileMarker->GetExitTransform();
+	const FTransform ExitTransform = TileMarker->GetExitTransform();
+	NextSpawnTransform = TileMarker->GetNextTileSpawnTransform();
+
+	if (bVerboseLog)
+	{
+		UE_LOG(LogTemp, Log, TEXT("Stage2TileManager: Next spawn transform from %s | Entry=%s Exit=%s Spawn=%s"),
+			*GetNameSafe(TileMarker),
+			*TileMarker->GetEntryTransform().GetLocation().ToString(),
+			*ExitTransform.GetLocation().ToString(),
+			*NextSpawnTransform.GetLocation().ToString());
+	}
 }
 
 void AStage2TileManager::TrimOldTiles()

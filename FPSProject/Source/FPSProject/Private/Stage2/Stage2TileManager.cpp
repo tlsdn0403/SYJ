@@ -139,52 +139,74 @@ bool AStage2TileManager::TrySpawnTileLevel(const TSoftObjectPtr<UWorld>& TileLev
 
 void AStage2TileManager::TryFinalizeLoadedTiles()
 {
-	for (FStage2LoadedTile& LoadedTile : ActiveTiles)
+	while (true)
 	{
-		if (LoadedTile.bInitialized || !LoadedTile.StreamingLevel)
+		bool bFinalizedTileThisPass = false;
+
+		for (int32 TileIndex = 0; TileIndex < ActiveTiles.Num(); ++TileIndex)
 		{
-			continue;
+			FStage2LoadedTile& LoadedTile = ActiveTiles[TileIndex];
+			if (LoadedTile.bInitialized || !LoadedTile.StreamingLevel)
+			{
+				continue;
+			}
+
+			if (!LoadedTile.StreamingLevel->IsLevelLoaded())
+			{
+				continue;
+			}
+
+			AStage2TileMarker* TileMarker = FindTileMarkerFromStreamingLevel(LoadedTile.StreamingLevel);
+			if (!TileMarker)
+			{
+				continue;
+			}
+
+			LoadedTile.TileMarker = TileMarker;
+			FinalizeLoadedTile(TileIndex);
+			bFinalizedTileThisPass = true;
+			break;
 		}
 
-		if (!LoadedTile.StreamingLevel->IsLevelLoaded())
+		if (!bFinalizedTileThisPass)
 		{
-			continue;
+			break;
 		}
-
-		AStage2TileMarker* TileMarker = FindTileMarkerFromStreamingLevel(LoadedTile.StreamingLevel);
-		if (!TileMarker)
-		{
-			continue;
-		}
-
-		LoadedTile.TileMarker = TileMarker;
-		FinalizeLoadedTile(LoadedTile);
 	}
 }
 
-void AStage2TileManager::FinalizeLoadedTile(FStage2LoadedTile& LoadedTile)
+void AStage2TileManager::FinalizeLoadedTile(int32 TileIndex)
 {
+	if (!ActiveTiles.IsValidIndex(TileIndex))
+	{
+		return;
+	}
+
+	FStage2LoadedTile& LoadedTile = ActiveTiles[TileIndex];
 	if (LoadedTile.bInitialized || !LoadedTile.TileMarker)
 	{
 		return;
 	}
 
-	LoadedTile.TileMarker->ResetNextTileTrigger();
-	LoadedTile.TileMarker->SetNextTileTriggerEnabled(LoadedTile.TileType != EStage2TileType::Goal);
-	LoadedTile.TileMarker->OnNextTileTriggerEntered.AddUniqueDynamic(this, &AStage2TileManager::HandleTileTrigger);
+	AStage2TileMarker* TileMarker = LoadedTile.TileMarker;
+	const EStage2TileType TileType = LoadedTile.TileType;
 
-	UpdateNextSpawnTransformFromTile(LoadedTile.TileMarker);
+	TileMarker->ResetNextTileTrigger();
+	TileMarker->SetNextTileTriggerEnabled(TileType != EStage2TileType::Goal);
+	TileMarker->OnNextTileTriggerEntered.AddUniqueDynamic(this, &AStage2TileManager::HandleTileTrigger);
+
+	UpdateNextSpawnTransformFromTile(TileMarker);
 	LoadedTile.bInitialized = true;
 
-	if (LoadedTile.TileType == EStage2TileType::Straight ||
-		LoadedTile.TileType == EStage2TileType::Left ||
-		LoadedTile.TileType == EStage2TileType::Right)
+	if (TileType == EStage2TileType::Straight ||
+		TileType == EStage2TileType::Left ||
+		TileType == EStage2TileType::Right)
 	{
 		++SpawnedPlayableTileCount;
-		UpdateTurnHistory(LoadedTile.TileType);
+		UpdateTurnHistory(TileType);
 	}
 
-	if (LoadedTile.TileType == EStage2TileType::Goal)
+	if (TileType == EStage2TileType::Goal)
 	{
 		bGoalTileSpawnRequested = true;
 	}
@@ -192,13 +214,13 @@ void AStage2TileManager::FinalizeLoadedTile(FStage2LoadedTile& LoadedTile)
 	if (bVerboseLog)
 	{
 		UE_LOG(LogTemp, Log, TEXT("Stage2TileManager: Finalized tile %s (%d)"),
-			*GetNameSafe(LoadedTile.TileMarker),
-			static_cast<int32>(LoadedTile.TileType));
+			*GetNameSafe(TileMarker),
+			static_cast<int32>(TileType));
 	}
 
 	TrimOldTiles();
 
-	if (GetInitializedTileCount() < InitialTilesToSpawn && LoadedTile.TileType != EStage2TileType::Goal)
+	if (GetInitializedTileCount() < InitialTilesToSpawn && TileType != EStage2TileType::Goal)
 	{
 		SpawnNextTile();
 	}

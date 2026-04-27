@@ -116,7 +116,7 @@ private:
 
 	bool TrySpawnTileLevel(const TSoftObjectPtr<UWorld>& TileLevel, EStage2TileType TileType, const FTransform& SpawnTransform);
 	void TryFinalizeLoadedTiles();
-	void FinalizeLoadedTile(FStage2LoadedTile& LoadedTile);
+	void FinalizeLoadedTile(int32 TileIndex);
 	void UpdateNextSpawnTransformFromTile(const AStage2TileMarker* TileMarker);
 	void TrimOldTiles();
 	void ResetGenerationState();

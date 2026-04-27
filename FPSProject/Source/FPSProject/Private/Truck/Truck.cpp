@@ -172,6 +172,7 @@ void ATruck::BeginPlay()
 
 	if (USkeletalMeshComponent* TruckMesh = GetMesh())
 	{
+		TruckMesh->SetGenerateOverlapEvents(true);
 		TruckMesh->SetNotifyRigidBodyCollision(true);
 		TruckMesh->OnComponentHit.AddDynamic(this, &ATruck::OnTruckMeshHit);
 	}
@@ -409,7 +410,7 @@ void ATruck::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 
 void ATruck::MoveForward(float Value)
 {
-	UE_LOG(LogTemp, Warning, TEXT("Throttle Input: %f"), Value);
+	/*UE_LOG(LogTemp, Warning, TEXT("Throttle Input: %f"), Value);*/
 	if (auto* MoveComp = Cast<UChaosWheeledVehicleMovementComponent>(GetVehicleMovement()))
 	{
 		MoveComp->SetThrottleInput(Value);
@@ -902,7 +903,7 @@ void ATruck::UpdateEngineSound()
 	if (MoveComp)
 	{
 		float CurrentRPM = MoveComp->GetEngineRotationSpeed();
-		UE_LOG(LogTemp, Warning, TEXT("CurrentRPM: %f"), CurrentRPM);
+		/*UE_LOG(LogTemp, Warning, TEXT("CurrentRPM: %f"), CurrentRPM);*/
 		EngineAudioComponent->SetFloatParameter(TEXT("RPM"), CurrentRPM);
 	}
 }

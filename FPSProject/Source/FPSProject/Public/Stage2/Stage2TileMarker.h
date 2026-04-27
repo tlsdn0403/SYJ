@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GameFramework/Actor.h"
 #include "Stage2TileMarker.generated.h"
 
 class AActor;
@@ -60,6 +61,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Stage2")
 	FTransform GetExitTransform() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Stage2")
+	FTransform GetNextTileSpawnTransform() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Stage2")
 	void ResetNextTileTrigger();

@@ -272,7 +272,15 @@ void AStage2TileManager::TrimOldTiles()
 			ActiveTiles[0].TileType == EStage2TileType::Start &&
 			ActiveTiles.Num() > 1)
 		{
-			RemoveIndex = 1;
+			if (MaxActiveTiles >= 3)
+			{
+				RemoveIndex = 1;
+			}
+			else if (!bLoggedKeepStartConflict)
+			{
+				bLoggedKeepStartConflict = true;
+				UE_LOG(LogTemp, Warning, TEXT("Stage2TileManager: bKeepStartTileLoaded is enabled but MaxActiveTiles is %d. The start tile will be unloaded first to avoid removing the bridge tile the truck is currently using."), MaxActiveTiles);
+			}
 		}
 
 		FStage2LoadedTile RemovedTile = ActiveTiles[RemoveIndex];
@@ -296,6 +304,7 @@ void AStage2TileManager::ResetGenerationState()
 {
 	bGenerationStarted = false;
 	bGoalTileSpawnRequested = false;
+	bLoggedKeepStartConflict = false;
 	ConsecutiveLeftTurns = 0;
 	ConsecutiveRightTurns = 0;
 	SpawnedPlayableTileCount = 0;

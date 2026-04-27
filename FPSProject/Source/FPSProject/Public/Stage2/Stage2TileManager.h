@@ -119,6 +119,7 @@ protected:
 private:
 	bool bGenerationStarted = false;
 	bool bGoalTileSpawnRequested = false;
+	bool bLoggedKeepStartConflict = false;
 	int32 ConsecutiveLeftTurns = 0;
 	int32 ConsecutiveRightTurns = 0;
 	FRandomStream RandomStream;

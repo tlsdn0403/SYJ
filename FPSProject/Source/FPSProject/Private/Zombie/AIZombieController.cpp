@@ -1,41 +1,62 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-
 #include "Zombie/AIZombieController.h"
-#include "Zombie/BaseZombie.h"
+
 #include "BehaviorTree/BehaviorTree.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "Characters/FPSBaseCharacter.h"
 #include "Kismet/GameplayStatics.h"
+#include "Perception/AIPerceptionComponent.h"
+#include "Perception/AISenseConfig_Hearing.h"
+#include "Perception/AISenseConfig_Sight.h"
 #include "Truck/Truck.h"
-
+#include "Zombie/BaseZombie.h"
 
 const FName AAIZombieController::TargetPlayerKey = FName("TargetPlayer");
+const FName AAIZombieController::PlayerLocationKey = FName("PlayerLocation");
 
 namespace
 {
-    AActor* ResolveZombieTarget(APawn* PlayerPawn)
-    {
-        AFPSBaseCharacter* PlayerCharacter = Cast<AFPSBaseCharacter>(PlayerPawn);
-        if (PlayerCharacter &&
-            IsValid(PlayerCharacter->CurrentTruck) &&
-            (PlayerCharacter->IsDrivingTruck() ||
-                PlayerCharacter->IsOnTruckCargo() ||
-                PlayerCharacter->IsUsingMountedWeapon()))
-        {
-            return PlayerCharacter->CurrentTruck;
-        }
+	AActor* ResolveTargetActorFromPawn(APawn* PlayerPawn)
+	{
+		AFPSBaseCharacter* PlayerCharacter = Cast<AFPSBaseCharacter>(PlayerPawn);
+		if (PlayerCharacter &&
+			IsValid(PlayerCharacter->CurrentTruck) &&
+			(PlayerCharacter->IsDrivingTruck() ||
+				PlayerCharacter->IsOnTruckCargo() ||
+				PlayerCharacter->IsUsingMountedWeapon()))
+		{
+			return PlayerCharacter->CurrentTruck;
+		}
 
-        return PlayerPawn;
-    }
+		return PlayerPawn;
+	}
+}
+
+AAIZombieController::AAIZombieController()
+{
+	PrimaryActorTick.bCanEverTick = true;
+
+	ZombiePerceptionComponent = CreateDefaultSubobject<UAIPerceptionComponent>(TEXT("ZombiePerception"));
+	SetPerceptionComponent(*ZombiePerceptionComponent);
+
+	SightConfig = CreateDefaultSubobject<UAISenseConfig_Sight>(TEXT("SightConfig"));
+	HearingConfig = CreateDefaultSubobject<UAISenseConfig_Hearing>(TEXT("HearingConfig"));
 }
 
 void AAIZombieController::BeginPlay()
 {
 	Super::BeginPlay();
-	PlayerPawn = UGameplayStatics::GetPlayerPawn(GetWorld(), 0.f);
 
-	if(ZombieBehaviorTree)
+	PlayerPawn = UGameplayStatics::GetPlayerPawn(GetWorld(), 0);
+	RefreshPerceptionConfig();
+
+	if (ZombiePerceptionComponent)
+	{
+		ZombiePerceptionComponent->OnTargetPerceptionUpdated.AddDynamic(this, &AAIZombieController::HandleTargetPerceptionUpdated);
+	}
+
+	if (ZombieBehaviorTree)
 	{
 		RunBehaviorTree(ZombieBehaviorTree);
 	}
@@ -43,100 +64,199 @@ void AAIZombieController::BeginPlay()
 
 void AAIZombieController::Tick(float DeltaSeconds)
 {
-    Super::Tick(DeltaSeconds);
+	Super::Tick(DeltaSeconds);
 
-    if (ABaseZombie* Zombie = Cast<ABaseZombie>(GetPawn()))
-    {
-        if (!Zombie->IsAlive())
-        {
-            ClearFocus(EAIFocusPriority::Gameplay);
+	UBlackboardComponent* BlackboardComponent = GetBlackboardComponent();
+	if (!BlackboardComponent)
+	{
+		return;
+	}
 
-            if (GetBlackboardComponent())
-            {
-                GetBlackboardComponent()->ClearValue(TargetPlayerKey);
-            }
+	if (!IsZombieAlive())
+	{
+		ClearCurrentTarget(BlackboardComponent);
+		return;
+	}
 
-            return;
-        }
-    }
+	PlayerPawn = UGameplayStatics::GetPlayerPawn(GetWorld(), 0);
+	AActor* PrimaryTargetActor = ResolvePrimaryTargetActor();
+	const float CurrentTime = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0f;
 
-    UBlackboardComponent* BlackboardComponent = GetBlackboardComponent();
-    if (!BlackboardComponent)
-    {
-        return;
-    }
+	if (PrimaryTargetActor && (HasActivePerceptionFor(PrimaryTargetActor) || CanForceAwarenessFor(PrimaryTargetActor)))
+	{
+		RememberTarget(PrimaryTargetActor, PrimaryTargetActor->GetActorLocation());
+	}
+	else if (CurrentTargetActor.IsValid() && HasActivePerceptionFor(CurrentTargetActor.Get()))
+	{
+		RememberTarget(CurrentTargetActor.Get(), CurrentTargetActor->GetActorLocation());
+	}
 
-    PlayerPawn = UGameplayStatics::GetPlayerPawn(GetWorld(), 0);
-    if (!PlayerPawn)
-    {
-        ClearFocus(EAIFocusPriority::Gameplay);
-        BlackboardComponent->ClearValue(TargetPlayerKey);
-        bHasKnownTarget = false;
-        return;
-    }
+	AActor* TargetActor = CurrentTargetActor.Get();
+	const bool bHasValidTargetActor = IsValid(TargetActor);
+	const bool bCanUseMemory =
+		bHasValidTargetActor &&
+		bHasKnownTarget &&
+		(CurrentTime - LastTargetSeenTime) <= GetMemoryDurationForTarget(TargetActor);
 
-    AActor* TargetActor = ResolveZombieTarget(PlayerPawn);
-    if (!TargetActor)
-    {
-        ClearFocus(EAIFocusPriority::Gameplay);
-        BlackboardComponent->ClearValue(TargetPlayerKey);
-        bHasKnownTarget = false;
-        return;
-    }
+	if (bHasValidTargetActor && (HasActivePerceptionFor(TargetActor) || CanForceAwarenessFor(TargetActor) || bCanUseMemory))
+	{
+		const FVector TargetLocation = (HasActivePerceptionFor(TargetActor) || CanForceAwarenessFor(TargetActor))
+			? TargetActor->GetActorLocation()
+			: LastKnownTargetLocation;
+		UpdateBlackboardTarget(BlackboardComponent, TargetActor, TargetLocation);
+		return;
+	}
 
-    const bool bTargetIsTruck = TargetActor != PlayerPawn;
-    const float CurrentTime = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0f;
+	ClearCurrentTarget(BlackboardComponent);
+}
 
-    bool bCanDetectTarget = false;
-    if (bTargetIsTruck)
-    {
-        const float DistanceSq = GetPawn()
-            ? FVector::DistSquared(GetPawn()->GetActorLocation(), TargetActor->GetActorLocation())
-            : 0.0f;
+void AAIZombieController::RefreshPerceptionConfig()
+{
+	if (!ZombiePerceptionComponent || !SightConfig || !HearingConfig)
+	{
+		return;
+	}
 
-        // 트럭은 크고 소리가 나는 목표라서, 앞 좀비에게 시야가 가려져도 일정 거리 안에서는 계속 추적한다.
-        bCanDetectTarget =
-            DistanceSq <= FMath::Square(TruckAwarenessDistance) ||
-            LineOfSightTo(TargetActor) ||
-            LineOfSightTo(PlayerPawn);
-    }
-    else
-    {
-        bCanDetectTarget = LineOfSightTo(PlayerPawn);
+	SightConfig->SightRadius = SightRadius;
+	SightConfig->LoseSightRadius = LoseSightRadius;
+	SightConfig->PeripheralVisionAngleDegrees = SightHalfAngleDegrees;
+	SightConfig->AutoSuccessRangeFromLastSeenLocation = SightAutoSuccessRange;
+	SightConfig->SetMaxAge(TargetMemoryDuration);
+	SightConfig->DetectionByAffiliation.bDetectEnemies = true;
+	SightConfig->DetectionByAffiliation.bDetectFriendlies = true;
+	SightConfig->DetectionByAffiliation.bDetectNeutrals = true;
 
-        if (bCanDetectTarget && GetPawn())
-        {
-            const FVector Forward = GetPawn()->GetActorForwardVector();
-            const FVector TargetDir = (TargetActor->GetActorLocation() - GetPawn()->GetActorLocation()).GetSafeNormal();
-            const float DotProduct = FVector::DotProduct(Forward, TargetDir);
-            if (DotProduct < SightDotThreshold)
-            {
-                bCanDetectTarget = false;
-            }
-        }
-    }
+	HearingConfig->HearingRange = HearingRange;
+	HearingConfig->SetMaxAge(HearingMemoryDuration);
+	HearingConfig->DetectionByAffiliation.bDetectEnemies = true;
+	HearingConfig->DetectionByAffiliation.bDetectFriendlies = true;
+	HearingConfig->DetectionByAffiliation.bDetectNeutrals = true;
 
-    if (bCanDetectTarget)
-    {
-        bHasKnownTarget = true;
-        LastTargetSeenTime = CurrentTime;
-        LastKnownTargetLocation = TargetActor->GetActorLocation();
-    }
+	ZombiePerceptionComponent->ConfigureSense(*SightConfig);
+	ZombiePerceptionComponent->ConfigureSense(*HearingConfig);
+	ZombiePerceptionComponent->SetDominantSense(SightConfig->GetSenseImplementation());
+	ZombiePerceptionComponent->RequestStimuliListenerUpdate();
+}
 
-    const float MemoryDuration = bTargetIsTruck ? TruckTargetMemoryDuration : TargetMemoryDuration;
-    const bool bCanUseMemory = bHasKnownTarget && (CurrentTime - LastTargetSeenTime) <= MemoryDuration;
+AActor* AAIZombieController::ResolvePrimaryTargetActor() const
+{
+	return ResolveTargetActorFromPawn(PlayerPawn);
+}
 
-    if (bCanDetectTarget || bCanUseMemory)
-    {
-        SetFocus(TargetActor);
-        BlackboardComponent->SetValueAsObject(TargetPlayerKey, PlayerPawn);
-        BlackboardComponent->SetValueAsVector(
-            FName("PlayerLocation"),
-            bCanDetectTarget ? TargetActor->GetActorLocation() : LastKnownTargetLocation);
-    }
-    else
-    {
-        ClearFocus(EAIFocusPriority::Gameplay);
-        BlackboardComponent->ClearValue(TargetPlayerKey);
-    }
+bool AAIZombieController::IsZombieAlive() const
+{
+	const ABaseZombie* Zombie = Cast<ABaseZombie>(GetPawn());
+	return Zombie && Zombie->IsAlive();
+}
+
+bool AAIZombieController::HasActivePerceptionFor(AActor* TargetActor) const
+{
+	if (!ZombiePerceptionComponent || !TargetActor)
+	{
+		return false;
+	}
+
+	FActorPerceptionBlueprintInfo PerceptionInfo;
+	ZombiePerceptionComponent->GetActorsPerception(TargetActor, PerceptionInfo);
+	for (const FAIStimulus& Stimulus : PerceptionInfo.LastSensedStimuli)
+	{
+		if (Stimulus.WasSuccessfullySensed())
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool AAIZombieController::CanForceAwarenessFor(AActor* TargetActor) const
+{
+	const APawn* ZombiePawn = GetPawn();
+	if (!ZombiePawn || !TargetActor)
+	{
+		return false;
+	}
+
+	const FVector ZombieLocation = ZombiePawn->GetActorLocation();
+	const FVector TargetLocation = TargetActor->GetActorLocation();
+	const float Distance2D = FVector::Dist2D(ZombieLocation, TargetLocation);
+	const float HeightDelta = FMath::Abs(ZombieLocation.Z - TargetLocation.Z);
+
+	if (TargetActor->IsA<ATruck>())
+	{
+		return Distance2D <= TruckAwarenessDistance && HeightDelta <= TruckAwarenessHeightTolerance;
+	}
+
+	return Distance2D <= PlayerAwarenessDistance && HeightDelta <= PlayerAwarenessHeightTolerance;
+}
+
+float AAIZombieController::GetMemoryDurationForTarget(AActor* TargetActor) const
+{
+	return TargetActor && TargetActor->IsA<ATruck>() ? TruckTargetMemoryDuration : TargetMemoryDuration;
+}
+
+void AAIZombieController::RememberTarget(AActor* TargetActor, const FVector& KnownLocation)
+{
+	if (!TargetActor)
+	{
+		return;
+	}
+
+	CurrentTargetActor = TargetActor;
+	LastTargetSeenTime = GetWorld() ? GetWorld()->GetTimeSeconds() : LastTargetSeenTime;
+	LastKnownTargetLocation = KnownLocation;
+	bHasKnownTarget = true;
+}
+
+void AAIZombieController::ClearCurrentTarget(UBlackboardComponent* BlackboardComponent)
+{
+	ClearFocus(EAIFocusPriority::Gameplay);
+	CurrentTargetActor.Reset();
+	bHasKnownTarget = false;
+
+	if (BlackboardComponent)
+	{
+		BlackboardComponent->ClearValue(TargetPlayerKey);
+		BlackboardComponent->ClearValue(PlayerLocationKey);
+	}
+}
+
+void AAIZombieController::UpdateBlackboardTarget(UBlackboardComponent* BlackboardComponent, AActor* TargetActor, const FVector& TargetLocation)
+{
+	if (!BlackboardComponent || !TargetActor)
+	{
+		return;
+	}
+
+	SetFocus(TargetActor);
+	BlackboardComponent->SetValueAsObject(TargetPlayerKey, TargetActor);
+	BlackboardComponent->SetValueAsVector(PlayerLocationKey, TargetLocation);
+}
+
+void AAIZombieController::HandleTargetPerceptionUpdated(AActor* UpdatedActor, FAIStimulus Stimulus)
+{
+	if (!UpdatedActor)
+	{
+		return;
+	}
+
+	AActor* PrimaryTargetActor = ResolvePrimaryTargetActor();
+	if (!PrimaryTargetActor)
+	{
+		return;
+	}
+
+	const bool bMatchesTrackedPlayer =
+		UpdatedActor == PlayerPawn ||
+		UpdatedActor == PrimaryTargetActor;
+	if (!bMatchesTrackedPlayer)
+	{
+		return;
+	}
+
+	if (Stimulus.WasSuccessfullySensed())
+	{
+		AActor* SensedActor = UpdatedActor == PlayerPawn ? PrimaryTargetActor : UpdatedActor;
+		RememberTarget(SensedActor, Stimulus.StimulusLocation);
+	}
 }

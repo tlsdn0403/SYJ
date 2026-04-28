@@ -104,6 +104,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stage2|Rules")
 	int32 RandomSeed = 12345;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stage2|Navigation")
+	bool bRebuildNavigationAfterTileLoad = true;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stage2|Debug")
 	bool bVerboseLog = true;
 
@@ -136,6 +139,7 @@ private:
 	TSoftObjectPtr<UWorld> ChooseLevelForTileType(EStage2TileType TileType);
 	TSoftObjectPtr<UWorld> ChooseRandomLevelFromArray(const TArray<TSoftObjectPtr<UWorld>>& LevelArray);
 	AStage2TileMarker* FindTileMarkerFromStreamingLevel(ULevelStreamingDynamic* StreamingLevel) const;
+	void RefreshNavigationForStreamingTile(const FStage2LoadedTile& LoadedTile) const;
 	int32 GetInitializedTileCount() const;
 	bool HasPendingUninitializedTile() const;
 

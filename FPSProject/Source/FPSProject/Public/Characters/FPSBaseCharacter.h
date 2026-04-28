@@ -9,6 +9,7 @@
 
 class UCameraComponent;
 class USkeletalMeshComponent;
+class UAIPerceptionStimuliSourceComponent;
 class AWeaponBase;
 class AActor;
 class USpringArmComponent;
@@ -144,6 +145,9 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FPS|Components")
 	UHealthComponent* HealthComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AI|Perception")
+	UAIPerceptionStimuliSourceComponent* ZombieStimuliSource;
 
 	UPROPERTY(EditAnywhere, Category = "Weapon")
 	TSubclassOf<class AWeaponBase> WeaponClass;

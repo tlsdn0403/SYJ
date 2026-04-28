@@ -3,6 +3,7 @@
 #include "Engine/Level.h"
 #include "Engine/LevelStreamingDynamic.h"
 #include "Engine/World.h"
+#include "NavigationSystem.h"
 
 AStage2TileManager::AStage2TileManager()
 {
@@ -235,6 +236,7 @@ void AStage2TileManager::FinalizeLoadedTile(int32 TileIndex)
 	}
 
 	TrimOldTiles();
+	RefreshNavigationForStreamingTile(LoadedTile);
 
 	if (GetInitializedTileCount() < InitialTilesToSpawn && TileType != EStage2TileType::Goal)
 	{
@@ -457,6 +459,34 @@ AStage2TileMarker* AStage2TileManager::FindTileMarkerFromStreamingLevel(ULevelSt
 	}
 
 	return nullptr;
+}
+
+void AStage2TileManager::RefreshNavigationForStreamingTile(const FStage2LoadedTile& LoadedTile) const
+{
+	if (!bRebuildNavigationAfterTileLoad)
+	{
+		return;
+	}
+
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+
+	UNavigationSystemV1* NavigationSystem = FNavigationSystem::GetCurrent<UNavigationSystemV1>(World);
+	if (!NavigationSystem)
+	{
+		return;
+	}
+
+	NavigationSystem->Build();
+
+	if (bVerboseLog)
+	{
+		UE_LOG(LogTemp, Log, TEXT("Stage2TileManager: Requested navigation rebuild after loading %s"),
+			*LoadedTile.SourceLevel.ToSoftObjectPath().ToString());
+	}
 }
 
 int32 AStage2TileManager::GetInitializedTileCount() const

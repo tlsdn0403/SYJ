@@ -19,6 +19,9 @@
 #include "ClientPacketHandler.h"
 #include "FPSProject.h"
 #include "FPSProjectGameInstance.h"
+#include "Perception/AIPerceptionStimuliSourceComponent.h"
+#include "Perception/AISense_Hearing.h"
+#include "Perception/AISense_Sight.h"
 
 ATruck::ATruck()
 {
@@ -75,6 +78,8 @@ ATruck::ATruck()
 	EngineAudioComponent = CreateDefaultSubobject<UAudioComponent>(TEXT("EngineAudio"));
 	EngineAudioComponent->SetupAttachment(RootComponent);
 	EngineAudioComponent->bAutoActivate = false;
+
+	ZombieStimuliSource = CreateDefaultSubobject<UAIPerceptionStimuliSourceComponent>(TEXT("ZombieStimuliSource"));
 
 	CargoOrigin = CreateDefaultSubobject<USceneComponent>(TEXT("CargoOrigin"));
 	CargoOrigin->SetupAttachment(RootComponent);
@@ -170,6 +175,13 @@ void ATruck::BeginPlay()
 {
 	Super::BeginPlay();
 
+	if (ZombieStimuliSource)
+	{
+		ZombieStimuliSource->RegisterForSense(UAISense_Sight::StaticClass());
+		ZombieStimuliSource->RegisterForSense(UAISense_Hearing::StaticClass());
+		ZombieStimuliSource->RegisterWithPerceptionSystem();
+	}
+
 	if (USkeletalMeshComponent* TruckMesh = GetMesh())
 	{
 		TruckMesh->SetGenerateOverlapEvents(true);
@@ -227,6 +239,7 @@ void ATruck::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 
 	CheckZombieImpactSweep();
+	ReportZombieAwarenessNoise(DeltaTime);
 
 	if (bIsLocallyDriven)
 	{
@@ -281,6 +294,38 @@ void ATruck::Tick(float DeltaTime)
 			EngineAudioComponent->Stop();
 		}
 	}
+}
+
+void ATruck::ReportZombieAwarenessNoise(float DeltaTime)
+{
+	ZombieNoiseTimer += DeltaTime;
+
+	const float Speed = GetVelocity().Size();
+	if (Speed < ZombieNoiseMinSpeed)
+	{
+		ZombieNoiseTimer = FMath::Min(ZombieNoiseTimer, ZombieNoiseInterval);
+		return;
+	}
+
+	if (ZombieNoiseTimer < ZombieNoiseInterval)
+	{
+		return;
+	}
+
+	ZombieNoiseTimer = 0.0f;
+
+	const float Loudness = FMath::GetMappedRangeValueClamped(
+		FVector2D(ZombieNoiseMinSpeed, ZombieNoiseMaxSpeed),
+		FVector2D(0.6f, 1.35f),
+		Speed);
+
+	UAISense_Hearing::ReportNoiseEvent(
+		GetWorld(),
+		GetActorLocation(),
+		Loudness,
+		this,
+		ZombieNoiseRange,
+		FName(TEXT("TruckNoise")));
 }
 
 void ATruck::SendTruckMovePacket()

@@ -47,12 +47,13 @@ namespace
         return TargetActor->GetActorLocation();
     }
 
-    FVector GetMovePointOnNavigation(AActor* TargetActor, const FVector& FromLocation)
+    bool TryGetMovePointOnNavigation(AActor* TargetActor, const FVector& FromLocation, FVector& OutMoveGoalLocation)
     {
         const FVector TargetReachPoint = GetClosestPointOnTarget(TargetActor, FromLocation);
         if (!TargetActor)
         {
-            return TargetReachPoint;
+            OutMoveGoalLocation = TargetReachPoint;
+            return false;
         }
 
         if (UNavigationSystemV1* NavSystem = UNavigationSystemV1::GetCurrent(TargetActor))
@@ -61,11 +62,13 @@ namespace
             const FVector QueryExtent(300.0f, 300.0f, 300.0f);
             if (NavSystem->ProjectPointToNavigation(TargetReachPoint, ProjectedLocation, QueryExtent))
             {
-                return ProjectedLocation.Location;
+                OutMoveGoalLocation = ProjectedLocation.Location;
+                return true;
             }
         }
 
-        return TargetReachPoint;
+        OutMoveGoalLocation = TargetReachPoint;
+        return false;
     }
 }
 
@@ -131,8 +134,21 @@ void UBTTask_ChaseHuman::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* Node
         return;
     }
 
-    const FVector MoveGoalLocation = GetMovePointOnNavigation(TargetActor, ZombieCharacter->GetActorLocation());
-    AIController->MoveToLocation(MoveGoalLocation, StopDistance);
+    FVector MoveGoalLocation = TargetReachPoint;
+    const bool bHasProjectedMoveGoal = TryGetMovePointOnNavigation(TargetActor, ZombieCharacter->GetActorLocation(), MoveGoalLocation);
+
+    if (TargetActor->IsA<ATruck>())
+    {
+        AIController->MoveToActor(TargetActor, StopDistance, true, true, true, nullptr, true);
+    }
+    else if (bHasProjectedMoveGoal)
+    {
+        AIController->MoveToLocation(MoveGoalLocation, StopDistance);
+    }
+    else
+    {
+        AIController->MoveToActor(TargetActor, StopDistance, true, true, true, nullptr, true);
+    }
 
     UE_LOG(LogTemp, Log, TEXT("Chasing... Distance: %f"), Distance);
 }

@@ -24,7 +24,7 @@ public:
 private:
 	// 공격 범위 (이 거리 이하면 공격으로 전환)
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI", meta = (AllowPrivateAccess = "true"))
-	float StopDistance = 100.0f;
+	float StopDistance = 200.0f;
 	// Blackboard 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI", meta = (AllowPrivateAccess = "true"))
 	FBlackboardKeySelector TargetPlayerKey;

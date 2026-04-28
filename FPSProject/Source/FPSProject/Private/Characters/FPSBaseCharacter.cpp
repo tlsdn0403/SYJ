@@ -16,6 +16,9 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Animation/AnimationAsset.h"
 #include "ClientPacketHandler.h"
+#include "Perception/AIPerceptionStimuliSourceComponent.h"
+#include "Perception/AISense_Hearing.h"
+#include "Perception/AISense_Sight.h"
 #include "UObject/ConstructorHelpers.h"
 #include "TimerManager.h"
 
@@ -46,6 +49,7 @@ AFPSBaseCharacter::AFPSBaseCharacter()
     FPSMesh->CastShadow = false;
 
     HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComponent"));
+    ZombieStimuliSource = CreateDefaultSubobject<UAIPerceptionStimuliSourceComponent>(TEXT("ZombieStimuliSource"));
 
     PlayerInfo = new Protocol::PosInfo();
     DestInfo = new Protocol::PosInfo();
@@ -71,6 +75,13 @@ AFPSBaseCharacter::~AFPSBaseCharacter()
 void AFPSBaseCharacter::BeginPlay()
 {
     Super::BeginPlay();
+
+    if (ZombieStimuliSource)
+    {
+        ZombieStimuliSource->RegisterForSense(UAISense_Sight::StaticClass());
+        ZombieStimuliSource->RegisterForSense(UAISense_Hearing::StaticClass());
+        ZombieStimuliSource->RegisterWithPerceptionSystem();
+    }
 
     check(GEngine != nullptr);
     GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("We are using FPSCharacter."));

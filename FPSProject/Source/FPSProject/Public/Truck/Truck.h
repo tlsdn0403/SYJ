@@ -12,6 +12,7 @@ class AFPSBaseCharacter;
 class AActor;
 class ABaseZombie;
 class AMountedMachineGun;
+class UAIPerceptionStimuliSourceComponent;
 class UHealthComponent;
 class UBoxComponent;
 class USceneComponent;
@@ -202,6 +203,9 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Audio")
 	UAudioComponent* EngineAudioComponent;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AI|Perception")
+	UAIPerceptionStimuliSourceComponent* ZombieStimuliSource;
+
 	UPROPERTY(EditDefaultsOnly, Category = "Audio")
 	USoundBase* EngineSoundCue;
 
@@ -252,13 +256,28 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
 	float BrakeSoundMinSpeed = 300.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Perception")
+	float ZombieNoiseMinSpeed = 200.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Perception")
+	float ZombieNoiseMaxSpeed = 1600.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Perception")
+	float ZombieNoiseRange = 7000.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Perception")
+	float ZombieNoiseInterval = 0.35f;
 private:
 	bool bIsLocallyDriven = false;
 	bool bIsBrakingSoundPlaying = false;
 	bool bBrakePressedLastFrame = false;
 	float TruckMovePacketSendTimer = 0.0f;
 	float DebugTransformLogTimer = 0.0f;
+	float ZombieNoiseTimer = 0.0f;
 	static constexpr float TRUCK_MOVE_PACKET_SEND_DELAY = 0.05f;
+
+	void ReportZombieAwarenessNoise(float DeltaTime);
 
 	UPROPERTY()
 	AMountedMachineGun* MountedWeapon = nullptr;

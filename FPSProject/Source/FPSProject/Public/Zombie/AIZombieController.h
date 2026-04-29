@@ -46,10 +46,10 @@ public:
 
 private:
 	UPROPERTY(EditAnywhere, Category = "AI|Perception")
-	float SightRadius = 2200.0f;
+	float SightRadius = 4500.0f;
 
 	UPROPERTY(EditAnywhere, Category = "AI|Perception")
-	float LoseSightRadius = 3200.0f;
+	float LoseSightRadius = 7000.0f;
 
 	UPROPERTY(EditAnywhere, Category = "AI|Perception")
 	float SightHalfAngleDegrees = 85.0f;
@@ -61,19 +61,19 @@ private:
 	float TargetMemoryDuration = 1.5f;
 
 	UPROPERTY(EditAnywhere, Category = "AI|Perception")
-	float TruckTargetMemoryDuration = 8.0f;
+	float TruckTargetMemoryDuration = 10.0f;
 
 	UPROPERTY(EditAnywhere, Category = "AI|Perception")
-	float HearingRange = 6500.0f;
+	float HearingRange = 12000.0f;
 
 	UPROPERTY(EditAnywhere, Category = "AI|Perception")
 	float HearingMemoryDuration = 4.0f;
 
 	UPROPERTY(EditAnywhere, Category = "AI|Awareness")
-	float TruckAwarenessDistance = 6000.0f;
+	float TruckAwarenessDistance = 12000.0f;
 
 	UPROPERTY(EditAnywhere, Category = "AI|Awareness")
-	float TruckAwarenessHeightTolerance = 2400.0f;
+	float TruckAwarenessHeightTolerance = 10000.0f;
 
 	UPROPERTY(EditAnywhere, Category = "AI|Awareness")
 	float PlayerAwarenessDistance = 1200.0f;
@@ -81,16 +81,26 @@ private:
 	UPROPERTY(EditAnywhere, Category = "AI|Awareness")
 	float PlayerAwarenessHeightTolerance = 600.0f;
 
+	UPROPERTY(EditAnywhere, Category = "AI|Navigation")
+	bool bRequireReachableNavigationPath = true;
+
+	UPROPERTY(EditAnywhere, Category = "AI|Navigation", meta = (ClampMin = "0.05"))
+	float NavigationPathCheckInterval = 0.35f;
+
 	float LastTargetSeenTime = -100000.0f;
 	FVector LastKnownTargetLocation = FVector::ZeroVector;
 	bool bHasKnownTarget = false;
 	TWeakObjectPtr<AActor> CurrentTargetActor;
+	TWeakObjectPtr<AActor> CachedReachabilityTargetActor;
+	float LastReachabilityCheckTime = -100000.0f;
+	bool bCachedReachabilityResult = false;
 
 	void RefreshPerceptionConfig();
 	AActor* ResolvePrimaryTargetActor() const;
 	bool IsZombieAlive() const;
 	bool HasActivePerceptionFor(AActor* TargetActor) const;
 	bool CanForceAwarenessFor(AActor* TargetActor) const;
+	bool HasReachableNavigationPathTo(AActor* TargetActor);
 	float GetMemoryDurationForTarget(AActor* TargetActor) const;
 	void RememberTarget(AActor* TargetActor, const FVector& KnownLocation);
 	void ClearCurrentTarget(UBlackboardComponent* BlackboardComponent);

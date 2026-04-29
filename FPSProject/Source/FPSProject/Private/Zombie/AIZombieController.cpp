@@ -5,7 +5,10 @@
 #include "BehaviorTree/BehaviorTree.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "Characters/FPSBaseCharacter.h"
+#include "Components/PrimitiveComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "NavigationPath.h"
+#include "NavigationSystem.h"
 #include "Perception/AIPerceptionComponent.h"
 #include "Perception/AISenseConfig_Hearing.h"
 #include "Perception/AISenseConfig_Sight.h"
@@ -30,6 +33,25 @@ namespace
 		}
 
 		return PlayerPawn;
+	}
+
+	FVector GetClosestPointOnTarget(AActor* TargetActor, const FVector& FromLocation)
+	{
+		if (!TargetActor)
+		{
+			return FromLocation;
+		}
+
+		if (UPrimitiveComponent* PrimitiveComponent = Cast<UPrimitiveComponent>(TargetActor->GetRootComponent()))
+		{
+			FVector ClosestPoint = TargetActor->GetActorLocation();
+			if (PrimitiveComponent->GetClosestPointOnCollision(FromLocation, ClosestPoint) >= 0.0f)
+			{
+				return ClosestPoint;
+			}
+		}
+
+		return TargetActor->GetActorLocation();
 	}
 }
 
@@ -82,11 +104,13 @@ void AAIZombieController::Tick(float DeltaSeconds)
 	AActor* PrimaryTargetActor = ResolvePrimaryTargetActor();
 	const float CurrentTime = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0f;
 
-	if (PrimaryTargetActor && (HasActivePerceptionFor(PrimaryTargetActor) || CanForceAwarenessFor(PrimaryTargetActor)))
+	if (PrimaryTargetActor &&
+		(HasActivePerceptionFor(PrimaryTargetActor) || CanForceAwarenessFor(PrimaryTargetActor)))
 	{
 		RememberTarget(PrimaryTargetActor, PrimaryTargetActor->GetActorLocation());
 	}
-	else if (CurrentTargetActor.IsValid() && HasActivePerceptionFor(CurrentTargetActor.Get()))
+	else if (CurrentTargetActor.IsValid() &&
+		HasActivePerceptionFor(CurrentTargetActor.Get()))
 	{
 		RememberTarget(CurrentTargetActor.Get(), CurrentTargetActor->GetActorLocation());
 	}
@@ -98,7 +122,8 @@ void AAIZombieController::Tick(float DeltaSeconds)
 		bHasKnownTarget &&
 		(CurrentTime - LastTargetSeenTime) <= GetMemoryDurationForTarget(TargetActor);
 
-	if (bHasValidTargetActor && (HasActivePerceptionFor(TargetActor) || CanForceAwarenessFor(TargetActor) || bCanUseMemory))
+	if (bHasValidTargetActor &&
+		(HasActivePerceptionFor(TargetActor) || CanForceAwarenessFor(TargetActor) || bCanUseMemory))
 	{
 		const FVector TargetLocation = (HasActivePerceptionFor(TargetActor) || CanForceAwarenessFor(TargetActor))
 			? TargetActor->GetActorLocation()
@@ -184,10 +209,65 @@ bool AAIZombieController::CanForceAwarenessFor(AActor* TargetActor) const
 
 	if (TargetActor->IsA<ATruck>())
 	{
-		return Distance2D <= TruckAwarenessDistance && HeightDelta <= TruckAwarenessHeightTolerance;
+		return Distance2D <= TruckAwarenessDistance;
 	}
 
 	return Distance2D <= PlayerAwarenessDistance && HeightDelta <= PlayerAwarenessHeightTolerance;
+}
+
+bool AAIZombieController::HasReachableNavigationPathTo(AActor* TargetActor)
+{
+	if (!bRequireReachableNavigationPath)
+	{
+		return true;
+	}
+
+	APawn* ZombiePawn = GetPawn();
+	UWorld* World = GetWorld();
+	if (!ZombiePawn || !TargetActor || !World)
+	{
+		return false;
+	}
+
+	const float CurrentTime = World->GetTimeSeconds();
+	if (CachedReachabilityTargetActor == TargetActor &&
+		(CurrentTime - LastReachabilityCheckTime) < NavigationPathCheckInterval)
+	{
+		return bCachedReachabilityResult;
+	}
+
+	bool bReachable = false;
+
+	if (UNavigationSystemV1* NavigationSystem = FNavigationSystem::GetCurrent<UNavigationSystemV1>(World))
+	{
+		const FVector QueryExtent(250.0f, 250.0f, 400.0f);
+		FNavLocation ProjectedStartLocation;
+		FNavLocation ProjectedGoalLocation;
+		const FVector StartLocation = ZombiePawn->GetActorLocation();
+		const FVector GoalLocation = GetClosestPointOnTarget(TargetActor, StartLocation);
+		const FNavAgentProperties& AgentProperties = ZombiePawn->GetNavAgentPropertiesRef();
+
+		if (NavigationSystem->ProjectPointToNavigation(StartLocation, ProjectedStartLocation, QueryExtent, &AgentProperties) &&
+			NavigationSystem->ProjectPointToNavigation(GoalLocation, ProjectedGoalLocation, QueryExtent, &AgentProperties))
+		{
+			if (UNavigationPath* NavigationPath = NavigationSystem->FindPathToLocationSynchronously(
+				World,
+				ProjectedStartLocation.Location,
+				ProjectedGoalLocation.Location,
+				ZombiePawn))
+			{
+				bReachable =
+					NavigationPath->IsValid() &&
+					!NavigationPath->IsPartial() &&
+					NavigationPath->PathPoints.Num() > 1;
+			}
+		}
+	}
+
+	CachedReachabilityTargetActor = TargetActor;
+	LastReachabilityCheckTime = CurrentTime;
+	bCachedReachabilityResult = bReachable;
+	return bReachable;
 }
 
 float AAIZombieController::GetMemoryDurationForTarget(AActor* TargetActor) const

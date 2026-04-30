@@ -362,7 +362,13 @@ void ATruck::SetLocallyDriven(bool bLocallyDriven)
 	{
 		MoveComp->SetComponentTickEnabled(bLocallyDriven);
 
-		if (!bLocallyDriven)
+		if (bLocallyDriven)
+		{
+			MoveComp->SetThrottleInput(0.0f);
+			MoveComp->SetSteeringInput(0.0f);
+			MoveComp->SetBrakeInput(0.0f);
+		}
+		else
 		{
 			MoveComp->SetThrottleInput(0.0f);
 			MoveComp->SetSteeringInput(0.0f);
@@ -372,8 +378,16 @@ void ATruck::SetLocallyDriven(bool bLocallyDriven)
 
 	if (USkeletalMeshComponent* TruckMesh = GetMesh())
 	{
-		// Remote trucks are driven by replicated transforms, not local vehicle physics.
-		if (!bLocallyDriven && TruckMesh->IsSimulatingPhysics())
+		if (bLocallyDriven)
+		{
+			if (!TruckMesh->IsSimulatingPhysics())
+			{
+				TruckMesh->SetSimulatePhysics(true);
+			}
+
+			TruckMesh->WakeAllRigidBodies();
+		}
+		else if (TruckMesh->IsSimulatingPhysics())
 		{
 			TruckMesh->SetSimulatePhysics(false);
 		}
@@ -482,7 +496,7 @@ void ATruck::Brake(float Value)
 		{
 			if (BrakeSound)
 			{
-				UGameplayStatics::PlaySoundAtLocation(this, BrakeSound, GetActorLocation());
+				//UGameplayStatics::PlaySoundAtLocation(this, BrakeSound, GetActorLocation());
 			}
 		}
 
@@ -769,7 +783,20 @@ void ATruck::ExitDriverSeat()
 		MoveComp->SetBrakeInput(1.0f);
 	}
 
-	if (CharacterToRestore->IsLocallyControlled())
+	const bool bShouldHandleLocalExit =
+		bIsLocallyDriven ||
+		(GetController() && GetController()->IsLocalController());
+
+	UE_LOG(LogTemp, Warning,
+		TEXT("[TruckDebug] ExitDriverSeat Truck=%s Driver=%s bShouldHandleLocalExit=%d bIsLocallyDriven=%d Controller=%s CharacterLocal=%d"),
+		*GetNameSafe(this),
+		*GetNameSafe(CharacterToRestore),
+		bShouldHandleLocalExit ? 1 : 0,
+		bIsLocallyDriven ? 1 : 0,
+		*GetNameSafe(GetController()),
+		CharacterToRestore->IsLocallyControlled() ? 1 : 0);
+
+	if (bShouldHandleLocalExit)
 	{
 		if (UFPSProjectGameInstance* GameInstance = Cast<UFPSProjectGameInstance>(CharacterToRestore->GetGameInstance()))
 		{

@@ -504,6 +504,9 @@ void UFPSProjectGameInstance::HandleEnterTruck(const Protocol::S_ENTER_TRUCK& pk
 	ATruck* Truck = FindTruckById(pkt.truck_id());
 	APlayerController* LocalPlayerController = UGameplayStatics::GetPlayerController(this, 0);
 	AFPSBaseCharacter* LocalPawn = LocalPlayerController ? Cast<AFPSBaseCharacter>(LocalPlayerController->GetPawn()) : nullptr;
+	const bool bIsLocalPlayer =
+		(MyPlayer && MyPlayer->GetPlayerInfo() && MyPlayer->GetPlayerInfo()->object_id() == pkt.player_id()) ||
+		(LocalPawn && LocalPawn->GetPlayerInfo() && LocalPawn->GetPlayerInfo()->object_id() == pkt.player_id());
 	UE_LOG(LogTemp, Warning,
 		TEXT("[TruckDebug] HandleEnterTruck PlayerId=%llu TruckId=%llu SeatType=%d HasPlayer=%d HasTruck=%d Player=%s Truck=%s MyPlayer=%s MyPlayerId=%llu MappedPlayer=%s MappedPlayerId=%llu LocalPawn=%s LocalPawnId=%llu"),
 		pkt.player_id(),
@@ -528,19 +531,19 @@ void UFPSProjectGameInstance::HandleEnterTruck(const Protocol::S_ENTER_TRUCK& pk
 	switch (pkt.seat_type())
 	{
 	case Protocol::TRUCK_SEAT_DRIVER:
-		Truck->SetLocallyDriven(Player->IsLocallyControlled());
+		Truck->SetLocallyDriven(bIsLocalPlayer);
+		Truck->SetDriverCharacter(Player);
 		Player->EnterTruckDriverSeat(Truck);
-		if (AController* PlayerController = Player->GetController())
+		if (bIsLocalPlayer && LocalPlayerController)
 		{
-			Truck->SetDriverCharacter(Player);
-			PlayerController->Possess(Truck);
-			PlayerController->SetControlRotation(Truck->GetActorRotation());
+			LocalPlayerController->Possess(Truck);
+			LocalPlayerController->SetControlRotation(Truck->GetActorRotation());
 			UE_LOG(LogTemp, Warning,
 				TEXT("[TruckDebug] EnterDriver Player=%s Truck=%s Controller=%s ViewTarget=%s TruckLoc=%s MeshLoc=%s"),
 				*GetNameSafe(Player),
 				*GetNameSafe(Truck),
-				*GetNameSafe(PlayerController),
-				*GetNameSafe(PlayerController->GetViewTarget()),
+				*GetNameSafe(LocalPlayerController),
+				*GetNameSafe(LocalPlayerController->GetViewTarget()),
 				*Truck->GetActorLocation().ToString(),
 				Truck->GetMesh() ? *Truck->GetMesh()->GetComponentLocation().ToString() : TEXT("NoMesh"));
 		}
@@ -579,6 +582,11 @@ void UFPSProjectGameInstance::HandleExitTruck(const Protocol::S_EXIT_TRUCK& pkt)
 		return;
 	}
 
+	APlayerController* LocalPlayerController = UGameplayStatics::GetPlayerController(this, 0);
+	AFPSBaseCharacter* LocalCharacter = MyPlayer;
+	const bool bIsLocalPlayer =
+		(LocalCharacter && LocalCharacter->GetPlayerInfo() && LocalCharacter->GetPlayerInfo()->object_id() == pkt.player_id());
+
 	switch (pkt.seat_type())
 	{
 	case Protocol::TRUCK_SEAT_DRIVER:
@@ -588,14 +596,19 @@ void UFPSProjectGameInstance::HandleExitTruck(const Protocol::S_EXIT_TRUCK& pkt)
 			Truck->SetDriverCharacter(nullptr);
 		}
 		Player->ExitTruckDriverSeat();
-		if (AController* PlayerController = Truck->GetController())
+		if (bIsLocalPlayer && LocalPlayerController)
 		{
-			PlayerController->Possess(Player);
-			PlayerController->SetControlRotation(Player->GetActorRotation());
+			LocalPlayerController->Possess(Player);
+			LocalPlayerController->SetControlRotation(Player->GetActorRotation());
 		}
+		Player->SyncMovementToServer();
 		break;
 	case Protocol::TRUCK_SEAT_CARGO:
 		Player->ExitTruckCargo();
+		if (bIsLocalPlayer)
+		{
+			Player->SyncMovementToServer();
+		}
 		break;
 	case Protocol::TRUCK_SEAT_TURRET:
 		if (Truck->GetMountedWeaponUser() == Player)
@@ -603,6 +616,10 @@ void UFPSProjectGameInstance::HandleExitTruck(const Protocol::S_EXIT_TRUCK& pkt)
 			Truck->SetMountedWeaponUser(nullptr);
 		}
 		Player->ExitMountedWeapon();
+		if (bIsLocalPlayer)
+		{
+			Player->SyncMovementToServer();
+		}
 		break;
 	default:
 		break;

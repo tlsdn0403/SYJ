@@ -297,7 +297,14 @@ void Room::HandleMove(Protocol::C_MOVE pkt)
 
 	// 적용
 	PlayerRef player = dynamic_pointer_cast<Player>(_objects[objectId]);
-	if (player == nullptr || player->bIsInTruck)
+	if (player == nullptr)
+		return;
+
+	const bool bShouldIgnoreMoveWhileInTruck =
+		player->bIsInTruck &&
+		player->currentTruckSeatType != Protocol::TRUCK_SEAT_CARGO;
+
+	if (bShouldIgnoreMoveWhileInTruck)
 		return;
 
 	player->posInfo->CopyFrom(pkt.info());

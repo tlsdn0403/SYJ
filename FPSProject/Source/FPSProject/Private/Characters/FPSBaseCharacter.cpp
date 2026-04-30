@@ -131,7 +131,7 @@ void AFPSBaseCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	const bool bIsAttachedToTruckSeat = bIsDrivingTruck || bIsOnTruckCargo || bIsUsingMountedWeapon;
+	const bool bShouldSkipRemoteMovementSync = bIsDrivingTruck || bIsUsingMountedWeapon;
 
 	// 줌 했을 떄 FOV 확대
 	if (ThirdPersonCameraComponent && CameraBoom)
@@ -198,7 +198,7 @@ void AFPSBaseCharacter::Tick(float DeltaTime)
 		}
 	}
 	//(신우) 트럭을 타고 있을 때 위치보정 안하도록  (이거 안하니까 이상한곳에 앉아있음)
-	else if (bIsAttachedToTruckSeat)
+	else if (bShouldSkipRemoteMovementSync)
 	{
 		return;
 	}
@@ -470,13 +470,13 @@ void AFPSBaseCharacter::ExitMountedWeapon()
 	StopFire();
 	DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 	SetActorLocationAndRotation(
-		Truck->GetCargoRideLocation(),
-		Truck->GetCargoRideRotation()
+		Truck->GetCargoExitLocation(),
+		Truck->GetActorRotation()
 	);
-	AttachToComponent(Truck->CargoRidePoint, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
 
 	if (GetCharacterMovement())
 	{
+		GetCharacterMovement()->StopMovementImmediately();
 		GetCharacterMovement()->SetMovementMode(MOVE_Walking);
 	}
 
@@ -495,12 +495,31 @@ void AFPSBaseCharacter::ExitMountedWeapon()
 	Truck->EndMountedWeaponUse(this);
 	CurrentMountedWeapon = nullptr;
 	bIsUsingMountedWeapon = false;
-	bIsOnTruckCargo = true;
+	bIsOnTruckCargo = false;
+	CurrentTruck = nullptr;
+	CurrentTruckInteractType = ETruckInteractType::None;
+	CurrentInteractableActor = nullptr;
 
 	if (CurrentWeapon)
 	{
 		CurrentWeapon->SetWeaponHidden(false);
 		CurrentWeapon->SetWeaponCollisionEnabled(true);
+	}
+
+	if (Truck->DriverSeatInteractTrigger && Truck->DriverSeatInteractTrigger->IsOverlappingActor(this))
+	{
+		CurrentInteractableActor = Truck;
+		CurrentTruckInteractType = ETruckInteractType::DriverSeat;
+	}
+	else if (Truck->CargoSeatInteractTrigger && Truck->CargoSeatInteractTrigger->IsOverlappingActor(this))
+	{
+		CurrentInteractableActor = Truck;
+		CurrentTruckInteractType = ETruckInteractType::CargoSeat;
+	}
+	else if (Truck->TurretSeatInteractTrigger && Truck->TurretSeatInteractTrigger->IsOverlappingActor(this))
+	{
+		CurrentInteractableActor = Truck;
+		CurrentTruckInteractType = ETruckInteractType::TurretSeat;
 	}
 
 	ApplyDefaultAnimationClass();

@@ -1,5 +1,4 @@
 ﻿#include "Stage2/Stage2TileMarker.h"
-
 #include "Components/ArrowComponent.h"
 #include "Components/BoxComponent.h"
 #include "Truck/Truck.h"
@@ -78,6 +77,7 @@ void AStage2TileMarker::ResetNextTileTrigger()
 	bHasTriggeredNextTile = false;
 }
 
+// 다음 타일 스폰 트리거 끄는 함수 ( 골인지점에서 필요 없으니까)
 void AStage2TileMarker::SetNextTileTriggerEnabled(bool bEnabled)
 {
 	if (!NextTileTrigger)
@@ -87,7 +87,7 @@ void AStage2TileMarker::SetNextTileTriggerEnabled(bool bEnabled)
 
 	NextTileTrigger->SetCollisionEnabled(bEnabled ? ECollisionEnabled::QueryOnly : ECollisionEnabled::NoCollision);
 }
-
+// 
 void AStage2TileMarker::HandleNextTileTriggerBeginOverlap(
 	UPrimitiveComponent* OverlappedComponent,
 	AActor* OtherActor,
@@ -96,6 +96,9 @@ void AStage2TileMarker::HandleNextTileTriggerBeginOverlap(
 	bool bFromSweep,
 	const FHitResult& SweepResult)
 {
+
+	// Engine overlap signature 때문에 매개변수 많음 OtherActor만 사용이 된다.
+
 	if (!OtherActor)
 	{
 		return;
@@ -107,7 +110,7 @@ void AStage2TileMarker::HandleNextTileTriggerBeginOverlap(
 		return;
 	}
 
-	if (bTriggerOnlyOnce && bHasTriggeredNextTile)
+	if (bHasTriggeredNextTile)
 	{
 		return;
 	}

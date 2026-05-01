@@ -32,6 +32,7 @@ void AStage2TileManager::Tick(float DeltaTime)
 	TryFinalizeLoadedTiles();
 }
 
+
 void AStage2TileManager::StartGeneration()
 {
 	if (bGenerationStarted)
@@ -41,8 +42,10 @@ void AStage2TileManager::StartGeneration()
 
 	ResetGenerationState();
 	bGenerationStarted = true;
+	// 첫 타일 생성 위치를 Manger의 위치로
 	NextSpawnTransform = GetActorTransform();
 
+	// Deterministic Seed 사용: 매번 같은 타일 순서 생성
 	if (bUseDeterministicSeed)
 	{
 		RandomStream.Initialize(RandomSeed);
@@ -51,7 +54,7 @@ void AStage2TileManager::StartGeneration()
 	{
 		RandomStream.GenerateNewSeed();
 	}
-
+	// 첫 타일을 생성
 	SpawnNextTile();
 }
 
@@ -67,15 +70,20 @@ void AStage2TileManager::SpawnNextTile()
 		return;
 	}
 
+	//현재 생성된 타일이 없으면 Start 타일을 생성
 	const bool bNeedsStartTile = ActiveTiles.Num() == 0;
 	const EStage2TileType NextTileType = bNeedsStartTile ? EStage2TileType::Start : ChooseNextTileType();
+
+	// 해당 레벨을 NextSpawnTransform 위치에 스트리밍 로드
 	const TSoftObjectPtr<UWorld> LevelToSpawn = ChooseLevelForTileType(NextTileType);
+
+
 	if (LevelToSpawn.IsNull())
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Stage2TileManager: No level asset configured for tile type %d"), static_cast<int32>(NextTileType));
 		return;
 	}
-
+	// 타일을 스폰
 	if (!TrySpawnTileLevel(LevelToSpawn, NextTileType, NextSpawnTransform))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Stage2TileManager: Failed to spawn tile level for type %d"), static_cast<int32>(NextTileType));
@@ -110,14 +118,20 @@ bool AStage2TileManager::TrySpawnTileLevel(const TSoftObjectPtr<UWorld>& TileLev
 		return false;
 	}
 
+	// 다음 타일의 EntryArrow가 원하는 위치에 정확히 오도록 레벨 전체 Transform을 보정
 	FTransform LevelTransformToApply = SpawnTransform;
+	// 레벨의 경로를 읽어온다.
 	const FSoftObjectPath LevelPath = TileLevel.ToSoftObjectPath();
 	if (const FTransform* CachedEntryLocalTransform = CachedEntryLocalTransforms.Find(LevelPath))
 	{
+		// 보정을 해준다.
 		LevelTransformToApply = CachedEntryLocalTransform->Inverse() * SpawnTransform;
 	}
 
+
 	bool bLoadSucceeded = false;
+
+	// 런타임 중에 레벨 인스턴스를 동적으로 로드
 	ULevelStreamingDynamic* StreamingLevel = ULevelStreamingDynamic::LoadLevelInstanceBySoftObjectPtr(
 		this,
 		TileLevel,
@@ -129,9 +143,12 @@ bool AStage2TileManager::TrySpawnTileLevel(const TSoftObjectPtr<UWorld>& TileLev
 		return false;
 	}
 
+	// Load한 Tile의 정보를 저장한다. 나중에 로드 완료된 Tile을 Finalize할 때 사용
+
+	// ActiveTiles 배열에 새 원소를 추가하고, 그 참조를 가져온다
 	FStage2LoadedTile& LoadedTile = ActiveTiles.AddDefaulted_GetRef();
-	LoadedTile.SourceLevel = TileLevel;
-	LoadedTile.StreamingLevel = StreamingLevel;
+	LoadedTile.SourceLevel = TileLevel;				//어떤 레벨 에셋에서 로드된 타일인지 저장
+	LoadedTile.StreamingLevel = StreamingLevel;			
 	LoadedTile.TileType = TileType;
 	LoadedTile.RequestedEntryTransform = SpawnTransform;
 	LoadedTile.AppliedLevelTransform = LevelTransformToApply;
@@ -150,39 +167,40 @@ bool AStage2TileManager::TrySpawnTileLevel(const TSoftObjectPtr<UWorld>& TileLev
 
 void AStage2TileManager::TryFinalizeLoadedTiles()
 {
-	while (true)
+	//현재 로드 중이거나 로드 완료된 모든 타일을 검사
+	for (int32 TileIndex = 0; TileIndex < ActiveTiles.Num(); ++TileIndex)
 	{
-		bool bFinalizedTileThisPass = false;
+		FStage2LoadedTile& LoadedTile = ActiveTiles[TileIndex];
 
-		for (int32 TileIndex = 0; TileIndex < ActiveTiles.Num(); ++TileIndex)
+		// 이미 초기화된 타일 건너뜀.
+		if (LoadedTile.bInitialized || !LoadedTile.StreamingLevel)
 		{
-			FStage2LoadedTile& LoadedTile = ActiveTiles[TileIndex];
-			if (LoadedTile.bInitialized || !LoadedTile.StreamingLevel)
-			{
-				continue;
-			}
-
-			if (!LoadedTile.StreamingLevel->IsLevelLoaded() || !LoadedTile.StreamingLevel->IsLevelVisible())
-			{
-				continue;
-			}
-
-			AStage2TileMarker* TileMarker = FindTileMarkerFromStreamingLevel(LoadedTile.StreamingLevel);
-			if (!TileMarker)
-			{
-				continue;
-			}
-
-			LoadedTile.TileMarker = TileMarker;
-			FinalizeLoadedTile(TileIndex);
-			bFinalizedTileThisPass = true;
-			break;
+			continue;
 		}
-
-		if (!bFinalizedTileThisPass)
+		
+		//레벨이 로드되고, 월드에 활성화 되었는지
+		if (!LoadedTile.StreamingLevel->IsLevelLoaded() ||
+			!LoadedTile.StreamingLevel->IsLevelVisible())
 		{
-			break;
+			continue;
 		}
+		 //마커 
+		AStage2TileMarker* TileMarker =
+			FindTileMarkerFromStreamingLevel(LoadedTile.StreamingLevel);
+
+		// 마커를 못찾으면 대기한다.
+		if (!TileMarker)
+		{
+			continue;
+		}
+		// 찾았으면 등록
+		LoadedTile.TileMarker = TileMarker;
+
+
+		FinalizeLoadedTile(TileIndex);
+
+		// 한 Tick에 하나만 처리
+		return;
 	}
 }
 

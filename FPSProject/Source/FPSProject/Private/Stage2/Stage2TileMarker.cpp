@@ -1,34 +1,8 @@
-#include "Stage2/Stage2TileMarker.h"
+﻿#include "Stage2/Stage2TileMarker.h"
 
 #include "Components/ArrowComponent.h"
 #include "Components/BoxComponent.h"
 #include "Truck/Truck.h"
-
-namespace
-{
-ATruck* ResolveTruckActor(AActor* CandidateActor)
-{
-	for (AActor* CurrentActor = CandidateActor; CurrentActor; CurrentActor = CurrentActor->GetOwner())
-	{
-		if (ATruck* TruckActor = Cast<ATruck>(CurrentActor))
-		{
-			return TruckActor;
-		}
-	}
-
-	for (AActor* CurrentActor = CandidateActor ? CandidateActor->GetAttachParentActor() : nullptr;
-		CurrentActor;
-		CurrentActor = CurrentActor->GetAttachParentActor())
-	{
-		if (ATruck* TruckActor = Cast<ATruck>(CurrentActor))
-		{
-			return TruckActor;
-		}
-	}
-
-	return nullptr;
-}
-}
 
 AStage2TileMarker::AStage2TileMarker()
 {
@@ -53,19 +27,18 @@ AStage2TileMarker::AStage2TileMarker()
 	NextTileTrigger->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	NextTileTrigger->SetGenerateOverlapEvents(true);
 	NextTileTrigger->SetCollisionResponseToAllChannels(ECR_Ignore);
-	NextTileTrigger->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
 	NextTileTrigger->SetCollisionResponseToChannel(ECC_Vehicle, ECR_Overlap);
-	NextTileTrigger->SetCollisionResponseToChannel(ECC_WorldDynamic, ECR_Overlap);
-	NextTileTrigger->SetCollisionResponseToChannel(ECC_PhysicsBody, ECR_Overlap);
 
 	ZombieSpawnRoot = CreateDefaultSubobject<USceneComponent>(TEXT("ZombieSpawnRoot"));
 	ZombieSpawnRoot->SetupAttachment(SceneRoot);
 }
 
+// 게임중에 호출되지 않음, 에디터에서 배치하거나 변경이 될 때 호출이 됨.
 void AStage2TileMarker::OnConstruction(const FTransform& Transform)
 {
 	Super::OnConstruction(Transform);
 
+	// 시작 화살표 설정
 	if (EntryArrow)
 	{
 		EntryArrow->SetRelativeLocation(FVector::ZeroVector);
@@ -93,26 +66,10 @@ FTransform AStage2TileMarker::GetExitTransform() const
 {
 	return ExitArrow ? ExitArrow->GetComponentTransform() : GetActorTransform();
 }
-
+// 다음 타일이 스폰될 위치를 구함
 FTransform AStage2TileMarker::GetNextTileSpawnTransform() const
 {
-	const FTransform EntryTransform = GetEntryTransform();
 	const FTransform ExitTransform = GetExitTransform();
-
-	// When the exit arrow is left at the entry point, fall back to the trigger plane.
-	if (FVector::DistSquared(EntryTransform.GetLocation(), ExitTransform.GetLocation()) > FMath::Square(100.0f))
-	{
-		return ExitTransform;
-	}
-
-	if (NextTileTrigger)
-	{
-		const FTransform TriggerTransform = NextTileTrigger->GetComponentTransform();
-		const FVector ForwardVector = TriggerTransform.GetUnitAxis(EAxis::X);
-		const FVector SpawnLocation = TriggerTransform.GetLocation() + (ForwardVector * NextTileTrigger->GetScaledBoxExtent().X);
-		return FTransform(TriggerTransform.GetRotation(), SpawnLocation, FVector::OneVector);
-	}
-
 	return ExitTransform;
 }
 
@@ -144,7 +101,7 @@ void AStage2TileMarker::HandleNextTileTriggerBeginOverlap(
 		return;
 	}
 
-	ATruck* TriggerTruck = ResolveTruckActor(OtherActor);
+	ATruck* TriggerTruck = Cast<ATruck>(OtherActor);
 	if (!TriggerTruck)
 	{
 		return;
@@ -158,3 +115,4 @@ void AStage2TileMarker::HandleNextTileTriggerBeginOverlap(
 	bHasTriggeredNextTile = true;
 	OnNextTileTriggerEntered.Broadcast(this, TriggerTruck);
 }
+

@@ -87,6 +87,9 @@ private:
 	UPROPERTY(EditAnywhere, Category = "AI|Navigation", meta = (ClampMin = "0.05"))
 	float NavigationPathCheckInterval = 0.35f;
 
+	UPROPERTY(EditAnywhere, Category = "AI|Blackboard", meta = (ClampMin = "0.0"))
+	float BlackboardLocationUpdateDistance = 100.0f;
+
 	float LastTargetSeenTime = -100000.0f;
 	FVector LastKnownTargetLocation = FVector::ZeroVector;
 	bool bHasKnownTarget = false;

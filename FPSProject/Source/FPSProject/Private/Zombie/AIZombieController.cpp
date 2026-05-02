@@ -309,8 +309,17 @@ void AAIZombieController::UpdateBlackboardTarget(UBlackboardComponent* Blackboar
 	}
 
 	SetFocus(TargetActor);
-	BlackboardComponent->SetValueAsObject(TargetPlayerKey, TargetActor);
-	BlackboardComponent->SetValueAsVector(PlayerLocationKey, TargetLocation);
+
+	if (BlackboardComponent->GetValueAsObject(TargetPlayerKey) != TargetActor)
+	{
+		BlackboardComponent->SetValueAsObject(TargetPlayerKey, TargetActor);
+	}
+
+	const FVector CurrentStoredLocation = BlackboardComponent->GetValueAsVector(PlayerLocationKey);
+	if (FVector::DistSquared(CurrentStoredLocation, TargetLocation) >= FMath::Square(BlackboardLocationUpdateDistance))
+	{
+		BlackboardComponent->SetValueAsVector(PlayerLocationKey, TargetLocation);
+	}
 }
 
 void AAIZombieController::HandleTargetPerceptionUpdated(AActor* UpdatedActor, FAIStimulus Stimulus)

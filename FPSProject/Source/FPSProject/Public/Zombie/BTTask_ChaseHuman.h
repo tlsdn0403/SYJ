@@ -25,17 +25,12 @@ private:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI", meta = (AllowPrivateAccess = "true", ClampMin = "0.05"))
 	float RepathInterval = 0.35f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI", meta = (AllowPrivateAccess = "true", ClampMin = "0.0"))
-	float RepathDistanceThreshold = 150.0f;
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI", meta = (AllowPrivateAccess = "true"))
 	FBlackboardKeySelector TargetPlayerKey;
 
 	float LastMoveRequestTime = -100000.0f;
-	FVector LastIssuedMoveGoalLocation = FVector::ZeroVector;
 	TWeakObjectPtr<AActor> LastIssuedTargetActor;
-	bool bLastMoveUsedActorGoal = false;
 
 	void ResetMoveRequestState();
-	void RequestChaseMove(AAIController* AIController, ABaseZombie* ZombieCharacter, AActor* TargetActor, const FVector& MoveGoalLocation, bool bHasProjectedMoveGoal, bool bForceRequest);
+	void RequestChaseMove(AAIController* AIController, ABaseZombie* ZombieCharacter, AActor* TargetActor, bool bForceRequest);
 };

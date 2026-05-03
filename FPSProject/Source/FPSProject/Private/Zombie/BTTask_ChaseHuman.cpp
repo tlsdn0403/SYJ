@@ -59,11 +59,11 @@ void UBTTask_ChaseHuman::ResetMoveRequestState()
 	LastIssuedTargetActor.Reset();
 }
 
-void UBTTask_ChaseHuman::RequestChaseMove(AAIController* AIController, ABaseZombie* ZombieCharacter, AActor* TargetActor, bool bForceRequest)
+bool UBTTask_ChaseHuman::RequestChaseMove(AAIController* AIController, ABaseZombie* ZombieCharacter, AActor* TargetActor, bool bForceRequest)
 {
 	if (!AIController || !ZombieCharacter || !TargetActor)
 	{
-		return;
+		return false;
 	}
 
 	const float CurrentTime = AIController->GetWorld() ? AIController->GetWorld()->GetTimeSeconds() : 0.0f;
@@ -80,7 +80,7 @@ void UBTTask_ChaseHuman::RequestChaseMove(AAIController* AIController, ABaseZomb
 	if (!bForceRequest &&
 		(bUsingCustomLink || (!bTargetChanged && !bShouldRetryMove)))
 	{
-		return;
+		return true;
 	}
 
 	const EPathFollowingRequestResult::Type RequestResult =
@@ -90,7 +90,56 @@ void UBTTask_ChaseHuman::RequestChaseMove(AAIController* AIController, ABaseZomb
 	{
 		LastMoveRequestTime = CurrentTime;
 		LastIssuedTargetActor = TargetActor;
+		return true;
 	}
+
+	return false;
+}
+
+bool UBTTask_ChaseHuman::ShouldUseDirectPursuitFallback(AAIController* AIController, ABaseZombie* ZombieCharacter, AActor* TargetActor) const
+{
+	if (!AIController || !ZombieCharacter || !TargetActor)
+	{
+		return false;
+	}
+
+	if (bRequireLineOfSightForDirectPursuit && !AIController->LineOfSightTo(TargetActor))
+	{
+		return false;
+	}
+
+	const FVector ZombieLocation = ZombieCharacter->GetActorLocation();
+	const FVector TargetLocation = GetClosestPointOnTarget(TargetActor, ZombieLocation);
+	const float Distance2D = FVector::Dist2D(ZombieLocation, TargetLocation);
+	const float HeightDelta = TargetLocation.Z - ZombieLocation.Z;
+
+	if (Distance2D > DirectPursuitRange2D)
+	{
+		return false;
+	}
+
+	if (HeightDelta > DirectPursuitMaxRise)
+	{
+		return false;
+	}
+
+	if (HeightDelta < -DirectPursuitMaxDrop)
+	{
+		return false;
+	}
+
+	return true;
+}
+
+void UBTTask_ChaseHuman::ApplyDirectPursuitFallback(AAIController* AIController, ABaseZombie* ZombieCharacter, AActor* TargetActor) const
+{
+	if (!AIController || !ZombieCharacter || !TargetActor)
+	{
+		return;
+	}
+
+	AIController->SetFocus(TargetActor);
+	ZombieCharacter->ApplyDirectPursuitInput(GetClosestPointOnTarget(TargetActor, ZombieCharacter->GetActorLocation()));
 }
 
 EBTNodeResult::Type UBTTask_ChaseHuman::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
@@ -111,7 +160,11 @@ EBTNodeResult::Type UBTTask_ChaseHuman::ExecuteTask(UBehaviorTreeComponent& Owne
 	}
 
 	AIController->SetFocus(TargetActor);
-	RequestChaseMove(AIController, ZombieCharacter, TargetActor, true);
+	const bool bMoveRequested = RequestChaseMove(AIController, ZombieCharacter, TargetActor, true);
+	if (!bMoveRequested && ShouldUseDirectPursuitFallback(AIController, ZombieCharacter, TargetActor))
+	{
+		ApplyDirectPursuitFallback(AIController, ZombieCharacter, TargetActor);
+	}
 
 	return EBTNodeResult::InProgress;
 }
@@ -153,5 +206,9 @@ void UBTTask_ChaseHuman::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* Node
 		return;
 	}
 
-	RequestChaseMove(AIController, ZombieCharacter, TargetActor, false);
+	const bool bMoveRequested = RequestChaseMove(AIController, ZombieCharacter, TargetActor, false);
+	if (!bMoveRequested && ShouldUseDirectPursuitFallback(AIController, ZombieCharacter, TargetActor))
+	{
+		ApplyDirectPursuitFallback(AIController, ZombieCharacter, TargetActor);
+	}
 }

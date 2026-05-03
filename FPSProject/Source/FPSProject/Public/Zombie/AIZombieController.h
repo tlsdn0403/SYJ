@@ -45,6 +45,12 @@ public:
 	TObjectPtr<APawn> PlayerPawn = nullptr;
 
 private:
+	UPROPERTY(EditAnywhere, Category = "AI|Performance", meta = (ClampMin = "0.01"))
+	float ControllerUpdateInterval = 0.10f;
+
+	UPROPERTY(EditAnywhere, Category = "AI|Performance", meta = (ClampMin = "0.05"))
+	float PlayerPawnRefreshInterval = 0.50f;
+
 	UPROPERTY(EditAnywhere, Category = "AI|Perception")
 	float SightRadius = 4500.0f;
 
@@ -91,6 +97,7 @@ private:
 	float BlackboardLocationUpdateDistance = 100.0f;
 
 	float LastTargetSeenTime = -100000.0f;
+	float LastPlayerPawnRefreshTime = -100000.0f;
 	FVector LastKnownTargetLocation = FVector::ZeroVector;
 	bool bHasKnownTarget = false;
 	TWeakObjectPtr<AActor> CurrentTargetActor;

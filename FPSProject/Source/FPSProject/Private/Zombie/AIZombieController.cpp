@@ -58,6 +58,7 @@ namespace
 AAIZombieController::AAIZombieController()
 {
 	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.TickInterval = ControllerUpdateInterval;
 
 	ZombiePerceptionComponent = CreateDefaultSubobject<UAIPerceptionComponent>(TEXT("ZombiePerception"));
 	SetPerceptionComponent(*ZombiePerceptionComponent);
@@ -71,6 +72,7 @@ void AAIZombieController::BeginPlay()
 	Super::BeginPlay();
 
 	PlayerPawn = UGameplayStatics::GetPlayerPawn(GetWorld(), 0);
+	LastPlayerPawnRefreshTime = GetWorld() ? GetWorld()->GetTimeSeconds() : LastPlayerPawnRefreshTime;
 	RefreshPerceptionConfig();
 
 	if (ZombiePerceptionComponent)
@@ -100,9 +102,13 @@ void AAIZombieController::Tick(float DeltaSeconds)
 		return;
 	}
 
-	PlayerPawn = UGameplayStatics::GetPlayerPawn(GetWorld(), 0);
-	AActor* PrimaryTargetActor = ResolvePrimaryTargetActor();
 	const float CurrentTime = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0f;
+	if (!IsValid(PlayerPawn) || (CurrentTime - LastPlayerPawnRefreshTime) >= PlayerPawnRefreshInterval)
+	{
+		PlayerPawn = UGameplayStatics::GetPlayerPawn(GetWorld(), 0);
+		LastPlayerPawnRefreshTime = CurrentTime;
+	}
+	AActor* PrimaryTargetActor = ResolvePrimaryTargetActor();
 
 	if (PrimaryTargetActor &&
 		(HasActivePerceptionFor(PrimaryTargetActor) || CanForceAwarenessFor(PrimaryTargetActor)))

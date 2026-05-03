@@ -28,6 +28,16 @@ ABaseZombie::ABaseZombie()
     ZombieMesh->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
 
     HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComponent"));
+
+    if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
+    {
+        MoveComp->bOrientRotationToMovement = true;
+        MoveComp->RotationRate = FRotator(0.0f, TurnRateYaw, 0.0f);
+        MoveComp->MaxAcceleration = MaxAcceleration;
+        MoveComp->BrakingDecelerationWalking = BrakingDecelerationWalking;
+        MoveComp->bCanWalkOffLedges = true;
+        MoveComp->LedgeCheckThreshold = 0.0f;
+    }
 }
 
 void ABaseZombie::BeginPlay()
@@ -126,6 +136,24 @@ bool ABaseZombie::IsTargetInAttackRange(AActor* TargetActor) const
 
     const FVector AttackPoint = GetAttackPointForTarget(TargetActor);
     return FVector::Dist(GetActorLocation(), AttackPoint) <= AttackRange;
+}
+
+void ABaseZombie::ApplyDirectPursuitInput(const FVector& TargetLocation)
+{
+    if (!bIsAlive)
+    {
+        return;
+    }
+
+    const FVector Direction2D = FVector(
+        TargetLocation.X - GetActorLocation().X,
+        TargetLocation.Y - GetActorLocation().Y,
+        0.0f).GetSafeNormal();
+
+    if (!Direction2D.IsNearlyZero())
+    {
+        AddMovementInput(Direction2D, 1.0f);
+    }
 }
 
 void ABaseZombie::ApplyAnimationDesync()

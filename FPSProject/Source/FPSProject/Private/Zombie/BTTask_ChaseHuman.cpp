@@ -25,7 +25,7 @@ namespace
 		return BlackboardTarget;
 	}
 
-	FVector GetClosestPointOnTarget(AActor* TargetActor, const FVector& FromLocation)
+	FVector GetClosestPointOnChaseTarget(AActor* TargetActor, const FVector& FromLocation)
 	{
 		if (!TargetActor)
 		{
@@ -109,7 +109,7 @@ bool UBTTask_ChaseHuman::ShouldUseDirectPursuitFallback(AAIController* AIControl
 	}
 
 	const FVector ZombieLocation = ZombieCharacter->GetActorLocation();
-	const FVector TargetLocation = GetClosestPointOnTarget(TargetActor, ZombieLocation);
+	const FVector TargetLocation = GetClosestPointOnChaseTarget(TargetActor, ZombieLocation);
 	const float Distance2D = FVector::Dist2D(ZombieLocation, TargetLocation);
 	const float HeightDelta = TargetLocation.Z - ZombieLocation.Z;
 
@@ -139,7 +139,7 @@ void UBTTask_ChaseHuman::ApplyDirectPursuitFallback(AAIController* AIController,
 	}
 
 	AIController->SetFocus(TargetActor);
-	ZombieCharacter->ApplyDirectPursuitInput(GetClosestPointOnTarget(TargetActor, ZombieCharacter->GetActorLocation()));
+		ZombieCharacter->ApplyDirectPursuitInput(GetClosestPointOnChaseTarget(TargetActor, ZombieCharacter->GetActorLocation()));
 }
 
 EBTNodeResult::Type UBTTask_ChaseHuman::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
@@ -196,7 +196,7 @@ void UBTTask_ChaseHuman::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* Node
 
 	AIController->SetFocus(TargetActor);
 
-	const FVector TargetReachPoint = GetClosestPointOnTarget(TargetActor, ZombieCharacter->GetActorLocation());
+	const FVector TargetReachPoint = GetClosestPointOnChaseTarget(TargetActor, ZombieCharacter->GetActorLocation());
 	const float Distance = FVector::Dist(ZombieCharacter->GetActorLocation(), TargetReachPoint);
 
 	if (Distance <= StopDistance)

@@ -443,6 +443,11 @@ FBox ATruck::GetCargoWorldBounds() const
 	return FBox(Center - Extent, Center + Extent);
 }
 
+UPrimitiveComponent* ATruck::GetCargoMovementBase() const
+{
+	return CargoFloorCollision ? CargoFloorCollision : Cast<UPrimitiveComponent>(RootComponent);
+}
+
 void ATruck::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);

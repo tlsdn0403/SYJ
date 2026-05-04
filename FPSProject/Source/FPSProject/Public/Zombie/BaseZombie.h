@@ -45,6 +45,7 @@ public:
     void Attack();
     void Attack(AActor* TargetActor);
     bool IsTargetInAttackRange(AActor* TargetActor) const;
+    void ApplyDirectPursuitInput(const FVector& TargetLocation);
 
     UFUNCTION(BlueprintCallable, Category = "Zombie")
     void Die();
@@ -134,6 +135,15 @@ private:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zombie|Animation", meta = (AllowPrivateAccess = "true"))
     float AttackMontagePlayRateVariance = 0.08f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zombie|Movement", meta = (AllowPrivateAccess = "true"))
+    float TurnRateYaw = 540.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zombie|Movement", meta = (AllowPrivateAccess = "true"))
+    float MaxAcceleration = 900.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zombie|Movement", meta = (AllowPrivateAccess = "true"))
+    float BrakingDecelerationWalking = 700.0f;
 
     float AnimationRateScale = 1.0f;
 

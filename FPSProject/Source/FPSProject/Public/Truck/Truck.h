@@ -138,6 +138,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Cargo|Ride")
 	FBox GetCargoWorldBounds() const;
 
+	UFUNCTION(BlueprintCallable, Category = "Cargo|Ride")
+	UPrimitiveComponent* GetCargoMovementBase() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Cargo|Ride")
+	UBoxComponent* GetCargoMoveBoundsComponent() const { return CargoMoveBounds; }
+
 	UFUNCTION(BlueprintCallable, Category = "Turret")
 	AMountedMachineGun* GetMountedWeapon() const { return MountedWeapon; }
 

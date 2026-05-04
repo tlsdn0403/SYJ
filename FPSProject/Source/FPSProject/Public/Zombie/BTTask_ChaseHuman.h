@@ -25,17 +25,26 @@ private:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI", meta = (AllowPrivateAccess = "true", ClampMin = "0.05"))
 	float RepathInterval = 0.35f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI", meta = (AllowPrivateAccess = "true", ClampMin = "0.0"))
-	float RepathDistanceThreshold = 150.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Fallback", meta = (AllowPrivateAccess = "true", ClampMin = "0.0"))
+	float DirectPursuitRange2D = 1800.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Fallback", meta = (AllowPrivateAccess = "true", ClampMin = "0.0"))
+	float DirectPursuitMaxRise = 200.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Fallback", meta = (AllowPrivateAccess = "true", ClampMin = "0.0"))
+	float DirectPursuitMaxDrop = 1800.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Fallback", meta = (AllowPrivateAccess = "true"))
+	bool bRequireLineOfSightForDirectPursuit = true;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI", meta = (AllowPrivateAccess = "true"))
 	FBlackboardKeySelector TargetPlayerKey;
 
 	float LastMoveRequestTime = -100000.0f;
-	FVector LastIssuedMoveGoalLocation = FVector::ZeroVector;
 	TWeakObjectPtr<AActor> LastIssuedTargetActor;
-	bool bLastMoveUsedActorGoal = false;
 
 	void ResetMoveRequestState();
-	void RequestChaseMove(AAIController* AIController, ABaseZombie* ZombieCharacter, AActor* TargetActor, const FVector& MoveGoalLocation, bool bHasProjectedMoveGoal, bool bForceRequest);
+	bool RequestChaseMove(AAIController* AIController, ABaseZombie* ZombieCharacter, AActor* TargetActor, bool bForceRequest);
+	bool ShouldUseDirectPursuitFallback(AAIController* AIController, ABaseZombie* ZombieCharacter, AActor* TargetActor) const;
+	void ApplyDirectPursuitFallback(AAIController* AIController, ABaseZombie* ZombieCharacter, AActor* TargetActor) const;
 };

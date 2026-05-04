@@ -238,8 +238,15 @@ protected:
 	void ApplyDefaultAnimationClass();
 	void PlayDrivingAnimation();
 	void HandleMountedWeaponAutoFire();
+	void BeginTruckCargoWalk(ATruck* Truck);
+	void EndTruckCargoWalk();
+	void ConstrainToTruckCargoBounds();
+	void SetTruckMeshMovementIgnored(ATruck* Truck, bool bShouldIgnore);
 
 	void SendMovePacket();
 
 	FTimerHandle MountedWeaponAutoFireTimerHandle;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Truck")
+	float TruckCargoBoundsPadding = 20.0f;
 };

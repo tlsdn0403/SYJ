@@ -828,24 +828,31 @@ void AFPSBaseCharacter::BeginTruckCargoWalk(ATruck* Truck)
 
     EndTruckCargoWalk();
 
+    // 트렁크 위치로 캐릭터 이동
     SetActorLocationAndRotation(
         Truck->GetCargoRideLocation(),
         Truck->GetCargoRideRotation()
     );
 
+
     GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	// 캐릭터 매시가 트럭 매시와 충돌하지 않도록 설정
     GetMesh()->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 
+    // 
     if (GetCharacterMovement())
     {
+        // 탑승 직전에 캐릭터가 가지고 있던 속도를 제거
         GetCharacterMovement()->StopMovementImmediately();
+		// 적재함 위에서 걷기 가능하도록 이동 모드 변경
         GetCharacterMovement()->SetMovementMode(MOVE_Walking);
     }
-
+    // 캐릭터 캡슐과 트럭 메시가 서로 이동 충돌을 무시하도록 설정
     SetTruckMeshMovementIgnored(Truck, true);
 
     if (UPrimitiveComponent* CargoMovementBase = Truck->GetCargoMovementBase())
     {
+        // 캐릭터가 어떤 바닥 위에서 움직이는지 설정을 해줌
         SetBase(CargoMovementBase);
     }
 

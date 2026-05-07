@@ -102,7 +102,7 @@ public:
 	void EnterMountedWeapon(ATruck* Truck, AMountedMachineGun* MountedWeapon);
 
 	UFUNCTION(BlueprintCallable, Category = "Truck")
-	void ExitMountedWeapon();
+	void ExitMountedWeapon(bool bReturnToCargo = true);
 
 	UFUNCTION(BlueprintCallable, Category = "Truck")
 	bool CanInteractWithMountedWeapon() const;

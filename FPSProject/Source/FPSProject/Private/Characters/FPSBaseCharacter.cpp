@@ -208,6 +208,20 @@ void AFPSBaseCharacter::Tick(float DeltaTime)
 	{
 		return;
 	}
+	else if (bIsOnTruckCargo && CurrentTruck)
+	{
+		const FVector CurrentLocation = GetActorLocation();
+		const FVector TargetLocation(DestInfo->x(), DestInfo->y(), DestInfo->z());
+		const FRotator TargetRot(0.f, DestInfo->yaw(), 0.f);
+
+		SetActorRotation(FMath::RInterpTo(GetActorRotation(), TargetRot, DeltaTime, 12.f));
+		SetActorLocation(
+			FMath::VInterpTo(CurrentLocation, TargetLocation, DeltaTime, 12.f),
+			false,
+			nullptr,
+			ETeleportType::TeleportPhysics);
+		return;
+	}
 	else // 남의 캐릭터일 때
 	{
 		const Protocol::MoveState State = PlayerInfo->state();
@@ -336,7 +350,18 @@ void AFPSBaseCharacter::ExitTruckDriverSeat()
 
 void AFPSBaseCharacter::EnterTruckCargo(ATruck* Truck)
 {
-	if (!Truck || bIsOnTruckCargo || bIsDrivingTruck || bIsUsingMountedWeapon)
+	if (!Truck || bIsDrivingTruck)
+	{
+		return;
+	}
+
+	if (bIsUsingMountedWeapon && CurrentTruck == Truck)
+	{
+		ExitMountedWeapon();
+		return;
+	}
+
+	if (bIsOnTruckCargo)
 	{
 		return;
 	}
@@ -408,6 +433,7 @@ void AFPSBaseCharacter::EnterMountedWeapon(ATruck* Truck, AMountedMachineGun* Mo
 
 	StopFire();
 	ClearTruckInteractionState();
+	const bool bWasOnTruckCargo = bIsOnTruckCargo;
 	bIsUsingMountedWeapon = true;
 	bIsOnTruckCargo = false;
 	bIsDrivingTruck = false;
@@ -417,7 +443,7 @@ void AFPSBaseCharacter::EnterMountedWeapon(ATruck* Truck, AMountedMachineGun* Mo
 	CurrentMountedWeapon->SetWeaponUser(this);
 	SetHeldWeaponVehicleVisibility(true);
 
-	if (bIsOnTruckCargo)
+	if (bWasOnTruckCargo)
 	{
 		if (UBoxComponent* CargoBounds = Truck->GetCargoMoveBoundsComponent())
 		{
@@ -469,7 +495,7 @@ void AFPSBaseCharacter::EnterMountedWeapon(ATruck* Truck, AMountedMachineGun* Mo
 	}
 }
 
-void AFPSBaseCharacter::ExitMountedWeapon()
+void AFPSBaseCharacter::ExitMountedWeapon(bool bReturnToCargo)
 {
 	if (!bIsUsingMountedWeapon || !CurrentTruck)
 	{
@@ -516,17 +542,33 @@ void AFPSBaseCharacter::ExitMountedWeapon()
 	Truck->EndMountedWeaponUse(this);
 	CurrentMountedWeapon = nullptr;
 	bIsUsingMountedWeapon = false;
-	bIsOnTruckCargo = true;
-	CurrentTruck = Truck;
 	SetHeldWeaponVehicleVisibility(false);
-	BeginTruckCargoWalk(Truck);
-	SetActorLocationAndRotation(
-		RestoreCargoWorldLocation,
-		Truck->GetCargoRideRotation(),
-		false,
-		nullptr,
-		ETeleportType::TeleportPhysics);
-	ConstrainToTruckCargoBounds();
+
+	if (bReturnToCargo)
+	{
+		bIsOnTruckCargo = true;
+		CurrentTruck = Truck;
+		BeginTruckCargoWalk(Truck);
+		SetActorLocationAndRotation(
+			RestoreCargoWorldLocation,
+			Truck->GetCargoRideRotation(),
+			false,
+			nullptr,
+			ETeleportType::TeleportPhysics);
+		ConstrainToTruckCargoBounds();
+	}
+	else
+	{
+		bIsOnTruckCargo = false;
+		CurrentTruck = nullptr;
+		SetActorLocationAndRotation(
+			Truck->GetCargoExitLocation(),
+			Truck->GetActorRotation(),
+			false,
+			nullptr,
+			ETeleportType::TeleportPhysics);
+	}
+
 	RefreshTruckInteractionState(Truck);
 	bHasSavedTruckCargoLocalLocation = false;
 
@@ -1079,16 +1121,23 @@ void AFPSBaseCharacter::Interact()
 	{
 		StopFire();
 
+		if (!CurrentTruck)
+		{
+			return;
+		}
+
 		if (UFPSProjectGameInstance* GameInstance = Cast<UFPSProjectGameInstance>(GetGameInstance()))
 		{
-			if (GameInstance->TryExitTruckLocally(this))
+			if (GameInstance->TryEnterTruckLocally(this, CurrentTruck, Protocol::TRUCK_SEAT_CARGO))
 			{
 				return;
 			}
 		}
 
-		Protocol::C_EXIT_TRUCK ExitPkt;
-		SEND_PACKET(ExitPkt);
+		Protocol::C_ENTER_TRUCK EnterPkt;
+		EnterPkt.set_truck_id(CurrentTruck->NetworkTruckId);
+		EnterPkt.set_seat_type(Protocol::TRUCK_SEAT_CARGO);
+		SEND_PACKET(EnterPkt);
 		return;
 	}
 

@@ -226,13 +226,8 @@ bool UFPSProjectGameInstance::TryExitTruckLocally(AFPSBaseCharacter* Character)
 
 	if (Character->IsUsingMountedWeapon())
 	{
-		if (Truck && Truck->GetMountedWeaponUser() == Character)
-		{
-			Truck->SetMountedWeaponUser(nullptr);
-		}
-
-		Character->ExitMountedWeapon();
-		return true;
+		return Truck != nullptr &&
+			TryEnterTruckLocally(Character, Truck, Protocol::TRUCK_SEAT_CARGO);
 	}
 
 	if (Character->IsOnTruckCargo())
@@ -622,7 +617,7 @@ void UFPSProjectGameInstance::HandleExitTruck(const Protocol::S_EXIT_TRUCK& pkt)
 		{
 			Truck->SetMountedWeaponUser(nullptr);
 		}
-		Player->ExitMountedWeapon();
+		Player->ExitMountedWeapon(false);
 		if (bIsLocalPlayer)
 		{
 			Player->SyncMovementToServer();

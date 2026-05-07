@@ -1,5 +1,6 @@
 #pragma once
 #include "JobQueue.h"
+#include <unordered_set>
 
 class Room : public JobQueue
 {
@@ -37,7 +38,7 @@ private:
 	{
 		Protocol::PosInfo posInfo;
 		uint64 driverPlayerId = 0;
-		uint64 cargoPlayerId = 0;
+		unordered_set<uint64> cargoPlayerIds;
 		uint64 turretPlayerId = 0;
 	};
 
@@ -50,6 +51,8 @@ private:
 	void ForceExitTruck(PlayerRef player);
 
 private:
+	static constexpr size_t MAX_CARGO_OCCUPANTS = 4;
+
 	unordered_map<uint64, ObjectRef> _objects;
 	unordered_map<uint64, TruckState> _trucks;
 	unordered_map<uint64, bool> _doors;

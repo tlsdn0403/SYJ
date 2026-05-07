@@ -45,7 +45,7 @@ bool Room::IsTruckSeatOccupied(const TruckState& truckState, Protocol::TruckSeat
 	case Protocol::TRUCK_SEAT_DRIVER:
 		return truckState.driverPlayerId != 0;
 	case Protocol::TRUCK_SEAT_CARGO:
-		return truckState.cargoPlayerId != 0;
+		return truckState.cargoPlayerIds.size() >= MAX_CARGO_OCCUPANTS;
 	case Protocol::TRUCK_SEAT_TURRET:
 		return truckState.turretPlayerId != 0;
 	default:
@@ -61,7 +61,7 @@ void Room::SetTruckSeatOccupant(TruckState& truckState, Protocol::TruckSeatType 
 		truckState.driverPlayerId = playerId;
 		break;
 	case Protocol::TRUCK_SEAT_CARGO:
-		truckState.cargoPlayerId = playerId;
+		truckState.cargoPlayerIds.insert(playerId);
 		break;
 	case Protocol::TRUCK_SEAT_TURRET:
 		truckState.turretPlayerId = playerId;
@@ -80,8 +80,7 @@ void Room::ClearTruckSeatOccupant(TruckState& truckState, Protocol::TruckSeatTyp
 			truckState.driverPlayerId = 0;
 		break;
 	case Protocol::TRUCK_SEAT_CARGO:
-		if (truckState.cargoPlayerId == playerId)
-			truckState.cargoPlayerId = 0;
+		truckState.cargoPlayerIds.erase(playerId);
 		break;
 	case Protocol::TRUCK_SEAT_TURRET:
 		if (truckState.turretPlayerId == playerId)
@@ -367,10 +366,50 @@ void Room::HandleEnterTruck(PlayerRef player, Protocol::C_ENTER_TRUCK pkt)
 	if (truckId == 0 || seatType == Protocol::TRUCK_SEAT_NONE)
 		return;
 
+	TruckState& truckState = GetOrCreateTruckState(truckId);
+
+	auto BroadcastSeatChange = [&](Protocol::TruckSeatType NewSeatType)
+		{
+			Protocol::S_ENTER_TRUCK enterPkt;
+			enterPkt.set_player_id(playerId);
+			enterPkt.set_truck_id(truckId);
+			enterPkt.set_seat_type(NewSeatType);
+
+			SendBufferRef sendBuffer = ServerPacketHandler::MakeSendBuffer(enterPkt);
+			Broadcast(sendBuffer);
+		};
+
 	if (player->bIsInTruck)
+	{
+		if (player->currentTruckId != truckId)
+			return;
+
+		if (player->currentTruckSeatType == seatType)
+			return;
+
+		const bool bCargoToTurret =
+			player->currentTruckSeatType == Protocol::TRUCK_SEAT_CARGO &&
+			seatType == Protocol::TRUCK_SEAT_TURRET;
+		const bool bTurretToCargo =
+			player->currentTruckSeatType == Protocol::TRUCK_SEAT_TURRET &&
+			seatType == Protocol::TRUCK_SEAT_CARGO;
+
+		if (bCargoToTurret == false && bTurretToCargo == false)
+			return;
+
+		if (IsTruckSeatOccupied(truckState, seatType))
+			return;
+
+		ClearTruckSeatOccupant(truckState, player->currentTruckSeatType, playerId);
+		SetTruckSeatOccupant(truckState, seatType, playerId);
+		player->currentTruckSeatType = seatType;
+		BroadcastSeatChange(seatType);
+		return;
+	}
+
+	if (seatType == Protocol::TRUCK_SEAT_TURRET)
 		return;
 
-	TruckState& truckState = GetOrCreateTruckState(truckId);
 	if (IsTruckSeatOccupied(truckState, seatType))
 		return;
 
@@ -388,13 +427,7 @@ void Room::HandleEnterTruck(PlayerRef player, Protocol::C_ENTER_TRUCK pkt)
 		truckState.posInfo.set_state(player->posInfo->state());
 	}
 
-	Protocol::S_ENTER_TRUCK enterPkt;
-	enterPkt.set_player_id(playerId);
-	enterPkt.set_truck_id(truckId);
-	enterPkt.set_seat_type(seatType);
-
-	SendBufferRef sendBuffer = ServerPacketHandler::MakeSendBuffer(enterPkt);
-	Broadcast(sendBuffer);
+	BroadcastSeatChange(seatType);
 }
 
 void Room::HandleExitTruck(PlayerRef player, Protocol::C_EXIT_TRUCK pkt)

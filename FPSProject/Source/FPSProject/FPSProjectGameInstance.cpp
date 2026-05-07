@@ -176,6 +176,7 @@ bool UFPSProjectGameInstance::TryEnterTruckLocally(AFPSBaseCharacter* Character,
 		return true;
 
 	case Protocol::TRUCK_SEAT_CARGO:
+		//[신우] 서버 응답을 기다리기 전에도 적재함 탑승 감각이 끊기지 않도록 로컬에서 먼저 태워준다.
 		Character->EnterTruckCargo(Truck);
 		return true;
 
@@ -226,6 +227,7 @@ bool UFPSProjectGameInstance::TryExitTruckLocally(AFPSBaseCharacter* Character)
 
 	if (Character->IsUsingMountedWeapon())
 	{
+		//[신우] 기관총에서 F를 누를 때는 "트럭 밖으로 하차"가 아니라 "cargo 좌석으로 복귀"로 해석한다.
 		return Truck != nullptr &&
 			TryEnterTruckLocally(Character, Truck, Protocol::TRUCK_SEAT_CARGO);
 	}
@@ -546,11 +548,13 @@ void UFPSProjectGameInstance::HandleEnterTruck(const Protocol::S_ENTER_TRUCK& pk
 		}
 		break;
 	case Protocol::TRUCK_SEAT_CARGO:
+		//[신우] 서버가 cargo 탑승을 승인하면 로컬/원격 플레이어 모두 같은 방식으로 적재함 상태를 맞춘다.
 		Player->EnterTruckCargo(Truck);
 		break;
 	case Protocol::TRUCK_SEAT_TURRET:
 		if (AMountedMachineGun* MountedWeapon = Truck->GetMountedWeapon())
 		{
+			//[신우] 서버에서 turret 좌석을 승인한 경우에만 기관총 사용자 정보를 갱신한다.
 			Truck->SetMountedWeaponUser(Player);
 			Player->EnterMountedWeapon(Truck, MountedWeapon);
 		}
@@ -617,6 +621,8 @@ void UFPSProjectGameInstance::HandleExitTruck(const Protocol::S_EXIT_TRUCK& pkt)
 		{
 			Truck->SetMountedWeaponUser(nullptr);
 		}
+		//[신우] S_EXIT_TRUCK의 turret 케이스는 "기관총에서 cargo로 좌석 전환"이 아니라
+		//[신우] "트럭에서 완전히 내린다"는 의미로 사용하고 있어서 false를 넘겨 트럭 밖으로 내보낸다.
 		Player->ExitMountedWeapon(false);
 		if (bIsLocalPlayer)
 		{

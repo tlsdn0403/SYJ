@@ -38,6 +38,7 @@ private:
 	{
 		Protocol::PosInfo posInfo;
 		uint64 driverPlayerId = 0;
+		//[신우] cargo 좌석은 1인 좌석이 아니라 여러 명이 동시에 탈 수 있어서 set으로 관리한다.
 		unordered_set<uint64> cargoPlayerIds;
 		uint64 turretPlayerId = 0;
 	};
@@ -51,6 +52,7 @@ private:
 	void ForceExitTruck(PlayerRef player);
 
 private:
+	//[신우] 현재 2스테이지 트럭 적재함은 최대 4명까지 타는 구조로 서버에서 제한한다.
 	static constexpr size_t MAX_CARGO_OCCUPANTS = 4;
 
 	unordered_map<uint64, ObjectRef> _objects;

@@ -140,7 +140,8 @@ ATruck::ATruck()
 
 	auto SetupCargoCollision = [](UBoxComponent* Box)
 		{
-			Box->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+			// Cargo bounds should constrain character movement, but must not feed impulses back into the vehicle body.
+			Box->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 			Box->SetCollisionResponseToAllChannels(ECR_Ignore);
 			Box->SetCollisionResponseToChannel(ECC_Pawn, ECR_Block);
 			Box->SetGenerateOverlapEvents(false);

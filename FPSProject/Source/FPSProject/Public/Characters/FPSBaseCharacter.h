@@ -258,4 +258,16 @@ protected:
 
 	UPROPERTY(Transient)
 	bool bHasSavedTruckCargoLocalLocation = false;
+
+	UPROPERTY(Transient)
+	FVector ReplicatedTruckCargoLocalLocation = FVector::ZeroVector;
+
+	UPROPERTY(Transient)
+	bool bHasReplicatedTruckCargoLocalLocation = false;
+
+	UPROPERTY(Transient)
+	FVector LastTruckCargoLocalLocationForMoveState = FVector::ZeroVector;
+
+	UPROPERTY(Transient)
+	bool bHasLastTruckCargoLocalLocationForMoveState = false;
 };

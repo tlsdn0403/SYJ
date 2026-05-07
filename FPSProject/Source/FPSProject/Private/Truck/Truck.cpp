@@ -736,12 +736,16 @@ bool ATruck::TryEnterMountedWeapon(AFPSBaseCharacter* Character)
 		return false;
 	}
 
+	const bool bOverlappingTurretSeat =
+		TurretSeatInteractTrigger &&
+		TurretSeatInteractTrigger->IsOverlappingActor(Character);
 	const bool bRequestedTurretSeat =
 		Character->GetCurrentTruckInteractType() == ETruckInteractType::TurretSeat;
 	const bool bSwitchingFromCargo =
 		Character->CurrentTruck == this &&
 		Character->IsOnTruckCargo() &&
-		FVector::Dist(Character->GetActorLocation(), GetTurretSeatLocation()) <= MountedWeaponUseDistance;
+		(bOverlappingTurretSeat ||
+			FVector::Dist(Character->GetActorLocation(), GetTurretSeatLocation()) <= MountedWeaponUseDistance);
 
 	if (!bRequestedTurretSeat && !bSwitchingFromCargo)
 	{
@@ -751,7 +755,7 @@ bool ATruck::TryEnterMountedWeapon(AFPSBaseCharacter* Character)
 	if (MountedWeaponUser && MountedWeaponUser != Character)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Mounted weapon already in use by %s"), *GetNameSafe(MountedWeaponUser));
-		return true;
+		return false;
 	}
 
 	if (Character->IsLocallyControlled())
@@ -769,7 +773,7 @@ bool ATruck::TryEnterMountedWeapon(AFPSBaseCharacter* Character)
 		EnterPkt.set_seat_type(Protocol::TRUCK_SEAT_TURRET);
 		SEND_PACKET(EnterPkt);
 	}
-	return true;
+	return Character->IsLocallyControlled();
 }
 
 void ATruck::ExitDriverSeat()

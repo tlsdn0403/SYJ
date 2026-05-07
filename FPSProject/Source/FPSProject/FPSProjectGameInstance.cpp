@@ -10,6 +10,7 @@
 #include "ClientPacketHandler.h"
 #include "Characters/FPSBaseCharacter.h"
 #include "Truck/Truck.h"
+#include "Weapon/MountedMachineGun.h"
 #include "ADoor.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetSystemLibrary.h"
@@ -183,8 +184,9 @@ bool UFPSProjectGameInstance::TryEnterTruckLocally(AFPSBaseCharacter* Character,
 		{
 			Truck->SetMountedWeaponUser(Character);
 			Character->EnterMountedWeapon(Truck, MountedWeapon);
+			return true;
 		}
-		return true;
+		return false;
 
 	default:
 		return false;
@@ -584,7 +586,12 @@ void UFPSProjectGameInstance::HandleExitTruck(const Protocol::S_EXIT_TRUCK& pkt)
 
 	APlayerController* LocalPlayerController = UGameplayStatics::GetPlayerController(this, 0);
 	AFPSBaseCharacter* LocalCharacter = MyPlayer;
+	if (LocalCharacter == nullptr && LocalPlayerController)
+	{
+		LocalCharacter = Cast<AFPSBaseCharacter>(LocalPlayerController->GetCharacter());
+	}
 	const bool bIsLocalPlayer =
+		Player == LocalCharacter ||
 		(LocalCharacter && LocalCharacter->GetPlayerInfo() && LocalCharacter->GetPlayerInfo()->object_id() == pkt.player_id());
 
 	switch (pkt.seat_type())
@@ -819,7 +826,12 @@ void UFPSProjectGameInstance::HandleFire(const Protocol::S_FIRE& pkt)
 			(Shooter && Shooter->GetCurrentWeapon()) ? TEXT("true") : TEXT("false"),
 			Shooter ? *GetNameSafe(Shooter->GetCurrentWeapon()) : TEXT("null"));
 
-		if (Shooter && !Shooter->IsLocallyControlled() && Shooter->GetCurrentWeapon())
+		if (Shooter && !Shooter->IsLocallyControlled() && Shooter->IsUsingMountedWeapon() && Shooter->CurrentMountedWeapon)
+		{
+			Shooter->CurrentMountedWeapon->SetWeaponUser(Shooter);
+			Shooter->CurrentMountedWeapon->Fire();
+		}
+		else if (Shooter && !Shooter->IsLocallyControlled() && Shooter->GetCurrentWeapon())
 		{
 			Shooter->GetCurrentWeapon()->RemoteFire();
 		}

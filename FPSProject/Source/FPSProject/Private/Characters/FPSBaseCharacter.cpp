@@ -281,10 +281,12 @@ void AFPSBaseCharacter::EnterTruckDriverSeat(ATruck* Truck)
 		return;
 	}
 
+	ClearTruckInteractionState();
 	CurrentTruck = Truck;
 	bIsDrivingTruck = true;
 	bIsAiming = false;
 	StopFire();
+	SetHeldWeaponVehicleVisibility(true);
 	DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 	AttachToComponent(Truck->DriverSeatPoint, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
 	SetActorRelativeLocation(FVector::ZeroVector);
@@ -326,36 +328,22 @@ void AFPSBaseCharacter::ExitTruckDriverSeat()
 
 	bIsDrivingTruck = false;
 	CurrentTruck = nullptr;
-	CurrentTruckInteractType = ETruckInteractType::None;
-	CurrentInteractableActor = nullptr;
-
-	if (Truck->DriverSeatInteractTrigger && Truck->DriverSeatInteractTrigger->IsOverlappingActor(this))
-	{
-		CurrentInteractableActor = Truck;
-		CurrentTruckInteractType = ETruckInteractType::DriverSeat;
-	}
-	else if (Truck->CargoSeatInteractTrigger && Truck->CargoSeatInteractTrigger->IsOverlappingActor(this))
-	{
-		CurrentInteractableActor = Truck;
-		CurrentTruckInteractType = ETruckInteractType::CargoSeat;
-	}
-	else if (Truck->TurretSeatInteractTrigger && Truck->TurretSeatInteractTrigger->IsOverlappingActor(this))
-	{
-		CurrentInteractableActor = Truck;
-		CurrentTruckInteractType = ETruckInteractType::TurretSeat;
-	}
+	SetHeldWeaponVehicleVisibility(false);
+	RefreshTruckInteractionState(Truck);
 
 	ApplyDefaultAnimationClass();
 }
 
 void AFPSBaseCharacter::EnterTruckCargo(ATruck* Truck)
 {
-	if (!Truck || bIsOnTruckCargo)
+	if (!Truck || bIsOnTruckCargo || bIsDrivingTruck || bIsUsingMountedWeapon)
 	{
 		return;
 	}
 
 	StopFire();
+	ClearTruckInteractionState();
+	bHasSavedTruckCargoLocalLocation = false;
 	bIsOnTruckCargo = true;
 	bIsDrivingTruck = false;
 	bIsAiming = false;
@@ -384,19 +372,26 @@ void AFPSBaseCharacter::ExitTruckCargo()
 	}
 
 	ATruck* Truck = CurrentTruck;
+	bHasSavedTruckCargoLocalLocation = false;
 
-	DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
-	SetActorLocation(Truck->GetCargoExitLocation());
+	EndTruckCargoWalk();
+	SetActorLocationAndRotation(
+		Truck->GetCargoExitLocation(),
+		Truck->GetActorRotation()
+	);
 
 	if (GetCharacterMovement())
 	{
+		GetCharacterMovement()->StopMovementImmediately();
 		GetCharacterMovement()->SetMovementMode(MOVE_Walking);
 	}
-    EndTruckCargoWalk();
-    SetActorLocation(Truck->GetCargoExitLocation());
+
+	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	GetMesh()->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 
 	bIsOnTruckCargo = false;
 	CurrentTruck = nullptr;
+	RefreshTruckInteractionState(Truck);
 
 	if (IsLocallyControlled())
 	{
@@ -406,12 +401,13 @@ void AFPSBaseCharacter::ExitTruckCargo()
 
 void AFPSBaseCharacter::EnterMountedWeapon(ATruck* Truck, AMountedMachineGun* MountedWeapon)
 {
-	if (!Truck || !MountedWeapon || bIsUsingMountedWeapon)
+	if (!Truck || !MountedWeapon || bIsUsingMountedWeapon || bIsDrivingTruck)
 	{
 		return;
 	}
 
 	StopFire();
+	ClearTruckInteractionState();
 	bIsUsingMountedWeapon = true;
 	bIsOnTruckCargo = false;
 	bIsDrivingTruck = false;
@@ -419,13 +415,23 @@ void AFPSBaseCharacter::EnterMountedWeapon(ATruck* Truck, AMountedMachineGun* Mo
 	CurrentTruck = Truck;
 	CurrentMountedWeapon = MountedWeapon;
 	CurrentMountedWeapon->SetWeaponUser(this);
+	SetHeldWeaponVehicleVisibility(true);
 
-	if (CurrentWeapon)
+	if (bIsOnTruckCargo)
 	{
-		CurrentWeapon->SetWeaponCollisionEnabled(false);
-		CurrentWeapon->SetWeaponHidden(true);
+		if (UBoxComponent* CargoBounds = Truck->GetCargoMoveBoundsComponent())
+		{
+			SavedTruckCargoLocalLocation =
+				CargoBounds->GetComponentTransform().InverseTransformPosition(GetActorLocation());
+			bHasSavedTruckCargoLocalLocation = true;
+		}
+		else
+		{
+			bHasSavedTruckCargoLocalLocation = false;
+		}
 	}
-    EndTruckCargoWalk();
+
+	EndTruckCargoWalk();
 
 	SetActorLocationAndRotation(
 		Truck->GetTurretSeatLocation(),
@@ -471,6 +477,15 @@ void AFPSBaseCharacter::ExitMountedWeapon()
 	}
 
 	ATruck* Truck = CurrentTruck;
+	FVector RestoreCargoWorldLocation = Truck->GetCargoRideLocation();
+	if (bHasSavedTruckCargoLocalLocation)
+	{
+		if (UBoxComponent* CargoBounds = Truck->GetCargoMoveBoundsComponent())
+		{
+			RestoreCargoWorldLocation =
+				CargoBounds->GetComponentTransform().TransformPosition(SavedTruckCargoLocalLocation);
+		}
+	}
 
 	if (CurrentMountedWeapon)
 	{
@@ -479,10 +494,6 @@ void AFPSBaseCharacter::ExitMountedWeapon()
 
 	StopFire();
 	DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
-	SetActorLocationAndRotation(
-		Truck->GetCargoExitLocation(),
-		Truck->GetActorRotation()
-	);
 
 	if (GetCharacterMovement())
 	{
@@ -492,7 +503,6 @@ void AFPSBaseCharacter::ExitMountedWeapon()
 
 	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 	GetMesh()->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
-    StopFire();
 
 	if (FPSCameraComponent)
 	{
@@ -506,34 +516,19 @@ void AFPSBaseCharacter::ExitMountedWeapon()
 	Truck->EndMountedWeaponUse(this);
 	CurrentMountedWeapon = nullptr;
 	bIsUsingMountedWeapon = false;
-	bIsOnTruckCargo = false;
-	CurrentTruck = nullptr;
-	CurrentTruckInteractType = ETruckInteractType::None;
-	CurrentInteractableActor = nullptr;
-
-	if (CurrentWeapon)
-	{
-		CurrentWeapon->SetWeaponHidden(false);
-		CurrentWeapon->SetWeaponCollisionEnabled(true);
-	}
-    BeginTruckCargoWalk(Truck);
-
-
-	if (Truck->DriverSeatInteractTrigger && Truck->DriverSeatInteractTrigger->IsOverlappingActor(this))
-	{
-		CurrentInteractableActor = Truck;
-		CurrentTruckInteractType = ETruckInteractType::DriverSeat;
-	}
-	else if (Truck->CargoSeatInteractTrigger && Truck->CargoSeatInteractTrigger->IsOverlappingActor(this))
-	{
-		CurrentInteractableActor = Truck;
-		CurrentTruckInteractType = ETruckInteractType::CargoSeat;
-	}
-	else if (Truck->TurretSeatInteractTrigger && Truck->TurretSeatInteractTrigger->IsOverlappingActor(this))
-	{
-		CurrentInteractableActor = Truck;
-		CurrentTruckInteractType = ETruckInteractType::TurretSeat;
-	}
+	bIsOnTruckCargo = true;
+	CurrentTruck = Truck;
+	SetHeldWeaponVehicleVisibility(false);
+	BeginTruckCargoWalk(Truck);
+	SetActorLocationAndRotation(
+		RestoreCargoWorldLocation,
+		Truck->GetCargoRideRotation(),
+		false,
+		nullptr,
+		ETeleportType::TeleportPhysics);
+	ConstrainToTruckCargoBounds();
+	RefreshTruckInteractionState(Truck);
+	bHasSavedTruckCargoLocalLocation = false;
 
 	ApplyDefaultAnimationClass();
 
@@ -640,8 +635,9 @@ void AFPSBaseCharacter::SetCurrentWeapon(AWeaponBase* NewWeapon)
 {
 	CurrentWeapon = NewWeapon;
 
-	if (bIsDrivingTruck)
+	if (bIsDrivingTruck || bIsUsingMountedWeapon)
 	{
+		SetHeldWeaponVehicleVisibility(true);
 		return;
 	}
 
@@ -923,6 +919,53 @@ void AFPSBaseCharacter::SetTruckMeshMovementIgnored(ATruck* Truck, bool bShouldI
             TruckMesh->IgnoreComponentWhenMoving(Capsule, bShouldIgnore);
         }
     }
+}
+
+void AFPSBaseCharacter::SetHeldWeaponVehicleVisibility(bool bShouldHide)
+{
+	if (!CurrentWeapon)
+	{
+		return;
+	}
+
+	CurrentWeapon->SetWeaponCollisionEnabled(!bShouldHide);
+	CurrentWeapon->SetWeaponHidden(bShouldHide);
+}
+
+void AFPSBaseCharacter::ClearTruckInteractionState()
+{
+	CurrentInteractableActor = nullptr;
+	CurrentTruckInteractType = ETruckInteractType::None;
+}
+
+void AFPSBaseCharacter::RefreshTruckInteractionState(ATruck* Truck)
+{
+	ClearTruckInteractionState();
+
+	if (!Truck)
+	{
+		return;
+	}
+
+	if (Truck->TurretSeatInteractTrigger && Truck->TurretSeatInteractTrigger->IsOverlappingActor(this))
+	{
+		CurrentInteractableActor = Truck;
+		CurrentTruckInteractType = ETruckInteractType::TurretSeat;
+		return;
+	}
+
+	if (Truck->CargoSeatInteractTrigger && Truck->CargoSeatInteractTrigger->IsOverlappingActor(this))
+	{
+		CurrentInteractableActor = Truck;
+		CurrentTruckInteractType = ETruckInteractType::CargoSeat;
+		return;
+	}
+
+	if (Truck->DriverSeatInteractTrigger && Truck->DriverSeatInteractTrigger->IsOverlappingActor(this))
+	{
+		CurrentInteractableActor = Truck;
+		CurrentTruckInteractType = ETruckInteractType::DriverSeat;
+	}
 }
 
 void AFPSBaseCharacter::SetPlayerInfo(const Protocol::PosInfo& Info)

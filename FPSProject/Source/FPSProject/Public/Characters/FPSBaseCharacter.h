@@ -242,6 +242,9 @@ protected:
 	void EndTruckCargoWalk();
 	void ConstrainToTruckCargoBounds();
 	void SetTruckMeshMovementIgnored(ATruck* Truck, bool bShouldIgnore);
+	void SetHeldWeaponVehicleVisibility(bool bShouldHide);
+	void ClearTruckInteractionState();
+	void RefreshTruckInteractionState(ATruck* Truck);
 
 	void SendMovePacket();
 
@@ -249,4 +252,10 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Truck")
 	float TruckCargoBoundsPadding = 20.0f;
+
+	UPROPERTY(Transient)
+	FVector SavedTruckCargoLocalLocation = FVector::ZeroVector;
+
+	UPROPERTY(Transient)
+	bool bHasSavedTruckCargoLocalLocation = false;
 };

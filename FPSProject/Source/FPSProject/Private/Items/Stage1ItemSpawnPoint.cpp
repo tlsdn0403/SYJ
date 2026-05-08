@@ -3,6 +3,7 @@
 #include "Items/Stage1ItemSpawnPoint.h"
 
 #include "Components/SceneComponent.h"
+#include "Components/SphereComponent.h"
 #include "Engine/World.h"
 #include "TimerManager.h"
 
@@ -12,6 +13,15 @@ AStage1ItemSpawnPoint::AStage1ItemSpawnPoint()
 
 	SceneRoot = CreateDefaultSubobject<USceneComponent>(TEXT("SceneRoot"));
 	SetRootComponent(SceneRoot);
+
+	EditorPreviewSphere = CreateDefaultSubobject<USphereComponent>(TEXT("EditorPreviewSphere"));
+	EditorPreviewSphere->SetupAttachment(SceneRoot);
+	EditorPreviewSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	EditorPreviewSphere->SetGenerateOverlapEvents(false);
+	EditorPreviewSphere->SetHiddenInGame(true);
+	EditorPreviewSphere->bDrawOnlyIfSelected = false;
+	EditorPreviewSphere->ShapeColor = FColor(80, 220, 255, 255);
+	EditorPreviewSphere->SetSphereRadius(PreviewSphereRadius);
 }
 
 void AStage1ItemSpawnPoint::BeginPlay()
@@ -21,6 +31,16 @@ void AStage1ItemSpawnPoint::BeginPlay()
 	if (bSpawnOnBeginPlay)
 	{
 		SpawnItem();
+	}
+}
+
+void AStage1ItemSpawnPoint::OnConstruction(const FTransform& Transform)
+{
+	Super::OnConstruction(Transform);
+
+	if (EditorPreviewSphere)
+	{
+		EditorPreviewSphere->SetSphereRadius(PreviewSphereRadius, false);
 	}
 }
 

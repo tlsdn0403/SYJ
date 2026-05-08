@@ -8,6 +8,7 @@
 #include "Stage1ItemSpawnPoint.generated.h"
 
 class USceneComponent;
+class USphereComponent;
 
 USTRUCT(BlueprintType)
 struct FStage1ItemSpawnOption
@@ -30,6 +31,7 @@ public:
 	AStage1ItemSpawnPoint();
 
 	virtual void BeginPlay() override;
+	virtual void OnConstruction(const FTransform& Transform) override;
 
 	UFUNCTION(BlueprintCallable, Category = "Spawn")
 	void SpawnItem();
@@ -43,6 +45,9 @@ public:
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	USceneComponent* SceneRoot;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	USphereComponent* EditorPreviewSphere;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spawn")
 	TArray<FStage1ItemSpawnOption> SpawnOptions;
@@ -62,6 +67,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spawn")
 	ESpawnActorCollisionHandlingMethod SpawnCollisionHandlingOverride =
 		ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Editor Preview", meta = (ClampMin = "16.0"))
+	float PreviewSphereRadius = 80.0f;
 
 private:
 	UFUNCTION()

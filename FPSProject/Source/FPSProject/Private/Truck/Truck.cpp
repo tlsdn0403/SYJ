@@ -23,6 +23,22 @@
 #include "Perception/AISense_Hearing.h"
 #include "Perception/AISense_Sight.h"
 
+namespace
+{
+bool AreCargoSlotsConfigured(const TArray<UStaticMeshComponent*>& Slots)
+{
+	for (const UStaticMeshComponent* Slot : Slots)
+	{
+		if (Slot && Slot->GetStaticMesh() != nullptr)
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+}
+
 ATruck::ATruck()
 {
 	DriverSeatInteractTrigger = CreateDefaultSubobject<UInteractTriggerComponent>(TEXT("DriverSeatInteractTrigger"));
@@ -99,6 +115,17 @@ ATruck::ATruck()
 		NewSlot->SetSimulatePhysics(false);
 		NewSlot->SetEnableGravity(false);
 		AmmoSlots.Add(NewSlot);
+	}
+
+	for (int32 i = 0; i < 3; i++)
+	{
+		FName SlotName = FName(*FString::Printf(TEXT("MountedAmmoSlot_%d"), i));
+		UStaticMeshComponent* NewSlot = CreateDefaultSubobject<UStaticMeshComponent>(SlotName);
+		NewSlot->SetupAttachment(CargoOrigin);
+		NewSlot->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		NewSlot->SetSimulatePhysics(false);
+		NewSlot->SetEnableGravity(false);
+		MountedAmmoSlots.Add(NewSlot);
 	}
 
 	for (int32 i = 0; i < 3; i++)
@@ -207,9 +234,11 @@ void ATruck::BeginPlay()
 	}
 
 	for (UStaticMeshComponent* Slot : AmmoSlots) { if (Slot) Slot->SetVisibility(false); }
+	for (UStaticMeshComponent* Slot : MountedAmmoSlots) { if (Slot) Slot->SetVisibility(false); }
 	for (UStaticMeshComponent* Slot : FuelSlots) { if (Slot) Slot->SetVisibility(false); }
 	for (UStaticMeshComponent* Slot : MedKitSlots) { if (Slot) Slot->SetVisibility(false); }
 	for (UStaticMeshComponent* Slot : AmmoSlots) { if (Slot) { Slot->SetSimulatePhysics(false); Slot->SetEnableGravity(false); Slot->SetCollisionEnabled(ECollisionEnabled::NoCollision); } }
+	for (UStaticMeshComponent* Slot : MountedAmmoSlots) { if (Slot) { Slot->SetSimulatePhysics(false); Slot->SetEnableGravity(false); Slot->SetCollisionEnabled(ECollisionEnabled::NoCollision); } }
 	for (UStaticMeshComponent* Slot : FuelSlots) { if (Slot) { Slot->SetSimulatePhysics(false); Slot->SetEnableGravity(false); Slot->SetCollisionEnabled(ECollisionEnabled::NoCollision); } }
 	for (UStaticMeshComponent* Slot : MedKitSlots) { if (Slot) { Slot->SetSimulatePhysics(false); Slot->SetEnableGravity(false); Slot->SetCollisionEnabled(ECollisionEnabled::NoCollision); } }
 
@@ -586,39 +615,65 @@ void ATruck::CheckZombieImpactSweep()
 
 void ATruck::AddCargoVisual(EItemType ItemType)
 {
-	UStaticMeshComponent* TargetSlot = nullptr;
+	auto TryUseNextSlot = [](TArray<UStaticMeshComponent*>& Slots, int32& CurrentCount) -> UStaticMeshComponent*
+	{
+		if (CurrentCount >= Slots.Num())
+		{
+			return nullptr;
+		}
+
+		return Slots[CurrentCount++];
+	};
+
+	TArray<UStaticMeshComponent*>* TargetSlots = nullptr;
+	int32* TargetCount = nullptr;
 
 	switch (ItemType)
 	{
 	case EItemType::Ammo:
-		if (CurrentAmmoCount < AmmoSlots.Num())
+	case EItemType::CharacterAmmo:
+		TargetSlots = &AmmoSlots;
+		TargetCount = &CurrentAmmoCount;
+		break;
+
+	case EItemType::MountedGunAmmo:
+		if (AreCargoSlotsConfigured(MountedAmmoSlots))
 		{
-			TargetSlot = AmmoSlots[CurrentAmmoCount];
-			CurrentAmmoCount++;
+			TargetSlots = &MountedAmmoSlots;
+			TargetCount = &CurrentMountedAmmoCount;
+		}
+		else
+		{
+			TargetSlots = &AmmoSlots;
+			TargetCount = &CurrentAmmoCount;
 		}
 		break;
 
 	case EItemType::Fuel:
-		if (CurrentFuelCount < FuelSlots.Num())
-		{
-			TargetSlot = FuelSlots[CurrentFuelCount];
-			CurrentFuelCount++;
-		}
+	case EItemType::TruckRepairKit:
+		TargetSlots = &FuelSlots;
+		TargetCount = &CurrentFuelCount;
 		break;
 
 	case EItemType::MedicalKit:
-		if (CurrentMedKitCount < MedKitSlots.Num())
-		{
-			TargetSlot = MedKitSlots[CurrentMedKitCount];
-			CurrentMedKitCount++;
-		}
+	case EItemType::HealPack:
+		TargetSlots = &MedKitSlots;
+		TargetCount = &CurrentMedKitCount;
+		break;
+
+	default:
 		break;
 	}
 
-	if (TargetSlot)
+	if (TargetSlots == nullptr || TargetCount == nullptr)
+	{
+		return;
+	}
+
+	if (UStaticMeshComponent* TargetSlot = TryUseNextSlot(*TargetSlots, *TargetCount))
 	{
 		TargetSlot->SetVisibility(true);
-		UE_LOG(LogTemp, Log, TEXT("Cargo loaded visually at slot. Type: %d"), (int32)ItemType);
+		UE_LOG(LogTemp, Log, TEXT("Cargo loaded visually at slot. Type: %d"), static_cast<int32>(ItemType));
 	}
 }
 
@@ -648,6 +703,11 @@ void ATruck::Interact_Implementation(AFPSBaseCharacter* Character)
 		{
 			TArray<EItemType> ReceivedItems = Character->OffloadItems();
 
+			if (UFPSProjectGameInstance* GameInstance = Cast<UFPSProjectGameInstance>(GetGameInstance()))
+			{
+				GameInstance->RecordStage1CargoItems(ReceivedItems);
+			}
+
 			for (EItemType Item : ReceivedItems)
 			{
 				TotalLoadedItems++;
@@ -656,13 +716,19 @@ void ATruck::Interact_Implementation(AFPSBaseCharacter* Character)
 				switch (Item)
 				{
 				case EItemType::Ammo:
-					UE_LOG(LogTemp, Log, TEXT("Loaded Ammo box"));
+				case EItemType::CharacterAmmo:
+					UE_LOG(LogTemp, Log, TEXT("Loaded Character Ammo"));
+					break;
+				case EItemType::MountedGunAmmo:
+					UE_LOG(LogTemp, Log, TEXT("Loaded Mounted Gun Ammo"));
 					break;
 				case EItemType::Fuel:
-					UE_LOG(LogTemp, Log, TEXT("Loaded Fuel can"));
+				case EItemType::TruckRepairKit:
+					UE_LOG(LogTemp, Log, TEXT("Loaded Truck Repair Kit"));
 					break;
 				case EItemType::MedicalKit:
-					UE_LOG(LogTemp, Log, TEXT("Loaded Medical Kit"));
+				case EItemType::HealPack:
+					UE_LOG(LogTemp, Log, TEXT("Loaded Heal Pack"));
 					break;
 				default:
 					break;

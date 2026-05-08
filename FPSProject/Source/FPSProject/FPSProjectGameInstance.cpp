@@ -136,6 +136,29 @@ bool UFPSProjectGameInstance::ShouldUseLocalInteractionFallback() const
 	return !IsConnectedToGameServer();
 }
 
+void UFPSProjectGameInstance::RecordStage1CargoItems(const TArray<EItemType>& Items)
+{
+	for (const EItemType ItemType : Items)
+	{
+		RecordedStage1CargoItems.FindOrAdd(ItemType)++;
+	}
+}
+
+void UFPSProjectGameInstance::ClearRecordedStage1CargoItems()
+{
+	RecordedStage1CargoItems.Empty();
+}
+
+int32 UFPSProjectGameInstance::GetRecordedStage1CargoItemCount(EItemType ItemType) const
+{
+	if (const int32* ItemCount = RecordedStage1CargoItems.Find(ItemType))
+	{
+		return *ItemCount;
+	}
+
+	return 0;
+}
+
 bool UFPSProjectGameInstance::TryPickupWeaponLocally(AFPSBaseCharacter* Character, AWeaponBase* Weapon)
 {
 	if (!ShouldUseLocalInteractionFallback() || Character == nullptr || Weapon == nullptr)

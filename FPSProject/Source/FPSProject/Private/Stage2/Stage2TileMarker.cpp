@@ -72,6 +72,34 @@ FTransform AStage2TileMarker::GetNextTileSpawnTransform() const
 	return ExitTransform;
 }
 
+TArray<FTransform> AStage2TileMarker::GetZombieSpawnTransforms(bool bIncludeRootIfNoChildren) const
+{
+	TArray<FTransform> SpawnTransforms;
+
+	if (!ZombieSpawnRoot)
+	{
+		return SpawnTransforms;
+	}
+
+	const TArray<USceneComponent*>& SpawnChildren = ZombieSpawnRoot->GetAttachChildren();
+	for (USceneComponent* SpawnChild : SpawnChildren)
+	{
+		if (!IsValid(SpawnChild))
+		{
+			continue;
+		}
+
+		SpawnTransforms.Add(SpawnChild->GetComponentTransform());
+	}
+
+	if (SpawnTransforms.Num() == 0 && bIncludeRootIfNoChildren)
+	{
+		SpawnTransforms.Add(ZombieSpawnRoot->GetComponentTransform());
+	}
+
+	return SpawnTransforms;
+}
+
 void AStage2TileMarker::ResetNextTileTrigger()
 {
 	bHasTriggeredNextTile = false;

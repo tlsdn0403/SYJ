@@ -74,9 +74,20 @@ bool ClientService::Start()
 	for (int32 i = 0; i < sessionCount; i++)
 	{
 		SessionRef session = CreateSession();
-		if (session->Connect() == false)
+		if (session == nullptr)
+		{
+			cout << "[ClientService] CreateSession failed at index=" << i << " / " << sessionCount << endl;
 			return false;
+		}
+
+		if (session->Connect() == false)
+		{
+			cout << "[ClientService] Connect registration failed at index=" << i << " / " << sessionCount << endl;
+			return false;
+		}
 	}
+
+	cout << "[ClientService] queued connect requests=" << sessionCount << endl;
 
 	return true;
 }

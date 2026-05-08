@@ -134,10 +134,10 @@ void AFPSBaseCharacter::Tick(float DeltaTime)
 
 	const bool bShouldSkipRemoteMovementSync = bIsDrivingTruck || bIsUsingMountedWeapon;
 
-    if (bIsOnTruckCargo && CurrentTruck)
-    {
-        ConstrainToTruckCargoBounds();
-    }
+	if (bIsOnTruckCargo && CurrentTruck)
+	{
+		ConstrainToTruckCargoBounds();
+	}
 
 	// 줌 했을 떄 FOV 확대
 	if (ThirdPersonCameraComponent && CameraBoom)
@@ -373,7 +373,7 @@ void AFPSBaseCharacter::EnterTruckCargo(ATruck* Truck)
 		GetCharacterMovement()->StopMovementImmediately();
 		GetCharacterMovement()->SetMovementMode(MOVE_Walking);
 	}
-    BeginTruckCargoWalk(Truck);
+	BeginTruckCargoWalk(Truck);
 }
 
 void AFPSBaseCharacter::ExitTruckCargo()
@@ -392,8 +392,8 @@ void AFPSBaseCharacter::ExitTruckCargo()
 	{
 		GetCharacterMovement()->SetMovementMode(MOVE_Walking);
 	}
-    EndTruckCargoWalk();
-    SetActorLocation(Truck->GetCargoExitLocation());
+	EndTruckCargoWalk();
+	SetActorLocation(Truck->GetCargoExitLocation());
 
 	bIsOnTruckCargo = false;
 	CurrentTruck = nullptr;
@@ -425,7 +425,7 @@ void AFPSBaseCharacter::EnterMountedWeapon(ATruck* Truck, AMountedMachineGun* Mo
 		CurrentWeapon->SetWeaponCollisionEnabled(false);
 		CurrentWeapon->SetWeaponHidden(true);
 	}
-    EndTruckCargoWalk();
+	EndTruckCargoWalk();
 
 	SetActorLocationAndRotation(
 		Truck->GetTurretSeatLocation(),
@@ -492,7 +492,7 @@ void AFPSBaseCharacter::ExitMountedWeapon()
 
 	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 	GetMesh()->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
-    StopFire();
+	StopFire();
 
 	if (FPSCameraComponent)
 	{
@@ -516,7 +516,7 @@ void AFPSBaseCharacter::ExitMountedWeapon()
 		CurrentWeapon->SetWeaponHidden(false);
 		CurrentWeapon->SetWeaponCollisionEnabled(true);
 	}
-    BeginTruckCargoWalk(Truck);
+	BeginTruckCargoWalk(Truck);
 
 
 	if (Truck->DriverSeatInteractTrigger && Truck->DriverSeatInteractTrigger->IsOverlappingActor(this))
@@ -821,108 +821,108 @@ void AFPSBaseCharacter::HandleMountedWeaponAutoFire()
 
 void AFPSBaseCharacter::BeginTruckCargoWalk(ATruck* Truck)
 {
-    if (!Truck)
-    {
-        return;
-    }
+	if (!Truck)
+	{
+		return;
+	}
 
-    EndTruckCargoWalk();
+	EndTruckCargoWalk();
 
-    // 트렁크 위치로 캐릭터 이동
-    SetActorLocationAndRotation(
-        Truck->GetCargoRideLocation(),
-        Truck->GetCargoRideRotation()
-    );
+	// 트렁크 위치로 캐릭터 이동
+	SetActorLocationAndRotation(
+		Truck->GetCargoRideLocation(),
+		Truck->GetCargoRideRotation()
+	);
 
 
-    GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 	// 캐릭터 매시가 트럭 매시와 충돌하지 않도록 설정
-    GetMesh()->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	GetMesh()->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 
-    // 
-    if (GetCharacterMovement())
-    {
-        // 탑승 직전에 캐릭터가 가지고 있던 속도를 제거
-        GetCharacterMovement()->StopMovementImmediately();
+	// 
+	if (GetCharacterMovement())
+	{
+		// 탑승 직전에 캐릭터가 가지고 있던 속도를 제거
+		GetCharacterMovement()->StopMovementImmediately();
 		// 적재함 위에서 걷기 가능하도록 이동 모드 변경
-        GetCharacterMovement()->SetMovementMode(MOVE_Walking);
-    }
-    // 캐릭터 캡슐과 트럭 메시가 서로 이동 충돌을 무시하도록 설정
-    SetTruckMeshMovementIgnored(Truck, true);
+		GetCharacterMovement()->SetMovementMode(MOVE_Walking);
+	}
+	// 캐릭터 캡슐과 트럭 메시가 서로 이동 충돌을 무시하도록 설정
+	SetTruckMeshMovementIgnored(Truck, true);
 
-    if (UPrimitiveComponent* CargoMovementBase = Truck->GetCargoMovementBase())
-    {
-        // 캐릭터가 어떤 바닥 위에서 움직이는지 설정을 해줌
-        SetBase(CargoMovementBase);
-    }
+	if (UPrimitiveComponent* CargoMovementBase = Truck->GetCargoMovementBase())
+	{
+		// 캐릭터가 어떤 바닥 위에서 움직이는지 설정을 해줌
+		SetBase(CargoMovementBase);
+	}
 
-    ConstrainToTruckCargoBounds();
+	ConstrainToTruckCargoBounds();
 }
 
 void AFPSBaseCharacter::EndTruckCargoWalk()
 {
-    SetBase(nullptr);
-    DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+	SetBase(nullptr);
+	DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 
-    if (CurrentTruck)
-    {
-        SetTruckMeshMovementIgnored(CurrentTruck, false);
-    }
+	if (CurrentTruck)
+	{
+		SetTruckMeshMovementIgnored(CurrentTruck, false);
+	}
 }
 
 void AFPSBaseCharacter::ConstrainToTruckCargoBounds()
 {
-    if (!bIsOnTruckCargo || !CurrentTruck)
-    {
-        return;
-    }
+	if (!bIsOnTruckCargo || !CurrentTruck)
+	{
+		return;
+	}
 
-    UBoxComponent* CargoBounds = CurrentTruck->GetCargoMoveBoundsComponent();
-    UCapsuleComponent* Capsule = GetCapsuleComponent();
-    if (!CargoBounds || !Capsule)
-    {
-        return;
-    }
+	UBoxComponent* CargoBounds = CurrentTruck->GetCargoMoveBoundsComponent();
+	UCapsuleComponent* Capsule = GetCapsuleComponent();
+	if (!CargoBounds || !Capsule)
+	{
+		return;
+	}
 
-    const FTransform BoundsTransform = CargoBounds->GetComponentTransform();
-    FVector LocalLocation = BoundsTransform.InverseTransformPosition(GetActorLocation());
-    const FVector Extent = CargoBounds->GetScaledBoxExtent();
-    const float Radius = Capsule->GetScaledCapsuleRadius() + TruckCargoBoundsPadding;
+	const FTransform BoundsTransform = CargoBounds->GetComponentTransform();
+	FVector LocalLocation = BoundsTransform.InverseTransformPosition(GetActorLocation());
+	const FVector Extent = CargoBounds->GetScaledBoxExtent();
+	const float Radius = Capsule->GetScaledCapsuleRadius() + TruckCargoBoundsPadding;
 
-    const float MaxX = FMath::Max(Extent.X - Radius, 0.0f);
-    const float MaxY = FMath::Max(Extent.Y - Radius, 0.0f);
+	const float MaxX = FMath::Max(Extent.X - Radius, 0.0f);
+	const float MaxY = FMath::Max(Extent.Y - Radius, 0.0f);
 
-    const float ClampedX = FMath::Clamp(LocalLocation.X, -MaxX, MaxX);
-    const float ClampedY = FMath::Clamp(LocalLocation.Y, -MaxY, MaxY);
+	const float ClampedX = FMath::Clamp(LocalLocation.X, -MaxX, MaxX);
+	const float ClampedY = FMath::Clamp(LocalLocation.Y, -MaxY, MaxY);
 
-    if (FMath::IsNearlyEqual(LocalLocation.X, ClampedX, 0.5f)
-        && FMath::IsNearlyEqual(LocalLocation.Y, ClampedY, 0.5f))
-    {
-        return;
-    }
+	if (FMath::IsNearlyEqual(LocalLocation.X, ClampedX, 0.5f)
+		&& FMath::IsNearlyEqual(LocalLocation.Y, ClampedY, 0.5f))
+	{
+		return;
+	}
 
-    LocalLocation.X = ClampedX;
-    LocalLocation.Y = ClampedY;
+	LocalLocation.X = ClampedX;
+	LocalLocation.Y = ClampedY;
 
-    const FVector ClampedWorldLocation = BoundsTransform.TransformPosition(LocalLocation);
-    SetActorLocation(ClampedWorldLocation, false, nullptr, ETeleportType::TeleportPhysics);
+	const FVector ClampedWorldLocation = BoundsTransform.TransformPosition(LocalLocation);
+	SetActorLocation(ClampedWorldLocation, false, nullptr, ETeleportType::TeleportPhysics);
 }
 
 void AFPSBaseCharacter::SetTruckMeshMovementIgnored(ATruck* Truck, bool bShouldIgnore)
 {
-    if (!Truck)
-    {
-        return;
-    }
+	if (!Truck)
+	{
+		return;
+	}
 
-    if (UCapsuleComponent* Capsule = GetCapsuleComponent())
-    {
-        if (USkeletalMeshComponent* TruckMesh = Truck->GetMesh())
-        {
-            Capsule->IgnoreComponentWhenMoving(TruckMesh, bShouldIgnore);
-            TruckMesh->IgnoreComponentWhenMoving(Capsule, bShouldIgnore);
-        }
-    }
+	if (UCapsuleComponent* Capsule = GetCapsuleComponent())
+	{
+		if (USkeletalMeshComponent* TruckMesh = Truck->GetMesh())
+		{
+			Capsule->IgnoreComponentWhenMoving(TruckMesh, bShouldIgnore);
+			TruckMesh->IgnoreComponentWhenMoving(Capsule, bShouldIgnore);
+		}
+	}
 }
 
 void AFPSBaseCharacter::SetPlayerInfo(const Protocol::PosInfo& Info)

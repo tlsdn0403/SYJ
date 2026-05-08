@@ -3,7 +3,7 @@
 
 Monster::Monster()
 {
-	objectInfo = new Protocol::ObjectInfo();
+	_isMonster = true;
 }
 
 Monster::~Monster()

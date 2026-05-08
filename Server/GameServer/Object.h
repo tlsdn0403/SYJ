@@ -8,6 +8,7 @@ public:
 	virtual ~Object();
 
 	bool IsPlayer() { return _isPlayer; }
+	bool IsMonster() { return _isMonster; }
 
 public:
 	Protocol::ObjectInfo* objectInfo;
@@ -18,5 +19,6 @@ public:
 
 protected:
 	bool _isPlayer = false;
+	bool _isMonster = false;
 };
 

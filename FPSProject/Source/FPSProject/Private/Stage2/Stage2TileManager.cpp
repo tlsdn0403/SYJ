@@ -1,9 +1,11 @@
-#include "Stage2/Stage2TileManager.h"
+癤�#include "Stage2/Stage2TileManager.h"
 
 #include "Engine/Level.h"
 #include "Engine/LevelStreamingDynamic.h"
 #include "Engine/World.h"
+#include "Kismet/KismetSystemLibrary.h"
 #include "NavigationSystem.h"
+#include "Zombie/BaseZombie.h"
 
 AStage2TileManager::AStage2TileManager()
 {
@@ -32,7 +34,6 @@ void AStage2TileManager::Tick(float DeltaTime)
 	TryFinalizeLoadedTiles();
 }
 
-
 void AStage2TileManager::StartGeneration()
 {
 	if (bGenerationStarted)
@@ -42,10 +43,8 @@ void AStage2TileManager::StartGeneration()
 
 	ResetGenerationState();
 	bGenerationStarted = true;
-	// 첫 타일 생성 위치를 Manger의 위치로
 	NextSpawnTransform = GetActorTransform();
 
-	// Deterministic Seed 사용: 매번 같은 타일 순서 생성
 	if (bUseDeterministicSeed)
 	{
 		RandomStream.Initialize(RandomSeed);
@@ -54,7 +53,7 @@ void AStage2TileManager::StartGeneration()
 	{
 		RandomStream.GenerateNewSeed();
 	}
-	// 첫 타일을 생성
+
 	SpawnNextTile();
 }
 
@@ -70,20 +69,16 @@ void AStage2TileManager::SpawnNextTile()
 		return;
 	}
 
-	//현재 생성된 타일이 없으면 Start 타일을 생성
 	const bool bNeedsStartTile = ActiveTiles.Num() == 0;
 	const EStage2TileType NextTileType = bNeedsStartTile ? EStage2TileType::Start : ChooseNextTileType();
-
-	// 해당 레벨을 NextSpawnTransform 위치에 스트리밍 로드
 	const TSoftObjectPtr<UWorld> LevelToSpawn = ChooseLevelForTileType(NextTileType);
-
 
 	if (LevelToSpawn.IsNull())
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Stage2TileManager: No level asset configured for tile type %d"), static_cast<int32>(NextTileType));
 		return;
 	}
-	// 타일을 스폰
+
 	if (!TrySpawnTileLevel(LevelToSpawn, NextTileType, NextSpawnTransform))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Stage2TileManager: Failed to spawn tile level for type %d"), static_cast<int32>(NextTileType));
@@ -94,6 +89,8 @@ void AStage2TileManager::ClearGeneratedTiles()
 {
 	for (FStage2LoadedTile& LoadedTile : ActiveTiles)
 	{
+		DestroySpawnedZombiesForTile(LoadedTile);
+
 		if (LoadedTile.TileMarker)
 		{
 			LoadedTile.TileMarker->OnNextTileTriggerEntered.RemoveAll(this);
@@ -118,20 +115,14 @@ bool AStage2TileManager::TrySpawnTileLevel(const TSoftObjectPtr<UWorld>& TileLev
 		return false;
 	}
 
-	// 다음 타일의 EntryArrow가 원하는 위치에 정확히 오도록 레벨 전체 Transform을 보정
 	FTransform LevelTransformToApply = SpawnTransform;
-	// 레벨의 경로를 읽어온다.
 	const FSoftObjectPath LevelPath = TileLevel.ToSoftObjectPath();
 	if (const FTransform* CachedEntryLocalTransform = CachedEntryLocalTransforms.Find(LevelPath))
 	{
-		// 보정을 해준다.
 		LevelTransformToApply = CachedEntryLocalTransform->Inverse() * SpawnTransform;
 	}
 
-
 	bool bLoadSucceeded = false;
-
-	// 런타임 중에 레벨 인스턴스를 동적으로 로드
 	ULevelStreamingDynamic* StreamingLevel = ULevelStreamingDynamic::LoadLevelInstanceBySoftObjectPtr(
 		this,
 		TileLevel,
@@ -143,12 +134,9 @@ bool AStage2TileManager::TrySpawnTileLevel(const TSoftObjectPtr<UWorld>& TileLev
 		return false;
 	}
 
-	// Load한 Tile의 정보를 저장한다. 나중에 로드 완료된 Tile을 Finalize할 때 사용
-
-	// ActiveTiles 배열에 새 원소를 추가하고, 그 참조를 가져온다
 	FStage2LoadedTile& LoadedTile = ActiveTiles.AddDefaulted_GetRef();
-	LoadedTile.SourceLevel = TileLevel;				//어떤 레벨 에셋에서 로드된 타일인지 저장
-	LoadedTile.StreamingLevel = StreamingLevel;			
+	LoadedTile.SourceLevel = TileLevel;
+	LoadedTile.StreamingLevel = StreamingLevel;
 	LoadedTile.TileType = TileType;
 	LoadedTile.RequestedEntryTransform = SpawnTransform;
 	LoadedTile.AppliedLevelTransform = LevelTransformToApply;
@@ -167,39 +155,29 @@ bool AStage2TileManager::TrySpawnTileLevel(const TSoftObjectPtr<UWorld>& TileLev
 
 void AStage2TileManager::TryFinalizeLoadedTiles()
 {
-	//현재 로드 중이거나 로드 완료된 모든 타일을 검사
 	for (int32 TileIndex = 0; TileIndex < ActiveTiles.Num(); ++TileIndex)
 	{
 		FStage2LoadedTile& LoadedTile = ActiveTiles[TileIndex];
 
-		// 이미 초기화된 타일 건너뜀.
 		if (LoadedTile.bInitialized || !LoadedTile.StreamingLevel)
 		{
 			continue;
 		}
-		
-		//레벨이 로드되고, 월드에 활성화 되었는지
+
 		if (!LoadedTile.StreamingLevel->IsLevelLoaded() ||
 			!LoadedTile.StreamingLevel->IsLevelVisible())
 		{
 			continue;
 		}
-		 //마커 
-		AStage2TileMarker* TileMarker =
-			FindTileMarkerFromStreamingLevel(LoadedTile.StreamingLevel);
 
-		// 마커를 못찾으면 대기한다.
+		AStage2TileMarker* TileMarker = FindTileMarkerFromStreamingLevel(LoadedTile.StreamingLevel);
 		if (!TileMarker)
 		{
 			continue;
 		}
-		// 찾았으면 등록
+
 		LoadedTile.TileMarker = TileMarker;
-
-
 		FinalizeLoadedTile(TileIndex);
-
-		// 한 Tick에 하나만 처리
 		return;
 	}
 }
@@ -253,6 +231,7 @@ void AStage2TileManager::FinalizeLoadedTile(int32 TileIndex)
 			static_cast<int32>(TileType));
 	}
 
+	SpawnZombiesForTile(LoadedTile);
 	TrimOldTiles();
 	RefreshNavigationForStreamingTile(LoadedTile);
 
@@ -305,6 +284,7 @@ void AStage2TileManager::TrimOldTiles()
 
 		FStage2LoadedTile RemovedTile = ActiveTiles[RemoveIndex];
 		ActiveTiles.RemoveAt(RemoveIndex);
+		DestroySpawnedZombiesForTile(RemovedTile);
 
 		if (RemovedTile.TileMarker)
 		{
@@ -329,6 +309,114 @@ void AStage2TileManager::ResetGenerationState()
 	ConsecutiveRightTurns = 0;
 	SpawnedPlayableTileCount = 0;
 	NextSpawnTransform = GetActorTransform();
+}
+
+void AStage2TileManager::SpawnZombiesForTile(FStage2LoadedTile& LoadedTile)
+{
+	if (!HasAuthority() || !LoadedTile.TileMarker || ZombieClasses.Num() == 0 || !GetWorld())
+	{
+		return;
+	}
+
+	const bool bIsPlayableTile =
+		LoadedTile.TileType == EStage2TileType::Straight ||
+		LoadedTile.TileType == EStage2TileType::Left ||
+		LoadedTile.TileType == EStage2TileType::Right;
+
+	if (!bIsPlayableTile &&
+		!(bSpawnZombiesOnStartTile && LoadedTile.TileType == EStage2TileType::Start) &&
+		!(bSpawnZombiesOnGoalTile && LoadedTile.TileType == EStage2TileType::Goal))
+	{
+		return;
+	}
+
+	if (ZombieSpawnChancePerTile < 1.0f && RandomStream.FRand() > ZombieSpawnChancePerTile)
+	{
+		return;
+	}
+
+	TArray<FTransform> CandidateSpawnTransforms = LoadedTile.TileMarker->GetZombieSpawnTransforms(false);
+	if (CandidateSpawnTransforms.Num() == 0)
+	{
+		if (bVerboseLog)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Stage2TileManager: Tile %s has no zombie spawn points under ZombieSpawnRoot."),
+				*GetNameSafe(LoadedTile.TileMarker));
+		}
+		return;
+	}
+
+	const int32 EffectiveMinSpawnCount = FMath::Max(0, MinZombiesPerPlayableTile);
+	const int32 EffectiveMaxSpawnCount = FMath::Max(EffectiveMinSpawnCount, MaxZombiesPerPlayableTile);
+	const int32 DesiredSpawnCount = FMath::Min(
+		CandidateSpawnTransforms.Num(),
+		RandomStream.RandRange(EffectiveMinSpawnCount, EffectiveMaxSpawnCount));
+
+	TArray<TEnumAsByte<EObjectTypeQuery>> OverlapObjectTypes;
+	OverlapObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECC_Pawn));
+	OverlapObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECC_WorldDynamic));
+
+	for (int32 SpawnIteration = 0; SpawnIteration < DesiredSpawnCount && CandidateSpawnTransforms.Num() > 0; ++SpawnIteration)
+	{
+		const int32 SpawnTransformIndex = RandomStream.RandRange(0, CandidateSpawnTransforms.Num() - 1);
+		const FTransform SpawnTransform = CandidateSpawnTransforms[SpawnTransformIndex];
+		CandidateSpawnTransforms.RemoveAtSwap(SpawnTransformIndex);
+
+		TArray<AActor*> BlockingActors;
+		if (ZombieSpawnCollisionRadius > 0.0f &&
+			UKismetSystemLibrary::SphereOverlapActors(
+				GetWorld(),
+				SpawnTransform.GetLocation(),
+				ZombieSpawnCollisionRadius,
+				OverlapObjectTypes,
+				AActor::StaticClass(),
+				TArray<AActor*>(),
+				BlockingActors))
+		{
+			continue;
+		}
+
+		const int32 ZombieClassIndex = RandomStream.RandRange(0, ZombieClasses.Num() - 1);
+		TSubclassOf<ABaseZombie> ZombieClass = ZombieClasses[ZombieClassIndex];
+		if (!ZombieClass)
+		{
+			continue;
+		}
+
+		FActorSpawnParameters SpawnParameters;
+		SpawnParameters.Owner = this;
+		SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+
+		if (ABaseZombie* SpawnedZombie = GetWorld()->SpawnActor<ABaseZombie>(ZombieClass, SpawnTransform, SpawnParameters))
+		{
+			LoadedTile.SpawnedZombies.Add(SpawnedZombie);
+		}
+	}
+
+	if (bVerboseLog)
+	{
+		UE_LOG(LogTemp, Log, TEXT("Stage2TileManager: Spawned %d zombies for tile %s."),
+			LoadedTile.SpawnedZombies.Num(),
+			*GetNameSafe(LoadedTile.TileMarker));
+	}
+}
+
+void AStage2TileManager::DestroySpawnedZombiesForTile(FStage2LoadedTile& LoadedTile)
+{
+	if (!HasAuthority())
+	{
+		return;
+	}
+
+	for (ABaseZombie* SpawnedZombie : LoadedTile.SpawnedZombies)
+	{
+		if (IsValid(SpawnedZombie))
+		{
+			SpawnedZombie->Destroy();
+		}
+	}
+
+	LoadedTile.SpawnedZombies.Empty();
 }
 
 void AStage2TileManager::UpdateTurnHistory(EStage2TileType TileType)

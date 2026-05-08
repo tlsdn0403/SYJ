@@ -172,7 +172,7 @@ bool Room::EnterRoom(ObjectRef object, bool randPos /*= true*/)
 
 		for (auto& item : _objects)
 		{
-			if (item.second->IsPlayer() == false)
+			if (item.second->IsPlayer() == false && item.second->IsMonster() == false)
 				continue;
 
 			if (item.second == object)
@@ -289,14 +289,58 @@ bool Room::HandleLeavePlayer(PlayerRef player)
 	return true;
 }
 
-void Room::HandleMove(Protocol::C_MOVE pkt)
+namespace
+{
+	constexpr uint64 ZOMBIE_OBJECT_ID_START = 1000000;
+}
+
+void Room::HandleMove(PlayerRef player, Protocol::C_MOVE pkt)
 {
 	const uint64 objectId = pkt.info().object_id();
+	if (objectId >= ZOMBIE_OBJECT_ID_START)
+	{
+		MonsterRef monster;
+		auto findIt = _objects.find(objectId);
+		if (findIt == _objects.end())
+		{
+			monster = ObjectUtils::CreateMonster(objectId);
+			monster->posInfo->CopyFrom(pkt.info());
+			monster->objectInfo->mutable_pos_info()->CopyFrom(pkt.info());
+
+			if (AddObject(monster))
+			{
+				Protocol::S_SPAWN spawnPkt;
+				Protocol::ObjectInfo* objectInfo = spawnPkt.add_players();
+				objectInfo->CopyFrom(*monster->objectInfo);
+
+				SendBufferRef spawnBuffer = ServerPacketHandler::MakeSendBuffer(spawnPkt);
+				Broadcast(spawnBuffer);
+			}
+		}
+		else
+		{
+			monster = dynamic_pointer_cast<Monster>(findIt->second);
+		}
+
+		if (monster == nullptr)
+			return;
+
+		monster->posInfo->CopyFrom(pkt.info());
+		monster->objectInfo->mutable_pos_info()->CopyFrom(pkt.info());
+
+		Protocol::S_MOVE movePkt;
+		movePkt.mutable_info()->CopyFrom(pkt.info());
+
+		SendBufferRef sendBuffer = ServerPacketHandler::MakeSendBuffer(movePkt);
+		Broadcast(sendBuffer);
+		return;
+	}
+
 	if (_objects.find(objectId) == _objects.end())
 		return;
 
 	// 적용
-	PlayerRef player = dynamic_pointer_cast<Player>(_objects[objectId]);
+	player = dynamic_pointer_cast<Player>(_objects[objectId]);
 	if (player == nullptr)
 		return;
 

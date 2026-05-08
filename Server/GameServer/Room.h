@@ -13,7 +13,7 @@ public:
 
 	bool HandleEnterPlayer(PlayerRef player);
 	bool HandleLeavePlayer(PlayerRef player);
-	void HandleMove(Protocol::C_MOVE pkt);
+	void HandleMove(PlayerRef player, Protocol::C_MOVE pkt);
 	void HandleEquipWeapon(PlayerRef player, Protocol::C_EQUIP_WEAPON pkt);
 	void HandleFire(PlayerRef player, Protocol::C_FIRE pkt);
 	void HandleEnterTruck(PlayerRef player, Protocol::C_ENTER_TRUCK pkt);

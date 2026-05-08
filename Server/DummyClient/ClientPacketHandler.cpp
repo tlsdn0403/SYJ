@@ -53,3 +53,28 @@ bool Handle_S_SPAWN_ITEM(PacketSessionRef& session, Protocol::S_SPAWN_ITEM& pkt)
 {
 	return true;
 }
+
+bool Handle_S_FIRE(PacketSessionRef& session, Protocol::S_FIRE& pkt)
+{
+	return false;
+}
+
+bool Handle_S_ENTER_TRUCK(PacketSessionRef& session, Protocol::S_ENTER_TRUCK& pkt)
+{
+	return false;
+}
+
+bool Handle_S_EXIT_TRUCK(PacketSessionRef& session, Protocol::S_EXIT_TRUCK& pkt)
+{
+	return false;
+}
+
+bool Handle_S_TRUCK_MOVE(PacketSessionRef& session, Protocol::S_TRUCK_MOVE& pkt)
+{
+	return false;
+}
+
+bool Handle_S_TOGGLE_DOOR(PacketSessionRef& session, Protocol::S_TOGGLE_DOOR& pkt)
+{
+	return false;
+}

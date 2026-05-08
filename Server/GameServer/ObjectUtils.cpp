@@ -2,6 +2,7 @@
 #include "ObjectUtils.h"
 #include "Player.h"
 #include "GameSession.h"
+#include "Monster.h"
 
 atomic<int64> ObjectUtils::s_idGenerator = 1;
 
@@ -18,4 +19,13 @@ PlayerRef ObjectUtils::CreatePlayer(GameSessionRef session)
 	session->player.store(player);
 
 	return player;
+}
+
+MonsterRef ObjectUtils::CreateMonster(uint64 objectId)
+{
+	MonsterRef monster = make_shared<Monster>();
+	monster->objectInfo->set_object_id(objectId);
+	monster->posInfo->set_object_id(objectId);
+
+	return monster;
 }

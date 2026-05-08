@@ -66,6 +66,9 @@ public:
 	bool TryPickupWeaponLocally(class AFPSBaseCharacter* Character, class AWeaponBase* Weapon);
 	bool TryEnterTruckLocally(class AFPSBaseCharacter* Character, class ATruck* Truck, Protocol::TruckSeatType SeatType);
 	bool TryExitTruckLocally(class AFPSBaseCharacter* Character);
+	bool IsZombieSyncAuthority() const;
+	void RegisterAuthorityZombie(class ABaseZombie* Zombie);
+	void ActivateAuthorityZombieSpawners();
 
 public:
 	virtual void Shutdown() override;
@@ -83,8 +86,11 @@ public:
 public:
 	UPROPERTY(EditAnywhere, Category = "Network")
 	TSubclassOf<class AFPSBaseCharacter> OtherPlayerClass;
+	UPROPERTY(EditAnywhere, Category = "Network")
+	TSubclassOf<class ABaseZombie> NetworkZombieClass;
 	class AFPSBaseCharacter* MyPlayer;
 	TMap<uint64, class AFPSBaseCharacter*> Players;
+	TMap<uint64, class ABaseZombie*> Zombies;
 	TMap<uint64, class ATruck*> Trucks;
 	TMap<int32, class AADoor*> Doors;
 
@@ -99,4 +105,11 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Network|Class")
 	TSubclassOf<class AWeaponBase> DefaultEquippedWeaponClass;	// 손에 장착된 무기 스폰할 때 사용할 기본 무기 클래스
+
+private:
+	void SyncAuthorityZombiesToServer(float DeltaTime);
+	uint64 AllocateZombieObjectId();
+
+	float ZombieSyncAccumulator = 0.0f;
+	uint64 NextZombieObjectId = 1000000;
 };

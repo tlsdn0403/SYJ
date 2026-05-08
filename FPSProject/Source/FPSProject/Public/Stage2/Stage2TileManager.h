@@ -7,6 +7,7 @@
 
 class ULevelStreamingDynamic;
 class UWorld;
+class ABaseZombie;
 
 USTRUCT(BlueprintType)
 struct FStage2LoadedTile
@@ -33,6 +34,9 @@ struct FStage2LoadedTile
 
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "Stage2")
 	bool bInitialized = false;
+
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Stage2|Zombie")
+	TArray<TObjectPtr<ABaseZombie>> SpawnedZombies;
 };
 
 UCLASS(Blueprintable)
@@ -107,6 +111,27 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stage2|Navigation")
 	bool bRebuildNavigationAfterTileLoad = true;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stage2|Zombie")
+	TArray<TSubclassOf<ABaseZombie>> ZombieClasses;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stage2|Zombie", meta = (ClampMin = "0"))
+	int32 MinZombiesPerPlayableTile = 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stage2|Zombie", meta = (ClampMin = "0"))
+	int32 MaxZombiesPerPlayableTile = 3;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stage2|Zombie", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	float ZombieSpawnChancePerTile = 1.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stage2|Zombie")
+	bool bSpawnZombiesOnStartTile = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stage2|Zombie")
+	bool bSpawnZombiesOnGoalTile = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stage2|Zombie", meta = (ClampMin = "0.0"))
+	float ZombieSpawnCollisionRadius = 120.0f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stage2|Debug")
 	bool bVerboseLog = true;
 
@@ -134,6 +159,8 @@ private:
 	void UpdateNextSpawnTransformFromTile(const AStage2TileMarker* TileMarker);
 	void TrimOldTiles();
 	void ResetGenerationState();
+	void SpawnZombiesForTile(FStage2LoadedTile& LoadedTile);
+	void DestroySpawnedZombiesForTile(FStage2LoadedTile& LoadedTile);
 	void UpdateTurnHistory(EStage2TileType TileType);
 	EStage2TileType ChooseNextTileType();
 	TSoftObjectPtr<UWorld> ChooseLevelForTileType(EStage2TileType TileType);

@@ -37,6 +37,18 @@ bool AreCargoSlotsConfigured(const TArray<UStaticMeshComponent*>& Slots)
 
 	return false;
 }
+
+void SetCargoSlotShown(UStaticMeshComponent* Slot, bool bShown)
+{
+	if (!Slot)
+	{
+		return;
+	}
+
+	Slot->SetVisibility(bShown, true);
+	Slot->SetHiddenInGame(!bShown, true);
+	Slot->MarkRenderStateDirty();
+}
 }
 
 ATruck::ATruck()
@@ -233,10 +245,10 @@ void ATruck::BeginPlay()
 		TurretSeatInteractTrigger->OnExit.AddDynamic(this, &ATruck::OnTurretInteractExit);
 	}
 
-	for (UStaticMeshComponent* Slot : AmmoSlots) { if (Slot) Slot->SetVisibility(false); }
-	for (UStaticMeshComponent* Slot : MountedAmmoSlots) { if (Slot) Slot->SetVisibility(false); }
-	for (UStaticMeshComponent* Slot : FuelSlots) { if (Slot) Slot->SetVisibility(false); }
-	for (UStaticMeshComponent* Slot : MedKitSlots) { if (Slot) Slot->SetVisibility(false); }
+	for (UStaticMeshComponent* Slot : AmmoSlots) { SetCargoSlotShown(Slot, false); }
+	for (UStaticMeshComponent* Slot : MountedAmmoSlots) { SetCargoSlotShown(Slot, false); }
+	for (UStaticMeshComponent* Slot : FuelSlots) { SetCargoSlotShown(Slot, false); }
+	for (UStaticMeshComponent* Slot : MedKitSlots) { SetCargoSlotShown(Slot, false); }
 	for (UStaticMeshComponent* Slot : AmmoSlots) { if (Slot) { Slot->SetSimulatePhysics(false); Slot->SetEnableGravity(false); Slot->SetCollisionEnabled(ECollisionEnabled::NoCollision); } }
 	for (UStaticMeshComponent* Slot : MountedAmmoSlots) { if (Slot) { Slot->SetSimulatePhysics(false); Slot->SetEnableGravity(false); Slot->SetCollisionEnabled(ECollisionEnabled::NoCollision); } }
 	for (UStaticMeshComponent* Slot : FuelSlots) { if (Slot) { Slot->SetSimulatePhysics(false); Slot->SetEnableGravity(false); Slot->SetCollisionEnabled(ECollisionEnabled::NoCollision); } }
@@ -617,12 +629,24 @@ void ATruck::AddCargoVisual(EItemType ItemType)
 {
 	auto TryUseNextSlot = [](TArray<UStaticMeshComponent*>& Slots, int32& CurrentCount) -> UStaticMeshComponent*
 	{
-		if (CurrentCount >= Slots.Num())
+		while (CurrentCount < Slots.Num())
 		{
-			return nullptr;
+			UStaticMeshComponent* CandidateSlot = Slots[CurrentCount++];
+			if (CandidateSlot == nullptr)
+			{
+				continue;
+			}
+
+			if (CandidateSlot->GetStaticMesh() == nullptr)
+			{
+				UE_LOG(LogTemp, Warning, TEXT("Cargo slot '%s' has no StaticMesh assigned."), *CandidateSlot->GetName());
+				continue;
+			}
+
+			return CandidateSlot;
 		}
 
-		return Slots[CurrentCount++];
+		return nullptr;
 	};
 
 	TArray<UStaticMeshComponent*>* TargetSlots = nullptr;
@@ -650,9 +674,10 @@ void ATruck::AddCargoVisual(EItemType ItemType)
 		break;
 
 	case EItemType::Fuel:
-	case EItemType::TruckRepairKit:
 		TargetSlots = &FuelSlots;
 		TargetCount = &CurrentFuelCount;
+	case EItemType::TruckRepairKit:
+		
 		break;
 
 	case EItemType::MedicalKit:
@@ -672,9 +697,12 @@ void ATruck::AddCargoVisual(EItemType ItemType)
 
 	if (UStaticMeshComponent* TargetSlot = TryUseNextSlot(*TargetSlots, *TargetCount))
 	{
-		TargetSlot->SetVisibility(true);
+		SetCargoSlotShown(TargetSlot, true);
 		UE_LOG(LogTemp, Log, TEXT("Cargo loaded visually at slot. Type: %d"), static_cast<int32>(ItemType));
+		return;
 	}
+
+	UE_LOG(LogTemp, Warning, TEXT("Failed to find a visible cargo slot for item type %d on truck %s"), static_cast<int32>(ItemType), *GetName());
 }
 
 void ATruck::Interact_Implementation(AFPSBaseCharacter* Character)
@@ -692,11 +720,6 @@ void ATruck::Interact_Implementation(AFPSBaseCharacter* Character)
 		return;
 	}
 
-	if (TryEnterMountedWeapon(Character))
-	{
-		return;
-	}
-	// 아이템 파밍 라운드.
 	if (bIsLoadingPhase)
 	{
 		if (Character->GetItemCount() > 0)
@@ -742,6 +765,11 @@ void ATruck::Interact_Implementation(AFPSBaseCharacter* Character)
 			UGameplayStatics::PlaySoundAtLocation(this, LoadItemSound, GetActorLocation());
 		}
 
+		return;
+	}
+
+	if (TryEnterMountedWeapon(Character))
+	{
 		return;
 	}
 	// 운전석 탑승
@@ -798,7 +826,7 @@ void ATruck::Interact_Implementation(AFPSBaseCharacter* Character)
 
 bool ATruck::TryEnterMountedWeapon(AFPSBaseCharacter* Character)
 {
-	if (!Character || !MountedWeapon)
+	if (!Character || !MountedWeapon || bIsLoadingPhase)
 	{
 		return false;
 	}
@@ -1022,6 +1050,15 @@ void ATruck::OnTurretInteractEnter(AActor* OtherActor)
 {
 	if (!Cast<AFPSBaseCharacter>(OtherActor) || !TurretInteractWidget)
 	{
+		return;
+	}
+
+	if (bIsLoadingPhase)
+	{
+		if (UInteractUIClass* UI = Cast<UInteractUIClass>(TurretInteractWidget->GetUserWidgetObject()))
+		{
+			UI->RePlayAni_PopUp();
+		}
 		return;
 	}
 

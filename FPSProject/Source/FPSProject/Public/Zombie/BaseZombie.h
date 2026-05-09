@@ -9,6 +9,7 @@ class UAnimMontage;
 class UParticleSystem;
 class UNiagaraSystem;
 class AActor;
+class AZombieFallZone;
 
 /** 좀비 상태를 나타내는 열거형 */
 UENUM(BlueprintType)
@@ -46,6 +47,9 @@ public:
     void Attack(AActor* TargetActor);
     bool IsTargetInAttackRange(AActor* TargetActor) const;
     void ApplyDirectPursuitInput(const FVector& TargetLocation);
+    void RegisterFallZone(AZombieFallZone* FallZone);
+    void UnregisterFallZone(AZombieFallZone* FallZone);
+    bool TryGetFallZonePursuitLocation(AActor* TargetActor, FVector& OutTargetLocation);
 
     UFUNCTION(BlueprintCallable, Category = "Zombie")
     void Die();
@@ -123,6 +127,9 @@ private:
 
     UPROPERTY()
     AActor* CurrentAttackTarget = nullptr;
+
+    UPROPERTY(Transient)
+    TArray<TWeakObjectPtr<AZombieFallZone>> ActiveFallZones;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zombie|Animation", meta = (AllowPrivateAccess = "true"))
     float MinAnimationRateScale = 0.92f;

@@ -30,6 +30,7 @@ void AStage1ItemSpawnPoint::BeginPlay()
 
 	if (bSpawnOnBeginPlay)
 	{
+		//게임 시작할 떄 아이템을 스폰함
 		SpawnItem();
 	}
 }
@@ -65,6 +66,7 @@ void AStage1ItemSpawnPoint::SpawnItem()
 	}
 
 	FTransform SpawnTransform = GetActorTransform();
+	// Yaw 랜덤 회전
 	if (bRandomYaw)
 	{
 		FRotator SpawnRotation = SpawnTransform.Rotator();
@@ -79,6 +81,7 @@ void AStage1ItemSpawnPoint::SpawnItem()
 	SpawnedItem = World->SpawnActor<ALootItemBase>(ItemClass, SpawnTransform, SpawnParameters);
 	if (SpawnedItem)
 	{
+		// 실제로 아이템을 생성, 먹었을 떄 파괴될 수 있도록 델리게이트.
 		SpawnedItem->OnDestroyed.AddDynamic(this, &AStage1ItemSpawnPoint::HandleSpawnedItemDestroyed);
 	}
 }
@@ -122,9 +125,11 @@ void AStage1ItemSpawnPoint::ScheduleRespawn()
 		false);
 }
 
+// 어떤 아이템을 생성할지 고름
 TSubclassOf<ALootItemBase> AStage1ItemSpawnPoint::ChooseItemClass() const
 {
 	float TotalWeight = 0.0f;
+	// 전체 Weight 계산
 	for (const FStage1ItemSpawnOption& SpawnOption : SpawnOptions)
 	{
 		if (SpawnOption.ItemClass && SpawnOption.Weight > 0.0f)
@@ -135,9 +140,11 @@ TSubclassOf<ALootItemBase> AStage1ItemSpawnPoint::ChooseItemClass() const
 
 	if (TotalWeight <= 0.0f)
 	{
+		// 총 가중치가 0이면 nullptr 반환
 		return nullptr;
 	}
 
+	// total weight 범위에서 랜덤한 값 선택
 	float TargetWeight = FMath::FRandRange(0.0f, TotalWeight);
 	for (const FStage1ItemSpawnOption& SpawnOption : SpawnOptions)
 	{
@@ -145,7 +152,7 @@ TSubclassOf<ALootItemBase> AStage1ItemSpawnPoint::ChooseItemClass() const
 		{
 			continue;
 		}
-
+		// 랜덤 값에서 각 아이템의 Weight를 차례대로 빼다가 0 이하가 되는 순간 그 아이템을 선택
 		TargetWeight -= SpawnOption.Weight;
 		if (TargetWeight <= 0.0f)
 		{

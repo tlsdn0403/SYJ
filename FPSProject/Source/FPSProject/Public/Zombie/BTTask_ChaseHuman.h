@@ -45,6 +45,7 @@ private:
 
 	void ResetMoveRequestState();
 	bool RequestChaseMove(AAIController* AIController, ABaseZombie* ZombieCharacter, AActor* TargetActor, bool bForceRequest);
+	bool TryUseFallZonePursuit(AAIController* AIController, ABaseZombie* ZombieCharacter, AActor* TargetActor) const;
 	bool ShouldUseDirectPursuitFallback(AAIController* AIController, ABaseZombie* ZombieCharacter, AActor* TargetActor) const;
 	void ApplyDirectPursuitFallback(AAIController* AIController, ABaseZombie* ZombieCharacter, AActor* TargetActor) const;
 };

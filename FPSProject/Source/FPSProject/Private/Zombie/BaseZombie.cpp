@@ -13,6 +13,7 @@
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraSystem.h"
 #include "Kismet/GameplayStatics.h"
+#include "Zombie/ZombieFallZone.h"
 
 ABaseZombie::ABaseZombie()
 {
@@ -154,6 +155,76 @@ void ABaseZombie::ApplyDirectPursuitInput(const FVector& TargetLocation)
     {
         AddMovementInput(Direction2D, 1.0f);
     }
+}
+
+void ABaseZombie::RegisterFallZone(AZombieFallZone* FallZone)
+{
+    if (!FallZone)
+    {
+        return;
+    }
+
+    ActiveFallZones.RemoveAll([](const TWeakObjectPtr<AZombieFallZone>& ZonePtr)
+        {
+            return !ZonePtr.IsValid();
+        });
+
+    const bool bAlreadyRegistered = ActiveFallZones.ContainsByPredicate(
+        [FallZone](const TWeakObjectPtr<AZombieFallZone>& ZonePtr)
+        {
+            return ZonePtr.Get() == FallZone;
+        });
+
+    if (!bAlreadyRegistered)
+    {
+        ActiveFallZones.Add(FallZone);
+    }
+}
+
+void ABaseZombie::UnregisterFallZone(AZombieFallZone* FallZone)
+{
+    if (!FallZone)
+    {
+        return;
+    }
+
+    ActiveFallZones.RemoveAll([FallZone](const TWeakObjectPtr<AZombieFallZone>& ZonePtr)
+        {
+            return !ZonePtr.IsValid() || ZonePtr.Get() == FallZone;
+        });
+}
+
+bool ABaseZombie::TryGetFallZonePursuitLocation(AActor* TargetActor, FVector& OutTargetLocation)
+{
+    if (!bIsAlive || !TargetActor)
+    {
+        return false;
+    }
+
+    float BestScore = TNumericLimits<float>::Lowest();
+    bool bFoundZone = false;
+
+    for (int32 Index = ActiveFallZones.Num() - 1; Index >= 0; --Index)
+    {
+        AZombieFallZone* FallZone = ActiveFallZones[Index].Get();
+        if (!FallZone)
+        {
+            ActiveFallZones.RemoveAtSwap(Index);
+            continue;
+        }
+
+        FVector CandidateLocation = FVector::ZeroVector;
+        float CandidateScore = 0.0f;
+        if (FallZone->CanGuideZombieTowardTarget(this, TargetActor, CandidateLocation, CandidateScore) &&
+            CandidateScore > BestScore)
+        {
+            BestScore = CandidateScore;
+            OutTargetLocation = CandidateLocation;
+            bFoundZone = true;
+        }
+    }
+
+    return bFoundZone;
 }
 
 void ABaseZombie::ApplyAnimationDesync()

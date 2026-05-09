@@ -31,10 +31,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory")
 	TSubclassOf<UInventoryWidget> InvenWidgetClass;
 
-	UPROPERTY()
-	UInventoryWidget* InventoryW;
-
-
 	// 타이머 위젯
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory")
 	TSubclassOf<UBaseUI> TimerWidgetClass;
@@ -51,6 +47,9 @@ public:
 
 
 public:
+	UPROPERTY()
+	UInventoryWidget* InventoryW;
+
 	// 입력 액션
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
 	UInputMappingContext* PlayerMappingContext;
@@ -88,7 +87,7 @@ public:
 	void Pressed5(const FInputActionValue& InputValue);
 
 	UFUNCTION()
-	void PickUp_Item(UTexture2D* image);
+	bool PickUp_Item(UTexture2D* image,int32 handw);
 
 };
 

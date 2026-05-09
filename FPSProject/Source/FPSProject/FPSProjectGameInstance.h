@@ -5,11 +5,13 @@
 #include "Tickable.h"
 #include "FPSProject.h"
 #include "Enum.pb.h"
+#include "Items/LootItemBase.h"
 #include "FPSProjectGameInstance.generated.h"
 
 /**
  * 
  */
+
 UCLASS()
 class FPSPROJECT_API UFPSProjectGameInstance : public UGameInstance, public FTickableGameObject
 {
@@ -69,6 +71,13 @@ public:
 	bool IsZombieSyncAuthority() const;
 	void RegisterAuthorityZombie(class ABaseZombie* Zombie);
 	void ActivateAuthorityZombieSpawners();
+	void RecordStage1CargoItems(const TArray<EItemType>& Items);
+
+	UFUNCTION(BlueprintCallable, Category = "Stage1|Cargo")
+	void ClearRecordedStage1CargoItems();
+
+	UFUNCTION(BlueprintPure, Category = "Stage1|Cargo")
+	int32 GetRecordedStage1CargoItemCount(EItemType ItemType) const;
 
 public:
 	virtual void Shutdown() override;
@@ -100,6 +109,9 @@ public:
 
 	TMap<uint64, FPendingEquippedWeapon> PendingWeaponsByPlayer;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stage1|Cargo")
+	TMap<EItemType, int32> RecordedStage1CargoItems;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Network|Class")
 	TSubclassOf<class AWeaponBase> DefaultWeaponClass;	// 바닥에 떨어진 무기 스폰할 때 사용할 기본 무기 클래스
 
@@ -109,7 +121,6 @@ public:
 private:
 	void SyncAuthorityZombiesToServer(float DeltaTime);
 	uint64 AllocateZombieObjectId();
-
 	float ZombieSyncAccumulator = 0.0f;
 	uint64 NextZombieObjectId = 1000000;
 };

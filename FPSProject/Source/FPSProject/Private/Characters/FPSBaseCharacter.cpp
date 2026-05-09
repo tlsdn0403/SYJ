@@ -208,6 +208,52 @@ void AFPSBaseCharacter::Tick(float DeltaTime)
 	{
 		return;
 	}
+	// [신우] 탑승자 보정을 바꿈 idle일 때 빠르게 보정	
+	else if (bIsOnTruckCargo && CurrentTruck)
+	{
+		const FRotator TargetRot(0.f, DestInfo->yaw(), 0.f);
+		const Protocol::MoveState CargoState = DestInfo->state();
+		const bool bIsCargoMoving =
+			CargoState == Protocol::MOVE_STATE_RUN ||
+			CargoState == Protocol::MOVE_STATE_JUMP;
+
+		SetActorRotation(FMath::RInterpTo(GetActorRotation(), TargetRot, DeltaTime, 12.f));
+
+		if (UBoxComponent* CargoBounds = CurrentTruck->GetCargoMoveBoundsComponent();
+			CargoBounds && bHasReplicatedTruckCargoLocalLocation)
+		{
+			const FTransform BoundsTransform = CargoBounds->GetComponentTransform();
+			const FVector CurrentLocalLocation =
+				BoundsTransform.InverseTransformPosition(GetActorLocation());
+			const float LocalOffsetErrorSq =
+				FVector::DistSquaredXY(CurrentLocalLocation, ReplicatedTruckCargoLocalLocation);
+			const FVector TargetLocalLocation = bIsCargoMoving
+				? FMath::VInterpTo(CurrentLocalLocation, ReplicatedTruckCargoLocalLocation, DeltaTime, 12.f)
+				: ReplicatedTruckCargoLocalLocation;
+			const bool bShouldSnapToCargoOffset =
+				LocalOffsetErrorSq > FMath::Square(bIsCargoMoving ? 90.0f : 20.0f);
+
+			SetActorLocation(
+				BoundsTransform.TransformPosition(bShouldSnapToCargoOffset
+					? ReplicatedTruckCargoLocalLocation
+					: TargetLocalLocation),
+				false,
+				nullptr,
+				ETeleportType::TeleportPhysics);
+		}
+		else
+		{
+			const FVector CurrentLocation = GetActorLocation();
+			const FVector TargetLocation(DestInfo->x(), DestInfo->y(), DestInfo->z());
+
+			SetActorLocation(
+				FMath::VInterpTo(CurrentLocation, TargetLocation, DeltaTime, 12.f),
+				false,
+				nullptr,
+				ETeleportType::TeleportPhysics);
+		}
+		return;
+	}
 	else // 남의 캐릭터일 때
 	{
 		const Protocol::MoveState State = PlayerInfo->state();
@@ -281,10 +327,12 @@ void AFPSBaseCharacter::EnterTruckDriverSeat(ATruck* Truck)
 		return;
 	}
 
+	ClearTruckInteractionState();
 	CurrentTruck = Truck;
 	bIsDrivingTruck = true;
 	bIsAiming = false;
 	StopFire();
+	SetHeldWeaponVehicleVisibility(true);
 	DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 	AttachToComponent(Truck->DriverSeatPoint, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
 	SetActorRelativeLocation(FVector::ZeroVector);
@@ -326,36 +374,33 @@ void AFPSBaseCharacter::ExitTruckDriverSeat()
 
 	bIsDrivingTruck = false;
 	CurrentTruck = nullptr;
-	CurrentTruckInteractType = ETruckInteractType::None;
-	CurrentInteractableActor = nullptr;
-
-	if (Truck->DriverSeatInteractTrigger && Truck->DriverSeatInteractTrigger->IsOverlappingActor(this))
-	{
-		CurrentInteractableActor = Truck;
-		CurrentTruckInteractType = ETruckInteractType::DriverSeat;
-	}
-	else if (Truck->CargoSeatInteractTrigger && Truck->CargoSeatInteractTrigger->IsOverlappingActor(this))
-	{
-		CurrentInteractableActor = Truck;
-		CurrentTruckInteractType = ETruckInteractType::CargoSeat;
-	}
-	else if (Truck->TurretSeatInteractTrigger && Truck->TurretSeatInteractTrigger->IsOverlappingActor(this))
-	{
-		CurrentInteractableActor = Truck;
-		CurrentTruckInteractType = ETruckInteractType::TurretSeat;
-	}
+	SetHeldWeaponVehicleVisibility(false);
+	RefreshTruckInteractionState(Truck);
 
 	ApplyDefaultAnimationClass();
 }
 
 void AFPSBaseCharacter::EnterTruckCargo(ATruck* Truck)
 {
-	if (!Truck || bIsOnTruckCargo)
+	if (!Truck || bIsDrivingTruck)
+	{
+		return;
+	}
+
+	if (bIsUsingMountedWeapon && CurrentTruck == Truck)
+	{
+		ExitMountedWeapon();
+		return;
+	}
+
+	if (bIsOnTruckCargo)
 	{
 		return;
 	}
 
 	StopFire();
+	ClearTruckInteractionState();
+	bHasSavedTruckCargoLocalLocation = false;
 	bIsOnTruckCargo = true;
 	bIsDrivingTruck = false;
 	bIsAiming = false;
@@ -365,8 +410,6 @@ void AFPSBaseCharacter::EnterTruckCargo(ATruck* Truck)
 		Truck->GetCargoRideLocation(),
 		Truck->GetCargoRideRotation()
 	);
-
-	AttachToComponent(Truck->CargoRidePoint, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
 
 	if (GetCharacterMovement())
 	{
@@ -384,19 +427,30 @@ void AFPSBaseCharacter::ExitTruckCargo()
 	}
 
 	ATruck* Truck = CurrentTruck;
+	bHasSavedTruckCargoLocalLocation = false;
 
-	DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
-	SetActorLocation(Truck->GetCargoExitLocation());
+	EndTruckCargoWalk();
+	SetActorLocationAndRotation(
+		Truck->GetCargoExitLocation(),
+		Truck->GetActorRotation()
+	);
 
 	if (GetCharacterMovement())
 	{
+		GetCharacterMovement()->StopMovementImmediately();
 		GetCharacterMovement()->SetMovementMode(MOVE_Walking);
 	}
 	EndTruckCargoWalk();
 	SetActorLocation(Truck->GetCargoExitLocation());
 
+	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	GetMesh()->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+
 	bIsOnTruckCargo = false;
 	CurrentTruck = nullptr;
+	bHasReplicatedTruckCargoLocalLocation = false;
+	bHasLastTruckCargoLocalLocationForMoveState = false;
+	RefreshTruckInteractionState(Truck);
 
 	if (IsLocallyControlled())
 	{
@@ -406,12 +460,14 @@ void AFPSBaseCharacter::ExitTruckCargo()
 
 void AFPSBaseCharacter::EnterMountedWeapon(ATruck* Truck, AMountedMachineGun* MountedWeapon)
 {
-	if (!Truck || !MountedWeapon || bIsUsingMountedWeapon)
+	if (!Truck || !MountedWeapon || bIsUsingMountedWeapon || bIsDrivingTruck)
 	{
 		return;
 	}
 
 	StopFire();
+	ClearTruckInteractionState();
+	const bool bWasOnTruckCargo = bIsOnTruckCargo;
 	bIsUsingMountedWeapon = true;
 	bIsOnTruckCargo = false;
 	bIsDrivingTruck = false;
@@ -419,12 +475,25 @@ void AFPSBaseCharacter::EnterMountedWeapon(ATruck* Truck, AMountedMachineGun* Mo
 	CurrentTruck = Truck;
 	CurrentMountedWeapon = MountedWeapon;
 	CurrentMountedWeapon->SetWeaponUser(this);
+	SetHeldWeaponVehicleVisibility(true);
 
-	if (CurrentWeapon)
+	if (bWasOnTruckCargo)
 	{
-		CurrentWeapon->SetWeaponCollisionEnabled(false);
-		CurrentWeapon->SetWeaponHidden(true);
+		if (UBoxComponent* CargoBounds = Truck->GetCargoMoveBoundsComponent())
+		{
+			SavedTruckCargoLocalLocation =
+				CargoBounds->GetComponentTransform().InverseTransformPosition(GetActorLocation());
+			bHasSavedTruckCargoLocalLocation = true;
+		}
+		else
+		{
+			bHasSavedTruckCargoLocalLocation = false;
+		}
 	}
+
+	bHasReplicatedTruckCargoLocalLocation = false;
+	bHasLastTruckCargoLocalLocationForMoveState = false;
+
 	EndTruckCargoWalk();
 
 	SetActorLocationAndRotation(
@@ -463,7 +532,7 @@ void AFPSBaseCharacter::EnterMountedWeapon(ATruck* Truck, AMountedMachineGun* Mo
 	}
 }
 
-void AFPSBaseCharacter::ExitMountedWeapon()
+void AFPSBaseCharacter::ExitMountedWeapon(bool bReturnToCargo)
 {
 	if (!bIsUsingMountedWeapon || !CurrentTruck)
 	{
@@ -471,6 +540,15 @@ void AFPSBaseCharacter::ExitMountedWeapon()
 	}
 
 	ATruck* Truck = CurrentTruck;
+	FVector RestoreCargoWorldLocation = Truck->GetCargoRideLocation();
+	if (bHasSavedTruckCargoLocalLocation)
+	{
+		if (UBoxComponent* CargoBounds = Truck->GetCargoMoveBoundsComponent())
+		{
+			RestoreCargoWorldLocation =
+				CargoBounds->GetComponentTransform().TransformPosition(SavedTruckCargoLocalLocation);
+		}
+	}
 
 	if (CurrentMountedWeapon)
 	{
@@ -479,10 +557,6 @@ void AFPSBaseCharacter::ExitMountedWeapon()
 
 	StopFire();
 	DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
-	SetActorLocationAndRotation(
-		Truck->GetCargoExitLocation(),
-		Truck->GetActorRotation()
-	);
 
 	if (GetCharacterMovement())
 	{
@@ -506,34 +580,50 @@ void AFPSBaseCharacter::ExitMountedWeapon()
 	Truck->EndMountedWeaponUse(this);
 	CurrentMountedWeapon = nullptr;
 	bIsUsingMountedWeapon = false;
-	bIsOnTruckCargo = false;
-	CurrentTruck = nullptr;
-	CurrentTruckInteractType = ETruckInteractType::None;
-	CurrentInteractableActor = nullptr;
+	SetHeldWeaponVehicleVisibility(false);
 
-	if (CurrentWeapon)
+	if (bReturnToCargo)
 	{
 		CurrentWeapon->SetWeaponHidden(false);
 		CurrentWeapon->SetWeaponCollisionEnabled(true);
 	}
 	BeginTruckCargoWalk(Truck);
+	bIsOnTruckCargo = true;
+	CurrentTruck = Truck;
+	BeginTruckCargoWalk(Truck);
+	SetActorLocationAndRotation(
+		RestoreCargoWorldLocation,
+		Truck->GetCargoRideRotation(),
+		false,
+		nullptr,
+		ETeleportType::TeleportPhysics);
+	ConstrainToTruckCargoBounds();
 
+	if (UBoxComponent* CargoBounds = Truck->GetCargoMoveBoundsComponent())
+	{
+		const FVector CargoLocalLocation =
+			CargoBounds->GetComponentTransform().InverseTransformPosition(GetActorLocation());
+		ReplicatedTruckCargoLocalLocation = CargoLocalLocation;
+		bHasReplicatedTruckCargoLocalLocation = true;
+		LastTruckCargoLocalLocationForMoveState = CargoLocalLocation;
+		bHasLastTruckCargoLocalLocationForMoveState = true;
+	}
+	else
+	{
+		bIsOnTruckCargo = false;
+		CurrentTruck = nullptr;
+		bHasReplicatedTruckCargoLocalLocation = false;
+		bHasLastTruckCargoLocalLocationForMoveState = false;
+		SetActorLocationAndRotation(
+			Truck->GetCargoExitLocation(),
+			Truck->GetActorRotation(),
+			false,
+			nullptr,
+			ETeleportType::TeleportPhysics);
+	}
 
-	if (Truck->DriverSeatInteractTrigger && Truck->DriverSeatInteractTrigger->IsOverlappingActor(this))
-	{
-		CurrentInteractableActor = Truck;
-		CurrentTruckInteractType = ETruckInteractType::DriverSeat;
-	}
-	else if (Truck->CargoSeatInteractTrigger && Truck->CargoSeatInteractTrigger->IsOverlappingActor(this))
-	{
-		CurrentInteractableActor = Truck;
-		CurrentTruckInteractType = ETruckInteractType::CargoSeat;
-	}
-	else if (Truck->TurretSeatInteractTrigger && Truck->TurretSeatInteractTrigger->IsOverlappingActor(this))
-	{
-		CurrentInteractableActor = Truck;
-		CurrentTruckInteractType = ETruckInteractType::TurretSeat;
-	}
+	RefreshTruckInteractionState(Truck);
+	bHasSavedTruckCargoLocalLocation = false;
 
 	ApplyDefaultAnimationClass();
 
@@ -640,8 +730,9 @@ void AFPSBaseCharacter::SetCurrentWeapon(AWeaponBase* NewWeapon)
 {
 	CurrentWeapon = NewWeapon;
 
-	if (bIsDrivingTruck)
+	if (bIsDrivingTruck || bIsUsingMountedWeapon)
 	{
+		SetHeldWeaponVehicleVisibility(true);
 		return;
 	}
 
@@ -834,18 +925,19 @@ void AFPSBaseCharacter::BeginTruckCargoWalk(ATruck* Truck)
 		Truck->GetCargoRideRotation()
 	);
 
-
 	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 	// 캐릭터 매시가 트럭 매시와 충돌하지 않도록 설정
 	GetMesh()->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 
-	// 
 	if (GetCharacterMovement())
 	{
 		// 탑승 직전에 캐릭터가 가지고 있던 속도를 제거
 		GetCharacterMovement()->StopMovementImmediately();
 		// 적재함 위에서 걷기 가능하도록 이동 모드 변경
 		GetCharacterMovement()->SetMovementMode(MOVE_Walking);
+
+		GetCharacterMovement()->bFastAttachedMove = true;
+
 	}
 	// 캐릭터 캡슐과 트럭 메시가 서로 이동 충돌을 무시하도록 설정
 	SetTruckMeshMovementIgnored(Truck, true);
@@ -857,12 +949,36 @@ void AFPSBaseCharacter::BeginTruckCargoWalk(ATruck* Truck)
 	}
 
 	ConstrainToTruckCargoBounds();
+
+
+	if (UBoxComponent* CargoBounds = Truck->GetCargoMoveBoundsComponent())
+	{
+		const FVector CargoLocalLocation =
+			CargoBounds->GetComponentTransform().InverseTransformPosition(GetActorLocation());
+		ReplicatedTruckCargoLocalLocation = CargoLocalLocation;
+		bHasReplicatedTruckCargoLocalLocation = true;
+		LastTruckCargoLocalLocationForMoveState = CargoLocalLocation;
+		bHasLastTruckCargoLocalLocationForMoveState = true;
+	}
+	else
+	{
+		bHasReplicatedTruckCargoLocalLocation = false;
+		bHasLastTruckCargoLocalLocationForMoveState = false;
+	}
 }
 
 void AFPSBaseCharacter::EndTruckCargoWalk()
 {
 	SetBase(nullptr);
 	DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+
+	bHasReplicatedTruckCargoLocalLocation = false;
+	bHasLastTruckCargoLocalLocationForMoveState = false;
+
+	if (UCharacterMovementComponent* MovementComponent = GetCharacterMovement())
+	{
+		MovementComponent->bFastAttachedMove = false;
+	}
 
 	if (CurrentTruck)
 	{
@@ -922,6 +1038,69 @@ void AFPSBaseCharacter::SetTruckMeshMovementIgnored(ATruck* Truck, bool bShouldI
 			Capsule->IgnoreComponentWhenMoving(TruckMesh, bShouldIgnore);
 			TruckMesh->IgnoreComponentWhenMoving(Capsule, bShouldIgnore);
 		}
+		auto IgnoreTruckComponent = [Capsule, bShouldIgnore](UPrimitiveComponent* Component)
+		{
+			if (!Component)
+			{
+				return;
+			}
+
+			Capsule->IgnoreComponentWhenMoving(Component, bShouldIgnore);
+			Component->IgnoreComponentWhenMoving(Capsule, bShouldIgnore);
+		};
+
+		IgnoreTruckComponent(Truck->GetMesh());
+		IgnoreTruckComponent(Truck->CargoLeftWallCollision);
+		IgnoreTruckComponent(Truck->CargoRightWallCollision);
+		IgnoreTruckComponent(Truck->CargoFrontWallCollision);
+		IgnoreTruckComponent(Truck->CargoBackWallCollision);
+	}
+}
+
+void AFPSBaseCharacter::SetHeldWeaponVehicleVisibility(bool bShouldHide)
+{
+	if (!CurrentWeapon)
+	{
+		return;
+	}
+
+	CurrentWeapon->SetWeaponCollisionEnabled(!bShouldHide);
+	CurrentWeapon->SetWeaponHidden(bShouldHide);
+}
+
+void AFPSBaseCharacter::ClearTruckInteractionState()
+{
+	CurrentInteractableActor = nullptr;
+	CurrentTruckInteractType = ETruckInteractType::None;
+}
+
+void AFPSBaseCharacter::RefreshTruckInteractionState(ATruck* Truck)
+{
+	ClearTruckInteractionState();
+
+	if (!Truck)
+	{
+		return;
+	}
+
+	if (Truck->TurretSeatInteractTrigger && Truck->TurretSeatInteractTrigger->IsOverlappingActor(this))
+	{
+		CurrentInteractableActor = Truck;
+		CurrentTruckInteractType = ETruckInteractType::TurretSeat;
+		return;
+	}
+
+	if (Truck->CargoSeatInteractTrigger && Truck->CargoSeatInteractTrigger->IsOverlappingActor(this))
+	{
+		CurrentInteractableActor = Truck;
+		CurrentTruckInteractType = ETruckInteractType::CargoSeat;
+		return;
+	}
+
+	if (Truck->DriverSeatInteractTrigger && Truck->DriverSeatInteractTrigger->IsOverlappingActor(this))
+	{
+		CurrentInteractableActor = Truck;
+		CurrentTruckInteractType = ETruckInteractType::DriverSeat;
 	}
 }
 
@@ -938,8 +1117,44 @@ void AFPSBaseCharacter::SetDestInfo(const Protocol::PosInfo& Info)
 {
 	if (PlayerInfo->object_id() != 0 && PlayerInfo->object_id() != Info.object_id())
 		return;
+	const Protocol::MoveState PreviousDestState = DestInfo->state();
 	DestInfo->CopyFrom(Info);
 	SetPlayerInfo(Info);
+
+	if (bIsOnTruckCargo && CurrentTruck)
+	{
+		if (UBoxComponent* CargoBounds = CurrentTruck->GetCargoMoveBoundsComponent())
+		{
+			const FVector ReplicatedWorldLocation(Info.x(), Info.y(), Info.z());
+			const FVector IncomingCargoLocalLocation =
+				CargoBounds->GetComponentTransform().InverseTransformPosition(ReplicatedWorldLocation);
+			const bool bWasCargoMoving =
+				PreviousDestState == Protocol::MOVE_STATE_RUN ||
+				PreviousDestState == Protocol::MOVE_STATE_JUMP;
+			const bool bIsCargoMoving =
+				Info.state() == Protocol::MOVE_STATE_RUN ||
+				Info.state() == Protocol::MOVE_STATE_JUMP;
+
+			if (!bHasReplicatedTruckCargoLocalLocation ||
+				bIsCargoMoving ||
+				bWasCargoMoving ||
+				FVector::DistSquaredXY(IncomingCargoLocalLocation, ReplicatedTruckCargoLocalLocation) >
+					FMath::Square(40.0f))
+			{
+				ReplicatedTruckCargoLocalLocation = IncomingCargoLocalLocation;
+			}
+
+			bHasReplicatedTruckCargoLocalLocation = true;
+		}
+		else
+		{
+			bHasReplicatedTruckCargoLocalLocation = false;
+		}
+	}
+	else
+	{
+		bHasReplicatedTruckCargoLocalLocation = false;
+	}
 }
 
 
@@ -1003,18 +1218,38 @@ void AFPSBaseCharacter::SendMovePacket()
 	Info->set_z(GetActorLocation().Z);
 	Info->set_yaw(GetControlRotation().Yaw);
 
+	Protocol::MoveState MoveState = Protocol::MOVE_STATE_IDLE;
 	if (GetCharacterMovement()->IsFalling())
 	{
-		Info->set_state(Protocol::MOVE_STATE_JUMP);
+		MoveState = Protocol::MOVE_STATE_JUMP;
 	}
-	else if (GetVelocity().Size() > 0.f)
+	else if (bIsOnTruckCargo && CurrentTruck)
 	{
-		Info->set_state(Protocol::MOVE_STATE_RUN);
+		if (UBoxComponent* CargoBounds = CurrentTruck->GetCargoMoveBoundsComponent())
+		{
+			const FVector CargoLocalLocation =
+				CargoBounds->GetComponentTransform().InverseTransformPosition(GetActorLocation());
+			const bool bHasMeaningfulCargoMovement =
+				!bHasLastTruckCargoLocalLocationForMoveState ||
+				FVector::DistSquaredXY(CargoLocalLocation, LastTruckCargoLocalLocationForMoveState) >
+					FMath::Square(2.0f);
+
+			MoveState = bHasMeaningfulCargoMovement
+				? Protocol::MOVE_STATE_RUN
+				: Protocol::MOVE_STATE_IDLE;
+			LastTruckCargoLocalLocationForMoveState = CargoLocalLocation;
+			bHasLastTruckCargoLocalLocationForMoveState = true;
+		}
+		else if (GetVelocity().SizeSquared2D() > FMath::Square(5.0f))
+		{
+			MoveState = Protocol::MOVE_STATE_RUN;
+		}
 	}
-	else
+	else if (GetVelocity().SizeSquared2D() > FMath::Square(5.0f))
 	{
-		Info->set_state(Protocol::MOVE_STATE_IDLE);
+		MoveState = Protocol::MOVE_STATE_RUN;
 	}
+	Info->set_state(MoveState);
 
 	static Protocol::MoveState LastState = Protocol::MOVE_STATE_IDLE;
 	if (LastState != Info->state())
@@ -1036,16 +1271,23 @@ void AFPSBaseCharacter::Interact()
 	{
 		StopFire();
 
+		if (!CurrentTruck)
+		{
+			return;
+		}
+
 		if (UFPSProjectGameInstance* GameInstance = Cast<UFPSProjectGameInstance>(GetGameInstance()))
 		{
-			if (GameInstance->TryExitTruckLocally(this))
+			if (GameInstance->TryEnterTruckLocally(this, CurrentTruck, Protocol::TRUCK_SEAT_CARGO))
 			{
 				return;
 			}
 		}
 
-		Protocol::C_EXIT_TRUCK ExitPkt;
-		SEND_PACKET(ExitPkt);
+		Protocol::C_ENTER_TRUCK EnterPkt;
+		EnterPkt.set_truck_id(CurrentTruck->NetworkTruckId);
+		EnterPkt.set_seat_type(Protocol::TRUCK_SEAT_CARGO);
+		SEND_PACKET(EnterPkt);
 		return;
 	}
 

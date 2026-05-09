@@ -1,6 +1,7 @@
 ﻿#include "Weapon/MountedMachineGun.h"
 
 #include "Characters/FPSBaseCharacter.h"
+#include "Truck/Truck.h"
 #include "Kismet/GameplayStatics.h"
 #include "Particles/ParticleSystem.h"
 #include "Projectiles/FPSProjectile.h"

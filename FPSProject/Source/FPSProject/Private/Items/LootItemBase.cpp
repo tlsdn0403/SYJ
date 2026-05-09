@@ -1,90 +1,125 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-
 #include "Items/LootItemBase.h"
-#include "HUD/InteractUIClass.h"
-#include "Components/WidgetComponent.h"
-#include "Components/InteractTriggerComponent.h"
+
 #include "Characters/FPSBaseCharacter.h"
 #include "Characters/FPSPlayerController.h"
-#include "Materials/MaterialInterface.h"
+#include "Components/SceneComponent.h"
+#include "Components/StaticMeshComponent.h"
+#include "Components/WidgetComponent.h"
+#include "HUD/InteractUIClass.h"
 
-// Sets default values
-ALootItemBase::ALootItemBase()
+namespace
 {
- 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
-
-    SceneRoot = CreateDefaultSubobject<USceneComponent>(TEXT("SceneRoot"));
-    SetRootComponent(SceneRoot);
-
-	MeshComp = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MeshComp"));
-    MeshComp->SetupAttachment(SceneRoot);
-
-    WidgetComp = CreateDefaultSubobject<UWidgetComponent>(TEXT("WidgetComp"));
-    WidgetComp->SetupAttachment(MeshComp);
-    WidgetComp->SetTwoSided(true);
-    WidgetComp->SetWidgetSpace(EWidgetSpace::Screen);
-
-	// Ìä∏Î¶¨Í±∞ Ïª¥Ìè¨ÎÑåÌä∏ ÏÉùÏÑ± Î∞è Î∂ÄÏ∞©
-	InteractTrigger = CreateDefaultSubobject<UInteractTriggerComponent>(TEXT("InteractTrigger"));
-	InteractTrigger->SetupAttachment(RootComponent);
-	InteractTrigger->InitSphereRadius(20.0f); // Î≤îÏúÑ ÏÑ§Ï†ï
+	FText GetDefaultPickupText(EItemType ItemType)
+	{
+		switch (ItemType)
+		{
+		case EItemType::Ammo:
+			return FText::FromString(TEXT("Ammo"));
+		case EItemType::Fuel:
+			return FText::FromString(TEXT("Fuel"));
+		case EItemType::MedicalKit:
+			return FText::FromString(TEXT("Medical Kit"));
+		case EItemType::CharacterAmmo:
+			return FText::FromString(TEXT("Character Ammo"));
+		case EItemType::MountedGunAmmo:
+			return FText::FromString(TEXT("Mounted Gun Ammo"));
+		case EItemType::TruckRepairKit:
+			return FText::FromString(TEXT("Truck Repair Kit"));
+		case EItemType::HealPack:
+			return FText::FromString(TEXT("Heal Pack"));
+		default:
+			return FText::FromString(TEXT("Item"));
+		}
+	}
 }
 
-// Called when the game starts or when spawned
+ALootItemBase::ALootItemBase()
+{
+	PrimaryActorTick.bCanEverTick = true;
+
+	SceneRoot = CreateDefaultSubobject<USceneComponent>(TEXT("SceneRoot"));
+	SetRootComponent(SceneRoot);
+
+	MeshComp = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MeshComp"));
+	MeshComp->SetupAttachment(SceneRoot);
+
+	WidgetComp = CreateDefaultSubobject<UWidgetComponent>(TEXT("WidgetComp"));
+	WidgetComp->SetupAttachment(MeshComp);
+	WidgetComp->SetTwoSided(true);
+	WidgetComp->SetWidgetSpace(EWidgetSpace::Screen);
+
+	InteractTrigger = CreateDefaultSubobject<UInteractTriggerComponent>(TEXT("InteractTrigger"));
+	InteractTrigger->SetupAttachment(RootComponent);
+	InteractTrigger->InitSphereRadius(20.0f);
+}
+
 void ALootItemBase::BeginPlay()
 {
 	Super::BeginPlay();
-    if (WidgetComp) WidgetComp->InitWidget();
 
-    InteractTrigger->OnEnter.AddDynamic(this, &ALootItemBase::WidgetStart);
-    InteractTrigger->OnExit.AddDynamic(this, &ALootItemBase::WidgetEnd);
-	if (UInteractUIClass* UI = Cast<UInteractUIClass>(WidgetComp->GetUserWidgetObject()))
+	if (WidgetComp)
 	{
-		UI->SetInteractText(setText);
+		WidgetComp->InitWidget();
 	}
 
+	if (InteractTrigger)
+	{
+		InteractTrigger->OnEnter.AddDynamic(this, &ALootItemBase::WidgetStart);
+		InteractTrigger->OnExit.AddDynamic(this, &ALootItemBase::WidgetEnd);
+	}
+
+	if (UInteractUIClass* UI = Cast<UInteractUIClass>(WidgetComp ? WidgetComp->GetUserWidgetObject() : nullptr))
+	{
+		UI->SetInteractText(setText.IsEmpty() ? GetDefaultPickupText(ItemType) : setText);
+	}
 }
 
-// Called every frame
 void ALootItemBase::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
 }
 
 void ALootItemBase::Interact_Implementation(AFPSBaseCharacter* Character)
 {
-    if (Character)
-    {
-        // Ï∫êÎ¶≠ÌÑ∞ Ïù∏Î≤§ÌÜ†Î¶¨Ïóê Ï∂îÍ∞Ä ÏãúÎèÑ
-        if (Character->AddItem(this->ItemType))
-        {
-            // ÏÑ±Í≥µÌïòÎ©¥ ÏïÑÏù¥ÌÖú ÏÇ≠Ï†ú
-			if (AFPSPlayerController* PC = Character->GetController<AFPSPlayerController>())
-			{
-				PC->PickUp_Item(itemimage);
+	if (Character == nullptr)
+	{
+		return;
+	}
+
+	//if (Character->AddItem(ItemType))
+	{
+		bool t = false;
+		if (AFPSPlayerController* PlayerController = Character->GetController<AFPSPlayerController>())
+		{
+			t = PlayerController->PickUp_Item(itemimage, HandWeight);
+		}
+		if (t) {//¿ß¡¨ø° √ﬂ∞° µ«æ˙¿∏∏È. √ﬂ∞°µ«¡ˆ æ æ“¿∏∏È ==¿⁄∏Æ∫Œ¡∑ ->±◊∑≥ ªË¡¶x
+			Character->AddItem(ItemType);
+			if (HandWeight > 1) {
+				for (int i = 0; i < HandWeight; ++i) {
+					Character->AddItem(EItemType::TT);
+				}
 			}
-            Destroy();
-        }
-        else
-        {
-            // Ïù∏Î≤§ÌÜ†Î¶¨Í∞Ä ÍΩâ Ï∞ºÏùÑ Îïå Î°úÏßÅ
-			UE_LOG(LogTemp, Warning, TEXT("Cannot pick up item: Inventory is full."));
-        }
+			Destroy();
+		}
+		return;
+	}
 
-    }
+	//UE_LOG(LogTemp, Warning, TEXT("Cannot pick up item: Inventory is full."));
 }
-
 
 void ALootItemBase::WidgetStart(AActor* OtherActor)
 {
-	if (!Cast<AFPSBaseCharacter>(OtherActor)) return;
-	if (UInteractUIClass* UI = Cast<UInteractUIClass>(WidgetComp->GetUserWidgetObject()))
+	if (!Cast<AFPSBaseCharacter>(OtherActor))
 	{
-		UI->PlayAni_PopUp(true); // ÏúÑÏ†Ø ÌÅ¥ÎûòÏä§Ïóê ÎßåÎì† Ìï®Ïàò
+		return;
+	}
 
+	if (UInteractUIClass* UI = Cast<UInteractUIClass>(WidgetComp ? WidgetComp->GetUserWidgetObject() : nullptr))
+	{
+		UI->PlayAni_PopUp(true);
 	}
 
 	if (MeshComp && OverlayMaterial)
@@ -95,12 +130,16 @@ void ALootItemBase::WidgetStart(AActor* OtherActor)
 
 void ALootItemBase::WidgetEnd(AActor* OtherActor)
 {
-	if (!Cast<AFPSBaseCharacter>(OtherActor)) return;
-	if (UInteractUIClass* UI = Cast<UInteractUIClass>(WidgetComp->GetUserWidgetObject()))
+	if (!Cast<AFPSBaseCharacter>(OtherActor))
 	{
-		UI->RePlayAni_PopUp(); // ÏúÑÏ†Ø ÌÅ¥ÎûòÏä§Ïóê ÎßåÎì† Ìï®Ïàò
-
+		return;
 	}
+
+	if (UInteractUIClass* UI = Cast<UInteractUIClass>(WidgetComp ? WidgetComp->GetUserWidgetObject() : nullptr))
+	{
+		UI->RePlayAni_PopUp();
+	}
+
 	if (MeshComp && OverlayMaterial)
 	{
 		MeshComp->SetOverlayMaterial(nullptr);

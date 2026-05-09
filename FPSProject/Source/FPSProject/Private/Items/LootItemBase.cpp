@@ -90,12 +90,12 @@ void ALootItemBase::Interact_Implementation(AFPSBaseCharacter* Character)
 
 	if (Character->AddItem(ItemType))
 	{
+		bool t;
 		if (AFPSPlayerController* PlayerController = Character->GetController<AFPSPlayerController>())
 		{
-			PlayerController->PickUp_Item(itemimage,HandWeight);
+			t=PlayerController->PickUp_Item(itemimage,HandWeight);
 		}
-
-		Destroy();
+		if(t) Destroy();	//위젯에 추가 되었으면. 추가되지 않았으면 ==자리부족 ->그럼 삭제x
 		return;
 	}
 

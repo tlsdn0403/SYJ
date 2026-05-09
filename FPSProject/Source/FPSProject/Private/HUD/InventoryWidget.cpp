@@ -34,7 +34,7 @@ void UInventoryWidget::PlayAin_Slot(int32 SlotIndex)
 	}
 }
 
-void UInventoryWidget::PickUp_Item(UTexture2D* image,int32 handw) {
+bool UInventoryWidget::PickUp_Item(UTexture2D* image,int32 handw) {
 
 	int32 EmptyCount = 0;
 
@@ -54,7 +54,7 @@ void UInventoryWidget::PickUp_Item(UTexture2D* image,int32 handw) {
 	if (EmptyCount < handw)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("빈 슬롯 부족"));
-		return;
+		return false;
 	}
 
 	//어떤 손에 들어갈지 확인
@@ -69,7 +69,7 @@ void UInventoryWidget::PickUp_Item(UTexture2D* image,int32 handw) {
 			if(hand ==handw) break;
 		}
 	}
-	return;
+	return true;
 }
 
 //void UInventoryWidget::SetItem(int32 Index, UTexture2D* IconTexture)

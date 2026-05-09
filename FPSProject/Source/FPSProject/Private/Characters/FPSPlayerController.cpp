@@ -86,10 +86,12 @@ void AFPSPlayerController::Pressed5(const FInputActionValue& Value)
 	InventoryW->SelectSlot(4); // 예시로 슬롯 1 선택
 }
 
-void AFPSPlayerController::PickUp_Item(UTexture2D* image, int32 handw)
+bool AFPSPlayerController::PickUp_Item(UTexture2D* image, int32 handw)
 {
+	bool t;
 	if (InventoryW)
 	{
-		InventoryW->PickUp_Item(image, handw);
+		t=InventoryW->PickUp_Item(image, handw);
 	}
+	return t;
 }

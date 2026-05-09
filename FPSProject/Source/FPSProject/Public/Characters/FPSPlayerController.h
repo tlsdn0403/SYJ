@@ -88,7 +88,7 @@ public:
 	void Pressed5(const FInputActionValue& InputValue);
 
 	UFUNCTION()
-	void PickUp_Item(UTexture2D* image,int32 handw);
+	bool PickUp_Item(UTexture2D* image,int32 handw);
 
 };
 

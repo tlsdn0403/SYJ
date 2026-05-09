@@ -57,6 +57,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Settings")
 	UTexture2D* itemimage;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Settings")
+	int32 HandWeight;		// 손 몇개 차지하나 
+
 protected:
 	virtual void BeginPlay() override;
 

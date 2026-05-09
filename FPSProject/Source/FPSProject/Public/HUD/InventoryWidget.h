@@ -58,5 +58,5 @@ public:
 	USlotWidget* SlotW;*/
 
 	void SetItem(int32 SlotIndex, UTexture2D* IconTexture);
-	void PickUp_Item(UTexture2D* image);
+	void PickUp_Item(UTexture2D* image, int32 handw);
 };

@@ -92,7 +92,7 @@ void ALootItemBase::Interact_Implementation(AFPSBaseCharacter* Character)
 	{
 		if (AFPSPlayerController* PlayerController = Character->GetController<AFPSPlayerController>())
 		{
-			PlayerController->PickUp_Item(itemimage);
+			PlayerController->PickUp_Item(itemimage,HandWeight);
 		}
 
 		Destroy();

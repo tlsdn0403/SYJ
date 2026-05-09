@@ -35,36 +35,49 @@ void UInventoryWidget::PlayAin_Slot(int32 SlotIndex)
 }
 
 void UInventoryWidget::PickUp_Item(UTexture2D* image,int32 handw) {
-	//아이템 줍기
-	//아이템에서 줍기 실행 시-> 이거 실행되게끔..
+
+	int32 EmptyCount = 0;
+
+	//필요한만큼 슬롯 남아있나 확인
+	for (int32 i = 0; i < SlotWidgets.Num(); ++i)
+	{
+		if (IsValid(SlotWidgets[i]) && !SlotWidgets[i]->Selected)
+		{
+			EmptyCount++;
+
+			if (EmptyCount >= handw)
+			{
+				break; // 필요한 만큼 빈 슬롯 찾았으니 더 볼 필요 없음
+			}
+		}
+	}
+	if (EmptyCount < handw)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("빈 슬롯 부족"));
+		return;
+	}
 
 	//어떤 손에 들어갈지 확인
 	for(int i = 0,hand=0; i < SlotWidgets.Num(); ++i)
 	{
 		if (IsValid(SlotWidgets[i]) && !SlotWidgets[i]->Selected)
 		{
-
 			//아이템 아이콘 설정
 			SlotWidgets[i]->Selected = true;
-			SlotWidgets[i]->SetItem(image);
-			//아이템 차지 슬롯 몇개인지 확인하고 카운트 증가.
-			//아이템이 다른 슬롯 차지해서 그런 경우 아이템 색 회색으로 그려지게끔...
+			SlotWidgets[i]->SetItem(image,hand);
 			hand++;
 			if(hand ==handw) break;
-		}
-		else {
-
 		}
 	}
 	return;
 }
 
-void UInventoryWidget::SetItem(int32 Index, UTexture2D* IconTexture)
-{
-	if (!SlotWidgets.IsValidIndex(Index)) return;
-
-	SlotWidgets[Index]->SetItem(IconTexture);
-}
+//void UInventoryWidget::SetItem(int32 Index, UTexture2D* IconTexture)
+//{
+//	if (!SlotWidgets.IsValidIndex(Index)) return;
+//
+//	SlotWidgets[Index]->SetItem(IconTexture);
+//}
 
 void UInventoryWidget::SelectSlot(int32 slotnum)
 {

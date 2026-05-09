@@ -13,12 +13,16 @@ void USlotWidget::NativeConstruct()
 	UE_LOG(LogTemp, Warning, TEXT("REAL SLOT CREATED %p"), this);
 }
 
-void USlotWidget::SetItem(UTexture2D* IconTexture)
+void USlotWidget::SetItem(UTexture2D* IconTexture, int hand)
 {
 	if (!IconTexture || !ItemIcon)  return;
 
 	ItemIcon->SetBrushFromTexture(IconTexture, false); //true: 이미지 크기를 텍스처 크기에 맞춤
 	//false: 텍스처를 이미지 크기에 맞춤
+
+	if (hand >= 1) { //무게 1넘는애들 아이템 색 회색계열로 추가
+		ItemIcon->SetColorAndOpacity(FLinearColor(0.2f, 0.2f, 0.2f, 1.0f));
+	}
 }
 
 void USlotWidget::ClearSlot()

@@ -58,7 +58,7 @@ public:
 	UTexture2D* itemimage;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Settings")
-	int32 HandWeight;		// 손 몇개 차지하나 
+	int32 HandWeight =1;		// 손 몇개 차지하나 , 기본세팅 1
 
 protected:
 	virtual void BeginPlay() override;

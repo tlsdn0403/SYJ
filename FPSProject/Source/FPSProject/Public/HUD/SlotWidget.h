@@ -35,7 +35,7 @@ public:
 
 	bool Selected{ false };
 
-	void SetItem(UTexture2D* IconTexture);
+	void SetItem(UTexture2D* IconTexture, int hand);
 	void ClearSlot();	// 빈칸으로 돌리기
 
 	void PlayAni_Select();

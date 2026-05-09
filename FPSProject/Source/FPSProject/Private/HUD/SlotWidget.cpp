@@ -28,8 +28,8 @@ void USlotWidget::SetItem(UTexture2D* IconTexture, int hand)
 void USlotWidget::ClearSlot()
 {
 	if (!ItemIcon) return;
-
-	ItemIcon->SetBrushFromTexture(BaseTexture, true);
+	ItemIcon->SetColorAndOpacity(FLinearColor::White);
+	ItemIcon->SetBrushFromTexture(BaseTexture, false);
 
 }
 

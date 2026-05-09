@@ -54,6 +54,8 @@ bool UInventoryWidget::PickUp_Item(UTexture2D* image,int32 handw) {
 	if (EmptyCount < handw)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("빈 슬롯 부족"));
+		StopAnimation(ErrorMAni);
+		PlayAnimation(ErrorMAni, 0.f, 1);
 		return false;
 	}
 
@@ -71,13 +73,6 @@ bool UInventoryWidget::PickUp_Item(UTexture2D* image,int32 handw) {
 	}
 	return true;
 }
-
-//void UInventoryWidget::SetItem(int32 Index, UTexture2D* IconTexture)
-//{
-//	if (!SlotWidgets.IsValidIndex(Index)) return;
-//
-//	SlotWidgets[Index]->SetItem(IconTexture);
-//}
 
 void UInventoryWidget::SelectSlot(int32 slotnum)
 {
@@ -98,4 +93,15 @@ void UInventoryWidget::SelectSlot(int32 slotnum)
 			SlotWidgets[i]->PlayAni_Select();
 		}
 	}
+}
+
+void UInventoryWidget::ClearItem() {
+
+	for (int32 i = 0; i < SlotWidgets.Num(); ++i)
+	{
+		SlotWidgets[i]->ClearSlot();
+		SlotWidgets[i]->Selected = false;
+	}
+
+	return;
 }

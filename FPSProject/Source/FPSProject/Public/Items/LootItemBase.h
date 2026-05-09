@@ -25,7 +25,8 @@ enum class EItemType : uint8
 	CharacterAmmo UMETA(DisplayName = "Character Ammo"),
 	MountedGunAmmo UMETA(DisplayName = "Mounted Gun Ammo"),
 	TruckRepairKit UMETA(DisplayName = "Truck Repair Kit"),
-	HealPack UMETA(DisplayName = "Heal Pack")
+	HealPack UMETA(DisplayName = "Heal Pack"),
+	TT UMETA(DisplayName = "Heal Pack")			// 빈 값 채워주는 용. 무게3이면 2칸은 얘로.
 };
 
 UCLASS()

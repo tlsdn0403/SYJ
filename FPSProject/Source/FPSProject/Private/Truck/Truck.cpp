@@ -22,6 +22,8 @@
 #include "Perception/AIPerceptionStimuliSourceComponent.h"
 #include "Perception/AISense_Hearing.h"
 #include "Perception/AISense_Sight.h"
+#include "HUD/InventoryWidget.h"
+#include "Characters/FPSPlayerController.h"
 
 namespace
 {
@@ -756,6 +758,10 @@ void ATruck::Interact_Implementation(AFPSBaseCharacter* Character)
 				default:
 					break;
 				}
+				AFPSPlayerController* PC = Cast<AFPSPlayerController>(Character->GetController());
+				////플레이어 인벤토리 비우기
+				//AFPSPlayerController* PC = Cast<AFPSPlayerController>(GetController());
+				PC->InventoryW->ClearItem();
 			}
 			UE_LOG(LogTemp, Log, TEXT("Offloaded %d items to Truck!"), ReceivedItems.Num());
 		}

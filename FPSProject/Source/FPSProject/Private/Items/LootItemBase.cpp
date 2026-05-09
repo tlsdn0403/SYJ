@@ -11,28 +11,28 @@
 
 namespace
 {
-FText GetDefaultPickupText(EItemType ItemType)
-{
-	switch (ItemType)
+	FText GetDefaultPickupText(EItemType ItemType)
 	{
-	case EItemType::Ammo:
-		return FText::FromString(TEXT("Ammo"));
-	case EItemType::Fuel:
-		return FText::FromString(TEXT("Fuel"));
-	case EItemType::MedicalKit:
-		return FText::FromString(TEXT("Medical Kit"));
-	case EItemType::CharacterAmmo:
-		return FText::FromString(TEXT("Character Ammo"));
-	case EItemType::MountedGunAmmo:
-		return FText::FromString(TEXT("Mounted Gun Ammo"));
-	case EItemType::TruckRepairKit:
-		return FText::FromString(TEXT("Truck Repair Kit"));
-	case EItemType::HealPack:
-		return FText::FromString(TEXT("Heal Pack"));
-	default:
-		return FText::FromString(TEXT("Item"));
+		switch (ItemType)
+		{
+		case EItemType::Ammo:
+			return FText::FromString(TEXT("Ammo"));
+		case EItemType::Fuel:
+			return FText::FromString(TEXT("Fuel"));
+		case EItemType::MedicalKit:
+			return FText::FromString(TEXT("Medical Kit"));
+		case EItemType::CharacterAmmo:
+			return FText::FromString(TEXT("Character Ammo"));
+		case EItemType::MountedGunAmmo:
+			return FText::FromString(TEXT("Mounted Gun Ammo"));
+		case EItemType::TruckRepairKit:
+			return FText::FromString(TEXT("Truck Repair Kit"));
+		case EItemType::HealPack:
+			return FText::FromString(TEXT("Heal Pack"));
+		default:
+			return FText::FromString(TEXT("Item"));
+		}
 	}
-}
 }
 
 ALootItemBase::ALootItemBase()
@@ -88,18 +88,26 @@ void ALootItemBase::Interact_Implementation(AFPSBaseCharacter* Character)
 		return;
 	}
 
-	if (Character->AddItem(ItemType))
+	//if (Character->AddItem(ItemType))
 	{
-		bool t;
+		bool t = false;
 		if (AFPSPlayerController* PlayerController = Character->GetController<AFPSPlayerController>())
 		{
-			t=PlayerController->PickUp_Item(itemimage,HandWeight);
+			t = PlayerController->PickUp_Item(itemimage, HandWeight);
 		}
-		if(t) Destroy();	//위젯에 추가 되었으면. 추가되지 않았으면 ==자리부족 ->그럼 삭제x
+		if (t) {//위젯에 추가 되었으면. 추가되지 않았으면 ==자리부족 ->그럼 삭제x
+			Character->AddItem(ItemType);
+			if (HandWeight > 1) {
+				for (int i = 0; i < HandWeight; ++i) {
+					Character->AddItem(EItemType::TT);
+				}
+			}
+			Destroy();
+		}
 		return;
 	}
 
-	UE_LOG(LogTemp, Warning, TEXT("Cannot pick up item: Inventory is full."));
+	//UE_LOG(LogTemp, Warning, TEXT("Cannot pick up item: Inventory is full."));
 }
 
 void ALootItemBase::WidgetStart(AActor* OtherActor)

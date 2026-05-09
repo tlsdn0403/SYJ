@@ -88,7 +88,7 @@ void AFPSPlayerController::Pressed5(const FInputActionValue& Value)
 
 bool AFPSPlayerController::PickUp_Item(UTexture2D* image, int32 handw)
 {
-	bool t;
+	bool t=false;
 	if (InventoryW)
 	{
 		t=InventoryW->PickUp_Item(image, handw);

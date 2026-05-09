@@ -12,6 +12,7 @@ class AFPSBaseCharacter;
 class AActor;
 class ABaseZombie;
 class AMountedMachineGun;
+class UAIPerceptionStimuliSourceComponent;
 class UHealthComponent;
 class UBoxComponent;
 class USceneComponent;
@@ -137,6 +138,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Cargo|Ride")
 	FBox GetCargoWorldBounds() const;
 
+	UFUNCTION(BlueprintCallable, Category = "Cargo|Ride")
+	UPrimitiveComponent* GetCargoMovementBase() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Cargo|Ride")
+	UBoxComponent* GetCargoMoveBoundsComponent() const { return CargoMoveBounds; }
+
 	UFUNCTION(BlueprintCallable, Category = "Turret")
 	AMountedMachineGun* GetMountedWeapon() const { return MountedWeapon; }
 
@@ -188,12 +195,16 @@ protected:
 	TArray<UStaticMeshComponent*> AmmoSlots;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cargo|Slots")
+	TArray<UStaticMeshComponent*> MountedAmmoSlots;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cargo|Slots")
 	TArray<UStaticMeshComponent*> FuelSlots;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cargo|Slots")
 	TArray<UStaticMeshComponent*> MedKitSlots;
 
 	int32 CurrentAmmoCount = 0;
+	int32 CurrentMountedAmmoCount = 0;
 	int32 CurrentFuelCount = 0;
 	int32 CurrentMedKitCount = 0;
 
@@ -201,6 +212,9 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Audio")
 	UAudioComponent* EngineAudioComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AI|Perception")
+	UAIPerceptionStimuliSourceComponent* ZombieStimuliSource;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Audio")
 	USoundBase* EngineSoundCue;
@@ -252,13 +266,28 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
 	float BrakeSoundMinSpeed = 300.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Perception")
+	float ZombieNoiseMinSpeed = 200.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Perception")
+	float ZombieNoiseMaxSpeed = 1600.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Perception")
+	float ZombieNoiseRange = 7000.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Perception")
+	float ZombieNoiseInterval = 0.35f;
 private:
 	bool bIsLocallyDriven = false;
 	bool bIsBrakingSoundPlaying = false;
 	bool bBrakePressedLastFrame = false;
 	float TruckMovePacketSendTimer = 0.0f;
 	float DebugTransformLogTimer = 0.0f;
+	float ZombieNoiseTimer = 0.0f;
 	static constexpr float TRUCK_MOVE_PACKET_SEND_DELAY = 0.05f;
+
+	void ReportZombieAwarenessNoise(float DeltaTime);
 
 	UPROPERTY()
 	AMountedMachineGun* MountedWeapon = nullptr;

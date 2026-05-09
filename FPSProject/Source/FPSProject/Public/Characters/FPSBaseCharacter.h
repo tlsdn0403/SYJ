@@ -9,6 +9,7 @@
 
 class UCameraComponent;
 class USkeletalMeshComponent;
+class UAIPerceptionStimuliSourceComponent;
 class AWeaponBase;
 class AActor;
 class USpringArmComponent;
@@ -101,7 +102,7 @@ public:
 	void EnterMountedWeapon(ATruck* Truck, AMountedMachineGun* MountedWeapon);
 
 	UFUNCTION(BlueprintCallable, Category = "Truck")
-	void ExitMountedWeapon();
+	void ExitMountedWeapon(bool bReturnToCargo = true);
 
 	UFUNCTION(BlueprintCallable, Category = "Truck")
 	bool CanInteractWithMountedWeapon() const;
@@ -114,6 +115,8 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Truck")
 	bool IsUsingMountedWeapon() const { return bIsUsingMountedWeapon; }
+
+	void SyncMovementToServer();
 
 	void SetHealth(float currentHp, float maxHp);   //체력 수정 함수
 
@@ -144,6 +147,9 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FPS|Components")
 	UHealthComponent* HealthComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AI|Perception")
+	UAIPerceptionStimuliSourceComponent* ZombieStimuliSource;
 
 	UPROPERTY(EditAnywhere, Category = "Weapon")
 	TSubclassOf<class AWeaponBase> WeaponClass;
@@ -232,8 +238,36 @@ protected:
 	void ApplyDefaultAnimationClass();
 	void PlayDrivingAnimation();
 	void HandleMountedWeaponAutoFire();
+	void BeginTruckCargoWalk(ATruck* Truck);
+	void EndTruckCargoWalk();
+	void ConstrainToTruckCargoBounds();
+	void SetTruckMeshMovementIgnored(ATruck* Truck, bool bShouldIgnore);
+	void SetHeldWeaponVehicleVisibility(bool bShouldHide);
+	void ClearTruckInteractionState();
+	void RefreshTruckInteractionState(ATruck* Truck);
 
 	void SendMovePacket();
 
 	FTimerHandle MountedWeaponAutoFireTimerHandle;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Truck")
+	float TruckCargoBoundsPadding = 20.0f;
+
+	UPROPERTY(Transient)
+	FVector SavedTruckCargoLocalLocation = FVector::ZeroVector;
+
+	UPROPERTY(Transient)
+	bool bHasSavedTruckCargoLocalLocation = false;
+
+	UPROPERTY(Transient)
+	FVector ReplicatedTruckCargoLocalLocation = FVector::ZeroVector;
+
+	UPROPERTY(Transient)
+	bool bHasReplicatedTruckCargoLocalLocation = false;
+
+	UPROPERTY(Transient)
+	FVector LastTruckCargoLocalLocationForMoveState = FVector::ZeroVector;
+
+	UPROPERTY(Transient)
+	bool bHasLastTruckCargoLocalLocationForMoveState = false;
 };

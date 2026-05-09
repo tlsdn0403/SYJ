@@ -19,7 +19,7 @@ void UStartScreenClass::NativeConstruct()
 	}
 
 	// ---------------------------------------------------------
-	// [디버그용 자동 세팅] IP와 랜덤 닉네임을 알아서 타이핑해줌
+	//[디버그용 자동 세팅] IP와 랜덤 닉네임을 알아서 타이핑해줌
 	if (IPT)
 	{
 		IPT->SetText(FText::FromString(TEXT("127.0.0.1")));

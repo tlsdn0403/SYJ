@@ -45,7 +45,7 @@ bool Room::IsTruckSeatOccupied(const TruckState& truckState, Protocol::TruckSeat
 	case Protocol::TRUCK_SEAT_DRIVER:
 		return truckState.driverPlayerId != 0;
 	case Protocol::TRUCK_SEAT_CARGO:
-		return truckState.cargoPlayerId != 0;
+		return truckState.cargoPlayerIds.size() >= MAX_CARGO_OCCUPANTS;
 	case Protocol::TRUCK_SEAT_TURRET:
 		return truckState.turretPlayerId != 0;
 	default:
@@ -61,7 +61,7 @@ void Room::SetTruckSeatOccupant(TruckState& truckState, Protocol::TruckSeatType 
 		truckState.driverPlayerId = playerId;
 		break;
 	case Protocol::TRUCK_SEAT_CARGO:
-		truckState.cargoPlayerId = playerId;
+		truckState.cargoPlayerIds.insert(playerId);
 		break;
 	case Protocol::TRUCK_SEAT_TURRET:
 		truckState.turretPlayerId = playerId;
@@ -80,8 +80,7 @@ void Room::ClearTruckSeatOccupant(TruckState& truckState, Protocol::TruckSeatTyp
 			truckState.driverPlayerId = 0;
 		break;
 	case Protocol::TRUCK_SEAT_CARGO:
-		if (truckState.cargoPlayerId == playerId)
-			truckState.cargoPlayerId = 0;
+		truckState.cargoPlayerIds.erase(playerId);
 		break;
 	case Protocol::TRUCK_SEAT_TURRET:
 		if (truckState.turretPlayerId == playerId)
@@ -297,7 +296,16 @@ void Room::HandleMove(Protocol::C_MOVE pkt)
 
 	// 적용
 	PlayerRef player = dynamic_pointer_cast<Player>(_objects[objectId]);
-	if (player == nullptr || player->bIsInTruck)
+	if (player == nullptr)
+		return;
+
+	const bool bShouldIgnoreMoveWhileInTruck =
+		player->bIsInTruck &&
+		player->currentTruckSeatType != Protocol::TRUCK_SEAT_CARGO;
+
+	//[신우] 운전석/기관총 좌석은 서버가 좌석 기준 위치를 따로 관리하므로 일반 이동 패킷을 무시한다.
+	//[신우] cargo만 예외로 두는 이유는 적재함 위를 플레이어가 직접 걸어다닐 수 있기 때문이다.
+	if (bShouldIgnoreMoveWhileInTruck)
 		return;
 
 	player->posInfo->CopyFrom(pkt.info());
@@ -360,10 +368,56 @@ void Room::HandleEnterTruck(PlayerRef player, Protocol::C_ENTER_TRUCK pkt)
 	if (truckId == 0 || seatType == Protocol::TRUCK_SEAT_NONE)
 		return;
 
+	TruckState& truckState = GetOrCreateTruckState(truckId);
+
+	//[신우] cargo <-> turret 전환도 클라이언트에서는 "탑승" 흐름으로 처리하므로,
+	//[신우] 서버에서는 좌석 변경이 일어나면 S_ENTER_TRUCK를 다시 브로드캐스트해서 상태를 동기화한다.
+	auto BroadcastSeatChange = [&](Protocol::TruckSeatType NewSeatType)
+		{
+			Protocol::S_ENTER_TRUCK enterPkt;
+			enterPkt.set_player_id(playerId);
+			enterPkt.set_truck_id(truckId);
+			enterPkt.set_seat_type(NewSeatType);
+
+			SendBufferRef sendBuffer = ServerPacketHandler::MakeSendBuffer(enterPkt);
+			Broadcast(sendBuffer);
+		};
+
 	if (player->bIsInTruck)
+	{
+		if (player->currentTruckId != truckId)
+			return;
+
+		if (player->currentTruckSeatType == seatType)
+			return;
+
+		const bool bCargoToTurret =
+			player->currentTruckSeatType == Protocol::TRUCK_SEAT_CARGO &&
+			seatType == Protocol::TRUCK_SEAT_TURRET;
+		const bool bTurretToCargo =
+			player->currentTruckSeatType == Protocol::TRUCK_SEAT_TURRET &&
+			seatType == Protocol::TRUCK_SEAT_CARGO;
+
+		//[신우] 이미 트럭에 타고 있는 상태에서는 cargo <-> turret 전환만 허용한다.
+		//[신우] 다른 좌석 변경까지 허용하면 운전석/적재함/기관총 상태가 꼬이기 쉬워서 서버에서 막아둔다.
+		if (bCargoToTurret == false && bTurretToCargo == false)
+			return;
+
+		if (IsTruckSeatOccupied(truckState, seatType))
+			return;
+
+		ClearTruckSeatOccupant(truckState, player->currentTruckSeatType, playerId);
+		SetTruckSeatOccupant(truckState, seatType, playerId);
+		player->currentTruckSeatType = seatType;
+		BroadcastSeatChange(seatType);
+		return;
+	}
+
+	//[신우] 기관총은 반드시 트럭 내부(cargo)에서만 갈아탈 수 있게 한다.
+	//[신우] 트럭 밖에서 바로 기관총에 타는 문제를 서버 권한으로 차단하는 부분이다.
+	if (seatType == Protocol::TRUCK_SEAT_TURRET)
 		return;
 
-	TruckState& truckState = GetOrCreateTruckState(truckId);
 	if (IsTruckSeatOccupied(truckState, seatType))
 		return;
 
@@ -381,13 +435,7 @@ void Room::HandleEnterTruck(PlayerRef player, Protocol::C_ENTER_TRUCK pkt)
 		truckState.posInfo.set_state(player->posInfo->state());
 	}
 
-	Protocol::S_ENTER_TRUCK enterPkt;
-	enterPkt.set_player_id(playerId);
-	enterPkt.set_truck_id(truckId);
-	enterPkt.set_seat_type(seatType);
-
-	SendBufferRef sendBuffer = ServerPacketHandler::MakeSendBuffer(enterPkt);
-	Broadcast(sendBuffer);
+	BroadcastSeatChange(seatType);
 }
 
 void Room::HandleExitTruck(PlayerRef player, Protocol::C_EXIT_TRUCK pkt)

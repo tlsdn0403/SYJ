@@ -8,7 +8,7 @@
 void UInteractTriggerComponent::BeginPlay()
 {
 	Super::BeginPlay();
-	// 겹침 이벤트 바인딩
+
 	OnComponentBeginOverlap.AddDynamic(this, &UInteractTriggerComponent::OnOverlapBegin);
 	OnComponentEndOverlap.AddDynamic(this, &UInteractTriggerComponent::OnOverlapEnd);
 }
@@ -18,18 +18,15 @@ void UInteractTriggerComponent::OnOverlapBegin(UPrimitiveComponent* OverlappedCo
 	AFPSBaseCharacter* Character = Cast<AFPSBaseCharacter>(OtherActor);
 	if (Character && Character->IsPlayerControlled())
 	{
-		// 캐릭터에게 나랑 상호작용 가능하다고 알림
 		Character->SetInteractableActor(GetOwner());
-
-
-		// 인터렉트 컴포넌트 타입
 		Character->SetCurrentTruckInteractType(InteractType);
-		
-		
 	}
-	if (!OtherActor || OtherActor == GetOwner()) return;
 
-	// 델리게이트 이벤트 발생 (문이 AddDynamic으로 듣고 있어야 함)
+	if (!OtherActor || OtherActor == GetOwner())
+	{
+		return;
+	}
+
 	OnEnter.Broadcast(OtherActor);
 }
 
@@ -38,18 +35,39 @@ void UInteractTriggerComponent::OnOverlapEnd(UPrimitiveComponent* OverlappedComp
 	AFPSBaseCharacter* Character = Cast<AFPSBaseCharacter>(OtherActor);
 	if (Character && Character->IsPlayerControlled())
 	{
-		// 범위 밖으로 나가면 상호작용 대상 해제
-		if (Character->GetCurrentInteractableActor() == GetOwner())
+		const bool bWasActiveTrigger =
+			Character->GetCurrentInteractableActor() == GetOwner() &&
+			Character->GetCurrentTruckInteractType() == InteractType;
+
+		if (bWasActiveTrigger)
 		{
 			Character->SetInteractableActor(nullptr);
-		}
-		if (Character->GetCurrentTruckInteractType() != ETruckInteractType::None) {
-			// 인터렉트 컴포넌트 타입
 			Character->SetCurrentTruckInteractType(ETruckInteractType::None);
-		}
-		if (!OtherActor || OtherActor == GetOwner()) return;
 
-		// 델리게이트 이벤트 발생
-		OnExit.Broadcast(OtherActor);
+			TArray<UInteractTriggerComponent*> SiblingTriggers;
+			GetOwner()->GetComponents<UInteractTriggerComponent>(SiblingTriggers);
+
+			for (UInteractTriggerComponent* SiblingTrigger : SiblingTriggers)
+			{
+				if (!SiblingTrigger || SiblingTrigger == this)
+				{
+					continue;
+				}
+
+				if (SiblingTrigger->IsOverlappingActor(Character))
+				{
+					Character->SetInteractableActor(GetOwner());
+					Character->SetCurrentTruckInteractType(SiblingTrigger->InteractType);
+					break;
+				}
+			}
+		}
 	}
+
+	if (!OtherActor || OtherActor == GetOwner())
+	{
+		return;
+	}
+
+	OnExit.Broadcast(OtherActor);
 }

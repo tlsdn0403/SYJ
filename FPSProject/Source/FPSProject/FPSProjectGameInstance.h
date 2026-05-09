@@ -5,6 +5,7 @@
 #include "Tickable.h"
 #include "FPSProject.h"
 #include "Enum.pb.h"
+#include "Items/LootItemBase.h"
 #include "FPSProjectGameInstance.generated.h"
 
 /**
@@ -66,6 +67,13 @@ public:
 	bool TryPickupWeaponLocally(class AFPSBaseCharacter* Character, class AWeaponBase* Weapon);
 	bool TryEnterTruckLocally(class AFPSBaseCharacter* Character, class ATruck* Truck, Protocol::TruckSeatType SeatType);
 	bool TryExitTruckLocally(class AFPSBaseCharacter* Character);
+	void RecordStage1CargoItems(const TArray<EItemType>& Items);
+
+	UFUNCTION(BlueprintCallable, Category = "Stage1|Cargo")
+	void ClearRecordedStage1CargoItems();
+
+	UFUNCTION(BlueprintPure, Category = "Stage1|Cargo")
+	int32 GetRecordedStage1CargoItemCount(EItemType ItemType) const;
 
 public:
 	virtual void Shutdown() override;
@@ -93,6 +101,9 @@ public:
 	TMap<uint64, AActor*> FieldItems;
 
 	TMap<uint64, FPendingEquippedWeapon> PendingWeaponsByPlayer;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stage1|Cargo")
+	TMap<EItemType, int32> RecordedStage1CargoItems;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Network|Class")
 	TSubclassOf<class AWeaponBase> DefaultWeaponClass;	// 바닥에 떨어진 무기 스폰할 때 사용할 기본 무기 클래스

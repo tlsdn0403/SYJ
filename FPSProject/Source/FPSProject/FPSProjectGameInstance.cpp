@@ -10,6 +10,7 @@
 #include "ClientPacketHandler.h"
 #include "Characters/FPSBaseCharacter.h"
 #include "Truck/Truck.h"
+#include "Weapon/MountedMachineGun.h"
 #include "ADoor.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetSystemLibrary.h"
@@ -135,6 +136,29 @@ bool UFPSProjectGameInstance::ShouldUseLocalInteractionFallback() const
 	return !IsConnectedToGameServer();
 }
 
+void UFPSProjectGameInstance::RecordStage1CargoItems(const TArray<EItemType>& Items)
+{
+	for (const EItemType ItemType : Items)
+	{
+		RecordedStage1CargoItems.FindOrAdd(ItemType)++;
+	}
+}
+
+void UFPSProjectGameInstance::ClearRecordedStage1CargoItems()
+{
+	RecordedStage1CargoItems.Empty();
+}
+
+int32 UFPSProjectGameInstance::GetRecordedStage1CargoItemCount(EItemType ItemType) const
+{
+	if (const int32* ItemCount = RecordedStage1CargoItems.Find(ItemType))
+	{
+		return *ItemCount;
+	}
+
+	return 0;
+}
+
 bool UFPSProjectGameInstance::TryPickupWeaponLocally(AFPSBaseCharacter* Character, AWeaponBase* Weapon)
 {
 	if (!ShouldUseLocalInteractionFallback() || Character == nullptr || Weapon == nullptr)
@@ -175,6 +199,7 @@ bool UFPSProjectGameInstance::TryEnterTruckLocally(AFPSBaseCharacter* Character,
 		return true;
 
 	case Protocol::TRUCK_SEAT_CARGO:
+		//[신우] 서버 응답을 기다리기 전에도 적재함 탑승 감각이 끊기지 않도록 로컬에서 먼저 태워준다.
 		Character->EnterTruckCargo(Truck);
 		return true;
 
@@ -183,8 +208,9 @@ bool UFPSProjectGameInstance::TryEnterTruckLocally(AFPSBaseCharacter* Character,
 		{
 			Truck->SetMountedWeaponUser(Character);
 			Character->EnterMountedWeapon(Truck, MountedWeapon);
+			return true;
 		}
-		return true;
+		return false;
 
 	default:
 		return false;
@@ -224,13 +250,9 @@ bool UFPSProjectGameInstance::TryExitTruckLocally(AFPSBaseCharacter* Character)
 
 	if (Character->IsUsingMountedWeapon())
 	{
-		if (Truck && Truck->GetMountedWeaponUser() == Character)
-		{
-			Truck->SetMountedWeaponUser(nullptr);
-		}
-
-		Character->ExitMountedWeapon();
-		return true;
+		//[신우] 기관총에서 F를 누를 때는 "트럭 밖으로 하차"가 아니라 "cargo 좌석으로 복귀"로 해석한다.
+		return Truck != nullptr &&
+			TryEnterTruckLocally(Character, Truck, Protocol::TRUCK_SEAT_CARGO);
 	}
 
 	if (Character->IsOnTruckCargo())
@@ -504,6 +526,9 @@ void UFPSProjectGameInstance::HandleEnterTruck(const Protocol::S_ENTER_TRUCK& pk
 	ATruck* Truck = FindTruckById(pkt.truck_id());
 	APlayerController* LocalPlayerController = UGameplayStatics::GetPlayerController(this, 0);
 	AFPSBaseCharacter* LocalPawn = LocalPlayerController ? Cast<AFPSBaseCharacter>(LocalPlayerController->GetPawn()) : nullptr;
+	const bool bIsLocalPlayer =
+		(MyPlayer && MyPlayer->GetPlayerInfo() && MyPlayer->GetPlayerInfo()->object_id() == pkt.player_id()) ||
+		(LocalPawn && LocalPawn->GetPlayerInfo() && LocalPawn->GetPlayerInfo()->object_id() == pkt.player_id());
 	UE_LOG(LogTemp, Warning,
 		TEXT("[TruckDebug] HandleEnterTruck PlayerId=%llu TruckId=%llu SeatType=%d HasPlayer=%d HasTruck=%d Player=%s Truck=%s MyPlayer=%s MyPlayerId=%llu MappedPlayer=%s MappedPlayerId=%llu LocalPawn=%s LocalPawnId=%llu"),
 		pkt.player_id(),
@@ -528,29 +553,31 @@ void UFPSProjectGameInstance::HandleEnterTruck(const Protocol::S_ENTER_TRUCK& pk
 	switch (pkt.seat_type())
 	{
 	case Protocol::TRUCK_SEAT_DRIVER:
-		Truck->SetLocallyDriven(Player->IsLocallyControlled());
+		Truck->SetLocallyDriven(bIsLocalPlayer);
+		Truck->SetDriverCharacter(Player);
 		Player->EnterTruckDriverSeat(Truck);
-		if (AController* PlayerController = Player->GetController())
+		if (bIsLocalPlayer && LocalPlayerController)
 		{
-			Truck->SetDriverCharacter(Player);
-			PlayerController->Possess(Truck);
-			PlayerController->SetControlRotation(Truck->GetActorRotation());
+			LocalPlayerController->Possess(Truck);
+			LocalPlayerController->SetControlRotation(Truck->GetActorRotation());
 			UE_LOG(LogTemp, Warning,
 				TEXT("[TruckDebug] EnterDriver Player=%s Truck=%s Controller=%s ViewTarget=%s TruckLoc=%s MeshLoc=%s"),
 				*GetNameSafe(Player),
 				*GetNameSafe(Truck),
-				*GetNameSafe(PlayerController),
-				*GetNameSafe(PlayerController->GetViewTarget()),
+				*GetNameSafe(LocalPlayerController),
+				*GetNameSafe(LocalPlayerController->GetViewTarget()),
 				*Truck->GetActorLocation().ToString(),
 				Truck->GetMesh() ? *Truck->GetMesh()->GetComponentLocation().ToString() : TEXT("NoMesh"));
 		}
 		break;
 	case Protocol::TRUCK_SEAT_CARGO:
+		//[신우] 서버가 cargo 탑승을 승인하면 로컬/원격 플레이어 모두 같은 방식으로 적재함 상태를 맞춘다.
 		Player->EnterTruckCargo(Truck);
 		break;
 	case Protocol::TRUCK_SEAT_TURRET:
 		if (AMountedMachineGun* MountedWeapon = Truck->GetMountedWeapon())
 		{
+			//[신우] 서버에서 turret 좌석을 승인한 경우에만 기관총 사용자 정보를 갱신한다.
 			Truck->SetMountedWeaponUser(Player);
 			Player->EnterMountedWeapon(Truck, MountedWeapon);
 		}
@@ -579,6 +606,16 @@ void UFPSProjectGameInstance::HandleExitTruck(const Protocol::S_EXIT_TRUCK& pkt)
 		return;
 	}
 
+	APlayerController* LocalPlayerController = UGameplayStatics::GetPlayerController(this, 0);
+	AFPSBaseCharacter* LocalCharacter = MyPlayer;
+	if (LocalCharacter == nullptr && LocalPlayerController)
+	{
+		LocalCharacter = Cast<AFPSBaseCharacter>(LocalPlayerController->GetCharacter());
+	}
+	const bool bIsLocalPlayer =
+		Player == LocalCharacter ||
+		(LocalCharacter && LocalCharacter->GetPlayerInfo() && LocalCharacter->GetPlayerInfo()->object_id() == pkt.player_id());
+
 	switch (pkt.seat_type())
 	{
 	case Protocol::TRUCK_SEAT_DRIVER:
@@ -588,21 +625,32 @@ void UFPSProjectGameInstance::HandleExitTruck(const Protocol::S_EXIT_TRUCK& pkt)
 			Truck->SetDriverCharacter(nullptr);
 		}
 		Player->ExitTruckDriverSeat();
-		if (AController* PlayerController = Truck->GetController())
+		if (bIsLocalPlayer && LocalPlayerController)
 		{
-			PlayerController->Possess(Player);
-			PlayerController->SetControlRotation(Player->GetActorRotation());
+			LocalPlayerController->Possess(Player);
+			LocalPlayerController->SetControlRotation(Player->GetActorRotation());
 		}
+		Player->SyncMovementToServer();
 		break;
 	case Protocol::TRUCK_SEAT_CARGO:
 		Player->ExitTruckCargo();
+		if (bIsLocalPlayer)
+		{
+			Player->SyncMovementToServer();
+		}
 		break;
 	case Protocol::TRUCK_SEAT_TURRET:
 		if (Truck->GetMountedWeaponUser() == Player)
 		{
 			Truck->SetMountedWeaponUser(nullptr);
 		}
-		Player->ExitMountedWeapon();
+		//[신우] S_EXIT_TRUCK의 turret 케이스는 "기관총에서 cargo로 좌석 전환"이 아니라
+		//[신우] "트럭에서 완전히 내린다"는 의미로 사용하고 있어서 false를 넘겨 트럭 밖으로 내보낸다.
+		Player->ExitMountedWeapon(false);
+		if (bIsLocalPlayer)
+		{
+			Player->SyncMovementToServer();
+		}
 		break;
 	default:
 		break;
@@ -802,7 +850,12 @@ void UFPSProjectGameInstance::HandleFire(const Protocol::S_FIRE& pkt)
 			(Shooter && Shooter->GetCurrentWeapon()) ? TEXT("true") : TEXT("false"),
 			Shooter ? *GetNameSafe(Shooter->GetCurrentWeapon()) : TEXT("null"));
 
-		if (Shooter && !Shooter->IsLocallyControlled() && Shooter->GetCurrentWeapon())
+		if (Shooter && !Shooter->IsLocallyControlled() && Shooter->IsUsingMountedWeapon() && Shooter->CurrentMountedWeapon)
+		{
+			Shooter->CurrentMountedWeapon->SetWeaponUser(Shooter);
+			Shooter->CurrentMountedWeapon->Fire();
+		}
+		else if (Shooter && !Shooter->IsLocallyControlled() && Shooter->GetCurrentWeapon())
 		{
 			Shooter->GetCurrentWeapon()->RemoteFire();
 		}

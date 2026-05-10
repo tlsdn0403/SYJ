@@ -129,6 +129,91 @@ void ABaseZombie::Attack(AActor* TargetActor)
 	}
 }
 
+void ABaseZombie::HandleNetworkAttack(AActor* TargetActor)
+{
+	if (!bIsAlive || bIsAttacking)
+	{
+		return;
+	}
+
+	CurrentAttackTarget = TargetActor ? TargetActor : UGameplayStatics::GetPlayerPawn(GetWorld(), 0);
+	bIsAttacking = true;
+
+	UAnimInstance* AnimInstance = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr;
+	if (AnimInstance && AttackMontage)
+	{
+		const float AttackPlayRate = FMath::Max(
+			0.1f,
+			AnimationRateScale * FMath::FRandRange(1.0f - AttackMontagePlayRateVariance, 1.0f + AttackMontagePlayRateVariance));
+		AnimInstance->Montage_Play(AttackMontage, AttackPlayRate);
+
+		FOnMontageEnded EndDelegate;
+		EndDelegate.BindUObject(this, &ABaseZombie::OnAttackMontageEnded);
+		AnimInstance->Montage_SetEndDelegate(EndDelegate, AttackMontage);
+	}
+	else
+	{
+		bIsAttacking = false;
+		CurrentAttackTarget = nullptr;
+	}
+}
+
+void ABaseZombie::HandleNetworkHit(float NewHealth, float MaxHealth)
+{
+	if (!bIsAlive || HealthComponent == nullptr)
+	{
+		return;
+	}
+
+	const float CurrentHealth = HealthComponent->GetHealth();
+	const float ClampedNewHealth = FMath::Clamp(NewHealth, 0.0f, MaxHealth > 0.0f ? MaxHealth : CurrentHealth);
+	const float Damage = FMath::Max(CurrentHealth - ClampedNewHealth, 0.0f);
+	if (Damage > 0.0f)
+	{
+		HealthComponent->ApplyDamage(Damage);
+	}
+
+	if (HitEffect)
+	{
+		const FVector EffectLocation = GetActorLocation() + FVector(0.0f, 0.0f, 50.0f);
+		const FRotator Rotation = (-GetActorForwardVector()).Rotation();
+		UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), HitEffect, EffectLocation, Rotation);
+	}
+}
+
+void ABaseZombie::HandleNetworkDeath()
+{
+	if (!bIsAlive)
+	{
+		return;
+	}
+
+	bIsAlive = false;
+	bIsAttacking = false;
+	CurrentAttackTarget = nullptr;
+	MovementState = EZombieMovementState::Dead;
+
+	if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
+	{
+		MoveComp->StopMovementImmediately();
+		MoveComp->DisableMovement();
+		MoveComp->SetComponentTickEnabled(false);
+	}
+
+	if (UCapsuleComponent* Capsule = GetCapsuleComponent())
+	{
+		Capsule->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	}
+
+	if (USkeletalMeshComponent* MeshComp = GetMesh())
+	{
+		MeshComp->SetSimulatePhysics(true);
+		MeshComp->SetAllBodiesBelowSimulatePhysics(FName("pelvis"), true, true);
+	}
+
+	SetLifeSpan(5.0f);
+}
+
 FVector ABaseZombie::GetAttackPointForTarget(AActor* TargetActor) const
 {
 	if (!TargetActor)

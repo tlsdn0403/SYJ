@@ -37,6 +37,7 @@ public:
 
 	void SendPacket(SendBufferRef SendBuffer);
 	static void SendPacketStatic(SendBufferRef SendBuffer);
+	static bool SendZombieHitPacket(class AFPSBaseCharacter* Attacker, class ABaseZombie* Zombie, float Damage, const FVector& HitLocation);
 
 public:
 	void HandleSpawn(const Protocol::ObjectInfo& PlayerInfo, bool IsMine);
@@ -47,6 +48,9 @@ public:
 	void HandleDespawn(const Protocol::S_DESPAWN& DespawnPkt);
 
 	void HandleMove(const Protocol::S_MOVE& MovePkt);
+	void HandleZombieAttack(const Protocol::S_ZOMBIE_ATTACK& pkt);
+	void HandleZombieHp(const Protocol::S_ZOMBIE_HP& pkt);
+	void HandleZombieDie(const Protocol::S_ZOMBIE_DIE& pkt);
 	void HandleEnterTruck(const Protocol::S_ENTER_TRUCK& pkt);
 	void HandleExitTruck(const Protocol::S_EXIT_TRUCK& pkt);
 	void HandleTruckMove(const Protocol::S_TRUCK_MOVE& pkt);
@@ -68,9 +72,6 @@ public:
 	bool TryPickupWeaponLocally(class AFPSBaseCharacter* Character, class AWeaponBase* Weapon);
 	bool TryEnterTruckLocally(class AFPSBaseCharacter* Character, class ATruck* Truck, Protocol::TruckSeatType SeatType);
 	bool TryExitTruckLocally(class AFPSBaseCharacter* Character);
-	bool IsZombieSyncAuthority() const;
-	void RegisterAuthorityZombie(class ABaseZombie* Zombie);
-	void ActivateAuthorityZombieSpawners();
 	void RecordStage1CargoItems(const TArray<EItemType>& Items);
 
 	UFUNCTION(BlueprintCallable, Category = "Stage1|Cargo")
@@ -119,8 +120,4 @@ public:
 	TSubclassOf<class AWeaponBase> DefaultEquippedWeaponClass;	// 손에 장착된 무기 스폰할 때 사용할 기본 무기 클래스
 
 private:
-	void SyncAuthorityZombiesToServer(float DeltaTime);
-	uint64 AllocateZombieObjectId();
-	float ZombieSyncAccumulator = 0.0f;
-	uint64 NextZombieObjectId = 1000000;
 };

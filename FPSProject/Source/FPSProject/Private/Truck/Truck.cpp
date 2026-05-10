@@ -968,6 +968,11 @@ void ATruck::ProcessZombieImpact(ABaseZombie* Zombie, const FVector& ImpactPoint
 		FVector2D(ZombieImpactMinDamage, ZombieImpactMaxDamage),
 		ImpactSpeed);
 
+	if (UFPSProjectGameInstance::SendZombieHitPacket(DriverCharacter, Zombie, Damage, ImpactPoint))
+	{
+		return;
+	}
+
 	// 좀비의 넉백을 속도에 따라 조절
 	const float KnockbackScale = FMath::GetMappedRangeValueClamped(
 		FVector2D(ZombieImpactMinSpeed, ZombieImpactFatalSpeed),

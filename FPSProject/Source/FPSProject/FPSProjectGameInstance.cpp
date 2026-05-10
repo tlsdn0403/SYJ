@@ -130,6 +130,45 @@ void UFPSProjectGameInstance::SendPacketStatic(SendBufferRef SendBuffer)
 	}
 }
 
+bool UFPSProjectGameInstance::SendZombieHitPacket(AFPSBaseCharacter* Attacker, ABaseZombie* Zombie, float Damage, const FVector& HitLocation)
+{
+	if (Attacker == nullptr || Zombie == nullptr || Damage <= 0.0f)
+	{
+		return false;
+	}
+
+	UWorld* World = Attacker->GetWorld();
+	if (World == nullptr)
+	{
+		return false;
+	}
+
+	UFPSProjectGameInstance* GameInstance = Cast<UFPSProjectGameInstance>(World->GetGameInstance());
+	if (GameInstance == nullptr || !GameInstance->IsConnectedToGameServer())
+	{
+		return false;
+	}
+
+	Protocol::PosInfo* AttackerInfo = Attacker->GetPlayerInfo();
+	const uint64 AttackerId = AttackerInfo ? AttackerInfo->object_id() : 0;
+	const uint64 ZombieId = Zombie->GetNetworkObjectId();
+	if (AttackerId == 0 || ZombieId == 0)
+	{
+		return false;
+	}
+
+	Protocol::C_HIT_ZOMBIE hitPkt;
+	hitPkt.set_zombie_id(ZombieId);
+	hitPkt.set_attacker_id(AttackerId);
+	hitPkt.set_damage(Damage);
+	hitPkt.set_hit_x(HitLocation.X);
+	hitPkt.set_hit_y(HitLocation.Y);
+	hitPkt.set_hit_z(HitLocation.Z);
+	SEND_PACKET(hitPkt);
+
+	return true;
+}
+
 bool UFPSProjectGameInstance::IsConnectedToGameServer() const
 {
 	return Socket != nullptr && GameServerSession != nullptr;
@@ -138,88 +177,6 @@ bool UFPSProjectGameInstance::IsConnectedToGameServer() const
 bool UFPSProjectGameInstance::ShouldUseLocalInteractionFallback() const
 {
 	return !IsConnectedToGameServer();
-}
-
-bool UFPSProjectGameInstance::IsZombieSyncAuthority() const
-{
-	if (MyPlayer == nullptr || MyPlayer->GetPlayerInfo() == nullptr)
-	{
-		return false;
-	}
-
-	const uint64 MyPlayerId = MyPlayer->GetPlayerInfo()->object_id();
-	if (MyPlayerId == 0)
-	{
-		return false;
-	}
-
-	uint64 LowestPlayerId = MyPlayerId;
-	for (const TPair<uint64, AFPSBaseCharacter*>& PlayerPair : Players)
-	{
-		if (PlayerPair.Key != 0)
-		{
-			LowestPlayerId = FMath::Min(LowestPlayerId, PlayerPair.Key);
-		}
-	}
-
-	return MyPlayerId == LowestPlayerId;
-}
-
-uint64 UFPSProjectGameInstance::AllocateZombieObjectId()
-{
-	return NextZombieObjectId++;
-}
-
-void UFPSProjectGameInstance::RegisterAuthorityZombie(ABaseZombie* Zombie)
-{
-	if (!IsZombieSyncAuthority() || Zombie == nullptr)
-	{
-		return;
-	}
-
-	uint64 ZombieObjectId = Zombie->GetNetworkObjectId();
-	if (ZombieObjectId == 0)
-	{
-		ZombieObjectId = AllocateZombieObjectId();
-		Zombie->SetNetworkObjectId(ZombieObjectId);
-	}
-
-	Zombies.Add(ZombieObjectId, Zombie);
-}
-
-void UFPSProjectGameInstance::ActivateAuthorityZombieSpawners()
-{
-	if (!IsZombieSyncAuthority())
-	{
-		if (MyPlayer && MyPlayer->GetPlayerInfo())
-		{
-			UE_LOG(LogTemp, Warning, TEXT("[ZombieSync] Not authority. MyPlayerId=%llu"), MyPlayer->GetPlayerInfo()->object_id());
-		}
-		return;
-	}
-
-	UWorld* World = GetWorld();
-	if (World == nullptr)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[ZombieSync] ActivateAuthorityZombieSpawners failed: World is null"));
-		return;
-	}
-
-	int32 SpawnerCount = 0;
-	for (TActorIterator<AZombieSpawner> It(World); It; ++It)
-	{
-		AZombieSpawner* ZombieSpawner = *It;
-		if (ZombieSpawner == nullptr)
-		{
-			continue;
-		}
-
-		++SpawnerCount;
-		UE_LOG(LogTemp, Warning, TEXT("[ZombieSync] Activating spawner %s"), *GetNameSafe(ZombieSpawner));
-		ZombieSpawner->SpawnZombies();
-	}
-
-	UE_LOG(LogTemp, Warning, TEXT("[ZombieSync] ActivateAuthorityZombieSpawners complete. SpawnerCount=%d"), SpawnerCount);
 }
 
 void UFPSProjectGameInstance::RecordStage1CargoItems(const TArray<EItemType>& Items)
@@ -423,7 +380,6 @@ void UFPSProjectGameInstance::HandleSpawn(const Protocol::ObjectInfo& ObjectInfo
 					*GetNameSafe(PC->GetPawn()));
 				UE_LOG(LogTemp, Warning, TEXT("[ZombieSync] My player spawned. PlayerId=%llu"), ObjectId);
 				RetryPendingWeapon(ObjectId);
-				ActivateAuthorityZombieSpawners();
 			}
 		}
 	}
@@ -518,7 +474,7 @@ void UFPSProjectGameInstance::HandleMove(const Protocol::S_MOVE& MovePkt)
 	if (ObjectId >= 1000000)
 	{
 		ABaseZombie* Zombie = Zombies.FindRef(ObjectId);
-		if (Zombie == nullptr || IsZombieSyncAuthority())
+		if (Zombie == nullptr)
 		{
 			return;
 		}
@@ -546,6 +502,40 @@ void UFPSProjectGameInstance::HandleMove(const Protocol::S_MOVE& MovePkt)
 	// 이렇게 갱신해주면 AFPSBaseCharacter::Tick 함수에서 이걸 보고 자연스럽게 걸어갑니다.
 	const Protocol::PosInfo& Info = MovePkt.info();
 	Player->SetDestInfo(Info);
+}
+
+void UFPSProjectGameInstance::HandleZombieAttack(const Protocol::S_ZOMBIE_ATTACK& pkt)
+{
+	ABaseZombie* Zombie = Zombies.FindRef(pkt.zombie_id());
+	if (Zombie == nullptr)
+	{
+		return;
+	}
+
+	AActor* TargetActor = ResolvePlayerById(pkt.target_player_id());
+	Zombie->HandleNetworkAttack(TargetActor);
+}
+
+void UFPSProjectGameInstance::HandleZombieHp(const Protocol::S_ZOMBIE_HP& pkt)
+{
+	ABaseZombie* Zombie = Zombies.FindRef(pkt.zombie_id());
+	if (Zombie == nullptr)
+	{
+		return;
+	}
+
+	Zombie->HandleNetworkHit(pkt.hp(), pkt.max_hp());
+}
+
+void UFPSProjectGameInstance::HandleZombieDie(const Protocol::S_ZOMBIE_DIE& pkt)
+{
+	ABaseZombie* Zombie = Zombies.FindRef(pkt.zombie_id());
+	if (Zombie == nullptr)
+	{
+		return;
+	}
+
+	Zombie->HandleNetworkDeath();
 }
 
 ATruck* UFPSProjectGameInstance::FindTruckById(uint64 TruckId)
@@ -1029,47 +1019,9 @@ void UFPSProjectGameInstance::Shutdown()
 void UFPSProjectGameInstance::Tick(float DeltaTime)
 {
 	HandleRecvPackets();
-	SyncAuthorityZombiesToServer(DeltaTime);
 }
 
 TStatId UFPSProjectGameInstance::GetStatId() const
 {
 	RETURN_QUICK_DECLARE_CYCLE_STAT(UFPSProjectGameInstance, STATGROUP_Tickables);
-}
-
-void UFPSProjectGameInstance::SyncAuthorityZombiesToServer(float DeltaTime)
-{
-	if (!IsConnectedToGameServer() || !IsZombieSyncAuthority())
-	{
-		return;
-	}
-
-	ZombieSyncAccumulator += DeltaTime;
-	if (ZombieSyncAccumulator < (1.0f / 15.0f))
-	{
-		return;
-	}
-
-	ZombieSyncAccumulator = 0.0f;
-
-	for (TPair<uint64, ABaseZombie*>& ZombiePair : Zombies)
-	{
-		ABaseZombie* Zombie = ZombiePair.Value;
-		if (Zombie == nullptr || !IsValid(Zombie))
-		{
-			continue;
-		}
-
-		Protocol::C_MOVE MovePkt;
-		Protocol::PosInfo* Info = MovePkt.mutable_info();
-		Info->set_object_id(ZombiePair.Key);
-		Info->set_x(Zombie->GetActorLocation().X);
-		Info->set_y(Zombie->GetActorLocation().Y);
-		Info->set_z(Zombie->GetActorLocation().Z);
-		Info->set_yaw(Zombie->GetActorRotation().Yaw);
-		Info->set_state(Zombie->IsAlive() ? Protocol::MOVE_STATE_RUN : Protocol::MOVE_STATE_DEAD);
-
-		SendBufferRef SendBuffer = ClientPacketHandler::MakeSendBuffer(MovePkt);
-		SendPacket(SendBuffer);
-	}
 }

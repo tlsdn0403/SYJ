@@ -16,6 +16,7 @@ bool Handle_S_LOGIN(PacketSessionRef& session, Protocol::S_LOGIN& pkt)
 
 bool Handle_S_ENTER_GAME(PacketSessionRef& session, Protocol::S_ENTER_GAME& pkt)
 {
+	cout << "[DummyClient] S_ENTER_GAME myId=" << pkt.player().object_id() << endl;
 	return true;
 }
 
@@ -26,6 +27,15 @@ bool Handle_S_LEAVE_GAME(PacketSessionRef& session, Protocol::S_LEAVE_GAME& pkt)
 
 bool Handle_S_SPAWN(PacketSessionRef& session, Protocol::S_SPAWN& pkt)
 {
+	cout << "[DummyClient] S_SPAWN count=" << pkt.players_size() << endl;
+	for (const auto& objectInfo : pkt.players())
+	{
+		cout << "  objectId=" << objectInfo.object_id()
+			<< " pos=(" << objectInfo.pos_info().x()
+			<< ", " << objectInfo.pos_info().y()
+			<< ", " << objectInfo.pos_info().z() << ")"
+			<< endl;
+	}
 	return true;
 }
 
@@ -36,6 +46,40 @@ bool Handle_S_DESPAWN(PacketSessionRef& session, Protocol::S_DESPAWN& pkt)
 
 bool Handle_S_MOVE(PacketSessionRef& session, Protocol::S_MOVE& pkt)
 {
+	if (pkt.info().object_id() >= 1000000)
+	{
+		cout << "[DummyClient] S_MOVE zombieId=" << pkt.info().object_id()
+			<< " pos=(" << pkt.info().x()
+			<< ", " << pkt.info().y()
+			<< ", " << pkt.info().z()
+			<< ") state=" << pkt.info().state()
+			<< endl;
+	}
+	return true;
+}
+
+bool Handle_S_ZOMBIE_ATTACK(PacketSessionRef& session, Protocol::S_ZOMBIE_ATTACK& pkt)
+{
+	cout << "[DummyClient] S_ZOMBIE_ATTACK zombieId=" << pkt.zombie_id()
+		<< " targetPlayerId=" << pkt.target_player_id()
+		<< endl;
+	return true;
+}
+
+bool Handle_S_ZOMBIE_HP(PacketSessionRef& session, Protocol::S_ZOMBIE_HP& pkt)
+{
+	cout << "[DummyClient] S_ZOMBIE_HP zombieId=" << pkt.zombie_id()
+		<< " hp=" << pkt.hp()
+		<< "/" << pkt.max_hp()
+		<< endl;
+	return true;
+}
+
+bool Handle_S_ZOMBIE_DIE(PacketSessionRef& session, Protocol::S_ZOMBIE_DIE& pkt)
+{
+	cout << "[DummyClient] S_ZOMBIE_DIE zombieId=" << pkt.zombie_id()
+		<< " killerId=" << pkt.killer_id()
+		<< endl;
 	return true;
 }
 

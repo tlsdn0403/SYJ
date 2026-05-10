@@ -22,15 +22,7 @@ void AZombieSpawner::BeginPlay()
 	{
 		if (GameInstance->IsConnectedToGameServer())
 		{
-			if (GameInstance->IsZombieSyncAuthority())
-			{
-				UE_LOG(LogTemp, Warning, TEXT("[ZombieSync] %s BeginPlay spawning as authority client"), *GetName());
-				SpawnZombies();
-			}
-			else
-			{
-				UE_LOG(LogTemp, Warning, TEXT("[ZombieSync] %s BeginPlay skipped auto-spawn because GameServer is connected"), *GetName());
-			}
+			UE_LOG(LogTemp, Warning, TEXT("[ZombieSync] %s BeginPlay skipped auto-spawn because GameServer is connected"), *GetName());
 			return;
 		}
 	}
@@ -83,11 +75,6 @@ void AZombieSpawner::SpawnZombies()
 		{
 			UE_LOG(LogTemp, Warning, TEXT("[ZombieSync] Spawned zombie %s at %s"), *GetNameSafe(SpawnedZombie), *SpawnPoint->GetActorLocation().ToString());
 			SpawnedZombies.Add(SpawnedZombie);
-
-			if (UFPSProjectGameInstance* GameInstance = GetWorld() ? Cast<UFPSProjectGameInstance>(GetWorld()->GetGameInstance()) : nullptr)
-			{
-				GameInstance->RegisterAuthorityZombie(SpawnedZombie);
-			}
 		}
 		else
 		{

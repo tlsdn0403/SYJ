@@ -42,10 +42,11 @@ private:
 
 	float LastMoveRequestTime = -100000.0f;
 	TWeakObjectPtr<AActor> LastIssuedTargetActor;
+	bool bUsingFallZonePursuit = false;
 
 	void ResetMoveRequestState();
 	bool RequestChaseMove(AAIController* AIController, ABaseZombie* ZombieCharacter, AActor* TargetActor, bool bForceRequest);
-	bool TryUseFallZonePursuit(AAIController* AIController, ABaseZombie* ZombieCharacter, AActor* TargetActor) const;
+	bool TryUseFallZonePursuit(AAIController* AIController, ABaseZombie* ZombieCharacter, AActor* TargetActor);
 	bool ShouldUseDirectPursuitFallback(AAIController* AIController, ABaseZombie* ZombieCharacter, AActor* TargetActor) const;
 	void ApplyDirectPursuitFallback(AAIController* AIController, ABaseZombie* ZombieCharacter, AActor* TargetActor) const;
 };

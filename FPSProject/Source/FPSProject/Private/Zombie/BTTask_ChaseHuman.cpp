@@ -78,8 +78,10 @@ bool UBTTask_ChaseHuman::RequestChaseMove(AAIController* AIController, AActor* T
 		return true;
 	}
 
+	const bool bMovingTruckTarget = IsMovingTruckTarget(TargetActor);
+	const float AcceptanceRadius = GetChaseAcceptanceRadius(TargetActor);
 	const EPathFollowingRequestResult::Type RequestResult =
-		AIController->MoveToActor(TargetActor, StopDistance, true, true, true, nullptr, true);
+		AIController->MoveToActor(TargetActor, AcceptanceRadius, !bMovingTruckTarget, true, true, nullptr, true);
 
 	if (RequestResult != EPathFollowingRequestResult::Failed)
 	{
@@ -159,8 +161,28 @@ bool UBTTask_ChaseHuman::IsTargetInStopDistance(ABaseZombie* ZombieCharacter, AA
 		return false;
 	}
 
+	if (IsMovingTruckTarget(TargetActor))
+	{
+		return false;
+	}
+
 	const FVector TargetPoint = GetClosestPointOnSimpleChaseTarget(TargetActor, ZombieCharacter->GetActorLocation());
 	return FVector::Dist(ZombieCharacter->GetActorLocation(), TargetPoint) <= StopDistance;
+}
+
+bool UBTTask_ChaseHuman::IsMovingTruckTarget(AActor* TargetActor) const
+{
+	const ATruck* Truck = Cast<ATruck>(TargetActor);
+	return Truck &&
+		MovingTruckSpeedThreshold > 0.0f &&
+		Truck->GetVelocity().SizeSquared2D() >= FMath::Square(MovingTruckSpeedThreshold);
+}
+
+float UBTTask_ChaseHuman::GetChaseAcceptanceRadius(AActor* TargetActor) const
+{
+	return IsMovingTruckTarget(TargetActor)
+		? FMath::Min(StopDistance, MovingTruckAcceptanceRadius)
+		: StopDistance;
 }
 
 EBTNodeResult::Type UBTTask_ChaseHuman::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)

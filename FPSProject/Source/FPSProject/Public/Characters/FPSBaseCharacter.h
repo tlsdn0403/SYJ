@@ -35,6 +35,9 @@ public:
 	virtual void Tick(float DeltaTime) override;
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
+	UFUNCTION(BlueprintCallable, Category = "FPS|Stage")
+	void TravelToStage2Map();
+
 	UFUNCTION(BlueprintCallable, Category = "FPS|Weapon")
 	void SetCurrentWeapon(AWeaponBase* NewWeapon);
 

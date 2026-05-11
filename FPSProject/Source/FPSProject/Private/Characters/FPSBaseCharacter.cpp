@@ -18,6 +18,7 @@
 #include "Animation/AnimationAsset.h"
 #include "ClientPacketHandler.h"
 #include "FPSProjectGameInstance.h"
+#include "Kismet/GameplayStatics.h"
 #include "Perception/AIPerceptionStimuliSourceComponent.h"
 #include "Perception/AISense_Hearing.h"
 #include "Perception/AISense_Sight.h"
@@ -318,6 +319,12 @@ void AFPSBaseCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 	PlayerInputComponent->BindAction("Aim", IE_Released, this, &AFPSBaseCharacter::StopAim);
 	PlayerInputComponent->BindAction("Interact", IE_Pressed, this, &AFPSBaseCharacter::Interact);
 	PlayerInputComponent->BindAction("LeaveGame", IE_Pressed, this, &AFPSBaseCharacter::LeaveGame);
+	PlayerInputComponent->BindAction("TravelToStage2Map", IE_Pressed, this, &AFPSBaseCharacter::TravelToStage2Map);
+}
+// 2스테이지 맵으로 이동
+void AFPSBaseCharacter::TravelToStage2Map()
+{
+	UGameplayStatics::OpenLevel(this, FName(TEXT("map_level2_test")));
 }
 
 void AFPSBaseCharacter::EnterTruckDriverSeat(ATruck* Truck)

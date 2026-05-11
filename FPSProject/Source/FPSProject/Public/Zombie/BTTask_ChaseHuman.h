@@ -22,6 +22,12 @@ private:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI", meta = (AllowPrivateAccess = "true"))
 	float StopDistance = 200.0f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Truck", meta = (AllowPrivateAccess = "true", ClampMin = "0.0"))
+	float MovingTruckSpeedThreshold = 120.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Truck", meta = (AllowPrivateAccess = "true", ClampMin = "0.0"))
+	float MovingTruckAcceptanceRadius = 80.0f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Fall Zone", meta = (AllowPrivateAccess = "true"))
 	bool bUseFallZone = true;
 
@@ -46,4 +52,6 @@ private:
 	bool RequestFallZoneMove(AAIController* AIController, const FVector& FallZoneLocation, bool bForceRequest);
 	bool TryUseFallZone(AAIController* AIController, ABaseZombie* ZombieCharacter, AActor* TargetActor);
 	bool IsTargetInStopDistance(ABaseZombie* ZombieCharacter, AActor* TargetActor) const;
+	bool IsMovingTruckTarget(AActor* TargetActor) const;
+	float GetChaseAcceptanceRadius(AActor* TargetActor) const;
 };

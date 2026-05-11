@@ -225,6 +225,8 @@ bool Room::LeaveRoom(ObjectRef object)
 
 bool Room::HandleEnterPlayer(PlayerRef player)
 {
+	SpawnInitialZombies();
+
 	bool success = EnterRoom(player, true);
 
 	if (success == false)
@@ -291,6 +293,153 @@ bool Room::HandleLeavePlayer(PlayerRef player)
 namespace
 {
 	constexpr uint64 ZOMBIE_OBJECT_ID_START = 1000000;
+	constexpr float ZOMBIE_SERVER_TICK_SECONDS = 0.1f;
+	constexpr float ZOMBIE_MOVE_SPEED = 180.0f;
+	constexpr float ZOMBIE_AGGRO_RANGE = 1500.0f;
+	constexpr float ZOMBIE_ATTACK_RANGE = 140.0f;
+	constexpr float ZOMBIE_ATTACK_COOLDOWN_SECONDS = 1.0f;
+	constexpr float ZOMBIE_DESPAWN_DELAY_SECONDS = 3.0f;
+
+	struct ZombieSpawnData
+	{
+		uint64 objectId;
+		float x;
+		float y;
+		float z;
+		float yaw;
+	};
+
+	constexpr ZombieSpawnData INITIAL_ZOMBIE_SPAWNS[] =
+	{
+		{ ZOMBIE_OBJECT_ID_START + 0, 150.0f, 150.0f, 100.0f,   0.0f },
+		{ ZOMBIE_OBJECT_ID_START + 1, 320.0f, 180.0f, 100.0f,  45.0f },
+		{ ZOMBIE_OBJECT_ID_START + 2, 460.0f, 260.0f, 100.0f, 180.0f },
+	};
+}
+
+void Room::SpawnInitialZombies()
+{
+	if (_hasSpawnedInitialZombies)
+		return;
+
+	for (const ZombieSpawnData& spawnData : INITIAL_ZOMBIE_SPAWNS)
+	{
+		MonsterRef monster = ObjectUtils::CreateMonster(spawnData.objectId);
+		monster->posInfo->set_x(spawnData.x);
+		monster->posInfo->set_y(spawnData.y);
+		monster->posInfo->set_z(spawnData.z);
+		monster->posInfo->set_yaw(spawnData.yaw);
+		monster->posInfo->set_state(Protocol::MOVE_STATE_IDLE);
+		monster->objectInfo->mutable_pos_info()->CopyFrom(*monster->posInfo);
+
+		AddObject(monster);
+	}
+
+	_hasSpawnedInitialZombies = true;
+}
+
+PlayerRef Room::FindNearestPlayer(const Protocol::PosInfo& origin, float maxRange) const
+{
+	PlayerRef nearestPlayer = nullptr;
+	float nearestDistSq = maxRange * maxRange;
+
+	for (const auto& item : _objects)
+	{
+		PlayerRef player = dynamic_pointer_cast<Player>(item.second);
+		if (player == nullptr)
+			continue;
+
+		const float dx = player->posInfo->x() - origin.x();
+		const float dy = player->posInfo->y() - origin.y();
+		const float dz = player->posInfo->z() - origin.z();
+		const float distSq = dx * dx + dy * dy + dz * dz;
+		if (distSq > nearestDistSq)
+			continue;
+
+		nearestDistSq = distSq;
+		nearestPlayer = player;
+	}
+
+	return nearestPlayer;
+}
+
+void Room::BroadcastZombieMove(const MonsterRef& monster)
+{
+	if (monster == nullptr)
+		return;
+
+	Protocol::S_MOVE movePkt;
+	movePkt.mutable_info()->CopyFrom(*monster->posInfo);
+
+	SendBufferRef sendBuffer = ServerPacketHandler::MakeSendBuffer(movePkt);
+	Broadcast(sendBuffer);
+}
+
+void Room::UpdateZombies()
+{
+	for (auto& item : _objects)
+	{
+		MonsterRef monster = dynamic_pointer_cast<Monster>(item.second);
+		if (monster == nullptr)
+			continue;
+
+		if (monster->IsDead())
+			continue;
+
+		monster->TickCooldown(ZOMBIE_SERVER_TICK_SECONDS);
+
+		PlayerRef targetPlayer = FindNearestPlayer(*monster->posInfo, ZOMBIE_AGGRO_RANGE);
+		if (targetPlayer == nullptr)
+		{
+			if (monster->posInfo->state() != Protocol::MOVE_STATE_IDLE)
+			{
+				monster->posInfo->set_state(Protocol::MOVE_STATE_IDLE);
+				monster->objectInfo->mutable_pos_info()->CopyFrom(*monster->posInfo);
+				BroadcastZombieMove(monster);
+			}
+			continue;
+		}
+
+		const float dx = targetPlayer->posInfo->x() - monster->posInfo->x();
+		const float dy = targetPlayer->posInfo->y() - monster->posInfo->y();
+		const float dz = targetPlayer->posInfo->z() - monster->posInfo->z();
+		const float distSq = dx * dx + dy * dy + dz * dz;
+		const float attackRangeSq = ZOMBIE_ATTACK_RANGE * ZOMBIE_ATTACK_RANGE;
+
+		if (distSq <= attackRangeSq)
+		{
+			monster->posInfo->set_state(Protocol::MOVE_STATE_IDLE);
+			if (monster->CanAttack())
+			{
+				Protocol::S_ZOMBIE_ATTACK attackPkt;
+				attackPkt.set_zombie_id(monster->objectInfo->object_id());
+				attackPkt.set_target_player_id(targetPlayer->objectInfo->object_id());
+
+				SendBufferRef sendBuffer = ServerPacketHandler::MakeSendBuffer(attackPkt);
+				Broadcast(sendBuffer);
+				monster->StartAttackCooldown(ZOMBIE_ATTACK_COOLDOWN_SECONDS);
+			}
+		}
+		else
+		{
+			const float distance = sqrtf(distSq);
+			if (distance > 0.001f)
+			{
+				const float moveStep = ZOMBIE_MOVE_SPEED * ZOMBIE_SERVER_TICK_SECONDS;
+				const float moveAlpha = (moveStep < distance) ? (moveStep / distance) : 1.0f;
+
+				monster->posInfo->set_x(monster->posInfo->x() + dx * moveAlpha);
+				monster->posInfo->set_y(monster->posInfo->y() + dy * moveAlpha);
+				monster->posInfo->set_z(monster->posInfo->z() + dz * moveAlpha);
+				monster->posInfo->set_yaw(atan2f(dy, dx) * (180.0f / 3.1415926535f));
+			}
+
+			monster->posInfo->set_state(Protocol::MOVE_STATE_RUN);
+		}
+
+		monster->objectInfo->mutable_pos_info()->CopyFrom(*monster->posInfo);
+		BroadcastZombieMove(monster);
+	}
 }
 
 void Room::HandleMove(PlayerRef player, Protocol::C_MOVE pkt)
@@ -298,40 +447,6 @@ void Room::HandleMove(PlayerRef player, Protocol::C_MOVE pkt)
 	const uint64 objectId = pkt.info().object_id();
 	if (objectId >= ZOMBIE_OBJECT_ID_START)
 	{
-		MonsterRef monster;
-		auto findIt = _objects.find(objectId);
-		if (findIt == _objects.end())
-		{
-			monster = ObjectUtils::CreateMonster(objectId);
-			monster->posInfo->CopyFrom(pkt.info());
-			monster->objectInfo->mutable_pos_info()->CopyFrom(pkt.info());
-
-			if (AddObject(monster))
-			{
-				Protocol::S_SPAWN spawnPkt;
-				Protocol::ObjectInfo* objectInfo = spawnPkt.add_players();
-				objectInfo->CopyFrom(*monster->objectInfo);
-
-				SendBufferRef spawnBuffer = ServerPacketHandler::MakeSendBuffer(spawnPkt);
-				Broadcast(spawnBuffer);
-			}
-		}
-		else
-		{
-			monster = dynamic_pointer_cast<Monster>(findIt->second);
-		}
-
-		if (monster == nullptr)
-			return;
-
-		monster->posInfo->CopyFrom(pkt.info());
-		monster->objectInfo->mutable_pos_info()->CopyFrom(pkt.info());
-
-		Protocol::S_MOVE movePkt;
-		movePkt.mutable_info()->CopyFrom(pkt.info());
-
-		SendBufferRef sendBuffer = ServerPacketHandler::MakeSendBuffer(movePkt);
-		Broadcast(sendBuffer);
 		return;
 	}
 
@@ -364,6 +479,52 @@ void Room::HandleMove(PlayerRef player, Protocol::C_MOVE pkt)
 		SendBufferRef sendBuffer = ServerPacketHandler::MakeSendBuffer(movePkt);
 		Broadcast(sendBuffer);
 	}
+}
+
+void Room::HandleHitZombie(PlayerRef player, Protocol::C_HIT_ZOMBIE pkt)
+{
+	if (player == nullptr)
+		return;
+
+	const uint64 zombieId = pkt.zombie_id();
+	if (zombieId < ZOMBIE_OBJECT_ID_START)
+		return;
+
+	auto findIt = _objects.find(zombieId);
+	if (findIt == _objects.end())
+		return;
+
+	MonsterRef monster = dynamic_pointer_cast<Monster>(findIt->second);
+	if (monster == nullptr || monster->IsDead())
+		return;
+
+	const float damage = (pkt.damage() > 0.0f) ? pkt.damage() : 0.0f;
+	if (damage <= 0.0f)
+		return;
+
+	monster->ApplyDamage(damage);
+
+	Protocol::S_ZOMBIE_HP hpPkt;
+	hpPkt.set_zombie_id(zombieId);
+	hpPkt.set_hp(monster->GetHp());
+	hpPkt.set_max_hp(monster->GetMaxHp());
+
+	SendBufferRef hpBuffer = ServerPacketHandler::MakeSendBuffer(hpPkt);
+	Broadcast(hpBuffer);
+
+	if (monster->IsDead() == false)
+		return;
+
+	monster->posInfo->set_state(Protocol::MOVE_STATE_DEAD);
+	monster->objectInfo->mutable_pos_info()->CopyFrom(*monster->posInfo);
+
+	Protocol::S_ZOMBIE_DIE diePkt;
+	diePkt.set_zombie_id(zombieId);
+	diePkt.set_killer_id(player->objectInfo->object_id());
+
+	SendBufferRef dieBuffer = ServerPacketHandler::MakeSendBuffer(diePkt);
+	Broadcast(dieBuffer);
+	_pendingZombieDespawns.push_back({ zombieId, ZOMBIE_DESPAWN_DELAY_SECONDS });
 }
 
 void Room::HandleEquipWeapon(PlayerRef player, Protocol::C_EQUIP_WEAPON pkt)
@@ -559,7 +720,28 @@ void Room::HandleToggleDoor(PlayerRef player, Protocol::C_TOGGLE_DOOR pkt)
 
 void Room::UpdateTick()
 {
-	//cout << "Update Room" << endl;
+	UpdateZombies();
+
+	for (int32 index = static_cast<int32>(_pendingZombieDespawns.size()) - 1; index >= 0; --index)
+	{
+		PendingZombieDespawn& pending = _pendingZombieDespawns[index];
+		pending.remainingTime -= ZOMBIE_SERVER_TICK_SECONDS;
+		if (pending.remainingTime > 0.0f)
+			continue;
+
+		if (_objects.find(pending.zombieId) != _objects.end())
+		{
+			Protocol::S_DESPAWN despawnPkt;
+			despawnPkt.add_object_ids(pending.zombieId);
+
+			RemoveObject(pending.zombieId);
+
+			SendBufferRef despawnBuffer = ServerPacketHandler::MakeSendBuffer(despawnPkt);
+			Broadcast(despawnBuffer);
+		}
+
+		_pendingZombieDespawns.erase(_pendingZombieDespawns.begin() + index);
+	}
 
 	DoTimer(100, &Room::UpdateTick);
 }

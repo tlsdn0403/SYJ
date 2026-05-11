@@ -57,6 +57,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Zombie")
 	void Die();
 
+	void HandleNetworkAttack(AActor* TargetActor);
+	void HandleNetworkHit(float NewHealth, float MaxHealth);
+	void HandleNetworkDeath();
+
 protected:
 	virtual void BeginPlay() override;
 

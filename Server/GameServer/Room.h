@@ -1,6 +1,7 @@
 #pragma once
 #include "JobQueue.h"
 #include <unordered_set>
+#include <vector>
 
 class Room : public JobQueue
 {
@@ -15,6 +16,7 @@ public:
 	bool HandleEnterPlayer(PlayerRef player);
 	bool HandleLeavePlayer(PlayerRef player);
 	void HandleMove(PlayerRef player, Protocol::C_MOVE pkt);
+	void HandleHitZombie(PlayerRef player, Protocol::C_HIT_ZOMBIE pkt);
 	void HandleEquipWeapon(PlayerRef player, Protocol::C_EQUIP_WEAPON pkt);
 	void HandleFire(PlayerRef player, Protocol::C_FIRE pkt);
 	void HandleEnterTruck(PlayerRef player, Protocol::C_ENTER_TRUCK pkt);
@@ -28,6 +30,10 @@ public:
 	RoomRef GetRoomRef();
 
 private:
+	void SpawnInitialZombies();
+	void UpdateZombies();
+	PlayerRef FindNearestPlayer(const Protocol::PosInfo& origin, float maxRange) const;
+	void BroadcastZombieMove(const MonsterRef& monster);
 	bool AddObject(ObjectRef object);
 	bool RemoveObject(uint64 objectId);
 
@@ -41,6 +47,12 @@ private:
 		//[신우] cargo 좌석은 1인 좌석이 아니라 여러 명이 동시에 탈 수 있어서 set으로 관리한다.
 		unordered_set<uint64> cargoPlayerIds;
 		uint64 turretPlayerId = 0;
+	};
+
+	struct PendingZombieDespawn
+	{
+		uint64 zombieId = 0;
+		float remainingTime = 0.0f;
 	};
 
 	TruckState* FindTruckState(uint64 truckId);
@@ -58,6 +70,8 @@ private:
 	unordered_map<uint64, ObjectRef> _objects;
 	unordered_map<uint64, TruckState> _trucks;
 	unordered_map<uint64, bool> _doors;
+	vector<PendingZombieDespawn> _pendingZombieDespawns;
+	bool _hasSpawnedInitialZombies = false;
 };
 
 extern RoomRef GRoom;

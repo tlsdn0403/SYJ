@@ -108,6 +108,46 @@ void AStage2TileManager::ClearGeneratedTiles()
 	ResetGenerationState();
 }
 
+bool AStage2TileManager::HasInitializedTiles() const
+{
+	return GetInitializedTileCount() > 0;
+}
+
+bool AStage2TileManager::TryGetInitialPlayerSpawnTransform(FTransform& OutTransform) const
+{
+	for (const FStage2LoadedTile& LoadedTile : ActiveTiles)
+	{
+		if (!LoadedTile.bInitialized || !LoadedTile.TileMarker)
+		{
+			continue;
+		}
+
+		if (LoadedTile.TileType == EStage2TileType::Start)
+		{
+			OutTransform = LoadedTile.TileMarker->GetEntryTransform();
+			return true;
+		}
+	}
+
+	for (const FStage2LoadedTile& LoadedTile : ActiveTiles)
+	{
+		if (!LoadedTile.bInitialized || !LoadedTile.TileMarker)
+		{
+			continue;
+		}
+
+		OutTransform = LoadedTile.TileMarker->GetEntryTransform();
+		return true;
+	}
+
+	return false;
+}
+
+bool AStage2TileManager::HasCompletedInitialGeneration() const
+{
+	return GetInitializedTileCount() >= InitialTilesToSpawn;
+}
+
 bool AStage2TileManager::TrySpawnTileLevel(const TSoftObjectPtr<UWorld>& TileLevel, EStage2TileType TileType, const FTransform& SpawnTransform)
 {
 	if (TileLevel.IsNull())

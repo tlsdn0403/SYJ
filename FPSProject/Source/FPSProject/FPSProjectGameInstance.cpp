@@ -19,6 +19,14 @@
 #include "EngineUtils.h"
 #include "Zombie/BaseZombie.h"
 #include "Zombie/ZombieSpawner.h"
+#include "Stage2/Stage2TileManager.h"
+#include "Components/CapsuleComponent.h"
+#include "Components/BoxComponent.h"
+
+namespace
+{
+constexpr int32 Stage2RequiredPlayerCount = 3;
+}
 
 void UFPSProjectGameInstance::ConnectToGameServer(const FString& IPAddress)
 {
@@ -177,6 +185,450 @@ bool UFPSProjectGameInstance::IsConnectedToGameServer() const
 bool UFPSProjectGameInstance::ShouldUseLocalInteractionFallback() const
 {
 	return !IsConnectedToGameServer();
+}
+
+bool UFPSProjectGameInstance::ShouldDelayStage2Spawn() const
+{
+	if (UWorld* World = GetWorld())
+	{
+		for (TActorIterator<AStage2TileManager> It(World); It; ++It)
+		{
+			return !It->HasInitializedTiles();
+		}
+	}
+
+	return false;
+}
+
+bool UFPSProjectGameInstance::ShouldDelayEnterGameRequest() const
+{
+	if (UWorld* World = GetWorld())
+	{
+		for (TActorIterator<AStage2TileManager> It(World); It; ++It)
+		{
+			return !It->HasCompletedInitialGeneration();
+		}
+	}
+
+	return false;
+}
+
+bool UFPSProjectGameInstance::AreStage2ActorsReadyToReveal() const
+{
+	return Players.Num() >= Stage2RequiredPlayerCount;
+}
+
+void UFPSProjectGameInstance::RequestEnterGameWhenReady()
+{
+	bPendingEnterGameRequest = true;
+	bEnterGamePacketSent = false;
+}
+
+bool UFPSProjectGameInstance::TrySendEnterGamePacket()
+{
+	if (!bPendingEnterGameRequest || bEnterGamePacketSent)
+	{
+		return false;
+	}
+
+	if (Socket == nullptr || GameServerSession == nullptr)
+	{
+		return false;
+	}
+
+	if (ShouldDelayEnterGameRequest())
+	{
+		return false;
+	}
+
+	Protocol::C_ENTER_GAME EnterGamePkt;
+	EnterGamePkt.set_playerindex(0);
+	SendBufferRef SendBuffer = ClientPacketHandler::MakeSendBuffer(EnterGamePkt);
+	SendPacket(SendBuffer);
+
+	bEnterGamePacketSent = true;
+	bPendingEnterGameRequest = false;
+	UE_LOG(LogTemp, Warning, TEXT("[Network] Stage2 ready check passed. C_ENTER_GAME 전송 완료!"));
+	return true;
+}
+
+void UFPSProjectGameInstance::SetStage2WorldActorsHidden(bool bHidden)
+{
+	CacheTruckActors();
+
+	for (const TPair<uint64, ATruck*>& TruckPair : Trucks)
+	{
+		ATruck* Truck = TruckPair.Value;
+		if (!IsValid(Truck))
+		{
+			continue;
+		}
+
+		Truck->SetActorHiddenInGame(bHidden);
+		Truck->SetActorEnableCollision(!bHidden);
+
+		if (USkeletalMeshComponent* TruckMesh = Truck->GetMesh())
+		{
+			TruckMesh->SetHiddenInGame(bHidden, true);
+			TruckMesh->SetVisibility(!bHidden, true);
+			TruckMesh->SetSimulatePhysics(false);
+		}
+	}
+
+	for (const TPair<uint64, ABaseZombie*>& ZombiePair : Zombies)
+	{
+		ABaseZombie* Zombie = ZombiePair.Value;
+		if (!IsValid(Zombie))
+		{
+			continue;
+		}
+
+		Zombie->SetActorHiddenInGame(bHidden);
+		Zombie->SetActorEnableCollision(!bHidden);
+	}
+
+	bStage2WorldActorsHidden = bHidden;
+}
+
+bool UFPSProjectGameInstance::TrySnapActorToStage2Floor(AActor* Actor, FVector& InOutLocation, const FVector* PreferredAnchor) const
+{
+	UWorld* World = GetWorld();
+	if (World == nullptr || Actor == nullptr)
+	{
+		return false;
+	}
+
+	FVector TraceAnchor = InOutLocation;
+	if (PreferredAnchor != nullptr)
+	{
+		TraceAnchor = *PreferredAnchor;
+	}
+
+	const float TraceStartZ = FMath::Max(InOutLocation.Z, TraceAnchor.Z) + 2000.0f;
+	const FVector TraceStart(InOutLocation.X, InOutLocation.Y, TraceStartZ);
+	const FVector TraceEnd(InOutLocation.X, InOutLocation.Y, TraceStartZ - 6000.0f);
+
+	FHitResult FloorHit;
+	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(Stage2FloorTrace), false, Actor);
+	if (!World->LineTraceSingleByChannel(FloorHit, TraceStart, TraceEnd, ECC_Visibility, QueryParams))
+	{
+		return false;
+	}
+
+	float VerticalOffset = 5.0f;
+	if (const AFPSBaseCharacter* Character = Cast<AFPSBaseCharacter>(Actor))
+	{
+		VerticalOffset += Character->GetCapsuleComponent()
+			? Character->GetCapsuleComponent()->GetScaledCapsuleHalfHeight()
+			: 88.0f;
+	}
+	else if (const ABaseZombie* Zombie = Cast<ABaseZombie>(Actor))
+	{
+		VerticalOffset += Zombie->GetCapsuleComponent()
+			? Zombie->GetCapsuleComponent()->GetScaledCapsuleHalfHeight()
+			: 88.0f;
+	}
+
+	InOutLocation = FloorHit.Location + FVector(0.0f, 0.0f, VerticalOffset);
+	return true;
+}
+
+bool UFPSProjectGameInstance::IsStage2SpawnLocationBlockedByTruck(const FVector& Location, const AFPSBaseCharacter* LocalPlayer) const
+{
+	const UWorld* World = GetWorld();
+	if (World == nullptr || LocalPlayer == nullptr)
+	{
+		return false;
+	}
+
+	const UCapsuleComponent* Capsule = LocalPlayer->GetCapsuleComponent();
+	const float PlayerRadius = Capsule ? Capsule->GetScaledCapsuleRadius() : 42.0f;
+	const float PlayerHalfHeight = Capsule ? Capsule->GetScaledCapsuleHalfHeight() : 88.0f;
+	const float HorizontalPadding = PlayerRadius + 140.0f;
+	const float VerticalPadding = PlayerHalfHeight + 80.0f;
+
+	for (TActorIterator<ATruck> It(World); It; ++It)
+	{
+		const ATruck* Truck = *It;
+		if (!IsValid(Truck) || Truck->IsHidden())
+		{
+			continue;
+		}
+
+		const FBox TruckBounds = Truck->GetComponentsBoundingBox(true).ExpandBy(FVector(HorizontalPadding, HorizontalPadding, VerticalPadding));
+		if (TruckBounds.IsInside(Location))
+		{
+			return true;
+		}
+
+		if (const UBoxComponent* CargoBounds = Truck->GetCargoMoveBoundsComponent())
+		{
+			const FVector CargoOrigin = CargoBounds->Bounds.Origin;
+			const FVector CargoExtent = CargoBounds->Bounds.BoxExtent + FVector(HorizontalPadding, HorizontalPadding, VerticalPadding);
+			const FBox CargoBox(CargoOrigin - CargoExtent, CargoOrigin + CargoExtent);
+			if (CargoBox.IsInside(Location))
+			{
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
+bool UFPSProjectGameInstance::TryFindSafeStage2PlayerSpawn(AFPSBaseCharacter* LocalPlayer, FVector& InOutLocation, const FVector& SpawnAnchor)
+{
+	if (LocalPlayer == nullptr)
+	{
+		return false;
+	}
+
+	const TArray<FVector> CandidateOffsets =
+	{
+		FVector::ZeroVector,
+		FVector(350.0f, 0.0f, 0.0f),
+		FVector(-350.0f, 0.0f, 0.0f),
+		FVector(0.0f, 350.0f, 0.0f),
+		FVector(0.0f, -350.0f, 0.0f),
+		FVector(500.0f, 500.0f, 0.0f),
+		FVector(-500.0f, 500.0f, 0.0f),
+		FVector(500.0f, -500.0f, 0.0f),
+		FVector(-500.0f, -500.0f, 0.0f),
+		FVector(700.0f, 0.0f, 0.0f),
+		FVector(0.0f, 700.0f, 0.0f),
+		FVector(-700.0f, 0.0f, 0.0f),
+		FVector(0.0f, -700.0f, 0.0f),
+		FVector(1100.0f, 0.0f, 0.0f),
+		FVector(-1100.0f, 0.0f, 0.0f),
+		FVector(0.0f, 1100.0f, 0.0f),
+		FVector(0.0f, -1100.0f, 0.0f),
+		FVector(1400.0f, 700.0f, 0.0f),
+		FVector(-1400.0f, 700.0f, 0.0f),
+		FVector(1400.0f, -700.0f, 0.0f),
+		FVector(-1400.0f, -700.0f, 0.0f)
+	};
+
+	for (const FVector& CandidateOffset : CandidateOffsets)
+	{
+		FVector CandidateLocation = SpawnAnchor + CandidateOffset;
+		if (!TrySnapActorToStage2Floor(LocalPlayer, CandidateLocation, &SpawnAnchor))
+		{
+			continue;
+		}
+
+		if (!IsStage2SpawnLocationBlockedByTruck(CandidateLocation, LocalPlayer))
+		{
+			InOutLocation = CandidateLocation;
+			return true;
+		}
+	}
+
+	return false;
+}
+
+void UFPSProjectGameInstance::DeferLocalSpawn(const Protocol::ObjectInfo& ObjectInfo, AFPSBaseCharacter* LocalPlayer)
+{
+	PendingLocalSpawnInfo.CopyFrom(ObjectInfo);
+	bHasPendingLocalSpawnInfo = true;
+
+	if (LocalPlayer == nullptr)
+	{
+		return;
+	}
+
+	LocalPlayer->SetPlayerInfo(ObjectInfo.pos_info());
+
+	if (UCharacterMovementComponent* MoveComp = LocalPlayer->GetCharacterMovement())
+	{
+		MoveComp->StopMovementImmediately();
+		MoveComp->DisableMovement();
+		MoveComp->SetMovementMode(MOVE_None);
+	}
+
+	LocalPlayer->SetActorEnableCollision(false);
+}
+
+void UFPSProjectGameInstance::ApplyResolvedSpawn(AFPSBaseCharacter* LocalPlayer, const FVector& SpawnLocation)
+{
+	if (LocalPlayer == nullptr || !bHasPendingLocalSpawnInfo)
+	{
+		return;
+	}
+
+	const Protocol::ObjectInfo& SpawnInfo = PendingLocalSpawnInfo;
+	const uint64 ObjectId = SpawnInfo.object_id();
+
+	LocalPlayer->SetPlayerInfo(SpawnInfo.pos_info());
+	LocalPlayer->SetActorLocation(SpawnLocation, false, nullptr, ETeleportType::TeleportPhysics);
+	LocalPlayer->SetActorHiddenInGame(false);
+
+	if (UCharacterMovementComponent* MoveComp = LocalPlayer->GetCharacterMovement())
+	{
+		MoveComp->SetMovementMode(MOVE_Walking);
+	}
+
+	LocalPlayer->SetActorEnableCollision(true);
+	Players.Add(ObjectId, LocalPlayer);
+	RetryPendingWeapon(ObjectId);
+	bHasPendingLocalSpawnInfo = false;
+	PendingLocalSpawnInfo.Clear();
+}
+
+bool UFPSProjectGameInstance::TryResolveDeferredLocalSpawn()
+{
+	if (!bHasPendingLocalSpawnInfo)
+	{
+		return false;
+	}
+
+	UWorld* World = GetWorld();
+	if (World == nullptr)
+	{
+		return false;
+	}
+
+	APlayerController* PlayerController = UGameplayStatics::GetPlayerController(this, 0);
+	AFPSBaseCharacter* LocalPlayer = PlayerController ? Cast<AFPSBaseCharacter>(PlayerController->GetPawn()) : nullptr;
+	if (LocalPlayer == nullptr)
+	{
+		return false;
+	}
+
+	AStage2TileManager* Stage2Manager = nullptr;
+	for (TActorIterator<AStage2TileManager> It(World); It; ++It)
+	{
+		Stage2Manager = *It;
+		break;
+	}
+
+	if (Stage2Manager && !Stage2Manager->HasInitializedTiles())
+	{
+		return false;
+	}
+
+	const Protocol::ObjectInfo& SpawnInfo = PendingLocalSpawnInfo;
+	FVector ResolvedSpawnLocation(SpawnInfo.pos_info().x(), SpawnInfo.pos_info().y(), SpawnInfo.pos_info().z());
+	FTransform InitialTileSpawnTransform;
+	const bool bHasTileSpawnTransform =
+		Stage2Manager && Stage2Manager->TryGetInitialPlayerSpawnTransform(InitialTileSpawnTransform);
+
+	const FVector TraceAnchor = bHasTileSpawnTransform ? InitialTileSpawnTransform.GetLocation() : ResolvedSpawnLocation;
+	if (!TryFindSafeStage2PlayerSpawn(LocalPlayer, ResolvedSpawnLocation, TraceAnchor))
+	{
+		if (!TrySnapActorToStage2Floor(LocalPlayer, ResolvedSpawnLocation, &TraceAnchor) && bHasTileSpawnTransform)
+		{
+			ResolvedSpawnLocation = InitialTileSpawnTransform.GetLocation() + FVector(0.0f, 0.0f, 120.0f);
+		}
+	}
+
+	ApplyResolvedSpawn(LocalPlayer, ResolvedSpawnLocation);
+	return true;
+}
+
+bool UFPSProjectGameInstance::TryResolveDeferredStage2WorldActors()
+{
+	UWorld* World = GetWorld();
+	if (World == nullptr)
+	{
+		return false;
+	}
+
+	AStage2TileManager* Stage2Manager = nullptr;
+	for (TActorIterator<AStage2TileManager> It(World); It; ++It)
+	{
+		Stage2Manager = *It;
+		break;
+	}
+
+	if (Stage2Manager == nullptr)
+	{
+		return false;
+	}
+
+	if (!AreStage2ActorsReadyToReveal())
+	{
+		if (!bStage2WorldActorsHidden)
+		{
+			SetStage2WorldActorsHidden(true);
+		}
+
+		return false;
+	}
+
+	if (!Stage2Manager->HasInitializedTiles())
+	{
+		return false;
+	}
+
+	if (bStage2WorldActorsHidden)
+	{
+		SetStage2WorldActorsHidden(false);
+	}
+
+	if (bHasResolvedInitialStage2WorldActors)
+	{
+		return false;
+	}
+
+	FTransform InitialTileSpawnTransform;
+	const bool bHasTileSpawnTransform = Stage2Manager->TryGetInitialPlayerSpawnTransform(InitialTileSpawnTransform);
+	const FVector TileAnchor = bHasTileSpawnTransform
+		? InitialTileSpawnTransform.GetLocation()
+		: FVector::ZeroVector;
+
+	for (const TPair<uint64, ABaseZombie*>& ZombiePair : Zombies)
+	{
+		ABaseZombie* Zombie = ZombiePair.Value;
+		if (!IsValid(Zombie))
+		{
+			continue;
+		}
+
+		FVector ZombieLocation = Zombie->GetActorLocation();
+		if (TrySnapActorToStage2Floor(Zombie, ZombieLocation, bHasTileSpawnTransform ? &TileAnchor : nullptr))
+		{
+			Zombie->SetActorLocationAndRotation(
+				ZombieLocation,
+				Zombie->GetActorRotation(),
+				false,
+				nullptr,
+				ETeleportType::TeleportPhysics);
+		}
+	}
+
+	CacheTruckActors();
+	for (const TPair<uint64, ATruck*>& TruckPair : Trucks)
+	{
+		ATruck* Truck = TruckPair.Value;
+		if (!IsValid(Truck))
+		{
+			continue;
+		}
+
+		FVector TruckLocation = Truck->GetActorLocation();
+		if (TrySnapActorToStage2Floor(Truck, TruckLocation, bHasTileSpawnTransform ? &TileAnchor : nullptr))
+		{
+			Truck->SetActorLocationAndRotation(
+				TruckLocation,
+				Truck->GetActorRotation(),
+				false,
+				nullptr,
+				ETeleportType::TeleportPhysics);
+
+			if (USkeletalMeshComponent* TruckMesh = Truck->GetMesh())
+			{
+				TruckMesh->SetWorldLocationAndRotation(
+					TruckLocation,
+					Truck->GetActorRotation(),
+					false,
+					nullptr,
+					ETeleportType::TeleportPhysics);
+			}
+		}
+	}
+
+	bHasResolvedInitialStage2WorldActors = true;
+	return true;
 }
 
 void UFPSProjectGameInstance::RecordStage1CargoItems(const TArray<EItemType>& Items)
@@ -349,6 +801,25 @@ void UFPSProjectGameInstance::HandleSpawn(const Protocol::ObjectInfo& ObjectInfo
 			{
 				AIController->Destroy();
 			}
+
+			if (!ShouldDelayStage2Spawn())
+			{
+				TrySnapActorToStage2Floor(SpawnedZombie, ZombieLocation);
+				SpawnedZombie->SetActorLocationAndRotation(
+					ZombieLocation,
+					ZombieRotation,
+					false,
+					nullptr,
+					ETeleportType::TeleportPhysics);
+			}
+
+			if (!AreStage2ActorsReadyToReveal())
+			{
+				SpawnedZombie->SetActorHiddenInGame(true);
+				SpawnedZombie->SetActorEnableCollision(false);
+				bStage2WorldActorsHidden = true;
+			}
+
 			Zombies.Add(ObjectId, SpawnedZombie);
 		}
 		return;
@@ -369,9 +840,22 @@ void UFPSProjectGameInstance::HandleSpawn(const Protocol::ObjectInfo& ObjectInfo
 			MyPlayer = Cast<AFPSBaseCharacter>(PC->GetPawn());
 			if (MyPlayer)
 			{
-				MyPlayer->SetPlayerInfo(ObjectInfo.pos_info()); // 내 고유 ID와 위치 정보 세팅
-				MyPlayer->SetActorLocation(SpawnLocation);
-				Players.Add(ObjectId, MyPlayer);               // 맵에 등록
+				if (ShouldDelayStage2Spawn())
+				{
+					bHasResolvedInitialStage2WorldActors = false;
+					bStage2WorldActorsHidden = false;
+					DeferLocalSpawn(ObjectInfo, MyPlayer);
+					UE_LOG(LogTemp, Warning,
+						TEXT("[Stage2Spawn] Deferred local spawn until streaming tiles are initialized. ObjectId=%llu"),
+						ObjectId);
+				}
+				else
+				{
+					PendingLocalSpawnInfo.CopyFrom(ObjectInfo);
+					bHasPendingLocalSpawnInfo = true;
+					ApplyResolvedSpawn(MyPlayer, SpawnLocation);
+				}
+
 				UE_LOG(LogTemp, Warning,
 					TEXT("[TruckDebug] SpawnMine ObjectId=%llu MyPlayer=%s Local=%d Pawn=%s"),
 					ObjectId,
@@ -379,7 +863,6 @@ void UFPSProjectGameInstance::HandleSpawn(const Protocol::ObjectInfo& ObjectInfo
 					MyPlayer->IsLocallyControlled() ? 1 : 0,
 					*GetNameSafe(PC->GetPawn()));
 				UE_LOG(LogTemp, Warning, TEXT("[ZombieSync] My player spawned. PlayerId=%llu"), ObjectId);
-				RetryPendingWeapon(ObjectId);
 			}
 		}
 	}
@@ -481,7 +964,8 @@ void UFPSProjectGameInstance::HandleMove(const Protocol::S_MOVE& MovePkt)
 
 		const FVector ZombieLocation(MovePkt.info().x(), MovePkt.info().y(), MovePkt.info().z());
 		const FRotator ZombieRotation(0.0f, MovePkt.info().yaw(), 0.0f);
-		Zombie->SetActorLocationAndRotation(ZombieLocation, ZombieRotation, false, nullptr, ETeleportType::TeleportPhysics);
+		const bool bZombieIsMoving = MovePkt.info().state() != Protocol::MOVE_STATE_IDLE;
+		Zombie->SetNetworkMoveTarget(ZombieLocation, ZombieRotation, bZombieIsMoving);
 		return;
 	}
 
@@ -992,7 +1476,7 @@ void UFPSProjectGameInstance::HandleFire(const Protocol::S_FIRE& pkt)
 			Shooter->CurrentMountedWeapon->SetWeaponUser(Shooter);
 			Shooter->CurrentMountedWeapon->Fire();
 		}
-		else if (Shooter && !Shooter->IsLocallyControlled() && Shooter->GetCurrentWeapon())
+		else if (Shooter && !Shooter->IsLocallyControlled() && IsValid(Shooter->GetCurrentWeapon()))
 		{
 			Shooter->GetCurrentWeapon()->RemoteFire();
 		}
@@ -1018,6 +1502,9 @@ void UFPSProjectGameInstance::Shutdown()
 
 void UFPSProjectGameInstance::Tick(float DeltaTime)
 {
+	TrySendEnterGamePacket();
+	TryResolveDeferredLocalSpawn();
+	TryResolveDeferredStage2WorldActors();
 	HandleRecvPackets();
 }
 

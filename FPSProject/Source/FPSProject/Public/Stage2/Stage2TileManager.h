@@ -59,6 +59,15 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Stage2")
 	void ClearGeneratedTiles();
 
+	UFUNCTION(BlueprintPure, Category = "Stage2")
+	bool HasInitializedTiles() const;
+
+	UFUNCTION(BlueprintPure, Category = "Stage2")
+	bool TryGetInitialPlayerSpawnTransform(FTransform& OutTransform) const;
+
+	UFUNCTION(BlueprintPure, Category = "Stage2")
+	bool HasCompletedInitialGeneration() const;
+
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stage2|Tiles")
 	TArray<TSoftObjectPtr<UWorld>> StartTileLevels;

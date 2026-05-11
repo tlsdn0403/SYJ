@@ -92,20 +92,23 @@ void AFPSBaseCharacter::BeginPlay()
 
 	if (IsLocallyControlled())
 	{
-		// [복구 1] 맵 로딩 후 0.2초 대기했다가 서버에 C_ENTER_GAME 보내기!
-		FTimerHandle TimerHandle;
-		GetWorld()->GetTimerManager().SetTimer(TimerHandle, FTimerDelegate::CreateLambda([this]()
-			{
-				Protocol::C_ENTER_GAME EnterGamePkt;
-				EnterGamePkt.set_playerindex(0); // 임시로 0번
+		if (auto* GameInstance = Cast<UFPSProjectGameInstance>(GetGameInstance()))
+		{
+			GameInstance->RequestEnterGameWhenReady();
 
-				if (auto* GameInstance = Cast<UFPSProjectGameInstance>(GetGameInstance()))
+			if (GameInstance->ShouldDelayEnterGameRequest())
+			{
+				if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
 				{
-					SendBufferRef SendBuffer = ClientPacketHandler::MakeSendBuffer(EnterGamePkt);
-					GameInstance->SendPacket(SendBuffer);
-					UE_LOG(LogTemp, Warning, TEXT("[Network] 0.2초 대기 후 C_ENTER_GAME 안전하게 전송 완료!"));
+					MoveComp->StopMovementImmediately();
+					MoveComp->DisableMovement();
+					MoveComp->SetMovementMode(MOVE_None);
 				}
-			}), 0.2f, false);
+
+				SetActorEnableCollision(false);
+				SetActorHiddenInGame(true);
+			}
+		}
 
 		// 마우스 커서 숨기기
 		if (PC)
@@ -584,8 +587,11 @@ void AFPSBaseCharacter::ExitMountedWeapon(bool bReturnToCargo)
 
 	if (bReturnToCargo)
 	{
-		CurrentWeapon->SetWeaponHidden(false);
-		CurrentWeapon->SetWeaponCollisionEnabled(true);
+		if (IsValid(CurrentWeapon))
+		{
+			CurrentWeapon->SetWeaponHidden(false);
+			CurrentWeapon->SetWeaponCollisionEnabled(true);
+		}
 	}
 	BeginTruckCargoWalk(Truck);
 	bIsOnTruckCargo = true;
@@ -1059,7 +1065,7 @@ void AFPSBaseCharacter::SetTruckMeshMovementIgnored(ATruck* Truck, bool bShouldI
 
 void AFPSBaseCharacter::SetHeldWeaponVehicleVisibility(bool bShouldHide)
 {
-	if (!CurrentWeapon)
+	if (!IsValid(CurrentWeapon))
 	{
 		return;
 	}
@@ -1195,8 +1201,9 @@ void AFPSBaseCharacter::EquipWeapon(AWeaponBase* Weapon)
 
 void AFPSBaseCharacter::DestroyEquippedWeapon()
 {
-	if (CurrentWeapon == nullptr)
+	if (!IsValid(CurrentWeapon))
 	{
+		CurrentWeapon = nullptr;
 		return;
 	}
 

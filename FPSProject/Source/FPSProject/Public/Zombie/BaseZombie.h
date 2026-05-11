@@ -6,6 +6,7 @@
 
 class UHealthComponent;
 class UAnimMontage;
+class UAnimInstance;
 class UParticleSystem;
 class UNiagaraSystem;
 class AActor;
@@ -60,6 +61,7 @@ public:
 	void HandleNetworkAttack(AActor* TargetActor);
 	void HandleNetworkHit(float NewHealth, float MaxHealth);
 	void HandleNetworkDeath();
+	void SetNetworkMoveTarget(const FVector& TargetLocation, const FRotator& TargetRotation, bool bInIsMoving);
 
 protected:
 	virtual void BeginPlay() override;
@@ -83,6 +85,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zombie|Attack")
 	UAnimMontage* AttackMontage;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Zombie|Animation", meta = (AllowPrivateAccess = "true"))
+	TSubclassOf<UAnimInstance> ZombieAnimClass;
 
 	uint64 NetworkObjectId = 0;
 
@@ -161,7 +166,20 @@ private:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zombie|Movement", meta = (AllowPrivateAccess = "true"))
 	float BrakingDecelerationWalking = 700.0f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zombie|Movement", meta = (AllowPrivateAccess = "true"))
+	float NetworkMoveInterpSpeed = 10.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zombie|Movement", meta = (AllowPrivateAccess = "true"))
+	float NetworkRotationInterpSpeed = 15.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zombie|Movement", meta = (AllowPrivateAccess = "true"))
+	float NetworkMoveSnapDistance = 200.0f;
+
 	float AnimationRateScale = 1.0f;
+	bool bHasNetworkMoveTarget = false;
+	bool bNetworkTargetIsMoving = false;
+	FVector NetworkTargetLocation = FVector::ZeroVector;
+	FRotator NetworkTargetRotation = FRotator::ZeroRotator;
 
 	UFUNCTION()
 	void OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);

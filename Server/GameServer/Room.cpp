@@ -129,10 +129,10 @@ bool Room::EnterRoom(ObjectRef object, bool randPos /*= true*/)
 {
 	bool success = AddObject(object);
 
-	// 랜덤 위치
+	// 플레이어 위치
 	if (randPos)
 	{
-		object->posInfo->set_x(Utils::GetRandom(0.f, 500.f));
+		object->posInfo->set_x(Utils::GetRandom(100.f, 500.f));
 		object->posInfo->set_y(Utils::GetRandom(0.f, 500.f));
 		object->posInfo->set_z(100.f);
 		object->posInfo->set_yaw(Utils::GetRandom(0.f, 100.f));
@@ -225,12 +225,34 @@ bool Room::LeaveRoom(ObjectRef object)
 
 bool Room::HandleEnterPlayer(PlayerRef player)
 {
-	SpawnInitialZombies();
-
 	bool success = EnterRoom(player, true);
 
 	if (success == false)
 		return false;
+
+	if (!_hasSpawnedInitialZombies && GetConnectedPlayerCount() >= REQUIRED_STAGE2_PLAYER_COUNT)
+	{
+		SpawnInitialZombies();
+
+		Protocol::S_SPAWN zombieSpawnPkt;
+		for (const auto& item : _objects)
+		{
+			MonsterRef monster = dynamic_pointer_cast<Monster>(item.second);
+			if (monster == nullptr)
+			{
+				continue;
+			}
+
+			Protocol::ObjectInfo* zombieInfo = zombieSpawnPkt.add_players();
+			zombieInfo->CopyFrom(*monster->objectInfo);
+		}
+
+		if (zombieSpawnPkt.players_size() > 0)
+		{
+			SendBufferRef zombieSpawnBuffer = ServerPacketHandler::MakeSendBuffer(zombieSpawnPkt);
+			Broadcast(zombieSpawnBuffer);
+		}
+	}
 
 	Protocol::S_SPAWN_ITEM spawnItemPkt;
 	Protocol::ObjectInfo* itemInfo = spawnItemPkt.add_items();
@@ -239,6 +261,7 @@ bool Room::HandleEnterPlayer(PlayerRef player)
 	itemInfo->set_object_type(Protocol::OBJECT_TYPE_ITEM);
 	itemInfo->set_weapon_type(Protocol::WEAPON_TYPE_RIFLE);
 
+	// 아이템 위치
 	Protocol::PosInfo* pos = itemInfo->mutable_pos_info();
 	pos->set_x(-860.0f);
 	pos->set_y(-180.0f);
@@ -290,6 +313,93 @@ bool Room::HandleLeavePlayer(PlayerRef player)
 	return true;
 }
 
+void Room::HandleReadyPlayer(GameSessionRef session)
+{
+	if (session == nullptr || session->player.load() != nullptr)
+	{
+		return;
+	}
+
+	vector<weak_ptr<GameSession>> CleanedPendingSessions;
+	CleanedPendingSessions.reserve(_pendingReadySessions.size() + 1);
+
+	bool bAlreadyQueued = false;
+	size_t ValidReadyCount = 0;
+	for (const weak_ptr<GameSession>& PendingSessionWeak : _pendingReadySessions)
+	{
+		GameSessionRef PendingSession = PendingSessionWeak.lock();
+		if (PendingSession == nullptr || PendingSession->player.load() != nullptr)
+		{
+			continue;
+		}
+
+		if (PendingSession.get() == session.get())
+		{
+			bAlreadyQueued = true;
+		}
+
+		CleanedPendingSessions.push_back(PendingSession);
+		++ValidReadyCount;
+	}
+
+	if (!bAlreadyQueued)
+	{
+		CleanedPendingSessions.push_back(session);
+		++ValidReadyCount;
+	}
+
+	_pendingReadySessions.swap(CleanedPendingSessions);
+
+	if (ValidReadyCount < REQUIRED_STAGE2_PLAYER_COUNT)
+	{
+		return;
+	}
+
+	vector<GameSessionRef> SessionsToEnter;
+	vector<weak_ptr<GameSession>> RemainingSessions;
+	SessionsToEnter.reserve(REQUIRED_STAGE2_PLAYER_COUNT);
+
+	for (const weak_ptr<GameSession>& PendingSessionWeak : _pendingReadySessions)
+	{
+		GameSessionRef PendingSession = PendingSessionWeak.lock();
+		if (PendingSession == nullptr || PendingSession->player.load() != nullptr)
+		{
+			continue;
+		}
+
+		if (SessionsToEnter.size() < REQUIRED_STAGE2_PLAYER_COUNT)
+		{
+			SessionsToEnter.push_back(PendingSession);
+		}
+		else
+		{
+			RemainingSessions.push_back(PendingSession);
+		}
+	}
+
+	_pendingReadySessions.swap(RemainingSessions);
+
+	for (const GameSessionRef& ReadySession : SessionsToEnter)
+	{
+		PlayerRef player = ObjectUtils::CreatePlayer(ReadySession);
+		HandleEnterPlayer(player);
+	}
+}
+
+size_t Room::GetConnectedPlayerCount() const
+{
+	size_t PlayerCount = 0;
+	for (const auto& item : _objects)
+	{
+		if (item.second->IsPlayer())
+		{
+			++PlayerCount;
+		}
+	}
+
+	return PlayerCount;
+}
+
 namespace
 {
 	constexpr uint64 ZOMBIE_OBJECT_ID_START = 1000000;
@@ -311,9 +421,10 @@ namespace
 
 	constexpr ZombieSpawnData INITIAL_ZOMBIE_SPAWNS[] =
 	{
-		{ ZOMBIE_OBJECT_ID_START + 0, 150.0f, 150.0f, 100.0f,   0.0f },
-		{ ZOMBIE_OBJECT_ID_START + 1, 320.0f, 180.0f, 100.0f,  45.0f },
-		{ ZOMBIE_OBJECT_ID_START + 2, 460.0f, 260.0f, 100.0f, 180.0f },
+		{ ZOMBIE_OBJECT_ID_START + 0, 2269.0f, -10279.0f, 2209.0f, 0.0f },
+		{ ZOMBIE_OBJECT_ID_START + 1, 2421.0f, -10279.0f, 2209.0f, 0.0f },
+		{ ZOMBIE_OBJECT_ID_START + 2, 2618.0f, -10279.0f, 2209.0f, 0.0f },
+		{ ZOMBIE_OBJECT_ID_START + 3, -30.0f, -8710.0f, 88.0f, 90.0f },
 	};
 }
 

@@ -15,6 +15,37 @@
 #include "NiagaraSystem.h"
 #include "Kismet/GameplayStatics.h"
 #include "Zombie/ZombieFallZone.h"
+#include "Animation/AnimInstance.h"
+#include "UObject/UnrealType.h"
+
+namespace
+{
+void SetAnimFloatIfPresent(UAnimInstance* AnimInstance, const TCHAR* PropertyName, float Value)
+{
+	if (AnimInstance == nullptr)
+	{
+		return;
+	}
+
+	if (FFloatProperty* FloatProperty = FindFProperty<FFloatProperty>(AnimInstance->GetClass(), PropertyName))
+	{
+		FloatProperty->SetPropertyValue_InContainer(AnimInstance, Value);
+	}
+}
+
+void SetAnimBoolIfPresent(UAnimInstance* AnimInstance, const TCHAR* PropertyName, bool bValue)
+{
+	if (AnimInstance == nullptr)
+	{
+		return;
+	}
+
+	if (FBoolProperty* BoolProperty = FindFProperty<FBoolProperty>(AnimInstance->GetClass(), PropertyName))
+	{
+		BoolProperty->SetPropertyValue_InContainer(AnimInstance, bValue);
+	}
+}
+}
 
 ABaseZombie::ABaseZombie()
 {
@@ -63,6 +94,12 @@ void ABaseZombie::BeginPlay()
 	if (ZombieMesh)
 	{
 		ZombieMesh->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
+
+		if (!ZombieMesh->GetAnimClass() && ZombieAnimClass)
+		{
+			ZombieMesh->SetAnimationMode(EAnimationMode::AnimationBlueprint);
+			ZombieMesh->SetAnimInstanceClass(ZombieAnimClass);
+		}
 	}
 
 	if (HealthComponent)
@@ -77,7 +114,6 @@ void ABaseZombie::BeginPlay()
 void ABaseZombie::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
 }
 
 void ABaseZombie::Attack()
@@ -212,6 +248,48 @@ void ABaseZombie::HandleNetworkDeath()
 	}
 
 	SetLifeSpan(5.0f);
+}
+
+void ABaseZombie::SetNetworkMoveTarget(const FVector& TargetLocation, const FRotator& TargetRotation, bool bInIsMoving)
+{
+	const FVector PreviousLocation = GetActorLocation();
+
+	NetworkTargetLocation = TargetLocation;
+	NetworkTargetRotation = TargetRotation;
+	bNetworkTargetIsMoving = bInIsMoving;
+	bHasNetworkMoveTarget = false;
+
+	SetActorLocationAndRotation(TargetLocation, TargetRotation, false, nullptr, ETeleportType::TeleportPhysics);
+
+	if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
+	{
+		float AnimSpeed = 0.0f;
+
+		if (!bInIsMoving)
+		{
+			MoveComp->Velocity = FVector::ZeroVector;
+		}
+		else
+		{
+			constexpr float ZombieServerTickSeconds = 0.1f;
+			FVector PacketVelocity = (TargetLocation - PreviousLocation) / ZombieServerTickSeconds;
+			PacketVelocity = PacketVelocity.GetClampedToMaxSize(MoveComp->GetMaxSpeed());
+			MoveComp->Velocity = PacketVelocity;
+			AnimSpeed = PacketVelocity.Size2D();
+		}
+
+		MoveComp->UpdateComponentVelocity();
+
+		if (UAnimInstance* AnimInstance = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr)
+		{
+			SetAnimFloatIfPresent(AnimInstance, TEXT("Speed"), AnimSpeed);
+			SetAnimFloatIfPresent(AnimInstance, TEXT("GroundSpeed"), AnimSpeed);
+			SetAnimBoolIfPresent(AnimInstance, TEXT("IsMoving"), bInIsMoving);
+			SetAnimBoolIfPresent(AnimInstance, TEXT("bIsMoving"), bInIsMoving);
+			SetAnimBoolIfPresent(AnimInstance, TEXT("HasAcceleration"), bInIsMoving);
+			SetAnimBoolIfPresent(AnimInstance, TEXT("bHasAcceleration"), bInIsMoving);
+		}
+	}
 }
 
 FVector ABaseZombie::GetAttackPointForTarget(AActor* TargetActor) const

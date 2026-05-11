@@ -22,8 +22,10 @@
 #include "Perception/AIPerceptionStimuliSourceComponent.h"
 #include "Perception/AISense_Hearing.h"
 #include "Perception/AISense_Sight.h"
+#include "Stage2/Stage2TileManager.h"
 #include "UObject/ConstructorHelpers.h"
 #include "TimerManager.h"
+#include "EngineUtils.h"
 
 AFPSBaseCharacter::AFPSBaseCharacter()
 {
@@ -93,20 +95,12 @@ void AFPSBaseCharacter::BeginPlay()
 
 	if (IsLocallyControlled())
 	{
-		// [복구 1] 맵 로딩 후 0.2초 대기했다가 서버에 C_ENTER_GAME 보내기!
-		FTimerHandle TimerHandle;
-		GetWorld()->GetTimerManager().SetTimer(TimerHandle, FTimerDelegate::CreateLambda([this]()
-			{
-				Protocol::C_ENTER_GAME EnterGamePkt;
-				EnterGamePkt.set_playerindex(0); // 임시로 0번
-
-				if (auto* GameInstance = Cast<UFPSProjectGameInstance>(GetGameInstance()))
-				{
-					SendBufferRef SendBuffer = ClientPacketHandler::MakeSendBuffer(EnterGamePkt);
-					GameInstance->SendPacket(SendBuffer);
-					UE_LOG(LogTemp, Warning, TEXT("[Network] 0.2초 대기 후 C_ENTER_GAME 안전하게 전송 완료!"));
-				}
-			}), 0.2f, false);
+		if (!TryDelayStage2SpawnUntilReady())
+		{
+			// [복구 1] 맵 로딩 후 0.2초 대기했다가 서버에 C_ENTER_GAME 보내기!
+			FTimerHandle TimerHandle;
+			GetWorld()->GetTimerManager().SetTimer(TimerHandle, this, &AFPSBaseCharacter::SendEnterGamePacket, 0.2f, false);
+		}
 
 		// 마우스 커서 숨기기
 		if (PC)
@@ -132,6 +126,11 @@ void AFPSBaseCharacter::BeginPlay()
 void AFPSBaseCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	if (bWaitingForStage2InitialTiles)
+	{
+		return;
+	}
 
 	const bool bShouldSkipRemoteMovementSync = bIsDrivingTruck || bIsUsingMountedWeapon;
 
@@ -325,6 +324,83 @@ void AFPSBaseCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 void AFPSBaseCharacter::TravelToStage2Map()
 {
 	UGameplayStatics::OpenLevel(this, FName(TEXT("map_level2_test")));
+}
+
+void AFPSBaseCharacter::SendEnterGamePacket()
+{
+	if (bEnterGamePacketSent)
+	{
+		return;
+	}
+
+	Protocol::C_ENTER_GAME EnterGamePkt;
+	EnterGamePkt.set_playerindex(0); // 임시로 0번
+
+	if (auto* GameInstance = Cast<UFPSProjectGameInstance>(GetGameInstance()))
+	{
+		SendBufferRef SendBuffer = ClientPacketHandler::MakeSendBuffer(EnterGamePkt);
+		GameInstance->SendPacket(SendBuffer);
+		bEnterGamePacketSent = true;
+		UE_LOG(LogTemp, Warning, TEXT("[Network] C_ENTER_GAME 전송 완료!"));
+	}
+}
+
+bool AFPSBaseCharacter::TryDelayStage2SpawnUntilReady()
+{
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return false;
+	}
+
+	for (TActorIterator<AStage2TileManager> It(World); It; ++It)
+	{
+		AStage2TileManager* TileManager = *It;
+		if (!TileManager || TileManager->AreInitialTilesReady())
+		{
+			continue;
+		}
+
+		Stage2SpawnDelayManager = TileManager;
+		SetStage2SpawnDelayActive(true);
+		TileManager->OnInitialTilesReady.AddUniqueDynamic(this, &AFPSBaseCharacter::HandleStage2InitialTilesReady);
+		UE_LOG(LogTemp, Warning, TEXT("[Stage2] 초기 타일 로딩이 끝날 때까지 로컬 캐릭터 스폰을 대기합니다."));
+		return true;
+	}
+
+	return false;
+}
+
+void AFPSBaseCharacter::SetStage2SpawnDelayActive(bool bActive)
+{
+	bWaitingForStage2InitialTiles = bActive;
+	SetActorHiddenInGame(bActive);
+	SetActorEnableCollision(!bActive);
+
+	if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
+	{
+		MoveComp->StopMovementImmediately();
+		if (bActive)
+		{
+			MoveComp->DisableMovement();
+		}
+		else
+		{
+			MoveComp->SetMovementMode(MOVE_Walking);
+		}
+	}
+}
+
+void AFPSBaseCharacter::HandleStage2InitialTilesReady()
+{
+	if (Stage2SpawnDelayManager)
+	{
+		Stage2SpawnDelayManager->OnInitialTilesReady.RemoveAll(this);
+		Stage2SpawnDelayManager = nullptr;
+	}
+
+	SetStage2SpawnDelayActive(false);
+	SendEnterGamePacket();
 }
 
 void AFPSBaseCharacter::EnterTruckDriverSeat(ATruck* Truck)

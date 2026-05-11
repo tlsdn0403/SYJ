@@ -45,6 +45,7 @@ public:
 	int32 totalTime = 30; // 5 minutes in seconds
 	FTimerHandle TimerHandle; 
 	void UpdateTimer();
+	void FinishTruckLoadingPhase();
 	void PlayAni_Vibration() {PlayAnimation(TCountVibration);}
 	void PlayAni_PopUp() { PlayAnimation(TPopUp); }
 };

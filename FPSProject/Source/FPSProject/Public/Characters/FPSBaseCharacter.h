@@ -20,6 +20,7 @@ class UAnimInstance;
 class UAnimationAsset;
 class ATruck;
 class AMountedMachineGun;
+class AStage2TileManager;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnInventoryUpdated, const TArray<EItemType>&, CurrentInventory);
 
@@ -135,6 +136,12 @@ protected:
 	void StartAim();
 	void StopAim();
 	void LeaveGame();
+	void SendEnterGamePacket();
+	bool TryDelayStage2SpawnUntilReady();
+	void SetStage2SpawnDelayActive(bool bActive);
+
+	UFUNCTION()
+	void HandleStage2InitialTilesReady();
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FPS|Camera")
 	UCameraComponent* FPSCameraComponent;
@@ -273,4 +280,13 @@ protected:
 
 	UPROPERTY(Transient)
 	bool bHasLastTruckCargoLocalLocationForMoveState = false;
+
+	UPROPERTY(Transient)
+	TObjectPtr<AStage2TileManager> Stage2SpawnDelayManager = nullptr;
+
+	UPROPERTY(Transient)
+	bool bWaitingForStage2InitialTiles = false;
+
+	UPROPERTY(Transient)
+	bool bEnterGamePacketSent = false;
 };

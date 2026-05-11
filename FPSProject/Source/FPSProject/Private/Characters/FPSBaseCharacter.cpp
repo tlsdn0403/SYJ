@@ -18,11 +18,14 @@
 #include "Animation/AnimationAsset.h"
 #include "ClientPacketHandler.h"
 #include "FPSProjectGameInstance.h"
+#include "Kismet/GameplayStatics.h"
 #include "Perception/AIPerceptionStimuliSourceComponent.h"
 #include "Perception/AISense_Hearing.h"
 #include "Perception/AISense_Sight.h"
+#include "Stage2/Stage2TileManager.h"
 #include "UObject/ConstructorHelpers.h"
 #include "TimerManager.h"
+#include "EngineUtils.h"
 
 AFPSBaseCharacter::AFPSBaseCharacter()
 {
@@ -110,6 +113,13 @@ void AFPSBaseCharacter::BeginPlay()
 			}
 		}
 
+		if (!TryDelayStage2SpawnUntilReady())
+		{
+			// [복구 1] 맵 로딩 후 0.2초 대기했다가 서버에 C_ENTER_GAME 보내기!
+			FTimerHandle TimerHandle;
+			GetWorld()->GetTimerManager().SetTimer(TimerHandle, this, &AFPSBaseCharacter::SendEnterGamePacket, 0.2f, false);
+		}
+
 		// 마우스 커서 숨기기
 		if (PC)
 		{
@@ -135,6 +145,11 @@ void AFPSBaseCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	if (bWaitingForStage2InitialTiles)
+	{
+		return;
+	}
+
 	const bool bShouldSkipRemoteMovementSync = bIsDrivingTruck || bIsUsingMountedWeapon;
 
 	if (bIsOnTruckCargo && CurrentTruck)
@@ -148,7 +163,7 @@ void AFPSBaseCharacter::Tick(float DeltaTime)
 		// 조준중이면 Aiming 카메라 , 아니면 기존
 		const float TargetFOV = bIsAiming ? AimingThirdPersonFOV : DefaultThirdPersonFOV;
 		// 이것도 조준중이면 Aiming 카메라 붐
-		const float TargetBoomLength = bIsAiming ? AimingBoomLength : DefaultBoomLength;\
+		const float TargetBoomLength = bIsAiming ? AimingBoomLength : DefaultBoomLength;
 		// 이것도 조준중이면 Aiming 카메라 붐 소켓 오프셋
 		const FVector TargetSocketOffset = bIsAiming ? AimingCameraBoomSocketOffset : DefaultCameraBoomSocketOffset;
 
@@ -321,6 +336,89 @@ void AFPSBaseCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 	PlayerInputComponent->BindAction("Aim", IE_Released, this, &AFPSBaseCharacter::StopAim);
 	PlayerInputComponent->BindAction("Interact", IE_Pressed, this, &AFPSBaseCharacter::Interact);
 	PlayerInputComponent->BindAction("LeaveGame", IE_Pressed, this, &AFPSBaseCharacter::LeaveGame);
+	PlayerInputComponent->BindAction("TravelToStage2Map", IE_Pressed, this, &AFPSBaseCharacter::TravelToStage2Map);
+}
+// 2스테이지 맵으로 이동
+void AFPSBaseCharacter::TravelToStage2Map()
+{
+	UGameplayStatics::OpenLevel(this, FName(TEXT("map_level2_test")));
+}
+
+void AFPSBaseCharacter::SendEnterGamePacket()
+{
+	if (bEnterGamePacketSent)
+	{
+		return;
+	}
+
+	Protocol::C_ENTER_GAME EnterGamePkt;
+	EnterGamePkt.set_playerindex(0); // 임시로 0번
+
+	if (auto* GameInstance = Cast<UFPSProjectGameInstance>(GetGameInstance()))
+	{
+		SendBufferRef SendBuffer = ClientPacketHandler::MakeSendBuffer(EnterGamePkt);
+		GameInstance->SendPacket(SendBuffer);
+		bEnterGamePacketSent = true;
+		UE_LOG(LogTemp, Warning, TEXT("[Network] C_ENTER_GAME 전송 완료!"));
+	}
+}
+
+bool AFPSBaseCharacter::TryDelayStage2SpawnUntilReady()
+{
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return false;
+	}
+
+	for (TActorIterator<AStage2TileManager> It(World); It; ++It)
+	{
+		AStage2TileManager* TileManager = *It;
+		if (!TileManager || TileManager->AreInitialTilesReady())
+		{
+			continue;
+		}
+
+		Stage2SpawnDelayManager = TileManager;
+		SetStage2SpawnDelayActive(true);
+		TileManager->OnInitialTilesReady.AddUniqueDynamic(this, &AFPSBaseCharacter::HandleStage2InitialTilesReady);
+		UE_LOG(LogTemp, Warning, TEXT("[Stage2] 초기 타일 로딩이 끝날 때까지 로컬 캐릭터 스폰을 대기합니다."));
+		return true;
+	}
+
+	return false;
+}
+
+void AFPSBaseCharacter::SetStage2SpawnDelayActive(bool bActive)
+{
+	bWaitingForStage2InitialTiles = bActive;
+	SetActorHiddenInGame(bActive);
+	SetActorEnableCollision(!bActive);
+
+	if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
+	{
+		MoveComp->StopMovementImmediately();
+		if (bActive)
+		{
+			MoveComp->DisableMovement();
+		}
+		else
+		{
+			MoveComp->SetMovementMode(MOVE_Walking);
+		}
+	}
+}
+
+void AFPSBaseCharacter::HandleStage2InitialTilesReady()
+{
+	if (Stage2SpawnDelayManager)
+	{
+		Stage2SpawnDelayManager->OnInitialTilesReady.RemoveAll(this);
+		Stage2SpawnDelayManager = nullptr;
+	}
+
+	SetStage2SpawnDelayActive(false);
+	SendEnterGamePacket();
 }
 
 void AFPSBaseCharacter::EnterTruckDriverSeat(ATruck* Truck)
@@ -435,16 +533,16 @@ void AFPSBaseCharacter::ExitTruckCargo()
 	EndTruckCargoWalk();
 	SetActorLocationAndRotation(
 		Truck->GetCargoExitLocation(),
-		Truck->GetActorRotation()
-	);
+		Truck->GetActorRotation(),
+		false,
+		nullptr,
+		ETeleportType::TeleportPhysics);
 
 	if (GetCharacterMovement())
 	{
 		GetCharacterMovement()->StopMovementImmediately();
 		GetCharacterMovement()->SetMovementMode(MOVE_Walking);
 	}
-	EndTruckCargoWalk();
-	SetActorLocation(Truck->GetCargoExitLocation());
 
 	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 	GetMesh()->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
@@ -587,32 +685,29 @@ void AFPSBaseCharacter::ExitMountedWeapon(bool bReturnToCargo)
 
 	if (bReturnToCargo)
 	{
-		if (IsValid(CurrentWeapon))
-		{
-			CurrentWeapon->SetWeaponHidden(false);
-			CurrentWeapon->SetWeaponCollisionEnabled(true);
-		}
-	}
-	BeginTruckCargoWalk(Truck);
-	bIsOnTruckCargo = true;
-	CurrentTruck = Truck;
-	BeginTruckCargoWalk(Truck);
-	SetActorLocationAndRotation(
-		RestoreCargoWorldLocation,
-		Truck->GetCargoRideRotation(),
-		false,
-		nullptr,
-		ETeleportType::TeleportPhysics);
-	ConstrainToTruckCargoBounds();
+		CurrentTruck = Truck;
+		bIsOnTruckCargo = true;
+		bHasReplicatedTruckCargoLocalLocation = false;
+		bHasLastTruckCargoLocalLocationForMoveState = false;
 
-	if (UBoxComponent* CargoBounds = Truck->GetCargoMoveBoundsComponent())
-	{
-		const FVector CargoLocalLocation =
-			CargoBounds->GetComponentTransform().InverseTransformPosition(GetActorLocation());
-		ReplicatedTruckCargoLocalLocation = CargoLocalLocation;
-		bHasReplicatedTruckCargoLocalLocation = true;
-		LastTruckCargoLocalLocationForMoveState = CargoLocalLocation;
-		bHasLastTruckCargoLocalLocationForMoveState = true;
+		BeginTruckCargoWalk(Truck);
+		SetActorLocationAndRotation(
+			RestoreCargoWorldLocation,
+			Truck->GetCargoRideRotation(),
+			false,
+			nullptr,
+			ETeleportType::TeleportPhysics);
+		ConstrainToTruckCargoBounds();
+
+		if (UBoxComponent* CargoBounds = Truck->GetCargoMoveBoundsComponent())
+		{
+			const FVector CargoLocalLocation =
+				CargoBounds->GetComponentTransform().InverseTransformPosition(GetActorLocation());
+			ReplicatedTruckCargoLocalLocation = CargoLocalLocation;
+			bHasReplicatedTruckCargoLocalLocation = true;
+			LastTruckCargoLocalLocationForMoveState = CargoLocalLocation;
+			bHasLastTruckCargoLocalLocationForMoveState = true;
+		}
 	}
 	else
 	{
@@ -620,6 +715,7 @@ void AFPSBaseCharacter::ExitMountedWeapon(bool bReturnToCargo)
 		CurrentTruck = nullptr;
 		bHasReplicatedTruckCargoLocalLocation = false;
 		bHasLastTruckCargoLocalLocationForMoveState = false;
+
 		SetActorLocationAndRotation(
 			Truck->GetCargoExitLocation(),
 			Truck->GetActorRotation(),

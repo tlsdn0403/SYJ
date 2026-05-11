@@ -30,6 +30,14 @@ UBTTask_Attack::UBTTask_Attack()
 {
 }
 
+bool UBTTask_Attack::ShouldSkipMovingTruckAttack(AActor* TargetActor) const
+{
+	const ATruck* Truck = Cast<ATruck>(TargetActor);
+	return Truck &&
+		MovingTruckAttackSpeedThreshold > 0.0f &&
+		Truck->GetVelocity().SizeSquared2D() >= FMath::Square(MovingTruckAttackSpeedThreshold);
+}
+
 EBTNodeResult::Type UBTTask_Attack::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
 	Super::ExecuteTask(OwnerComp, NodeMemory);
@@ -57,6 +65,11 @@ EBTNodeResult::Type UBTTask_Attack::ExecuteTask(UBehaviorTreeComponent& OwnerCom
 	{
 		AActor* BlackboardTarget = Cast<AActor>(BlackboardComponent->GetValueAsObject(FName("TargetPlayer")));
 		TargetActor = ResolveAttackTarget(BlackboardTarget);
+	}
+
+	if (ShouldSkipMovingTruckAttack(TargetActor))
+	{
+		return EBTNodeResult::Failed;
 	}
 
 	if (!Zombie->IsTargetInAttackRange(TargetActor))

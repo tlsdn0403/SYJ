@@ -19,4 +19,10 @@ public:
 
 protected:
 	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
+
+private:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Truck", meta = (AllowPrivateAccess = "true", ClampMin = "0.0"))
+	float MovingTruckAttackSpeedThreshold = 120.0f;
+
+	bool ShouldSkipMovingTruckAttack(AActor* TargetActor) const;
 };

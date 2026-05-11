@@ -53,7 +53,7 @@ public:
 	void ApplyDirectPursuitInput(const FVector& TargetLocation);
 	void RegisterFallZone(AZombieFallZone* FallZone);
 	void UnregisterFallZone(AZombieFallZone* FallZone);
-	bool TryGetFallZonePursuitLocation(AActor* TargetActor, FVector& OutTargetLocation);
+	bool TryGetFallZonePursuitLocation(AActor* TargetActor, FVector& OutApproachLocation, FVector& OutCommitLocation);
 
 	UFUNCTION(BlueprintCallable, Category = "Zombie")
 	void Die();
@@ -132,6 +132,7 @@ private:
 	FVector GetAttackPointForTarget(AActor* TargetActor) const;
 	void ApplyAttackDamage(AActor* TargetActor);
 	void ApplyAnimationDesync();
+	void ApplyMovementTuning();
 	void InitializeBoneDurability();
 	FName GetParentBoneForDamage(FName HitBoneName);
 	void ProcessBoneDamage(FName BoneName, float Damage, FVector ImpactPoint, FVector ImpactDirection);
@@ -161,10 +162,19 @@ private:
 	float TurnRateYaw = 540.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zombie|Movement", meta = (AllowPrivateAccess = "true"))
-	float MaxAcceleration = 900.0f;
+	float MaxAcceleration = 1400.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zombie|Movement", meta = (AllowPrivateAccess = "true"))
-	float BrakingDecelerationWalking = 700.0f;
+	float BrakingDecelerationWalking = 1200.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zombie|Movement|Avoidance", meta = (AllowPrivateAccess = "true"))
+	bool bUseRVOAvoidance = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zombie|Movement|Avoidance", meta = (AllowPrivateAccess = "true", ClampMin = "0.0"))
+	float AvoidanceConsiderationRadius = 280.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zombie|Movement|Avoidance", meta = (AllowPrivateAccess = "true", ClampMin = "0.0"))
+	float AvoidanceWeight = 0.45f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zombie|Movement", meta = (AllowPrivateAccess = "true"))
 	float NetworkMoveInterpSpeed = 10.0f;

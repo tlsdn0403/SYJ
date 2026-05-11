@@ -148,6 +148,11 @@ bool AStage2TileManager::HasCompletedInitialGeneration() const
 	return GetInitializedTileCount() >= InitialTilesToSpawn;
 }
 
+bool AStage2TileManager::AreInitialTilesReady() const
+{
+	return bInitialTilesReady;
+}
+
 bool AStage2TileManager::TrySpawnTileLevel(const TSoftObjectPtr<UWorld>& TileLevel, EStage2TileType TileType, const FTransform& SpawnTransform)
 {
 	if (TileLevel.IsNull())
@@ -274,6 +279,7 @@ void AStage2TileManager::FinalizeLoadedTile(int32 TileIndex)
 	SpawnZombiesForTile(LoadedTile);
 	TrimOldTiles();
 	RefreshNavigationForStreamingTile(LoadedTile);
+	MarkInitialTilesReadyIfNeeded();
 
 	if (GetInitializedTileCount() < InitialTilesToSpawn && TileType != EStage2TileType::Goal)
 	{
@@ -344,6 +350,7 @@ void AStage2TileManager::ResetGenerationState()
 {
 	bGenerationStarted = false;
 	bGoalTileSpawnRequested = false;
+	bInitialTilesReady = false;
 	bLoggedKeepStartConflict = false;
 	ConsecutiveLeftTurns = 0;
 	ConsecutiveRightTurns = 0;
@@ -660,6 +667,29 @@ bool AStage2TileManager::HasPendingUninitializedTile() const
 	}
 
 	return false;
+}
+
+void AStage2TileManager::MarkInitialTilesReadyIfNeeded()
+{
+	if (bInitialTilesReady)
+	{
+		return;
+	}
+
+	const int32 RequiredInitialTileCount = FMath::Max(1, InitialTilesToSpawn);
+	if (GetInitializedTileCount() < RequiredInitialTileCount || HasPendingUninitializedTile())
+	{
+		return;
+	}
+
+	bInitialTilesReady = true;
+
+	if (bVerboseLog)
+	{
+		UE_LOG(LogTemp, Log, TEXT("Stage2TileManager: Initial %d tile(s) are ready."), RequiredInitialTileCount);
+	}
+
+	OnInitialTilesReady.Broadcast();
 }
 
 void AStage2TileManager::HandleTileTrigger(AStage2TileMarker* TileMarker, AActor* TriggeringActor)

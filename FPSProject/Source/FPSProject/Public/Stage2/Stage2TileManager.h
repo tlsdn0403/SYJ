@@ -9,6 +9,8 @@ class ULevelStreamingDynamic;
 class UWorld;
 class ABaseZombie;
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FStage2InitialTilesReadySignature);
+
 USTRUCT(BlueprintType)
 struct FStage2LoadedTile
 {
@@ -67,6 +69,10 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Stage2")
 	bool HasCompletedInitialGeneration() const;
+	bool AreInitialTilesReady() const;
+
+	UPROPERTY(BlueprintAssignable, Category = "Stage2")
+	FStage2InitialTilesReadySignature OnInitialTilesReady;
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stage2|Tiles")
@@ -156,6 +162,7 @@ protected:
 private:
 	bool bGenerationStarted = false;
 	bool bGoalTileSpawnRequested = false;
+	bool bInitialTilesReady = false;
 	bool bLoggedKeepStartConflict = false;
 	int32 ConsecutiveLeftTurns = 0;
 	int32 ConsecutiveRightTurns = 0;
@@ -178,6 +185,7 @@ private:
 	void RefreshNavigationForStreamingTile(const FStage2LoadedTile& LoadedTile) const;
 	int32 GetInitializedTileCount() const;
 	bool HasPendingUninitializedTile() const;
+	void MarkInitialTilesReadyIfNeeded();
 
 	UFUNCTION()
 	void HandleTileTrigger(AStage2TileMarker* TileMarker, AActor* TriggeringActor);

@@ -5,6 +5,30 @@
 #include "Components/PrimitiveComponent.h"
 #include "Zombie/BaseZombie.h"
 
+namespace
+{
+	TArray<TWeakObjectPtr<AZombieFallZone>> GRegisteredFallZones;
+
+	FVector GetGuidanceTargetLocation(const AActor* TargetActor, const FVector& FromLocation)
+	{
+		if (!TargetActor)
+		{
+			return FromLocation;
+		}
+
+		if (const UPrimitiveComponent* PrimitiveComponent = Cast<UPrimitiveComponent>(TargetActor->GetRootComponent()))
+		{
+			FVector ClosestPoint = TargetActor->GetActorLocation();
+			if (PrimitiveComponent->GetClosestPointOnCollision(FromLocation, ClosestPoint) >= 0.0f)
+			{
+				return ClosestPoint;
+			}
+		}
+
+		return TargetActor->GetActorLocation();
+	}
+}
+
 AZombieFallZone::AZombieFallZone()
 {
 	PrimaryActorTick.bCanEverTick = false;
@@ -30,6 +54,12 @@ void AZombieFallZone::BeginPlay()
 {
 	Super::BeginPlay();
 
+	GRegisteredFallZones.RemoveAll([](const TWeakObjectPtr<AZombieFallZone>& ZonePtr)
+		{
+			return !ZonePtr.IsValid();
+		});
+	GRegisteredFallZones.AddUnique(this);
+
 	if (ZoneVolume)
 	{
 		ZoneVolume->OnComponentBeginOverlap.AddDynamic(this, &AZombieFallZone::HandleZoneBeginOverlap);
@@ -39,10 +69,42 @@ void AZombieFallZone::BeginPlay()
 	RegisterInitialOverlappingZombies();
 }
 
+void AZombieFallZone::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	GRegisteredFallZones.RemoveAll([this](const TWeakObjectPtr<AZombieFallZone>& ZonePtr)
+		{
+			return !ZonePtr.IsValid() || ZonePtr.Get() == this;
+		});
+
+	Super::EndPlay(EndPlayReason);
+}
+
+void AZombieFallZone::GetRegisteredFallZones(UWorld* World, TArray<AZombieFallZone*>& OutZones)
+{
+	OutZones.Reset();
+
+	GRegisteredFallZones.RemoveAll([](const TWeakObjectPtr<AZombieFallZone>& ZonePtr)
+		{
+			return !ZonePtr.IsValid();
+		});
+
+	for (const TWeakObjectPtr<AZombieFallZone>& ZonePtr : GRegisteredFallZones)
+	{
+		if (AZombieFallZone* Zone = ZonePtr.Get())
+		{
+			if (Zone->GetWorld() == World)
+			{
+				OutZones.Add(Zone);
+			}
+		}
+	}
+}
+
 bool AZombieFallZone::CanGuideZombieTowardTarget(
 	ABaseZombie* Zombie,
 	const AActor* TargetActor,
-	FVector& OutTargetLocation,
+	FVector& OutApproachLocation,
+	FVector& OutCommitLocation,
 	float& OutScore)
 {
 	if (!Zombie || !TargetActor || !ZoneVolume)
@@ -51,8 +113,9 @@ bool AZombieFallZone::CanGuideZombieTowardTarget(
 	}
 
 	const FVector ZombieLocation = Zombie->GetActorLocation();
-	const FVector TargetLocation = TargetActor->GetActorLocation();
+	const FVector TargetLocation = GetGuidanceTargetLocation(TargetActor, ZombieLocation);
 	const FVector ZoneLocation = ZoneVolume->GetComponentLocation();
+	const float ZombieToZoneDistance2D = FVector::Dist2D(ZombieLocation, ZoneLocation);
 	const float DropHeight = ZombieLocation.Z - TargetLocation.Z;
 	const float Distance2D = FVector::Dist2D(ZombieLocation, TargetLocation);
 
@@ -62,6 +125,11 @@ bool AZombieFallZone::CanGuideZombieTowardTarget(
 	}
 
 	if (Distance2D < MinTargetDistance2D || Distance2D > MaxTargetDistance2D)
+	{
+		return false;
+	}
+
+	if (ZombieToZoneDistance2D > MaxZombieDistance2D)
 	{
 		return false;
 	}
@@ -107,14 +175,18 @@ bool AZombieFallZone::CanGuideZombieTowardTarget(
 	}
 
 	const FVector SlotOrigin = ZoneLocation + ZoneRight * TargetLateralOffset;
-	const FVector PursuitTarget = SlotOrigin + ZoneForward * FMath::Max(ZoneExtent.X + FallTargetOvershootDistance, FallTargetOvershootDistance);
-	OutTargetLocation = PursuitTarget;
+	const float ApproachForwardDistance = FMath::Clamp(
+		ZoneExtent.X - ApproachDistanceInsideZone,
+		0.0f,
+		ZoneExtent.X);
+	OutApproachLocation = SlotOrigin + ZoneForward * ApproachForwardDistance;
+	OutCommitLocation = SlotOrigin + ZoneForward * FMath::Max(ZoneExtent.X + FallTargetOvershootDistance, FallTargetOvershootDistance);
 
 	const float ZoneDistancePenalty =
-		FMath::Clamp(FVector::Dist2D(ZombieLocation, ZoneLocation) / FMath::Max(FMath::Max(ZoneExtent.X, ZoneExtent.Y), 1.0f), 0.0f, 2.0f);
+		FMath::Clamp(ZombieToZoneDistance2D / FMath::Max(FMath::Max(ZoneExtent.X, ZoneExtent.Y), 1.0f), 0.0f, 4.0f);
 	const float SlotOccupancyPenalty = CountZombiesAssignedToSlot(AssignedSlotIndex) * OccupiedSlotScorePenalty;
 	const float SlotStickinessBonus = bAlreadyHadSlot ? ExistingSlotScoreBonus : 0.0f;
-	OutScore = AlignmentScore * 1000.0f - ZoneDistancePenalty * 100.0f - SlotOccupancyPenalty + SlotStickinessBonus;
+	OutScore = AlignmentScore * 1000.0f - ZoneDistancePenalty * 250.0f - SlotOccupancyPenalty + SlotStickinessBonus;
 	return true;
 }
 

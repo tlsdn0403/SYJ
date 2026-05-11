@@ -20,11 +20,14 @@ class FPSPROJECT_API AZombieFallZone : public AActor
 public:
 	AZombieFallZone();
 
+	static void GetRegisteredFallZones(UWorld* World, TArray<AZombieFallZone*>& OutZones);
+
 	UFUNCTION(BlueprintCallable, Category = "Zombie|Fall Zone")
 	bool CanGuideZombieTowardTarget(
 		ABaseZombie* Zombie,
 		const AActor* TargetActor,
-		FVector& OutTargetLocation,
+		FVector& OutApproachLocation,
+		FVector& OutCommitLocation,
 		float& OutScore);
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Fall Zone")
@@ -38,6 +41,7 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fall Zone", meta = (ClampMin = "0.0"))
 	float MinTargetDropHeight = 150.0f;
@@ -49,7 +53,10 @@ protected:
 	float MinTargetDistance2D = 100.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fall Zone", meta = (ClampMin = "0.0"))
-	float MaxTargetDistance2D = 3500.0f;
+	float MaxTargetDistance2D = 12000.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fall Zone", meta = (ClampMin = "0.0"))
+	float MaxZombieDistance2D = 3500.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fall Zone", meta = (ClampMin = "0.0", ClampMax = "180.0"))
 	float FacingHalfAngleDegrees = 85.0f;
@@ -65,6 +72,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fall Zone", meta = (ClampMin = "0.0"))
 	float FallTargetOvershootDistance = 140.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fall Zone", meta = (ClampMin = "0.0"))
+	float ApproachDistanceInsideZone = 90.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fall Zone", meta = (ClampMin = "0.0"))
 	float SlotSpacing = 120.0f;

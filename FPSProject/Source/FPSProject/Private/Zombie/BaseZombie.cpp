@@ -40,8 +40,6 @@ ABaseZombie::ABaseZombie()
 	{
 		MoveComp->bOrientRotationToMovement = true;
 		MoveComp->RotationRate = FRotator(0.0f, TurnRateYaw, 0.0f);
-		MoveComp->MaxAcceleration = MaxAcceleration;
-		MoveComp->BrakingDecelerationWalking = BrakingDecelerationWalking;
 		MoveComp->bCanWalkOffLedges = true;
 		MoveComp->LedgeCheckThreshold = 0.0f;
 	}
@@ -71,6 +69,7 @@ void ABaseZombie::BeginPlay()
 	}
 
 	ApplyAnimationDesync();
+	ApplyMovementTuning();
 	InitializeBoneDurability();
 }
 
@@ -214,7 +213,7 @@ void ABaseZombie::UnregisterFallZone(AZombieFallZone* FallZone)
 		});
 }
 
-bool ABaseZombie::TryGetFallZonePursuitLocation(AActor* TargetActor, FVector& OutTargetLocation)
+bool ABaseZombie::TryGetFallZonePursuitLocation(AActor* TargetActor, FVector& OutApproachLocation, FVector& OutCommitLocation)
 {
 	if (!bIsAlive || !TargetActor)
 	{
@@ -223,6 +222,29 @@ bool ABaseZombie::TryGetFallZonePursuitLocation(AActor* TargetActor, FVector& Ou
 
 	float BestScore = TNumericLimits<float>::Lowest();
 	bool bFoundZone = false;
+	TSet<AZombieFallZone*> EvaluatedZones;
+
+	auto EvaluateZone = [&](AZombieFallZone* FallZone)
+		{
+			if (!FallZone || EvaluatedZones.Contains(FallZone))
+			{
+				return;
+			}
+
+			EvaluatedZones.Add(FallZone);
+
+			FVector CandidateApproachLocation = FVector::ZeroVector;
+			FVector CandidateCommitLocation = FVector::ZeroVector;
+			float CandidateScore = 0.0f;
+			if (FallZone->CanGuideZombieTowardTarget(this, TargetActor, CandidateApproachLocation, CandidateCommitLocation, CandidateScore) &&
+				CandidateScore > BestScore)
+			{
+				BestScore = CandidateScore;
+				OutApproachLocation = CandidateApproachLocation;
+				OutCommitLocation = CandidateCommitLocation;
+				bFoundZone = true;
+			}
+		};
 
 	for (int32 Index = ActiveFallZones.Num() - 1; Index >= 0; --Index)
 	{
@@ -233,14 +255,16 @@ bool ABaseZombie::TryGetFallZonePursuitLocation(AActor* TargetActor, FVector& Ou
 			continue;
 		}
 
-		FVector CandidateLocation = FVector::ZeroVector;
-		float CandidateScore = 0.0f;
-		if (FallZone->CanGuideZombieTowardTarget(this, TargetActor, CandidateLocation, CandidateScore) &&
-			CandidateScore > BestScore)
+		EvaluateZone(FallZone);
+	}
+
+	if (!bFoundZone)
+	{
+		TArray<AZombieFallZone*> RegisteredZones;
+		AZombieFallZone::GetRegisteredFallZones(GetWorld(), RegisteredZones);
+		for (AZombieFallZone* FallZone : RegisteredZones)
 		{
-			BestScore = CandidateScore;
-			OutTargetLocation = CandidateLocation;
-			bFoundZone = true;
+			EvaluateZone(FallZone);
 		}
 	}
 
@@ -271,6 +295,24 @@ void ABaseZombie::ApplyAnimationDesync()
 		MeshComp->TickAnimation(StartOffset, false);
 		MeshComp->RefreshBoneTransforms();
 	}
+}
+
+void ABaseZombie::ApplyMovementTuning()
+{
+	UCharacterMovementComponent* MoveComp = GetCharacterMovement();
+	if (!MoveComp)
+	{
+		return;
+	}
+
+	MoveComp->bOrientRotationToMovement = true;
+	MoveComp->RotationRate = FRotator(0.0f, TurnRateYaw, 0.0f);
+	MoveComp->MaxAcceleration = MaxAcceleration;
+	MoveComp->BrakingDecelerationWalking = BrakingDecelerationWalking;
+	MoveComp->bRequestedMoveUseAcceleration = true;
+	MoveComp->bUseRVOAvoidance = bUseRVOAvoidance;
+	MoveComp->AvoidanceConsiderationRadius = AvoidanceConsiderationRadius;
+	MoveComp->AvoidanceWeight = AvoidanceWeight;
 }
 
 void ABaseZombie::ApplyAttackDamage(AActor* TargetActor)

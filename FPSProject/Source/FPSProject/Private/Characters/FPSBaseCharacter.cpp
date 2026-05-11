@@ -432,16 +432,16 @@ void AFPSBaseCharacter::ExitTruckCargo()
 	EndTruckCargoWalk();
 	SetActorLocationAndRotation(
 		Truck->GetCargoExitLocation(),
-		Truck->GetActorRotation()
-	);
+		Truck->GetActorRotation(),
+		false,
+		nullptr,
+		ETeleportType::TeleportPhysics);
 
 	if (GetCharacterMovement())
 	{
 		GetCharacterMovement()->StopMovementImmediately();
 		GetCharacterMovement()->SetMovementMode(MOVE_Walking);
 	}
-	EndTruckCargoWalk();
-	SetActorLocation(Truck->GetCargoExitLocation());
 
 	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 	GetMesh()->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
@@ -584,29 +584,31 @@ void AFPSBaseCharacter::ExitMountedWeapon(bool bReturnToCargo)
 
 	if (bReturnToCargo)
 	{
-		CurrentWeapon->SetWeaponHidden(false);
-		CurrentWeapon->SetWeaponCollisionEnabled(true);
-	}
-	BeginTruckCargoWalk(Truck);
-	bIsOnTruckCargo = true;
-	CurrentTruck = Truck;
-	BeginTruckCargoWalk(Truck);
-	SetActorLocationAndRotation(
-		RestoreCargoWorldLocation,
-		Truck->GetCargoRideRotation(),
-		false,
-		nullptr,
-		ETeleportType::TeleportPhysics);
-	ConstrainToTruckCargoBounds();
+		bIsOnTruckCargo = false;
+		CurrentTruck = Truck;
+		bHasReplicatedTruckCargoLocalLocation = false;
+		bHasLastTruckCargoLocalLocationForMoveState = false;
 
-	if (UBoxComponent* CargoBounds = Truck->GetCargoMoveBoundsComponent())
-	{
-		const FVector CargoLocalLocation =
-			CargoBounds->GetComponentTransform().InverseTransformPosition(GetActorLocation());
-		ReplicatedTruckCargoLocalLocation = CargoLocalLocation;
-		bHasReplicatedTruckCargoLocalLocation = true;
-		LastTruckCargoLocalLocationForMoveState = CargoLocalLocation;
-		bHasLastTruckCargoLocalLocationForMoveState = true;
+		BeginTruckCargoWalk(Truck);
+		SetActorLocationAndRotation(
+			RestoreCargoWorldLocation,
+			Truck->GetCargoRideRotation(),
+			false,
+			nullptr,
+			ETeleportType::TeleportPhysics);
+
+		bIsOnTruckCargo = true;
+		ConstrainToTruckCargoBounds();
+
+		if (UBoxComponent* CargoBounds = Truck->GetCargoMoveBoundsComponent())
+		{
+			const FVector CargoLocalLocation =
+				CargoBounds->GetComponentTransform().InverseTransformPosition(GetActorLocation());
+			ReplicatedTruckCargoLocalLocation = CargoLocalLocation;
+			bHasReplicatedTruckCargoLocalLocation = true;
+			LastTruckCargoLocalLocationForMoveState = CargoLocalLocation;
+			bHasLastTruckCargoLocalLocationForMoveState = true;
+		}
 	}
 	else
 	{
@@ -614,6 +616,7 @@ void AFPSBaseCharacter::ExitMountedWeapon(bool bReturnToCargo)
 		CurrentTruck = nullptr;
 		bHasReplicatedTruckCargoLocalLocation = false;
 		bHasLastTruckCargoLocalLocationForMoveState = false;
+
 		SetActorLocationAndRotation(
 			Truck->GetCargoExitLocation(),
 			Truck->GetActorRotation(),

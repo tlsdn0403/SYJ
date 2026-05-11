@@ -22,10 +22,10 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Zombie|Fall Zone")
 	bool CanGuideZombieTowardTarget(
-		const ABaseZombie* Zombie,
+		ABaseZombie* Zombie,
 		const AActor* TargetActor,
 		FVector& OutTargetLocation,
-		float& OutScore) const;
+		float& OutScore);
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Fall Zone")
 	TObjectPtr<USceneComponent> SceneRoot = nullptr;
@@ -63,7 +63,32 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fall Zone", meta = (ClampMin = "0.0", ClampMax = "1.0"))
 	float DropDirectionBlendAlpha = 0.35f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fall Zone", meta = (ClampMin = "0.0"))
+	float FallTargetOvershootDistance = 140.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fall Zone", meta = (ClampMin = "0.0"))
+	float SlotSpacing = 120.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fall Zone", meta = (ClampMin = "0.0"))
+	float SlotLateralPadding = 20.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fall Zone", meta = (ClampMin = "0.0"))
+	float OccupiedSlotScorePenalty = 150.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fall Zone", meta = (ClampMin = "0.0"))
+	float ExistingSlotScoreBonus = 250.0f;
+
 private:
+	void RegisterInitialOverlappingZombies();
+	void CleanupInvalidZombieAssignments();
+	int32 GetSlotCount(float LateralHalfWidth) const;
+	float GetSlotOffset(int32 SlotIndex, int32 SlotCount, float LateralHalfWidth) const;
+	int32 CountZombiesAssignedToSlot(int32 SlotIndex) const;
+	int32 GetOrAssignSlotIndex(ABaseZombie* Zombie, float LateralHalfWidth, const FVector& ZombieLocation);
+
+	UPROPERTY(Transient)
+	TMap<TWeakObjectPtr<ABaseZombie>, int32> ZombieSlotAssignments;
+
 	UFUNCTION()
 	void HandleZoneBeginOverlap(
 		UPrimitiveComponent* OverlappedComponent,

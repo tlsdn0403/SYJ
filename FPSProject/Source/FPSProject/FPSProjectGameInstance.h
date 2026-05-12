@@ -79,6 +79,7 @@ public:
 	bool ShouldUseLocalInteractionFallback() const;
 	bool ShouldDelayEnterGameRequest() const;
 	void RequestEnterGameWhenReady();
+	void RefreshStage2StartupActorHold();
 	bool TrySendEnterGamePacket();
 	void SetEntryLoadingWidgetClass(TSubclassOf<UUserWidget> WidgetClass);
 	void ShowEntryLoadingWidget();
@@ -133,6 +134,16 @@ public:
 	bool bPendingEnterGameRequest = false;
 	bool bEnterGamePacketSent = false;
 
+	struct FPendingStage2SpawnInfo
+	{
+		Protocol::ObjectInfo ObjectInfo;
+		bool bIsMine = false;
+	};
+
+	TArray<FPendingStage2SpawnInfo> PendingStage2SpawnInfos;
+	bool bProcessingPendingStage2Spawns = false;
+	bool bStage2StartupHoldApplied = false;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stage1|Cargo")
 	TMap<EItemType, int32> RecordedStage1CargoItems;
 
@@ -153,6 +164,11 @@ private:
 	void ApplyEntryLoadingReadyCount(int32 ReadyCount);
 	void ApplyStageTimerToLocalUI();
 	void ApplyStage1ItemSpawnSeed();
+	void ProcessSpawnObject(const Protocol::ObjectInfo& ObjectInfo, bool IsMine);
+	bool ShouldDelayStage2ActorSpawn() const;
+	void QueueStage2Spawn(const Protocol::ObjectInfo& ObjectInfo, bool IsMine);
+	void ProcessPendingStage2Spawns();
+	void ApplyStage2StartupActorHold(bool bHold);
 	bool bShouldShowEntryLoadingWidget = false;
 	int32 CachedEntryLoadingReadyCount = 0;
 	int32 CachedStageTimerRemainingSeconds = INDEX_NONE;

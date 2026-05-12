@@ -8,59 +8,6 @@
 #include "FPSProjectGameInstance.h"
 #include "TimerManager.h"
 
-namespace
-{
-	FString StripPiePrefix(const FString& InValue)
-	{
-		FString Result = InValue;
-		const FString Prefix = TEXT("UEDPIE_");
-
-		int32 PrefixIndex = Result.Find(Prefix);
-		while (PrefixIndex != INDEX_NONE)
-		{
-			int32 SuffixIndex = PrefixIndex + Prefix.Len();
-			while (SuffixIndex < Result.Len() && FChar::IsDigit(Result[SuffixIndex]))
-			{
-				++SuffixIndex;
-			}
-
-			if (SuffixIndex < Result.Len() && Result[SuffixIndex] == TEXT('_'))
-			{
-				Result.RemoveAt(PrefixIndex, SuffixIndex - PrefixIndex + 1, EAllowShrinking::No);
-			}
-			else
-			{
-				break;
-			}
-
-			PrefixIndex = Result.Find(Prefix);
-		}
-
-		return Result;
-	}
-
-	FString BuildStableActorKey(const AActor* Actor)
-	{
-		if (Actor == nullptr)
-		{
-			return FString();
-		}
-
-		const FVector Location = Actor->GetActorLocation();
-		const FIntVector QuantizedLocation(
-			FMath::RoundToInt(Location.X),
-			FMath::RoundToInt(Location.Y),
-			FMath::RoundToInt(Location.Z));
-
-		return FString::Printf(
-			TEXT("%s:%d:%d:%d"),
-			*StripPiePrefix(Actor->GetClass()->GetPathName()),
-			QuantizedLocation.X,
-			QuantizedLocation.Y,
-			QuantizedLocation.Z);
-	}
-}
-
 AStage1ItemSpawnPoint::AStage1ItemSpawnPoint()
 {
 	PrimaryActorTick.bCanEverTick = false;
@@ -280,5 +227,5 @@ TSubclassOf<ALootItemBase> AStage1ItemSpawnPoint::ChooseItemClass(FRandomStream*
 
 uint64 AStage1ItemSpawnPoint::ResolveSpawnedItemNetworkId() const
 {
-	return static_cast<uint64>(GetTypeHash(BuildStableActorKey(this) + TEXT(":spawned")));
+	return static_cast<uint64>(GetTypeHash(FPSProjectStableActorIdUtils::BuildStableActorKey(this) + TEXT(":spawned")));
 }

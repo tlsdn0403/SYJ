@@ -8,38 +8,6 @@
 #include "ClientPacketHandler.h"
 #include "Protocol.pb.h"
 
-namespace
-{
-	FString StripPiePrefix(const FString& InValue)
-	{
-		FString Result = InValue;
-		const FString Prefix = TEXT("UEDPIE_");
-
-		int32 PrefixIndex = Result.Find(Prefix);
-		while (PrefixIndex != INDEX_NONE)
-		{
-			int32 SuffixIndex = PrefixIndex + Prefix.Len();
-			while (SuffixIndex < Result.Len() && FChar::IsDigit(Result[SuffixIndex]))
-			{
-				++SuffixIndex;
-			}
-
-			if (SuffixIndex < Result.Len() && Result[SuffixIndex] == TEXT('_'))
-			{
-				Result.RemoveAt(PrefixIndex, SuffixIndex - PrefixIndex + 1, EAllowShrinking::No);
-			}
-			else
-			{
-				break;
-			}
-
-			PrefixIndex = Result.Find(Prefix);
-		}
-
-		return Result;
-	}
-}
-
 AADoor::AADoor()
 {
 	PrimaryActorTick.bCanEverTick = true;
@@ -85,7 +53,7 @@ void AADoor::BeginPlay()
 
 int32 AADoor::ResolveStableNetworkDoorId() const
 {
-	const FString StablePath = StripPiePrefix(GetPathName());
+	const FString StablePath = FPSProjectStableActorIdUtils::StripPiePrefix(GetPathName());
 	const uint32 StableHash = GetTypeHash(StablePath);
 	return StableHash == 0 ? 1 : static_cast<int32>(StableHash & 0x7fffffff);
 }

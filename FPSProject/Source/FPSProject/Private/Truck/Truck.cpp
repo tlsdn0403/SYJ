@@ -278,18 +278,11 @@ void ATruck::BeginPlay()
 			MountedWeapon->SetActorRelativeScale3D(MountedWeaponRelativeTransform.GetScale3D());
 		}
 	}
-
-	TryDelayStage2SpawnUntilReady();
 }
 
 void ATruck::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
-	if (bWaitingForStage2InitialTiles)
-	{
-		return;
-	}
 
 	CheckZombieImpactSweep();
 	ReportZombieAwarenessNoise(DeltaTime);
@@ -727,80 +720,6 @@ void ATruck::AddCargoVisual(EItemType ItemType)
 	}
 
 	UE_LOG(LogTemp, Warning, TEXT("Failed to find a visible cargo slot for item type %d on truck %s"), static_cast<int32>(ItemType), *GetName());
-}
-
-bool ATruck::TryDelayStage2SpawnUntilReady()
-{
-	UWorld* World = GetWorld();
-	if (!World)
-	{
-		return false;
-	}
-
-	for (TActorIterator<AStage2TileManager> It(World); It; ++It)
-	{
-		AStage2TileManager* TileManager = *It;
-		if (!TileManager || TileManager->AreInitialTilesReady())
-		{
-			continue;
-		}
-
-		Stage2SpawnDelayManager = TileManager;
-		Stage2DelayedSpawnTransform = GetActorTransform();
-		SetStage2SpawnDelayActive(true);
-		TileManager->OnInitialTilesReady.AddUniqueDynamic(this, &ATruck::HandleStage2InitialTilesReady);
-		UE_LOG(LogTemp, Warning, TEXT("[Stage2] 초기 타일 로딩이 끝날 때까지 트럭 스폰을 대기합니다. Truck=%s"), *GetNameSafe(this));
-		return true;
-	}
-
-	return false;
-}
-
-void ATruck::SetStage2SpawnDelayActive(bool bActive)
-{
-	bWaitingForStage2InitialTiles = bActive;
-	SetActorHiddenInGame(bActive);
-	SetActorEnableCollision(!bActive);
-
-	if (UChaosWheeledVehicleMovementComponent* MoveComp = Cast<UChaosWheeledVehicleMovementComponent>(GetVehicleMovement()))
-	{
-		MoveComp->SetThrottleInput(0.0f);
-		MoveComp->SetSteeringInput(0.0f);
-		MoveComp->SetBrakeInput(1.0f);
-		MoveComp->SetComponentTickEnabled(!bActive && bIsLocallyDriven);
-	}
-
-	if (USkeletalMeshComponent* TruckMesh = GetMesh())
-	{
-		TruckMesh->SetPhysicsLinearVelocity(FVector::ZeroVector);
-		TruckMesh->SetPhysicsAngularVelocityInDegrees(FVector::ZeroVector);
-		TruckMesh->SetEnableGravity(!bActive);
-		TruckMesh->SetSimulatePhysics(false);
-	}
-
-	if (MountedWeapon)
-	{
-		MountedWeapon->SetActorHiddenInGame(bActive);
-		MountedWeapon->SetActorEnableCollision(!bActive);
-		MountedWeapon->SetActorTickEnabled(!bActive);
-	}
-
-	if (!bActive)
-	{
-		SetActorTransform(Stage2DelayedSpawnTransform, false, nullptr, ETeleportType::TeleportPhysics);
-		SetLocallyDriven(false);
-	}
-}
-
-void ATruck::HandleStage2InitialTilesReady()
-{
-	if (Stage2SpawnDelayManager)
-	{
-		Stage2SpawnDelayManager->OnInitialTilesReady.RemoveAll(this);
-		Stage2SpawnDelayManager = nullptr;
-	}
-
-	SetStage2SpawnDelayActive(false);
 }
 
 void ATruck::Interact_Implementation(AFPSBaseCharacter* Character)

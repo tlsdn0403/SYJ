@@ -31,11 +31,9 @@ public:
 	RoomRef GetRoomRef();
 
 private:
-	void SpawnInitialZombies();
 	void UpdateZombies();
 	PlayerRef FindNearestPlayer(const Protocol::PosInfo& origin, float maxRange) const;
 	void BroadcastZombieMove(const MonsterRef& monster);
-	size_t GetConnectedPlayerCount() const;
 	bool AddObject(ObjectRef object);
 	bool RemoveObject(uint64 objectId);
 
@@ -68,14 +66,11 @@ private:
 private:
 	//[신우] 현재 2스테이지 트럭 적재함은 최대 4명까지 타는 구조로 서버에서 제한한다.
 	static constexpr size_t MAX_CARGO_OCCUPANTS = 4;
-	static constexpr size_t REQUIRED_STAGE2_PLAYER_COUNT = 3;
 
 	unordered_map<uint64, ObjectRef> _objects;
 	unordered_map<uint64, TruckState> _trucks;
 	unordered_map<uint64, bool> _doors;
-	vector<weak_ptr<GameSession>> _pendingReadySessions;
 	vector<PendingZombieDespawn> _pendingZombieDespawns;
-	bool _hasSpawnedInitialZombies = false;
 };
 
 extern RoomRef GRoom;

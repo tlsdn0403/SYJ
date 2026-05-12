@@ -69,19 +69,9 @@ public:
 	void CacheDoorActors();
 	bool IsConnectedToGameServer() const;
 	bool ShouldUseLocalInteractionFallback() const;
-	bool ShouldDelayStage2Spawn() const;
 	bool ShouldDelayEnterGameRequest() const;
-	bool AreStage2ActorsReadyToReveal() const;
 	void RequestEnterGameWhenReady();
 	bool TrySendEnterGamePacket();
-	bool TryResolveDeferredLocalSpawn();
-	bool TryResolveDeferredStage2WorldActors();
-	void SetStage2WorldActorsHidden(bool bHidden);
-	void DeferLocalSpawn(const Protocol::ObjectInfo& ObjectInfo, class AFPSBaseCharacter* LocalPlayer);
-	void ApplyResolvedSpawn(class AFPSBaseCharacter* LocalPlayer, const FVector& SpawnLocation);
-	bool TrySnapActorToStage2Floor(class AActor* Actor, FVector& InOutLocation, const FVector* PreferredAnchor = nullptr) const;
-	bool IsStage2SpawnLocationBlockedByTruck(const FVector& Location, const class AFPSBaseCharacter* LocalPlayer) const;
-	bool TryFindSafeStage2PlayerSpawn(class AFPSBaseCharacter* LocalPlayer, FVector& InOutLocation, const FVector& SpawnAnchor);
 	bool TryPickupWeaponLocally(class AFPSBaseCharacter* Character, class AWeaponBase* Weapon);
 	bool TryEnterTruckLocally(class AFPSBaseCharacter* Character, class ATruck* Truck, Protocol::TruckSeatType SeatType);
 	bool TryExitTruckLocally(class AFPSBaseCharacter* Character);
@@ -122,10 +112,6 @@ public:
 	TMap<uint64, AActor*> FieldItems;
 
 	TMap<uint64, FPendingEquippedWeapon> PendingWeaponsByPlayer;
-	bool bHasPendingLocalSpawnInfo = false;
-	Protocol::ObjectInfo PendingLocalSpawnInfo;
-	bool bHasResolvedInitialStage2WorldActors = false;
-	bool bStage2WorldActorsHidden = false;
 	bool bPendingEnterGameRequest = false;
 	bool bEnterGamePacketSent = false;
 

@@ -216,11 +216,6 @@ protected:
 	int32 CurrentMedKitCount = 0;
 
 	void AddCargoVisual(EItemType ItemType);
-	bool TryDelayStage2SpawnUntilReady();
-	void SetStage2SpawnDelayActive(bool bActive);
-
-	UFUNCTION()
-	void HandleStage2InitialTilesReady();
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Audio")
 	UAudioComponent* EngineAudioComponent;
@@ -311,13 +306,4 @@ private:
 	AFPSBaseCharacter* DriverCharacter = nullptr;
 
 	TMap<TObjectPtr<ABaseZombie>, float> LastZombieImpactTimes;
-
-	UPROPERTY(Transient)
-	TObjectPtr<AStage2TileManager> Stage2SpawnDelayManager = nullptr;
-
-	UPROPERTY(Transient)
-	FTransform Stage2DelayedSpawnTransform;
-
-	UPROPERTY(Transient)
-	bool bWaitingForStage2InitialTiles = false;
 };

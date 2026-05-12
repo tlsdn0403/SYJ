@@ -2,7 +2,7 @@
 #include "GameSession.h"
 #include "GameSessionManager.h"
 #include "ServerPacketHandler.h"
-//#include "Room.h"
+#include "Room.h"
 
 void GameSession::OnConnected()
 {
@@ -11,6 +11,11 @@ void GameSession::OnConnected()
 
 void GameSession::OnDisconnected()
 {
+	if (GRoom)
+	{
+		GRoom->DoAsync(&Room::RemovePendingReadySession, static_pointer_cast<GameSession>(shared_from_this()));
+	}
+
 	GSessionManager.Remove(static_pointer_cast<GameSession>(shared_from_this()));
 }
 

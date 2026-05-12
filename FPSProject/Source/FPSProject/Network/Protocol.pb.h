@@ -93,6 +93,9 @@ extern S_DESPAWNDefaultTypeInternal _S_DESPAWN_default_instance_;
 class S_ENTER_GAME;
 struct S_ENTER_GAMEDefaultTypeInternal;
 extern S_ENTER_GAMEDefaultTypeInternal _S_ENTER_GAME_default_instance_;
+class S_ENTER_GAME_READY_COUNT;
+struct S_ENTER_GAME_READY_COUNTDefaultTypeInternal;
+extern S_ENTER_GAME_READY_COUNTDefaultTypeInternal _S_ENTER_GAME_READY_COUNT_default_instance_;
 class S_ENTER_TRUCK;
 struct S_ENTER_TRUCKDefaultTypeInternal;
 extern S_ENTER_TRUCKDefaultTypeInternal _S_ENTER_TRUCK_default_instance_;
@@ -152,6 +155,7 @@ template<> ::Protocol::C_TRUCK_MOVE* Arena::CreateMaybeMessage<::Protocol::C_TRU
 template<> ::Protocol::S_CHAT* Arena::CreateMaybeMessage<::Protocol::S_CHAT>(Arena*);
 template<> ::Protocol::S_DESPAWN* Arena::CreateMaybeMessage<::Protocol::S_DESPAWN>(Arena*);
 template<> ::Protocol::S_ENTER_GAME* Arena::CreateMaybeMessage<::Protocol::S_ENTER_GAME>(Arena*);
+template<> ::Protocol::S_ENTER_GAME_READY_COUNT* Arena::CreateMaybeMessage<::Protocol::S_ENTER_GAME_READY_COUNT>(Arena*);
 template<> ::Protocol::S_ENTER_TRUCK* Arena::CreateMaybeMessage<::Protocol::S_ENTER_TRUCK>(Arena*);
 template<> ::Protocol::S_EQUIP_WEAPON* Arena::CreateMaybeMessage<::Protocol::S_EQUIP_WEAPON>(Arena*);
 template<> ::Protocol::S_EXIT_TRUCK* Arena::CreateMaybeMessage<::Protocol::S_EXIT_TRUCK>(Arena*);
@@ -4692,6 +4696,165 @@ class S_TOGGLE_DOOR final :
   union { Impl_ _impl_; };
   friend struct ::TableStruct_Protocol_2eproto;
 };
+// -------------------------------------------------------------------
+
+class S_ENTER_GAME_READY_COUNT final :
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:Protocol.S_ENTER_GAME_READY_COUNT) */ {
+ public:
+  inline S_ENTER_GAME_READY_COUNT() : S_ENTER_GAME_READY_COUNT(nullptr) {}
+  ~S_ENTER_GAME_READY_COUNT() override;
+  explicit PROTOBUF_CONSTEXPR S_ENTER_GAME_READY_COUNT(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized);
+
+  S_ENTER_GAME_READY_COUNT(const S_ENTER_GAME_READY_COUNT& from);
+  S_ENTER_GAME_READY_COUNT(S_ENTER_GAME_READY_COUNT&& from) noexcept
+    : S_ENTER_GAME_READY_COUNT() {
+    *this = ::std::move(from);
+  }
+
+  inline S_ENTER_GAME_READY_COUNT& operator=(const S_ENTER_GAME_READY_COUNT& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline S_ENTER_GAME_READY_COUNT& operator=(S_ENTER_GAME_READY_COUNT&& from) noexcept {
+    if (this == &from) return *this;
+    if (GetOwningArena() == from.GetOwningArena()
+  #ifdef PROTOBUF_FORCE_COPY_IN_MOVE
+        && GetOwningArena() != nullptr
+  #endif  // !PROTOBUF_FORCE_COPY_IN_MOVE
+    ) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* descriptor() {
+    return GetDescriptor();
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Reflection* GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const S_ENTER_GAME_READY_COUNT& default_instance() {
+    return *internal_default_instance();
+  }
+  static inline const S_ENTER_GAME_READY_COUNT* internal_default_instance() {
+    return reinterpret_cast<const S_ENTER_GAME_READY_COUNT*>(
+               &_S_ENTER_GAME_READY_COUNT_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    29;
+
+  friend void swap(S_ENTER_GAME_READY_COUNT& a, S_ENTER_GAME_READY_COUNT& b) {
+    a.Swap(&b);
+  }
+  inline void Swap(S_ENTER_GAME_READY_COUNT* other) {
+    if (other == this) return;
+  #ifdef PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() != nullptr &&
+        GetOwningArena() == other->GetOwningArena()) {
+   #else  // PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() == other->GetOwningArena()) {
+  #endif  // !PROTOBUF_FORCE_COPY_IN_SWAP
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(S_ENTER_GAME_READY_COUNT* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetOwningArena() == other->GetOwningArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  S_ENTER_GAME_READY_COUNT* New(::PROTOBUF_NAMESPACE_ID::Arena* arena = nullptr) const final {
+    return CreateMaybeMessage<S_ENTER_GAME_READY_COUNT>(arena);
+  }
+  using ::PROTOBUF_NAMESPACE_ID::Message::CopyFrom;
+  void CopyFrom(const S_ENTER_GAME_READY_COUNT& from);
+  using ::PROTOBUF_NAMESPACE_ID::Message::MergeFrom;
+  void MergeFrom( const S_ENTER_GAME_READY_COUNT& from) {
+    S_ENTER_GAME_READY_COUNT::MergeImpl(*this, from);
+  }
+  private:
+  static void MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg);
+  public:
+  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
+  uint8_t* _InternalSerialize(
+      uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
+  int GetCachedSize() const final { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::PROTOBUF_NAMESPACE_ID::Arena* arena, bool is_message_owned);
+  void SharedDtor();
+  void SetCachedSize(int size) const final;
+  void InternalSwap(S_ENTER_GAME_READY_COUNT* other);
+
+  private:
+  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
+  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
+    return "Protocol.S_ENTER_GAME_READY_COUNT";
+  }
+  protected:
+  explicit S_ENTER_GAME_READY_COUNT(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                       bool is_message_owned = false);
+  public:
+
+  static const ClassData _class_data_;
+  const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*GetClassData() const final;
+
+  ::PROTOBUF_NAMESPACE_ID::Metadata GetMetadata() const final;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  enum : int {
+    kReadyCountFieldNumber = 1,
+    kRequiredCountFieldNumber = 2,
+  };
+  // int32 ready_count = 1;
+  void clear_ready_count();
+  int32_t ready_count() const;
+  void set_ready_count(int32_t value);
+  private:
+  int32_t _internal_ready_count() const;
+  void _internal_set_ready_count(int32_t value);
+  public:
+
+  // int32 required_count = 2;
+  void clear_required_count();
+  int32_t required_count() const;
+  void set_required_count(int32_t value);
+  private:
+  int32_t _internal_required_count() const;
+  void _internal_set_required_count(int32_t value);
+  public:
+
+  // @@protoc_insertion_point(class_scope:Protocol.S_ENTER_GAME_READY_COUNT)
+ private:
+  class _Internal;
+
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  struct Impl_ {
+    int32_t ready_count_;
+    int32_t required_count_;
+    mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_Protocol_2eproto;
+};
 // ===================================================================
 
 
@@ -6228,9 +6391,55 @@ inline void S_TOGGLE_DOOR::set_is_open(bool value) {
   // @@protoc_insertion_point(field_set:Protocol.S_TOGGLE_DOOR.is_open)
 }
 
+// -------------------------------------------------------------------
+
+// S_ENTER_GAME_READY_COUNT
+
+// int32 ready_count = 1;
+inline void S_ENTER_GAME_READY_COUNT::clear_ready_count() {
+  _impl_.ready_count_ = 0;
+}
+inline int32_t S_ENTER_GAME_READY_COUNT::_internal_ready_count() const {
+  return _impl_.ready_count_;
+}
+inline int32_t S_ENTER_GAME_READY_COUNT::ready_count() const {
+  // @@protoc_insertion_point(field_get:Protocol.S_ENTER_GAME_READY_COUNT.ready_count)
+  return _internal_ready_count();
+}
+inline void S_ENTER_GAME_READY_COUNT::_internal_set_ready_count(int32_t value) {
+  
+  _impl_.ready_count_ = value;
+}
+inline void S_ENTER_GAME_READY_COUNT::set_ready_count(int32_t value) {
+  _internal_set_ready_count(value);
+  // @@protoc_insertion_point(field_set:Protocol.S_ENTER_GAME_READY_COUNT.ready_count)
+}
+
+// int32 required_count = 2;
+inline void S_ENTER_GAME_READY_COUNT::clear_required_count() {
+  _impl_.required_count_ = 0;
+}
+inline int32_t S_ENTER_GAME_READY_COUNT::_internal_required_count() const {
+  return _impl_.required_count_;
+}
+inline int32_t S_ENTER_GAME_READY_COUNT::required_count() const {
+  // @@protoc_insertion_point(field_get:Protocol.S_ENTER_GAME_READY_COUNT.required_count)
+  return _internal_required_count();
+}
+inline void S_ENTER_GAME_READY_COUNT::_internal_set_required_count(int32_t value) {
+  
+  _impl_.required_count_ = value;
+}
+inline void S_ENTER_GAME_READY_COUNT::set_required_count(int32_t value) {
+  _internal_set_required_count(value);
+  // @@protoc_insertion_point(field_set:Protocol.S_ENTER_GAME_READY_COUNT.required_count)
+}
+
 #ifdef __GNUC__
   #pragma GCC diagnostic pop
 #endif  // __GNUC__
+// -------------------------------------------------------------------
+
 // -------------------------------------------------------------------
 
 // -------------------------------------------------------------------

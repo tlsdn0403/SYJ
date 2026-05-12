@@ -166,3 +166,9 @@ message S_TOGGLE_DOOR
 	uint64 door_id = 1;
 	bool is_open = 2;
 }
+
+message S_ENTER_GAME_READY_COUNT
+{
+	int32 ready_count = 1;
+	int32 required_count = 2;
+}

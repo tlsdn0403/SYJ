@@ -8,6 +8,8 @@
 #include "Items/LootItemBase.h"
 #include "FPSProjectGameInstance.generated.h"
 
+class UUserWidget;
+
 /**
  * 
  */
@@ -55,6 +57,7 @@ public:
 	void HandleExitTruck(const Protocol::S_EXIT_TRUCK& pkt);
 	void HandleTruckMove(const Protocol::S_TRUCK_MOVE& pkt);
 	void HandleToggleDoor(const Protocol::S_TOGGLE_DOOR& pkt);
+	void HandleEnterGameReadyCount(const Protocol::S_ENTER_GAME_READY_COUNT& pkt);
 
 	void HandleEquipWeapon(const Protocol::S_EQUIP_WEAPON& pkt);
 	void HandleSpawnItem(const Protocol::S_SPAWN_ITEM& pkt);
@@ -72,6 +75,10 @@ public:
 	bool ShouldDelayEnterGameRequest() const;
 	void RequestEnterGameWhenReady();
 	bool TrySendEnterGamePacket();
+	void SetEntryLoadingWidgetClass(TSubclassOf<UUserWidget> WidgetClass);
+	void ShowEntryLoadingWidget();
+	void RegisterEntryLoadingWidget(UUserWidget* Widget);
+	void RemoveEntryLoadingWidget();
 	bool TryPickupWeaponLocally(class AFPSBaseCharacter* Character, class AWeaponBase* Weapon);
 	bool TryEnterTruckLocally(class AFPSBaseCharacter* Character, class ATruck* Truck, Protocol::TruckSeatType SeatType);
 	bool TryExitTruckLocally(class AFPSBaseCharacter* Character);
@@ -84,6 +91,7 @@ public:
 	int32 GetRecordedStage1CargoItemCount(EItemType ItemType) const;
 
 public:
+	virtual void Init() override;
 	virtual void Shutdown() override;
 	virtual void Tick(float DeltaTime) override;
 	virtual TStatId GetStatId() const override;
@@ -124,5 +132,15 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Network|Class")
 	TSubclassOf<class AWeaponBase> DefaultEquippedWeaponClass;	// 손에 장착된 무기 스폰할 때 사용할 기본 무기 클래스
 
+	UPROPERTY()
+	TObjectPtr<UUserWidget> EntryLoadingWidget = nullptr;
+
+	UPROPERTY()
+	TSubclassOf<UUserWidget> EntryLoadingWidgetClass;
+
 private:
+	void HandlePostLoadMap(UWorld* LoadedWorld);
+	void ApplyEntryLoadingReadyCount(int32 ReadyCount);
+	bool bShouldShowEntryLoadingWidget = false;
+	int32 CachedEntryLoadingReadyCount = 0;
 };

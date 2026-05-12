@@ -15,6 +15,7 @@ public:
 
 	bool HandleEnterPlayer(PlayerRef player);
 	void HandleReadyPlayer(GameSessionRef session);
+	void RemovePendingReadySession(GameSessionRef session);
 	bool HandleLeavePlayer(PlayerRef player);
 	void HandleMove(PlayerRef player, Protocol::C_MOVE pkt);
 	void HandleHitZombie(PlayerRef player, Protocol::C_HIT_ZOMBIE pkt);
@@ -39,6 +40,7 @@ private:
 
 private:
 	void Broadcast(SendBufferRef sendBuffer, uint64 exceptId = 0);
+	void BroadcastPendingReadyCount();
 
 	struct TruckState
 	{
@@ -66,10 +68,12 @@ private:
 private:
 	//[신우] 현재 2스테이지 트럭 적재함은 최대 4명까지 타는 구조로 서버에서 제한한다.
 	static constexpr size_t MAX_CARGO_OCCUPANTS = 4;
+	static constexpr size_t REQUIRED_STAGE2_PLAYER_COUNT = 3;
 
 	unordered_map<uint64, ObjectRef> _objects;
 	unordered_map<uint64, TruckState> _trucks;
 	unordered_map<uint64, bool> _doors;
+	vector<weak_ptr<GameSession>> _pendingReadySessions;
 	vector<PendingZombieDespawn> _pendingZombieDespawns;
 };
 

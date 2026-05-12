@@ -39,6 +39,7 @@ enum : uint16
 	PKT_S_TRUCK_MOVE = 1026,
 	PKT_C_TOGGLE_DOOR = 1027,
 	PKT_S_TOGGLE_DOOR = 1028,
+	PKT_S_ENTER_GAME_READY_COUNT = 1029,
 };
 
 // Custom Handlers
@@ -99,6 +100,7 @@ public:
 	static SendBufferRef MakeSendBuffer(Protocol::S_EXIT_TRUCK& pkt) { return MakeSendBuffer(pkt, PKT_S_EXIT_TRUCK); }
 	static SendBufferRef MakeSendBuffer(Protocol::S_TRUCK_MOVE& pkt) { return MakeSendBuffer(pkt, PKT_S_TRUCK_MOVE); }
 	static SendBufferRef MakeSendBuffer(Protocol::S_TOGGLE_DOOR& pkt) { return MakeSendBuffer(pkt, PKT_S_TOGGLE_DOOR); }
+	static SendBufferRef MakeSendBuffer(Protocol::S_ENTER_GAME_READY_COUNT& pkt) { return MakeSendBuffer(pkt, PKT_S_ENTER_GAME_READY_COUNT); }
 
 private:
 	template<typename PacketType, typename ProcessFunc>

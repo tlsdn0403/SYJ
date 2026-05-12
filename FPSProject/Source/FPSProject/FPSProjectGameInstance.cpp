@@ -22,6 +22,15 @@
 #include "Stage2/Stage2TileManager.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/BoxComponent.h"
+#include "Blueprint/UserWidget.h"
+#include "UObject/UObjectGlobals.h"
+#include "HUD/LoadingUI.h"
+
+void UFPSProjectGameInstance::Init()
+{
+	Super::Init();
+	FCoreUObjectDelegates::PostLoadMapWithWorld.AddUObject(this, &UFPSProjectGameInstance::HandlePostLoadMap);
+}
 
 void UFPSProjectGameInstance::ConnectToGameServer(const FString& IPAddress)
 {
@@ -199,6 +208,8 @@ void UFPSProjectGameInstance::RequestEnterGameWhenReady()
 {
 	bPendingEnterGameRequest = true;
 	bEnterGamePacketSent = false;
+	bShouldShowEntryLoadingWidget = true;
+	CachedEntryLoadingReadyCount = 0;
 }
 
 bool UFPSProjectGameInstance::TrySendEnterGamePacket()
@@ -227,6 +238,90 @@ bool UFPSProjectGameInstance::TrySendEnterGamePacket()
 	bPendingEnterGameRequest = false;
 	UE_LOG(LogTemp, Warning, TEXT("[Network] Stage2 ready check passed. C_ENTER_GAME 전송 완료!"));
 	return true;
+}
+
+void UFPSProjectGameInstance::SetEntryLoadingWidgetClass(TSubclassOf<UUserWidget> WidgetClass)
+{
+	EntryLoadingWidgetClass = WidgetClass;
+	CachedEntryLoadingReadyCount = 0;
+}
+
+void UFPSProjectGameInstance::ShowEntryLoadingWidget()
+{
+	bShouldShowEntryLoadingWidget = true;
+
+	if (EntryLoadingWidget)
+	{
+		return;
+	}
+
+	if (!EntryLoadingWidgetClass)
+	{
+		return;
+	}
+
+	UWorld* World = GetWorld();
+	if (World == nullptr)
+	{
+		return;
+	}
+
+	UUserWidget* Widget = CreateWidget<UUserWidget>(World, EntryLoadingWidgetClass);
+	if (Widget == nullptr)
+	{
+		return;
+	}
+
+	Widget->AddToViewport();
+	RegisterEntryLoadingWidget(Widget);
+}
+
+void UFPSProjectGameInstance::RegisterEntryLoadingWidget(UUserWidget* Widget)
+{
+	EntryLoadingWidget = Widget;
+	ApplyEntryLoadingReadyCount(CachedEntryLoadingReadyCount);
+}
+
+void UFPSProjectGameInstance::RemoveEntryLoadingWidget()
+{
+	bShouldShowEntryLoadingWidget = false;
+
+	if (EntryLoadingWidget)
+	{
+		EntryLoadingWidget->RemoveFromParent();
+		EntryLoadingWidget = nullptr;
+	}
+}
+
+void UFPSProjectGameInstance::HandlePostLoadMap(UWorld* LoadedWorld)
+{
+	(void)LoadedWorld;
+
+	if (EntryLoadingWidget)
+	{
+		EntryLoadingWidget->RemoveFromParent();
+		EntryLoadingWidget = nullptr;
+	}
+
+	if (bShouldShowEntryLoadingWidget)
+	{
+		ShowEntryLoadingWidget();
+	}
+}
+
+void UFPSProjectGameInstance::ApplyEntryLoadingReadyCount(int32 ReadyCount)
+{
+	CachedEntryLoadingReadyCount = ReadyCount;
+
+	ULoadingUI* LoadingUI = Cast<ULoadingUI>(EntryLoadingWidget);
+	if (LoadingUI == nullptr)
+	{
+		return;
+	}
+
+	LoadingUI->logout();
+	LoadingUI->OnlineP = FMath::Clamp(ReadyCount, 0, 3);
+	LoadingUI->connect(LoadingUI->OnlineP);
 }
 
 void UFPSProjectGameInstance::RecordStage1CargoItems(const TArray<EItemType>& Items)
@@ -463,6 +558,7 @@ void UFPSProjectGameInstance::HandleSpawn(const Protocol::ObjectInfo& ObjectInfo
 
 void UFPSProjectGameInstance::HandleSpawn(const Protocol::S_ENTER_GAME& EnterGamePkt)
 {
+	RemoveEntryLoadingWidget();
 	HandleSpawn(EnterGamePkt.player(), true);
 }
 
@@ -888,6 +984,11 @@ void UFPSProjectGameInstance::HandleToggleDoor(const Protocol::S_TOGGLE_DOOR& pk
 	}
 }
 
+void UFPSProjectGameInstance::HandleEnterGameReadyCount(const Protocol::S_ENTER_GAME_READY_COUNT& pkt)
+{
+	ApplyEntryLoadingReadyCount(pkt.ready_count());
+}
+
 void UFPSProjectGameInstance::HandleEquipWeapon(const Protocol::S_EQUIP_WEAPON& pkt)
 {
 	ApplyEquippedWeapon(pkt.playerid(), pkt.itemobjectid(), pkt.weapontype());
@@ -1069,6 +1170,8 @@ void UFPSProjectGameInstance::HandleFire(const Protocol::S_FIRE& pkt)
 
 void UFPSProjectGameInstance::Shutdown()
 {
+	FCoreUObjectDelegates::PostLoadMapWithWorld.RemoveAll(this);
+	RemoveEntryLoadingWidget();
 	// 게임이 꺼질 때 뒤끝이 없도록 소켓 연결부터 확실히 끊어줍니다.
 	DisconnectFromGameServer();
 

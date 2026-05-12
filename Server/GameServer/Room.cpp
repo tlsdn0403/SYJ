@@ -296,8 +296,102 @@ void Room::HandleReadyPlayer(GameSessionRef session)
 		return;
 	}
 
-	PlayerRef player = ObjectUtils::CreatePlayer(session);
-	HandleEnterPlayer(player);
+	vector<weak_ptr<GameSession>> CleanedPendingSessions;
+	CleanedPendingSessions.reserve(_pendingReadySessions.size() + 1);
+
+	bool bAlreadyQueued = false;
+	size_t ValidReadyCount = 0;
+	for (const weak_ptr<GameSession>& PendingSessionWeak : _pendingReadySessions)
+	{
+		GameSessionRef PendingSession = PendingSessionWeak.lock();
+		if (PendingSession == nullptr || PendingSession->player.load() != nullptr)
+		{
+			continue;
+		}
+
+		if (PendingSession.get() == session.get())
+		{
+			bAlreadyQueued = true;
+		}
+
+		CleanedPendingSessions.push_back(PendingSession);
+		++ValidReadyCount;
+	}
+
+	if (!bAlreadyQueued)
+	{
+		CleanedPendingSessions.push_back(session);
+		++ValidReadyCount;
+	}
+
+	_pendingReadySessions.swap(CleanedPendingSessions);
+	BroadcastPendingReadyCount();
+
+	if (ValidReadyCount < REQUIRED_STAGE2_PLAYER_COUNT)
+	{
+		return;
+	}
+
+	vector<GameSessionRef> SessionsToEnter;
+	vector<weak_ptr<GameSession>> RemainingSessions;
+	SessionsToEnter.reserve(REQUIRED_STAGE2_PLAYER_COUNT);
+
+	for (const weak_ptr<GameSession>& PendingSessionWeak : _pendingReadySessions)
+	{
+		GameSessionRef PendingSession = PendingSessionWeak.lock();
+		if (PendingSession == nullptr || PendingSession->player.load() != nullptr)
+		{
+			continue;
+		}
+
+		if (SessionsToEnter.size() < REQUIRED_STAGE2_PLAYER_COUNT)
+		{
+			SessionsToEnter.push_back(PendingSession);
+		}
+		else
+		{
+			RemainingSessions.push_back(PendingSession);
+		}
+	}
+
+	_pendingReadySessions.swap(RemainingSessions);
+	BroadcastPendingReadyCount();
+
+	for (const GameSessionRef& ReadySession : SessionsToEnter)
+	{
+		PlayerRef player = ObjectUtils::CreatePlayer(ReadySession);
+		HandleEnterPlayer(player);
+	}
+}
+
+void Room::RemovePendingReadySession(GameSessionRef session)
+{
+	if (session == nullptr)
+	{
+		return;
+	}
+
+	vector<weak_ptr<GameSession>> RemainingSessions;
+	RemainingSessions.reserve(_pendingReadySessions.size());
+
+	for (const weak_ptr<GameSession>& PendingSessionWeak : _pendingReadySessions)
+	{
+		GameSessionRef PendingSession = PendingSessionWeak.lock();
+		if (PendingSession == nullptr || PendingSession->player.load() != nullptr)
+		{
+			continue;
+		}
+
+		if (PendingSession.get() == session.get())
+		{
+			continue;
+		}
+
+		RemainingSessions.push_back(PendingSession);
+	}
+
+	_pendingReadySessions.swap(RemainingSessions);
+	BroadcastPendingReadyCount();
 }
 
 namespace
@@ -768,5 +862,37 @@ void Room::Broadcast(SendBufferRef sendBuffer, uint64 exceptId)
 
 		if (GameSessionRef session = player->session.lock())
 			session->Send(sendBuffer);
+	}
+}
+
+void Room::BroadcastPendingReadyCount()
+{
+	vector<weak_ptr<GameSession>> CleanedPendingSessions;
+	CleanedPendingSessions.reserve(_pendingReadySessions.size());
+
+	for (const weak_ptr<GameSession>& PendingSessionWeak : _pendingReadySessions)
+	{
+		GameSessionRef PendingSession = PendingSessionWeak.lock();
+		if (PendingSession == nullptr || PendingSession->player.load() != nullptr)
+		{
+			continue;
+		}
+
+		CleanedPendingSessions.push_back(PendingSession);
+	}
+
+	_pendingReadySessions.swap(CleanedPendingSessions);
+
+	Protocol::S_ENTER_GAME_READY_COUNT readyCountPkt;
+	readyCountPkt.set_ready_count(static_cast<int32>(_pendingReadySessions.size()));
+	readyCountPkt.set_required_count(static_cast<int32>(REQUIRED_STAGE2_PLAYER_COUNT));
+
+	SendBufferRef sendBuffer = ServerPacketHandler::MakeSendBuffer(readyCountPkt);
+	for (const weak_ptr<GameSession>& PendingSessionWeak : _pendingReadySessions)
+	{
+		if (GameSessionRef PendingSession = PendingSessionWeak.lock())
+		{
+			PendingSession->Send(sendBuffer);
+		}
 	}
 }

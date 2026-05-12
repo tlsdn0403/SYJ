@@ -26,6 +26,9 @@ private:
 	float MovingTruckSpeedThreshold = 120.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Truck", meta = (AllowPrivateAccess = "true", ClampMin = "0.0"))
+	float StoppedTruckSpeedThreshold = 60.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Truck", meta = (AllowPrivateAccess = "true", ClampMin = "0.0"))
 	float MovingTruckAcceptanceRadius = 80.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Fall Zone", meta = (AllowPrivateAccess = "true"))
@@ -46,12 +49,17 @@ private:
 	TWeakObjectPtr<AActor> LastIssuedTargetActor;
 	FVector LastIssuedFallZoneLocation = FVector::ZeroVector;
 	bool bHasLastIssuedFallZoneLocation = false;
+	bool bHasLastIssuedMovingTruckSetting = false;
+	bool bLastIssuedMovingTruckSetting = false;
+	TWeakObjectPtr<AActor> LastEvaluatedTruckTarget;
+	bool bHasTruckChaseMode = false;
+	bool bTruckChaseMode = false;
 
 	void ResetMoveRequestState();
 	bool RequestChaseMove(AAIController* AIController, AActor* TargetActor, bool bForceRequest);
 	bool RequestFallZoneMove(AAIController* AIController, const FVector& FallZoneLocation, bool bForceRequest);
 	bool TryUseFallZone(AAIController* AIController, ABaseZombie* ZombieCharacter, AActor* TargetActor);
-	bool IsTargetInStopDistance(ABaseZombie* ZombieCharacter, AActor* TargetActor) const;
-	bool IsMovingTruckTarget(AActor* TargetActor) const;
+	bool IsTargetInStopDistance(ABaseZombie* ZombieCharacter, AActor* TargetActor);
+	bool ShouldUseMovingTruckChase(AActor* TargetActor);
 	float GetChaseAcceptanceRadius(AActor* TargetActor) const;
 };

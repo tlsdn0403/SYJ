@@ -33,9 +33,13 @@ UBTTask_Attack::UBTTask_Attack()
 bool UBTTask_Attack::ShouldSkipMovingTruckAttack(AActor* TargetActor) const
 {
 	const ATruck* Truck = Cast<ATruck>(TargetActor);
+	constexpr float MaxRollingTruckAttackSpeedThreshold = 60.0f;
+	const float EffectiveThreshold = MovingTruckAttackSpeedThreshold > 0.0f
+		? FMath::Min(MovingTruckAttackSpeedThreshold, MaxRollingTruckAttackSpeedThreshold)
+		: 0.0f;
 	return Truck &&
-		MovingTruckAttackSpeedThreshold > 0.0f &&
-		Truck->GetVelocity().SizeSquared2D() >= FMath::Square(MovingTruckAttackSpeedThreshold);
+		EffectiveThreshold > 0.0f &&
+		Truck->GetVelocity().SizeSquared2D() >= FMath::Square(EffectiveThreshold);
 }
 
 EBTNodeResult::Type UBTTask_Attack::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)

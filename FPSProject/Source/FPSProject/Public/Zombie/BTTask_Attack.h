@@ -22,7 +22,7 @@ protected:
 
 private:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Truck", meta = (AllowPrivateAccess = "true", ClampMin = "0.0"))
-	float MovingTruckAttackSpeedThreshold = 120.0f;
+	float MovingTruckAttackSpeedThreshold = 60.0f;
 
 	bool ShouldSkipMovingTruckAttack(AActor* TargetActor) const;
 };

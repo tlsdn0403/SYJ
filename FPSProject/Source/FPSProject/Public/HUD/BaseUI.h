@@ -40,6 +40,13 @@ protected:
 	UPROPERTY(meta = (BindWidgetAnim, AllowPrivateAccess), Transient)
 	UWidgetAnimation* TPopUp;	
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sound")
+	USoundWave* Boom;
+
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sound")
+	USoundWave* ClockS;
+
 public:
 
 	int32 totalTime = 30; // 5 minutes in seconds

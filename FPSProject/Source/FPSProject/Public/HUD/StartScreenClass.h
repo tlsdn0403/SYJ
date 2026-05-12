@@ -43,6 +43,10 @@ protected:
 
 public:
 
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
+	TSubclassOf<UUserWidget> LoadingUIClass;
+
 	UPROPERTY(meta = (BindWidget))
 	class UButton* LoginButton;
 	UFUNCTION()

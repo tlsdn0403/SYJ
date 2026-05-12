@@ -5,6 +5,8 @@
 #include "Components/TextBlock.h"
 #include "EngineUtils.h"
 #include "Truck/Truck.h"
+#include "Sound/SoundWave.h"
+#include "Kismet/GameplayStatics.h"
 
 /*
 NativeOnInitialized : 위젯이 생성될 때 딱 한 번 호출,  에디터 편집 시에도 생성될 때 호출
@@ -38,14 +40,20 @@ void UBaseUI:: UpdateTimer()
 			TimerText->SetText(FText::FromString(TEXT("00:00")));
 		}
 		FinishTruckLoadingPhase();
-		GetWorld()->GetTimerManager().ClearTimer(TimerHandle);
+		GetWorld()->GetTimerManager().ClearTimer(TimerHandle); 
+		if(Boom) UGameplayStatics::PlaySound2D(this, Boom);  // 타이머 터뜨리기
+
+		StopAllAnimations();
+		this->RemoveFromParent();
 		return;
 	}
 	if (totalTime <= 5) {
+		if (ClockS) UGameplayStatics::PlaySound2D(this, ClockS);
 		PlayAni_PopUp();
 	}
 	else if (totalTime <= 20)	//20초 이하일 때 진동 애니메이션 실행
 	{
+		if (ClockS) UGameplayStatics::PlaySound2D(this, ClockS);
 		PlayAni_Vibration();
 	}
 

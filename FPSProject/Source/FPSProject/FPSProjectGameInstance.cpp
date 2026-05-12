@@ -10,6 +10,7 @@
 #include "ClientPacketHandler.h"
 #include "AIController.h"
 #include "Characters/FPSBaseCharacter.h"
+#include "Characters/FPSPlayerController.h"
 #include "Truck/Truck.h"
 #include "Weapon/MountedMachineGun.h"
 #include "ADoor.h"
@@ -24,7 +25,10 @@
 #include "Components/BoxComponent.h"
 #include "Blueprint/UserWidget.h"
 #include "UObject/UObjectGlobals.h"
+#include "HUD/BaseUI.h"
 #include "HUD/LoadingUI.h"
+#include "Items/Stage1ItemSpawnPoint.h"
+#include "Algo/Sort.h"
 
 void UFPSProjectGameInstance::Init()
 {
@@ -210,6 +214,9 @@ void UFPSProjectGameInstance::RequestEnterGameWhenReady()
 	bEnterGamePacketSent = false;
 	bShouldShowEntryLoadingWidget = true;
 	CachedEntryLoadingReadyCount = 0;
+	CachedStage1ItemSpawnSeed = 0;
+	bHasStage1ItemSpawnSeed = false;
+	bHasAppliedStage1ItemSpawns = false;
 }
 
 bool UFPSProjectGameInstance::TrySendEnterGamePacket()
@@ -297,6 +304,15 @@ void UFPSProjectGameInstance::HandlePostLoadMap(UWorld* LoadedWorld)
 {
 	(void)LoadedWorld;
 
+	MyPlayer = nullptr;
+	Players.Empty();
+	Zombies.Empty();
+	Trucks.Empty();
+	Doors.Empty();
+	FieldItems.Empty();
+	NetworkLootItems.Empty();
+	PendingWeaponsByPlayer.Empty();
+
 	if (EntryLoadingWidget)
 	{
 		EntryLoadingWidget->RemoveFromParent();
@@ -307,6 +323,9 @@ void UFPSProjectGameInstance::HandlePostLoadMap(UWorld* LoadedWorld)
 	{
 		ShowEntryLoadingWidget();
 	}
+
+	bHasAppliedStage1ItemSpawns = false;
+	ApplyStage1ItemSpawnSeed();
 }
 
 void UFPSProjectGameInstance::ApplyEntryLoadingReadyCount(int32 ReadyCount)
@@ -345,6 +364,62 @@ int32 UFPSProjectGameInstance::GetRecordedStage1CargoItemCount(EItemType ItemTyp
 	}
 
 	return 0;
+}
+
+void UFPSProjectGameInstance::RegisterNetworkLootItem(ALootItemBase* LootItem)
+{
+	if (LootItem == nullptr)
+	{
+		return;
+	}
+
+	NetworkLootItems.FindOrAdd(LootItem->GetNetworkItemId()) = LootItem;
+}
+
+void UFPSProjectGameInstance::UnregisterNetworkLootItem(uint64 LootItemId)
+{
+	if (LootItemId == 0)
+	{
+		return;
+	}
+
+	NetworkLootItems.Remove(LootItemId);
+}
+
+ALootItemBase* UFPSProjectGameInstance::FindNetworkLootItemById(uint64 LootItemId)
+{
+	if (LootItemId == 0)
+	{
+		return nullptr;
+	}
+
+	if (TObjectPtr<ALootItemBase>* LootItemPtr = NetworkLootItems.Find(LootItemId))
+	{
+		return LootItemPtr->Get();
+	}
+
+	UWorld* World = GetWorld();
+	if (World == nullptr)
+	{
+		return nullptr;
+	}
+
+	for (TActorIterator<ALootItemBase> It(World); It; ++It)
+	{
+		ALootItemBase* LootItem = *It;
+		if (LootItem == nullptr)
+		{
+			continue;
+		}
+
+		if (LootItem->GetNetworkItemId() == LootItemId)
+		{
+			RegisterNetworkLootItem(LootItem);
+			return LootItem;
+		}
+	}
+
+	return nullptr;
 }
 
 bool UFPSProjectGameInstance::TryPickupWeaponLocally(AFPSBaseCharacter* Character, AWeaponBase* Weapon)
@@ -525,6 +600,7 @@ void UFPSProjectGameInstance::HandleSpawn(const Protocol::ObjectInfo& ObjectInfo
 				}
 				Players.Add(ObjectId, MyPlayer);
 				RetryPendingWeapon(ObjectId);
+				ApplyStageTimerToLocalUI();
 
 				UE_LOG(LogTemp, Warning,
 					TEXT("[TruckDebug] SpawnMine ObjectId=%llu MyPlayer=%s Local=%d Pawn=%s"),
@@ -588,6 +664,23 @@ void UFPSProjectGameInstance::HandleDespawn(uint64 ObjectId)
 		}
 
 		Zombies.Remove(ObjectId);
+		return;
+	}
+
+	if (AActor** ItemActor = FieldItems.Find(ObjectId))
+	{
+		if (AActor* Actor = *ItemActor)
+		{
+			World->DestroyActor(Actor);
+		}
+
+		FieldItems.Remove(ObjectId);
+		return;
+	}
+
+	if (ALootItemBase* LootItem = FindNetworkLootItemById(ObjectId))
+	{
+		LootItem->SetNetworkItemActive(false);
 		return;
 	}
 
@@ -987,6 +1080,89 @@ void UFPSProjectGameInstance::HandleToggleDoor(const Protocol::S_TOGGLE_DOOR& pk
 void UFPSProjectGameInstance::HandleEnterGameReadyCount(const Protocol::S_ENTER_GAME_READY_COUNT& pkt)
 {
 	ApplyEntryLoadingReadyCount(pkt.ready_count());
+}
+
+void UFPSProjectGameInstance::HandleStageTimer(const Protocol::S_STAGE_TIMER& pkt)
+{
+	CachedStageTimerRemainingSeconds = pkt.is_loading_phase() ? pkt.remaining_seconds() : 0;
+	ApplyStageTimerToLocalUI();
+}
+
+void UFPSProjectGameInstance::HandleStage1ItemSeed(const Protocol::S_STAGE1_ITEM_SEED& pkt)
+{
+	CachedStage1ItemSpawnSeed = pkt.seed();
+	bHasStage1ItemSpawnSeed = true;
+	bHasAppliedStage1ItemSpawns = false;
+	ApplyStage1ItemSpawnSeed();
+}
+
+void UFPSProjectGameInstance::HandleRespawnLootItem(const Protocol::S_RESPAWN_LOOT_ITEM& pkt)
+{
+	for (uint64 ItemId : pkt.item_object_ids())
+	{
+		if (ALootItemBase* LootItem = FindNetworkLootItemById(ItemId))
+		{
+			LootItem->SetNetworkItemActive(true);
+		}
+	}
+}
+
+void UFPSProjectGameInstance::ApplyStageTimerToLocalUI()
+{
+	if (CachedStageTimerRemainingSeconds == INDEX_NONE)
+		return;
+
+	AFPSPlayerController* PlayerController = Cast<AFPSPlayerController>(UGameplayStatics::GetPlayerController(this, 0));
+	if (PlayerController == nullptr || PlayerController->TimerW == nullptr)
+		return;
+
+	PlayerController->TimerW->SetRemainingTime(CachedStageTimerRemainingSeconds);
+}
+
+void UFPSProjectGameInstance::ApplyStage1ItemSpawnSeed()
+{
+	if (!bHasStage1ItemSpawnSeed || bHasAppliedStage1ItemSpawns)
+	{
+		return;
+	}
+
+	UWorld* World = GetWorld();
+	if (World == nullptr)
+	{
+		return;
+	}
+
+	TArray<AStage1ItemSpawnPoint*> SpawnPoints;
+	for (TActorIterator<AStage1ItemSpawnPoint> It(World); It; ++It)
+	{
+		if (AStage1ItemSpawnPoint* SpawnPoint = *It)
+		{
+			SpawnPoints.Add(SpawnPoint);
+		}
+	}
+
+	Algo::SortBy(SpawnPoints, [](const AStage1ItemSpawnPoint* SpawnPoint)
+	{
+		return GetPathNameSafe(SpawnPoint);
+	});
+
+	FRandomStream RandomStream(static_cast<int32>(CachedStage1ItemSpawnSeed));
+	for (AStage1ItemSpawnPoint* SpawnPoint : SpawnPoints)
+	{
+		if (SpawnPoint == nullptr)
+		{
+			continue;
+		}
+
+		SpawnPoint->ClearSpawnedItem();
+		SpawnPoint->SpawnItemFromRandomStream(RandomStream);
+		if (ALootItemBase* LootItem = SpawnPoint->GetSpawnedItem())
+		{
+			RegisterNetworkLootItem(LootItem);
+		}
+	}
+
+	bHasAppliedStage1ItemSpawns = true;
 }
 
 void UFPSProjectGameInstance::HandleEquipWeapon(const Protocol::S_EQUIP_WEAPON& pkt)

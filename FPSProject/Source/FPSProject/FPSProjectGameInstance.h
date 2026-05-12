@@ -9,6 +9,7 @@
 #include "FPSProjectGameInstance.generated.h"
 
 class UUserWidget;
+class ALootItemBase;
 
 /**
  * 
@@ -58,6 +59,9 @@ public:
 	void HandleTruckMove(const Protocol::S_TRUCK_MOVE& pkt);
 	void HandleToggleDoor(const Protocol::S_TOGGLE_DOOR& pkt);
 	void HandleEnterGameReadyCount(const Protocol::S_ENTER_GAME_READY_COUNT& pkt);
+	void HandleStageTimer(const Protocol::S_STAGE_TIMER& pkt);
+	void HandleStage1ItemSeed(const Protocol::S_STAGE1_ITEM_SEED& pkt);
+	void HandleRespawnLootItem(const Protocol::S_RESPAWN_LOOT_ITEM& pkt);
 
 	void HandleEquipWeapon(const Protocol::S_EQUIP_WEAPON& pkt);
 	void HandleSpawnItem(const Protocol::S_SPAWN_ITEM& pkt);
@@ -68,6 +72,7 @@ public:
 	class ATruck* FindTruckById(uint64 TruckId);
 	class AADoor* FindDoorById(int32 DoorId);
 	class AFPSBaseCharacter* ResolvePlayerById(uint64 PlayerId) const;
+	class ALootItemBase* FindNetworkLootItemById(uint64 LootItemId);
 	void CacheTruckActors();
 	void CacheDoorActors();
 	bool IsConnectedToGameServer() const;
@@ -83,6 +88,8 @@ public:
 	bool TryEnterTruckLocally(class AFPSBaseCharacter* Character, class ATruck* Truck, Protocol::TruckSeatType SeatType);
 	bool TryExitTruckLocally(class AFPSBaseCharacter* Character);
 	void RecordStage1CargoItems(const TArray<EItemType>& Items);
+	void RegisterNetworkLootItem(ALootItemBase* LootItem);
+	void UnregisterNetworkLootItem(uint64 LootItemId);
 
 	UFUNCTION(BlueprintCallable, Category = "Stage1|Cargo")
 	void ClearRecordedStage1CargoItems();
@@ -119,6 +126,9 @@ public:
 	UPROPERTY()
 	TMap<uint64, AActor*> FieldItems;
 
+	UPROPERTY()
+	TMap<uint64, TObjectPtr<ALootItemBase>> NetworkLootItems;
+
 	TMap<uint64, FPendingEquippedWeapon> PendingWeaponsByPlayer;
 	bool bPendingEnterGameRequest = false;
 	bool bEnterGamePacketSent = false;
@@ -141,6 +151,12 @@ public:
 private:
 	void HandlePostLoadMap(UWorld* LoadedWorld);
 	void ApplyEntryLoadingReadyCount(int32 ReadyCount);
+	void ApplyStageTimerToLocalUI();
+	void ApplyStage1ItemSpawnSeed();
 	bool bShouldShowEntryLoadingWidget = false;
 	int32 CachedEntryLoadingReadyCount = 0;
+	int32 CachedStageTimerRemainingSeconds = INDEX_NONE;
+	uint32 CachedStage1ItemSpawnSeed = 0;
+	bool bHasStage1ItemSpawnSeed = false;
+	bool bHasAppliedStage1ItemSpawns = false;
 };

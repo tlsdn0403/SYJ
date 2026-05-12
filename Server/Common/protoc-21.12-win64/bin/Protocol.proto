@@ -100,6 +100,13 @@ message C_EQUIP_WEAPON
 	uint64 itemObjectId = 1;
 }
 
+message C_PICKUP_LOOT_ITEM
+{
+	uint64 item_object_id = 1;
+	bool should_respawn = 2;
+	float respawn_delay = 3;
+}
+
 message S_EQUIP_WEAPON
 {
 	uint64 playerId = 1;
@@ -171,4 +178,20 @@ message S_ENTER_GAME_READY_COUNT
 {
 	int32 ready_count = 1;
 	int32 required_count = 2;
+}
+
+message S_STAGE_TIMER
+{
+	int32 remaining_seconds = 1;
+	bool is_loading_phase = 2;
+}
+
+message S_STAGE1_ITEM_SEED
+{
+	uint32 seed = 1;
+}
+
+message S_RESPAWN_LOOT_ITEM
+{
+	repeated uint64 item_object_ids = 1;
 }

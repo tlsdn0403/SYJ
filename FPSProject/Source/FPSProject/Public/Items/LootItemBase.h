@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+癤�// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
@@ -26,7 +26,7 @@ enum class EItemType : uint8
 	MountedGunAmmo UMETA(DisplayName = "Mounted Gun Ammo"),
 	TruckRepairKit UMETA(DisplayName = "Truck Repair Kit"),
 	HealPack UMETA(DisplayName = "Heal Pack"),
-	TT UMETA(DisplayName = "Heal Pack")			// 빈 값 채워주는 용. 무게3이면 2칸은 얘로.
+	TT UMETA(DisplayName = "Heal Pack")
 };
 
 UCLASS()
@@ -59,10 +59,27 @@ public:
 	UTexture2D* itemimage;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Settings")
-	int32 HandWeight =1;		// 손 몇개 차지하나 , 기본세팅 1
+	int32 HandWeight = 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Network")
+	bool bRespawnOnPickup = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Network", meta = (ClampMin = "0.0"))
+	float RespawnDelay = 20.0f;
+
+	void ConfigureNetworkItem(uint64 InNetworkItemId, bool bInRespawnOnPickup, float InRespawnDelay);
+
+	void SetNetworkItemActive(bool bIsActive);
+
+	uint64 GetNetworkItemId() const { return NetworkItemId; }
+
+	bool ShouldRespawnOnPickup() const { return bRespawnOnPickup; }
+
+	float GetRespawnDelay() const { return RespawnDelay; }
 
 protected:
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	UStaticMeshComponent* MeshComp;
@@ -76,4 +93,13 @@ public:
 
 	UFUNCTION()
 	void WidgetEnd(AActor* OtherActor);
+
+private:
+	uint64 ResolveDefaultNetworkItemId() const;
+
+	UPROPERTY(Transient)
+	uint64 NetworkItemId = 0;
+
+	UPROPERTY(Transient)
+	bool bPickupPending = false;
 };

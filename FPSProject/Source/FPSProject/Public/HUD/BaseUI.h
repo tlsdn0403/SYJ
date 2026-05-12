@@ -48,11 +48,18 @@ protected:
 	USoundWave* ClockS;
 
 public:
+	UFUNCTION(BlueprintCallable)
+	void SetRemainingTime(int32 NewRemainingTime);
 
-	int32 totalTime = 30; // 5 minutes in seconds
-	FTimerHandle TimerHandle; 
-	void UpdateTimer();
 	void FinishTruckLoadingPhase();
 	void PlayAni_Vibration() {PlayAnimation(TCountVibration);}
 	void PlayAni_PopUp() { PlayAnimation(TPopUp); }
+
+private:
+	void UpdateTimerText();
+	void HandleTimerFinished();
+
+	int32 TotalTime = 30;
+	int32 LastDisplayedTime = INDEX_NONE;
+	bool bHasFinishedLoadingPhase = false;
 };

@@ -20,6 +20,7 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
+	int32 ResolveStableNetworkDoorId() const;
 
 public:
 	virtual void Tick(float DeltaTime) override;

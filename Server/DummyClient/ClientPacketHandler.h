@@ -27,19 +27,23 @@ enum : uint16
 	PKT_C_CHAT = 1014,
 	PKT_S_CHAT = 1015,
 	PKT_C_EQUIP_WEAPON = 1016,
-	PKT_S_EQUIP_WEAPON = 1017,
-	PKT_S_SPAWN_ITEM = 1018,
-	PKT_C_FIRE = 1019,
-	PKT_S_FIRE = 1020,
-	PKT_C_ENTER_TRUCK = 1021,
-	PKT_S_ENTER_TRUCK = 1022,
-	PKT_C_EXIT_TRUCK = 1023,
-	PKT_S_EXIT_TRUCK = 1024,
-	PKT_C_TRUCK_MOVE = 1025,
-	PKT_S_TRUCK_MOVE = 1026,
-	PKT_C_TOGGLE_DOOR = 1027,
-	PKT_S_TOGGLE_DOOR = 1028,
-	PKT_S_ENTER_GAME_READY_COUNT = 1029,
+	PKT_C_PICKUP_LOOT_ITEM = 1017,
+	PKT_S_EQUIP_WEAPON = 1018,
+	PKT_S_SPAWN_ITEM = 1019,
+	PKT_C_FIRE = 1020,
+	PKT_S_FIRE = 1021,
+	PKT_C_ENTER_TRUCK = 1022,
+	PKT_S_ENTER_TRUCK = 1023,
+	PKT_C_EXIT_TRUCK = 1024,
+	PKT_S_EXIT_TRUCK = 1025,
+	PKT_C_TRUCK_MOVE = 1026,
+	PKT_S_TRUCK_MOVE = 1027,
+	PKT_C_TOGGLE_DOOR = 1028,
+	PKT_S_TOGGLE_DOOR = 1029,
+	PKT_S_ENTER_GAME_READY_COUNT = 1030,
+	PKT_S_STAGE_TIMER = 1031,
+	PKT_S_STAGE1_ITEM_SEED = 1032,
+	PKT_S_RESPAWN_LOOT_ITEM = 1033,
 };
 
 // Custom Handlers
@@ -62,6 +66,9 @@ bool Handle_S_EXIT_TRUCK(PacketSessionRef& session, Protocol::S_EXIT_TRUCK& pkt)
 bool Handle_S_TRUCK_MOVE(PacketSessionRef& session, Protocol::S_TRUCK_MOVE& pkt);
 bool Handle_S_TOGGLE_DOOR(PacketSessionRef& session, Protocol::S_TOGGLE_DOOR& pkt);
 bool Handle_S_ENTER_GAME_READY_COUNT(PacketSessionRef& session, Protocol::S_ENTER_GAME_READY_COUNT& pkt);
+bool Handle_S_STAGE_TIMER(PacketSessionRef& session, Protocol::S_STAGE_TIMER& pkt);
+bool Handle_S_STAGE1_ITEM_SEED(PacketSessionRef& session, Protocol::S_STAGE1_ITEM_SEED& pkt);
+bool Handle_S_RESPAWN_LOOT_ITEM(PacketSessionRef& session, Protocol::S_RESPAWN_LOOT_ITEM& pkt);
 
 class ClientPacketHandler
 {
@@ -88,6 +95,9 @@ public:
 		GPacketHandler[PKT_S_TRUCK_MOVE] = [](PacketSessionRef& session, BYTE* buffer, int32 len) { return HandlePacket<Protocol::S_TRUCK_MOVE>(Handle_S_TRUCK_MOVE, session, buffer, len); };
 		GPacketHandler[PKT_S_TOGGLE_DOOR] = [](PacketSessionRef& session, BYTE* buffer, int32 len) { return HandlePacket<Protocol::S_TOGGLE_DOOR>(Handle_S_TOGGLE_DOOR, session, buffer, len); };
 		GPacketHandler[PKT_S_ENTER_GAME_READY_COUNT] = [](PacketSessionRef& session, BYTE* buffer, int32 len) { return HandlePacket<Protocol::S_ENTER_GAME_READY_COUNT>(Handle_S_ENTER_GAME_READY_COUNT, session, buffer, len); };
+		GPacketHandler[PKT_S_STAGE_TIMER] = [](PacketSessionRef& session, BYTE* buffer, int32 len) { return HandlePacket<Protocol::S_STAGE_TIMER>(Handle_S_STAGE_TIMER, session, buffer, len); };
+		GPacketHandler[PKT_S_STAGE1_ITEM_SEED] = [](PacketSessionRef& session, BYTE* buffer, int32 len) { return HandlePacket<Protocol::S_STAGE1_ITEM_SEED>(Handle_S_STAGE1_ITEM_SEED, session, buffer, len); };
+		GPacketHandler[PKT_S_RESPAWN_LOOT_ITEM] = [](PacketSessionRef& session, BYTE* buffer, int32 len) { return HandlePacket<Protocol::S_RESPAWN_LOOT_ITEM>(Handle_S_RESPAWN_LOOT_ITEM, session, buffer, len); };
 	}
 
 	static bool HandlePacket(PacketSessionRef& session, BYTE* buffer, int32 len)
@@ -102,6 +112,7 @@ public:
 	static SendBufferRef MakeSendBuffer(Protocol::C_HIT_ZOMBIE& pkt) { return MakeSendBuffer(pkt, PKT_C_HIT_ZOMBIE); }
 	static SendBufferRef MakeSendBuffer(Protocol::C_CHAT& pkt) { return MakeSendBuffer(pkt, PKT_C_CHAT); }
 	static SendBufferRef MakeSendBuffer(Protocol::C_EQUIP_WEAPON& pkt) { return MakeSendBuffer(pkt, PKT_C_EQUIP_WEAPON); }
+	static SendBufferRef MakeSendBuffer(Protocol::C_PICKUP_LOOT_ITEM& pkt) { return MakeSendBuffer(pkt, PKT_C_PICKUP_LOOT_ITEM); }
 	static SendBufferRef MakeSendBuffer(Protocol::C_FIRE& pkt) { return MakeSendBuffer(pkt, PKT_C_FIRE); }
 	static SendBufferRef MakeSendBuffer(Protocol::C_ENTER_TRUCK& pkt) { return MakeSendBuffer(pkt, PKT_C_ENTER_TRUCK); }
 	static SendBufferRef MakeSendBuffer(Protocol::C_EXIT_TRUCK& pkt) { return MakeSendBuffer(pkt, PKT_C_EXIT_TRUCK); }

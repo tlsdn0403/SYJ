@@ -36,6 +36,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Spawn")
 	void SpawnItem();
 
+	void SpawnItemFromRandomStream(FRandomStream& RandomStream);
+
 	UFUNCTION(BlueprintCallable, Category = "Spawn")
 	void ClearSpawnedItem();
 
@@ -76,7 +78,8 @@ private:
 	void HandleSpawnedItemDestroyed(AActor* DestroyedActor);
 
 	void ScheduleRespawn();
-	TSubclassOf<ALootItemBase> ChooseItemClass() const;
+	TSubclassOf<ALootItemBase> ChooseItemClass(FRandomStream* RandomStream = nullptr) const;
+	uint64 ResolveSpawnedItemNetworkId() const;
 
 	UPROPERTY(Transient)
 	ALootItemBase* SpawnedItem = nullptr;

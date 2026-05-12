@@ -378,3 +378,66 @@ bool Handle_S_ENTER_GAME_READY_COUNT(PacketSessionRef& session, Protocol::S_ENTE
 
 	return true;
 }
+
+bool Handle_S_STAGE_TIMER(PacketSessionRef& session, Protocol::S_STAGE_TIMER& pkt)
+{
+	Protocol::S_STAGE_TIMER* pktCopy = new Protocol::S_STAGE_TIMER(pkt);
+
+	AsyncTask(ENamedThreads::GameThread, [pktCopy]()
+		{
+			UWorld* World = GetGameWorld();
+			if (World)
+			{
+				if (auto* GameInstance = Cast<UFPSProjectGameInstance>(World->GetGameInstance()))
+				{
+					GameInstance->HandleStageTimer(*pktCopy);
+				}
+			}
+
+			delete pktCopy;
+		});
+
+	return true;
+}
+
+bool Handle_S_STAGE1_ITEM_SEED(PacketSessionRef& session, Protocol::S_STAGE1_ITEM_SEED& pkt)
+{
+	Protocol::S_STAGE1_ITEM_SEED* pktCopy = new Protocol::S_STAGE1_ITEM_SEED(pkt);
+
+	AsyncTask(ENamedThreads::GameThread, [pktCopy]()
+		{
+			UWorld* World = GetGameWorld();
+			if (World)
+			{
+				if (auto* GameInstance = Cast<UFPSProjectGameInstance>(World->GetGameInstance()))
+				{
+					GameInstance->HandleStage1ItemSeed(*pktCopy);
+				}
+			}
+
+			delete pktCopy;
+		});
+
+	return true;
+}
+
+bool Handle_S_RESPAWN_LOOT_ITEM(PacketSessionRef& session, Protocol::S_RESPAWN_LOOT_ITEM& pkt)
+{
+	Protocol::S_RESPAWN_LOOT_ITEM* pktCopy = new Protocol::S_RESPAWN_LOOT_ITEM(pkt);
+
+	AsyncTask(ENamedThreads::GameThread, [pktCopy]()
+		{
+			UWorld* World = GetGameWorld();
+			if (World)
+			{
+				if (auto* GameInstance = Cast<UFPSProjectGameInstance>(World->GetGameInstance()))
+				{
+					GameInstance->HandleRespawnLootItem(*pktCopy);
+				}
+			}
+
+			delete pktCopy;
+		});
+
+	return true;
+}

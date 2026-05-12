@@ -4,12 +4,13 @@
 #include "GameSession.h"
 #include "Monster.h"
 #include "ObjectUtils.h"
+#include <limits>
 
 RoomRef GRoom = make_shared<Room>();
 
 Room::Room()
 {
-
+	_stage1ItemSpawnSeed = Utils::GetRandom<uint32>(1, (std::numeric_limits<uint32>::max)());
 }
 
 Room::~Room()
@@ -230,24 +231,6 @@ bool Room::HandleEnterPlayer(PlayerRef player)
 	if (success == false)
 		return false;
 
-	Protocol::S_SPAWN_ITEM spawnItemPkt;
-	Protocol::ObjectInfo* itemInfo = spawnItemPkt.add_items();
-
-	itemInfo->set_object_id(1); // 이 무기의 고유 번호는 1번!
-	itemInfo->set_object_type(Protocol::OBJECT_TYPE_ITEM);
-	itemInfo->set_weapon_type(Protocol::WEAPON_TYPE_RIFLE);
-
-	// 아이템 위치
-	Protocol::PosInfo* pos = itemInfo->mutable_pos_info();
-	pos->set_x(-860.0f);
-	pos->set_y(-180.0f);
-	pos->set_z(30.0f);
-	pos->set_yaw(0.0f);
-
-	// 방금 접속한 플레이어에게 패킷 전송
-	SendBufferRef itemBuffer = ServerPacketHandler::MakeSendBuffer(spawnItemPkt);
-	player->session.lock()->Send(itemBuffer);
-
 	if (auto session = player->session.lock())
 	{
 		for (const auto& doorPair : _doors)
@@ -259,6 +242,9 @@ bool Room::HandleEnterPlayer(PlayerRef player)
 			SendBufferRef doorBuffer = ServerPacketHandler::MakeSendBuffer(doorPkt);
 			session->Send(doorBuffer);
 		}
+
+		SendStageTimerToSession(session);
+		SendStage1ItemSeedToSession(session);
 	}
 
 	return true;
@@ -361,6 +347,11 @@ void Room::HandleReadyPlayer(GameSessionRef session)
 	{
 		PlayerRef player = ObjectUtils::CreatePlayer(ReadySession);
 		HandleEnterPlayer(player);
+	}
+
+	if (!SessionsToEnter.empty())
+	{
+		StartTruckLoadingPhase();
 	}
 }
 
@@ -614,6 +605,36 @@ void Room::HandleEquipWeapon(PlayerRef player, Protocol::C_EQUIP_WEAPON pkt)
 	Broadcast(sendBuffer);
 }
 
+void Room::HandlePickupLootItem(PlayerRef player, Protocol::C_PICKUP_LOOT_ITEM pkt)
+{
+	UNREFERENCED_PARAMETER(player);
+
+	const uint64 itemId = pkt.item_object_id();
+	if (itemId == 0)
+	{
+		return;
+	}
+
+	if (_inactiveLootItemIds.find(itemId) != _inactiveLootItemIds.end())
+	{
+		return;
+	}
+
+	_inactiveLootItemIds.insert(itemId);
+
+	Protocol::S_DESPAWN despawnPkt;
+	despawnPkt.add_object_ids(itemId);
+	SendBufferRef despawnBuffer = ServerPacketHandler::MakeSendBuffer(despawnPkt);
+	Broadcast(despawnBuffer);
+
+	if (pkt.should_respawn() && pkt.respawn_delay() > 0.0f)
+	{
+		PendingLootItemRespawn& pendingRespawn = _pendingLootItemRespawns.emplace_back();
+		pendingRespawn.itemId = itemId;
+		pendingRespawn.remainingTime = pkt.respawn_delay();
+	}
+}
+
 void Room::HandleFire(PlayerRef player, Protocol::C_FIRE pkt)
 {
 	if (player == nullptr) return;
@@ -788,6 +809,7 @@ void Room::HandleToggleDoor(PlayerRef player, Protocol::C_TOGGLE_DOOR pkt)
 void Room::UpdateTick()
 {
 	UpdateZombies();
+	BroadcastStageTimer();
 
 	for (int32 index = static_cast<int32>(_pendingZombieDespawns.size()) - 1; index >= 0; --index)
 	{
@@ -808,6 +830,23 @@ void Room::UpdateTick()
 		}
 
 		_pendingZombieDespawns.erase(_pendingZombieDespawns.begin() + index);
+	}
+
+	for (int32 index = static_cast<int32>(_pendingLootItemRespawns.size()) - 1; index >= 0; --index)
+	{
+		PendingLootItemRespawn& pending = _pendingLootItemRespawns[index];
+		pending.remainingTime -= ZOMBIE_SERVER_TICK_SECONDS;
+		if (pending.remainingTime > 0.0f)
+			continue;
+
+		_inactiveLootItemIds.erase(pending.itemId);
+
+		Protocol::S_RESPAWN_LOOT_ITEM respawnPkt;
+		respawnPkt.add_item_object_ids(pending.itemId);
+		SendBufferRef respawnBuffer = ServerPacketHandler::MakeSendBuffer(respawnPkt);
+		Broadcast(respawnBuffer);
+
+		_pendingLootItemRespawns.erase(_pendingLootItemRespawns.begin() + index);
 	}
 
 	DoTimer(100, &Room::UpdateTick);
@@ -895,4 +934,71 @@ void Room::BroadcastPendingReadyCount()
 			PendingSession->Send(sendBuffer);
 		}
 	}
+}
+
+void Room::StartTruckLoadingPhase()
+{
+	_bTruckLoadingPhaseActive = true;
+	_truckLoadingPhaseEndTime = std::chrono::steady_clock::now() + std::chrono::seconds(TRUCK_LOADING_PHASE_DURATION_SECONDS);
+	_lastBroadcastTruckLoadingRemainingSeconds = -1;
+	BroadcastStageTimer();
+}
+
+void Room::BroadcastStageTimer()
+{
+	if (_bTruckLoadingPhaseActive == false)
+		return;
+
+	const int32 remainingSeconds = GetTruckLoadingPhaseRemainingSeconds();
+	if (remainingSeconds == _lastBroadcastTruckLoadingRemainingSeconds)
+		return;
+
+	Protocol::S_STAGE_TIMER timerPkt;
+	timerPkt.set_remaining_seconds(remainingSeconds);
+	timerPkt.set_is_loading_phase(remainingSeconds > 0);
+
+	SendBufferRef sendBuffer = ServerPacketHandler::MakeSendBuffer(timerPkt);
+	Broadcast(sendBuffer);
+
+	_lastBroadcastTruckLoadingRemainingSeconds = remainingSeconds;
+	if (remainingSeconds <= 0)
+		_bTruckLoadingPhaseActive = false;
+}
+
+void Room::SendStageTimerToSession(const GameSessionRef& session) const
+{
+	if (session == nullptr || _bTruckLoadingPhaseActive == false)
+		return;
+
+	Protocol::S_STAGE_TIMER timerPkt;
+	timerPkt.set_remaining_seconds(GetTruckLoadingPhaseRemainingSeconds());
+	timerPkt.set_is_loading_phase(true);
+
+	SendBufferRef sendBuffer = ServerPacketHandler::MakeSendBuffer(timerPkt);
+	session->Send(sendBuffer);
+}
+
+int32 Room::GetTruckLoadingPhaseRemainingSeconds() const
+{
+	if (_bTruckLoadingPhaseActive == false)
+		return 0;
+
+	const auto now = std::chrono::steady_clock::now();
+	if (now >= _truckLoadingPhaseEndTime)
+		return 0;
+
+	const int64 remainingMilliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(_truckLoadingPhaseEndTime - now).count();
+	return static_cast<int32>((remainingMilliseconds + 999) / 1000);
+}
+
+void Room::SendStage1ItemSeedToSession(const GameSessionRef& session) const
+{
+	if (session == nullptr || _stage1ItemSpawnSeed == 0)
+		return;
+
+	Protocol::S_STAGE1_ITEM_SEED seedPkt;
+	seedPkt.set_seed(_stage1ItemSpawnSeed);
+
+	SendBufferRef sendBuffer = ServerPacketHandler::MakeSendBuffer(seedPkt);
+	session->Send(sendBuffer);
 }

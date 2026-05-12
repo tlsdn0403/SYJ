@@ -1,5 +1,6 @@
 #pragma once
 #include "JobQueue.h"
+#include <chrono>
 #include <unordered_set>
 #include <vector>
 
@@ -20,6 +21,7 @@ public:
 	void HandleMove(PlayerRef player, Protocol::C_MOVE pkt);
 	void HandleHitZombie(PlayerRef player, Protocol::C_HIT_ZOMBIE pkt);
 	void HandleEquipWeapon(PlayerRef player, Protocol::C_EQUIP_WEAPON pkt);
+	void HandlePickupLootItem(PlayerRef player, Protocol::C_PICKUP_LOOT_ITEM pkt);
 	void HandleFire(PlayerRef player, Protocol::C_FIRE pkt);
 	void HandleEnterTruck(PlayerRef player, Protocol::C_ENTER_TRUCK pkt);
 	void HandleExitTruck(PlayerRef player, Protocol::C_EXIT_TRUCK pkt);
@@ -41,6 +43,11 @@ private:
 private:
 	void Broadcast(SendBufferRef sendBuffer, uint64 exceptId = 0);
 	void BroadcastPendingReadyCount();
+	void StartTruckLoadingPhase();
+	void BroadcastStageTimer();
+	void SendStageTimerToSession(const GameSessionRef& session) const;
+	void SendStage1ItemSeedToSession(const GameSessionRef& session) const;
+	int32 GetTruckLoadingPhaseRemainingSeconds() const;
 
 	struct TruckState
 	{
@@ -57,6 +64,12 @@ private:
 		float remainingTime = 0.0f;
 	};
 
+	struct PendingLootItemRespawn
+	{
+		uint64 itemId = 0;
+		float remainingTime = 0.0f;
+	};
+
 	TruckState* FindTruckState(uint64 truckId);
 	TruckState& GetOrCreateTruckState(uint64 truckId);
 	bool IsTruckSeatOccupied(const TruckState& truckState, Protocol::TruckSeatType seatType) const;
@@ -69,12 +82,19 @@ private:
 	//[신우] 현재 2스테이지 트럭 적재함은 최대 4명까지 타는 구조로 서버에서 제한한다.
 	static constexpr size_t MAX_CARGO_OCCUPANTS = 4;
 	static constexpr size_t REQUIRED_STAGE2_PLAYER_COUNT = 3;
+	static constexpr int32 TRUCK_LOADING_PHASE_DURATION_SECONDS = 60;
 
 	unordered_map<uint64, ObjectRef> _objects;
 	unordered_map<uint64, TruckState> _trucks;
 	unordered_map<uint64, bool> _doors;
 	vector<weak_ptr<GameSession>> _pendingReadySessions;
 	vector<PendingZombieDespawn> _pendingZombieDespawns;
+	vector<PendingLootItemRespawn> _pendingLootItemRespawns;
+	unordered_set<uint64> _inactiveLootItemIds;
+	bool _bTruckLoadingPhaseActive = false;
+	std::chrono::steady_clock::time_point _truckLoadingPhaseEndTime;
+	int32 _lastBroadcastTruckLoadingRemainingSeconds = -1;
+	uint32 _stage1ItemSpawnSeed = 0;
 };
 
 extern RoomRef GRoom;

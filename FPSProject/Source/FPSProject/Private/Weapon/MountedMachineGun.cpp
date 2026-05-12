@@ -7,6 +7,7 @@
 #include "Projectiles/FPSProjectile.h"
 #include "Sound/SoundBase.h"
 #include "Subsystems/ObjectPoolSubSystem.h"
+#include "Truck/Truck.h"
 #include "Components/ChildActorComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/PrimitiveComponent.h"

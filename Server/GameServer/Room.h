@@ -1,6 +1,7 @@
 #pragma once
 #include "JobQueue.h"
 #include <unordered_set>
+#include <vector>
 
 class Room : public JobQueue
 {
@@ -13,8 +14,10 @@ public:
 	bool LeaveRoom(ObjectRef object);
 
 	bool HandleEnterPlayer(PlayerRef player);
+	void HandleReadyPlayer(GameSessionRef session);
 	bool HandleLeavePlayer(PlayerRef player);
-	void HandleMove(Protocol::C_MOVE pkt);
+	void HandleMove(PlayerRef player, Protocol::C_MOVE pkt);
+	void HandleHitZombie(PlayerRef player, Protocol::C_HIT_ZOMBIE pkt);
 	void HandleEquipWeapon(PlayerRef player, Protocol::C_EQUIP_WEAPON pkt);
 	void HandleFire(PlayerRef player, Protocol::C_FIRE pkt);
 	void HandleEnterTruck(PlayerRef player, Protocol::C_ENTER_TRUCK pkt);
@@ -28,6 +31,11 @@ public:
 	RoomRef GetRoomRef();
 
 private:
+	void SpawnInitialZombies();
+	void UpdateZombies();
+	PlayerRef FindNearestPlayer(const Protocol::PosInfo& origin, float maxRange) const;
+	void BroadcastZombieMove(const MonsterRef& monster);
+	size_t GetConnectedPlayerCount() const;
 	bool AddObject(ObjectRef object);
 	bool RemoveObject(uint64 objectId);
 
@@ -43,6 +51,12 @@ private:
 		uint64 turretPlayerId = 0;
 	};
 
+	struct PendingZombieDespawn
+	{
+		uint64 zombieId = 0;
+		float remainingTime = 0.0f;
+	};
+
 	TruckState* FindTruckState(uint64 truckId);
 	TruckState& GetOrCreateTruckState(uint64 truckId);
 	bool IsTruckSeatOccupied(const TruckState& truckState, Protocol::TruckSeatType seatType) const;
@@ -54,10 +68,14 @@ private:
 private:
 	//[신우] 현재 2스테이지 트럭 적재함은 최대 4명까지 타는 구조로 서버에서 제한한다.
 	static constexpr size_t MAX_CARGO_OCCUPANTS = 4;
+	static constexpr size_t REQUIRED_STAGE2_PLAYER_COUNT = 3;
 
 	unordered_map<uint64, ObjectRef> _objects;
 	unordered_map<uint64, TruckState> _trucks;
 	unordered_map<uint64, bool> _doors;
+	vector<weak_ptr<GameSession>> _pendingReadySessions;
+	vector<PendingZombieDespawn> _pendingZombieDespawns;
+	bool _hasSpawnedInitialZombies = false;
 };
 
 extern RoomRef GRoom;

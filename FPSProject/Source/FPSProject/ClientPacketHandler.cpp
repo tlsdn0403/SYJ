@@ -35,7 +35,7 @@ bool Handle_S_LOGIN(PacketSessionRef& session, Protocol::S_LOGIN& pkt)
 			UWorld* World = GetGameWorld();
 			if (World)
 			{
-				UGameplayStatics::OpenLevel(World, TEXT("sinwoo_test"));
+				UGameplayStatics::OpenLevel(World, TEXT("map_level2_test"));
 			}
 		});
 
@@ -132,6 +132,69 @@ bool Handle_S_MOVE(PacketSessionRef& session, Protocol::S_MOVE& pkt)
 				if (auto* GameInstance = Cast<UFPSProjectGameInstance>(World->GetGameInstance()))
 				{
 					GameInstance->HandleMove(*pktCopy);
+				}
+			}
+
+			delete pktCopy;
+		});
+
+	return true;
+}
+
+bool Handle_S_ZOMBIE_ATTACK(PacketSessionRef& session, Protocol::S_ZOMBIE_ATTACK& pkt)
+{
+	Protocol::S_ZOMBIE_ATTACK* pktCopy = new Protocol::S_ZOMBIE_ATTACK(pkt);
+
+	AsyncTask(ENamedThreads::GameThread, [pktCopy]()
+		{
+			UWorld* World = GetGameWorld();
+			if (World)
+			{
+				if (auto* GameInstance = Cast<UFPSProjectGameInstance>(World->GetGameInstance()))
+				{
+					GameInstance->HandleZombieAttack(*pktCopy);
+				}
+			}
+
+			delete pktCopy;
+		});
+
+	return true;
+}
+
+bool Handle_S_ZOMBIE_HP(PacketSessionRef& session, Protocol::S_ZOMBIE_HP& pkt)
+{
+	Protocol::S_ZOMBIE_HP* pktCopy = new Protocol::S_ZOMBIE_HP(pkt);
+
+	AsyncTask(ENamedThreads::GameThread, [pktCopy]()
+		{
+			UWorld* World = GetGameWorld();
+			if (World)
+			{
+				if (auto* GameInstance = Cast<UFPSProjectGameInstance>(World->GetGameInstance()))
+				{
+					GameInstance->HandleZombieHp(*pktCopy);
+				}
+			}
+
+			delete pktCopy;
+		});
+
+	return true;
+}
+
+bool Handle_S_ZOMBIE_DIE(PacketSessionRef& session, Protocol::S_ZOMBIE_DIE& pkt)
+{
+	Protocol::S_ZOMBIE_DIE* pktCopy = new Protocol::S_ZOMBIE_DIE(pkt);
+
+	AsyncTask(ENamedThreads::GameThread, [pktCopy]()
+		{
+			UWorld* World = GetGameWorld();
+			if (World)
+			{
+				if (auto* GameInstance = Cast<UFPSProjectGameInstance>(World->GetGameInstance()))
+				{
+					GameInstance->HandleZombieDie(*pktCopy);
 				}
 			}
 

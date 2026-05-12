@@ -55,6 +55,35 @@ message S_MOVE
 	PosInfo info = 1;
 }
 
+message C_HIT_ZOMBIE
+{
+	uint64 zombie_id = 1;
+	uint64 attacker_id = 2;
+	float damage = 3;
+	float hit_x = 4;
+	float hit_y = 5;
+	float hit_z = 6;
+}
+
+message S_ZOMBIE_ATTACK
+{
+	uint64 zombie_id = 1;
+	uint64 target_player_id = 2;
+}
+
+message S_ZOMBIE_HP
+{
+	uint64 zombie_id = 1;
+	float hp = 2;
+	float max_hp = 3;
+}
+
+message S_ZOMBIE_DIE
+{
+	uint64 zombie_id = 1;
+	uint64 killer_id = 2;
+}
+
 message C_CHAT
 {
 	string msg = 1;

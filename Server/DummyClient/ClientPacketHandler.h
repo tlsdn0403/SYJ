@@ -20,21 +20,25 @@ enum : uint16
 	PKT_S_DESPAWN = 1007,
 	PKT_C_MOVE = 1008,
 	PKT_S_MOVE = 1009,
-	PKT_C_CHAT = 1010,
-	PKT_S_CHAT = 1011,
-	PKT_C_EQUIP_WEAPON = 1012,
-	PKT_S_EQUIP_WEAPON = 1013,
-	PKT_S_SPAWN_ITEM = 1014,
-	PKT_C_FIRE = 1015,
-	PKT_S_FIRE = 1016,
-	PKT_C_ENTER_TRUCK = 1017,
-	PKT_S_ENTER_TRUCK = 1018,
-	PKT_C_EXIT_TRUCK = 1019,
-	PKT_S_EXIT_TRUCK = 1020,
-	PKT_C_TRUCK_MOVE = 1021,
-	PKT_S_TRUCK_MOVE = 1022,
-	PKT_C_TOGGLE_DOOR = 1023,
-	PKT_S_TOGGLE_DOOR = 1024,
+	PKT_C_HIT_ZOMBIE = 1010,
+	PKT_S_ZOMBIE_ATTACK = 1011,
+	PKT_S_ZOMBIE_HP = 1012,
+	PKT_S_ZOMBIE_DIE = 1013,
+	PKT_C_CHAT = 1014,
+	PKT_S_CHAT = 1015,
+	PKT_C_EQUIP_WEAPON = 1016,
+	PKT_S_EQUIP_WEAPON = 1017,
+	PKT_S_SPAWN_ITEM = 1018,
+	PKT_C_FIRE = 1019,
+	PKT_S_FIRE = 1020,
+	PKT_C_ENTER_TRUCK = 1021,
+	PKT_S_ENTER_TRUCK = 1022,
+	PKT_C_EXIT_TRUCK = 1023,
+	PKT_S_EXIT_TRUCK = 1024,
+	PKT_C_TRUCK_MOVE = 1025,
+	PKT_S_TRUCK_MOVE = 1026,
+	PKT_C_TOGGLE_DOOR = 1027,
+	PKT_S_TOGGLE_DOOR = 1028,
 };
 
 // Custom Handlers
@@ -45,6 +49,9 @@ bool Handle_S_LEAVE_GAME(PacketSessionRef& session, Protocol::S_LEAVE_GAME& pkt)
 bool Handle_S_SPAWN(PacketSessionRef& session, Protocol::S_SPAWN& pkt);
 bool Handle_S_DESPAWN(PacketSessionRef& session, Protocol::S_DESPAWN& pkt);
 bool Handle_S_MOVE(PacketSessionRef& session, Protocol::S_MOVE& pkt);
+bool Handle_S_ZOMBIE_ATTACK(PacketSessionRef& session, Protocol::S_ZOMBIE_ATTACK& pkt);
+bool Handle_S_ZOMBIE_HP(PacketSessionRef& session, Protocol::S_ZOMBIE_HP& pkt);
+bool Handle_S_ZOMBIE_DIE(PacketSessionRef& session, Protocol::S_ZOMBIE_DIE& pkt);
 bool Handle_S_CHAT(PacketSessionRef& session, Protocol::S_CHAT& pkt);
 bool Handle_S_EQUIP_WEAPON(PacketSessionRef& session, Protocol::S_EQUIP_WEAPON& pkt);
 bool Handle_S_SPAWN_ITEM(PacketSessionRef& session, Protocol::S_SPAWN_ITEM& pkt);
@@ -67,6 +74,9 @@ public:
 		GPacketHandler[PKT_S_SPAWN] = [](PacketSessionRef& session, BYTE* buffer, int32 len) { return HandlePacket<Protocol::S_SPAWN>(Handle_S_SPAWN, session, buffer, len); };
 		GPacketHandler[PKT_S_DESPAWN] = [](PacketSessionRef& session, BYTE* buffer, int32 len) { return HandlePacket<Protocol::S_DESPAWN>(Handle_S_DESPAWN, session, buffer, len); };
 		GPacketHandler[PKT_S_MOVE] = [](PacketSessionRef& session, BYTE* buffer, int32 len) { return HandlePacket<Protocol::S_MOVE>(Handle_S_MOVE, session, buffer, len); };
+		GPacketHandler[PKT_S_ZOMBIE_ATTACK] = [](PacketSessionRef& session, BYTE* buffer, int32 len) { return HandlePacket<Protocol::S_ZOMBIE_ATTACK>(Handle_S_ZOMBIE_ATTACK, session, buffer, len); };
+		GPacketHandler[PKT_S_ZOMBIE_HP] = [](PacketSessionRef& session, BYTE* buffer, int32 len) { return HandlePacket<Protocol::S_ZOMBIE_HP>(Handle_S_ZOMBIE_HP, session, buffer, len); };
+		GPacketHandler[PKT_S_ZOMBIE_DIE] = [](PacketSessionRef& session, BYTE* buffer, int32 len) { return HandlePacket<Protocol::S_ZOMBIE_DIE>(Handle_S_ZOMBIE_DIE, session, buffer, len); };
 		GPacketHandler[PKT_S_CHAT] = [](PacketSessionRef& session, BYTE* buffer, int32 len) { return HandlePacket<Protocol::S_CHAT>(Handle_S_CHAT, session, buffer, len); };
 		GPacketHandler[PKT_S_EQUIP_WEAPON] = [](PacketSessionRef& session, BYTE* buffer, int32 len) { return HandlePacket<Protocol::S_EQUIP_WEAPON>(Handle_S_EQUIP_WEAPON, session, buffer, len); };
 		GPacketHandler[PKT_S_SPAWN_ITEM] = [](PacketSessionRef& session, BYTE* buffer, int32 len) { return HandlePacket<Protocol::S_SPAWN_ITEM>(Handle_S_SPAWN_ITEM, session, buffer, len); };
@@ -86,6 +96,7 @@ public:
 	static SendBufferRef MakeSendBuffer(Protocol::C_ENTER_GAME& pkt) { return MakeSendBuffer(pkt, PKT_C_ENTER_GAME); }
 	static SendBufferRef MakeSendBuffer(Protocol::C_LEAVE_GAME& pkt) { return MakeSendBuffer(pkt, PKT_C_LEAVE_GAME); }
 	static SendBufferRef MakeSendBuffer(Protocol::C_MOVE& pkt) { return MakeSendBuffer(pkt, PKT_C_MOVE); }
+	static SendBufferRef MakeSendBuffer(Protocol::C_HIT_ZOMBIE& pkt) { return MakeSendBuffer(pkt, PKT_C_HIT_ZOMBIE); }
 	static SendBufferRef MakeSendBuffer(Protocol::C_CHAT& pkt) { return MakeSendBuffer(pkt, PKT_C_CHAT); }
 	static SendBufferRef MakeSendBuffer(Protocol::C_EQUIP_WEAPON& pkt) { return MakeSendBuffer(pkt, PKT_C_EQUIP_WEAPON); }
 	static SendBufferRef MakeSendBuffer(Protocol::C_FIRE& pkt) { return MakeSendBuffer(pkt, PKT_C_FIRE); }

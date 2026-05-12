@@ -215,7 +215,7 @@ bool AAIZombieController::CanForceAwarenessFor(AActor* TargetActor) const
 
 	if (TargetActor->IsA<ATruck>())
 	{
-		return Distance2D <= TruckAwarenessDistance;
+		return Distance2D <= TruckAwarenessDistance && HeightDelta <= TruckAwarenessHeightTolerance;
 	}
 
 	return Distance2D <= PlayerAwarenessDistance && HeightDelta <= PlayerAwarenessHeightTolerance;

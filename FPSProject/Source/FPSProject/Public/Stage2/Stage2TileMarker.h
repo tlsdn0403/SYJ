@@ -67,6 +67,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Stage2")
 	FTransform GetNextTileSpawnTransform() const;
 
+	UFUNCTION(BlueprintCallable, Category = "Stage2|Zombie")
+	TArray<FTransform> GetZombieSpawnTransforms(bool bIncludeRootIfNoChildren = false) const;
+
 	UFUNCTION(BlueprintCallable, Category = "Stage2")
 	void ResetNextTileTrigger();
 

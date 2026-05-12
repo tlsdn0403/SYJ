@@ -25,7 +25,7 @@ namespace
 		return BlackboardTarget;
 	}
 
-	FVector GetClosestPointOnChaseTarget(AActor* TargetActor, const FVector& FromLocation)
+	FVector GetClosestPointOnSimpleChaseTarget(AActor* TargetActor, const FVector& FromLocation)
 	{
 		if (!TargetActor)
 		{
@@ -55,40 +55,36 @@ UBTTask_ChaseHuman::UBTTask_ChaseHuman()
 
 void UBTTask_ChaseHuman::ResetMoveRequestState()
 {
-	LastMoveRequestTime = -100000.0f;
 	LastIssuedTargetActor.Reset();
+	LastIssuedFallZoneLocation = FVector::ZeroVector;
+	bHasLastIssuedFallZoneLocation = false;
 }
 
-bool UBTTask_ChaseHuman::RequestChaseMove(AAIController* AIController, ABaseZombie* ZombieCharacter, AActor* TargetActor, bool bForceRequest)
+bool UBTTask_ChaseHuman::RequestChaseMove(AAIController* AIController, AActor* TargetActor, bool bForceRequest)
 {
-	if (!AIController || !ZombieCharacter || !TargetActor)
+	if (!AIController || !TargetActor)
 	{
 		return false;
 	}
 
-	const float CurrentTime = AIController->GetWorld() ? AIController->GetWorld()->GetTimeSeconds() : 0.0f;
-	const bool bTargetChanged = LastIssuedTargetActor.Get() != TargetActor;
 	UPathFollowingComponent* PathFollowingComponent = AIController->GetPathFollowingComponent();
 	const EPathFollowingStatus::Type MoveStatus = PathFollowingComponent
 		? PathFollowingComponent->GetStatus()
 		: AIController->GetMoveStatus();
-	const bool bUsingCustomLink = PathFollowingComponent && PathFollowingComponent->GetCurrentCustomLinkOb() != nullptr;
-	const bool bMoveNeedsRestart = MoveStatus == EPathFollowingStatus::Idle;
-	const bool bEnoughTimePassed = (CurrentTime - LastMoveRequestTime) >= RepathInterval;
-	const bool bShouldRetryMove = bMoveNeedsRestart && bEnoughTimePassed;
+	const bool bTargetChanged = LastIssuedTargetActor.Get() != TargetActor;
 
-	if (!bForceRequest &&
-		(bUsingCustomLink || (!bTargetChanged && !bShouldRetryMove)))
+	if (!bForceRequest && !bTargetChanged && MoveStatus != EPathFollowingStatus::Idle)
 	{
 		return true;
 	}
 
+	const bool bMovingTruckTarget = IsMovingTruckTarget(TargetActor);
+	const float AcceptanceRadius = GetChaseAcceptanceRadius(TargetActor);
 	const EPathFollowingRequestResult::Type RequestResult =
-		AIController->MoveToActor(TargetActor, StopDistance, true, true, true, nullptr, true);
+		AIController->MoveToActor(TargetActor, AcceptanceRadius, !bMovingTruckTarget, true, true, nullptr, true);
 
 	if (RequestResult != EPathFollowingRequestResult::Failed)
 	{
-		LastMoveRequestTime = CurrentTime;
 		LastIssuedTargetActor = TargetActor;
 		return true;
 	}
@@ -96,69 +92,97 @@ bool UBTTask_ChaseHuman::RequestChaseMove(AAIController* AIController, ABaseZomb
 	return false;
 }
 
-bool UBTTask_ChaseHuman::TryUseFallZonePursuit(AAIController* AIController, ABaseZombie* ZombieCharacter, AActor* TargetActor) const
+bool UBTTask_ChaseHuman::RequestFallZoneMove(AAIController* AIController, const FVector& FallZoneLocation, bool bForceRequest)
 {
-	if (!AIController || !ZombieCharacter || !TargetActor)
+	if (!AIController)
 	{
 		return false;
 	}
 
-	FVector FallZonePursuitLocation = FVector::ZeroVector;
-	if (!ZombieCharacter->TryGetFallZonePursuitLocation(TargetActor, FallZonePursuitLocation))
+	UPathFollowingComponent* PathFollowingComponent = AIController->GetPathFollowingComponent();
+	const EPathFollowingStatus::Type MoveStatus = PathFollowingComponent
+		? PathFollowingComponent->GetStatus()
+		: AIController->GetMoveStatus();
+	const bool bUsingCustomLink = PathFollowingComponent && PathFollowingComponent->GetCurrentCustomLinkOb() != nullptr;
+	const bool bLocationChanged =
+		!bHasLastIssuedFallZoneLocation ||
+		FVector::DistSquared2D(LastIssuedFallZoneLocation, FallZoneLocation) >= FMath::Square(FallZoneRetargetDistance);
+
+	if (!bForceRequest && (bUsingCustomLink || (!bLocationChanged && MoveStatus != EPathFollowingStatus::Idle)))
+	{
+		return true;
+	}
+
+	const EPathFollowingRequestResult::Type RequestResult =
+		AIController->MoveToLocation(FallZoneLocation, FallZoneApproachAcceptanceRadius, true, true, true, false, nullptr, true);
+
+	if (RequestResult != EPathFollowingRequestResult::Failed)
+	{
+		LastIssuedTargetActor.Reset();
+		LastIssuedFallZoneLocation = FallZoneLocation;
+		bHasLastIssuedFallZoneLocation = true;
+		return true;
+	}
+
+	return false;
+}
+
+bool UBTTask_ChaseHuman::TryUseFallZone(AAIController* AIController, ABaseZombie* ZombieCharacter, AActor* TargetActor)
+{
+	if (!bUseFallZone || !AIController || !ZombieCharacter || !TargetActor)
 	{
 		return false;
+	}
+
+	FVector ApproachLocation = FVector::ZeroVector;
+	FVector CommitLocation = FVector::ZeroVector;
+	if (!ZombieCharacter->TryGetFallZonePursuitLocation(TargetActor, ApproachLocation, CommitLocation))
+	{
+		return false;
+	}
+
+	AIController->SetFocus(TargetActor);
+
+	const float DistanceToApproach = FVector::Dist2D(ZombieCharacter->GetActorLocation(), ApproachLocation);
+	if (DistanceToApproach > FallZoneCommitDistance)
+	{
+		return RequestFallZoneMove(AIController, ApproachLocation, false);
 	}
 
 	AIController->StopMovement();
-	AIController->SetFocus(TargetActor);
-	ZombieCharacter->ApplyDirectPursuitInput(FallZonePursuitLocation);
+	ZombieCharacter->ApplyDirectPursuitInput(CommitLocation);
 	return true;
 }
 
-bool UBTTask_ChaseHuman::ShouldUseDirectPursuitFallback(AAIController* AIController, ABaseZombie* ZombieCharacter, AActor* TargetActor) const
+bool UBTTask_ChaseHuman::IsTargetInStopDistance(ABaseZombie* ZombieCharacter, AActor* TargetActor) const
 {
-	if (!AIController || !ZombieCharacter || !TargetActor)
+	if (!ZombieCharacter || !TargetActor)
 	{
 		return false;
 	}
 
-	if (bRequireLineOfSightForDirectPursuit && !AIController->LineOfSightTo(TargetActor))
+	if (IsMovingTruckTarget(TargetActor))
 	{
 		return false;
 	}
 
-	const FVector ZombieLocation = ZombieCharacter->GetActorLocation();
-	const FVector TargetLocation = GetClosestPointOnChaseTarget(TargetActor, ZombieLocation);
-	const float Distance2D = FVector::Dist2D(ZombieLocation, TargetLocation);
-	const float HeightDelta = TargetLocation.Z - ZombieLocation.Z;
-
-	if (Distance2D > DirectPursuitRange2D)
-	{
-		return false;
-	}
-
-	if (HeightDelta > DirectPursuitMaxRise)
-	{
-		return false;
-	}
-
-	if (HeightDelta < -DirectPursuitMaxDrop)
-	{
-		return false;
-	}
-
-	return true;
+	const FVector TargetPoint = GetClosestPointOnSimpleChaseTarget(TargetActor, ZombieCharacter->GetActorLocation());
+	return FVector::Dist(ZombieCharacter->GetActorLocation(), TargetPoint) <= StopDistance;
 }
 
-void UBTTask_ChaseHuman::ApplyDirectPursuitFallback(AAIController* AIController, ABaseZombie* ZombieCharacter, AActor* TargetActor) const
+bool UBTTask_ChaseHuman::IsMovingTruckTarget(AActor* TargetActor) const
 {
-	if (!AIController || !ZombieCharacter || !TargetActor)
-	{
-		return;
-	}
+	const ATruck* Truck = Cast<ATruck>(TargetActor);
+	return Truck &&
+		MovingTruckSpeedThreshold > 0.0f &&
+		Truck->GetVelocity().SizeSquared2D() >= FMath::Square(MovingTruckSpeedThreshold);
+}
 
-	AIController->SetFocus(TargetActor);
-		ZombieCharacter->ApplyDirectPursuitInput(GetClosestPointOnChaseTarget(TargetActor, ZombieCharacter->GetActorLocation()));
+float UBTTask_ChaseHuman::GetChaseAcceptanceRadius(AActor* TargetActor) const
+{
+	return IsMovingTruckTarget(TargetActor)
+		? FMath::Min(StopDistance, MovingTruckAcceptanceRadius)
+		: StopDistance;
 }
 
 EBTNodeResult::Type UBTTask_ChaseHuman::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
@@ -173,24 +197,20 @@ EBTNodeResult::Type UBTTask_ChaseHuman::ExecuteTask(UBehaviorTreeComponent& Owne
 		: nullptr;
 	AActor* TargetActor = ResolveChaseTarget(BlackboardTarget);
 
-	if (!TargetActor || !AIController || !ZombieCharacter || !ZombieCharacter->IsAlive())
+	if (!AIController || !ZombieCharacter || !TargetActor || !ZombieCharacter->IsAlive())
 	{
 		return EBTNodeResult::Failed;
 	}
 
 	AIController->SetFocus(TargetActor);
-	if (TryUseFallZonePursuit(AIController, ZombieCharacter, TargetActor))
+	if (TryUseFallZone(AIController, ZombieCharacter, TargetActor))
 	{
 		return EBTNodeResult::InProgress;
 	}
 
-	const bool bMoveRequested = RequestChaseMove(AIController, ZombieCharacter, TargetActor, true);
-	if (!bMoveRequested && ShouldUseDirectPursuitFallback(AIController, ZombieCharacter, TargetActor))
-	{
-		ApplyDirectPursuitFallback(AIController, ZombieCharacter, TargetActor);
-	}
-
-	return EBTNodeResult::InProgress;
+	return RequestChaseMove(AIController, TargetActor, true)
+		? EBTNodeResult::InProgress
+		: EBTNodeResult::Failed;
 }
 
 void UBTTask_ChaseHuman::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
@@ -220,24 +240,20 @@ void UBTTask_ChaseHuman::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* Node
 
 	AIController->SetFocus(TargetActor);
 
-	if (TryUseFallZonePursuit(AIController, ZombieCharacter, TargetActor))
+	if (TryUseFallZone(AIController, ZombieCharacter, TargetActor))
 	{
 		return;
 	}
 
-	const FVector TargetReachPoint = GetClosestPointOnChaseTarget(TargetActor, ZombieCharacter->GetActorLocation());
-	const float Distance = FVector::Dist(ZombieCharacter->GetActorLocation(), TargetReachPoint);
-
-	if (Distance <= StopDistance)
+	if (IsTargetInStopDistance(ZombieCharacter, TargetActor))
 	{
 		AIController->StopMovement();
 		FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);
 		return;
 	}
 
-	const bool bMoveRequested = RequestChaseMove(AIController, ZombieCharacter, TargetActor, false);
-	if (!bMoveRequested && ShouldUseDirectPursuitFallback(AIController, ZombieCharacter, TargetActor))
+	if (!RequestChaseMove(AIController, TargetActor, false))
 	{
-		ApplyDirectPursuitFallback(AIController, ZombieCharacter, TargetActor);
+		FinishLatentTask(OwnerComp, EBTNodeResult::Failed);
 	}
 }

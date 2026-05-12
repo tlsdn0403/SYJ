@@ -11,6 +11,7 @@
 /**
  * 
  */
+
 UCLASS()
 class FPSPROJECT_API UFPSProjectGameInstance : public UGameInstance, public FTickableGameObject
 {
@@ -36,6 +37,7 @@ public:
 
 	void SendPacket(SendBufferRef SendBuffer);
 	static void SendPacketStatic(SendBufferRef SendBuffer);
+	static bool SendZombieHitPacket(class AFPSBaseCharacter* Attacker, class ABaseZombie* Zombie, float Damage, const FVector& HitLocation);
 
 public:
 	void HandleSpawn(const Protocol::ObjectInfo& PlayerInfo, bool IsMine);
@@ -46,6 +48,9 @@ public:
 	void HandleDespawn(const Protocol::S_DESPAWN& DespawnPkt);
 
 	void HandleMove(const Protocol::S_MOVE& MovePkt);
+	void HandleZombieAttack(const Protocol::S_ZOMBIE_ATTACK& pkt);
+	void HandleZombieHp(const Protocol::S_ZOMBIE_HP& pkt);
+	void HandleZombieDie(const Protocol::S_ZOMBIE_DIE& pkt);
 	void HandleEnterTruck(const Protocol::S_ENTER_TRUCK& pkt);
 	void HandleExitTruck(const Protocol::S_EXIT_TRUCK& pkt);
 	void HandleTruckMove(const Protocol::S_TRUCK_MOVE& pkt);
@@ -64,6 +69,19 @@ public:
 	void CacheDoorActors();
 	bool IsConnectedToGameServer() const;
 	bool ShouldUseLocalInteractionFallback() const;
+	bool ShouldDelayStage2Spawn() const;
+	bool ShouldDelayEnterGameRequest() const;
+	bool AreStage2ActorsReadyToReveal() const;
+	void RequestEnterGameWhenReady();
+	bool TrySendEnterGamePacket();
+	bool TryResolveDeferredLocalSpawn();
+	bool TryResolveDeferredStage2WorldActors();
+	void SetStage2WorldActorsHidden(bool bHidden);
+	void DeferLocalSpawn(const Protocol::ObjectInfo& ObjectInfo, class AFPSBaseCharacter* LocalPlayer);
+	void ApplyResolvedSpawn(class AFPSBaseCharacter* LocalPlayer, const FVector& SpawnLocation);
+	bool TrySnapActorToStage2Floor(class AActor* Actor, FVector& InOutLocation, const FVector* PreferredAnchor = nullptr) const;
+	bool IsStage2SpawnLocationBlockedByTruck(const FVector& Location, const class AFPSBaseCharacter* LocalPlayer) const;
+	bool TryFindSafeStage2PlayerSpawn(class AFPSBaseCharacter* LocalPlayer, FVector& InOutLocation, const FVector& SpawnAnchor);
 	bool TryPickupWeaponLocally(class AFPSBaseCharacter* Character, class AWeaponBase* Weapon);
 	bool TryEnterTruckLocally(class AFPSBaseCharacter* Character, class ATruck* Truck, Protocol::TruckSeatType SeatType);
 	bool TryExitTruckLocally(class AFPSBaseCharacter* Character);
@@ -91,8 +109,11 @@ public:
 public:
 	UPROPERTY(EditAnywhere, Category = "Network")
 	TSubclassOf<class AFPSBaseCharacter> OtherPlayerClass;
+	UPROPERTY(EditAnywhere, Category = "Network")
+	TSubclassOf<class ABaseZombie> NetworkZombieClass;
 	class AFPSBaseCharacter* MyPlayer;
 	TMap<uint64, class AFPSBaseCharacter*> Players;
+	TMap<uint64, class ABaseZombie*> Zombies;
 	TMap<uint64, class ATruck*> Trucks;
 	TMap<int32, class AADoor*> Doors;
 
@@ -101,6 +122,12 @@ public:
 	TMap<uint64, AActor*> FieldItems;
 
 	TMap<uint64, FPendingEquippedWeapon> PendingWeaponsByPlayer;
+	bool bHasPendingLocalSpawnInfo = false;
+	Protocol::ObjectInfo PendingLocalSpawnInfo;
+	bool bHasResolvedInitialStage2WorldActors = false;
+	bool bStage2WorldActorsHidden = false;
+	bool bPendingEnterGameRequest = false;
+	bool bEnterGamePacketSent = false;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stage1|Cargo")
 	TMap<EItemType, int32> RecordedStage1CargoItems;
@@ -110,4 +137,6 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Network|Class")
 	TSubclassOf<class AWeaponBase> DefaultEquippedWeaponClass;	// 손에 장착된 무기 스폰할 때 사용할 기본 무기 클래스
+
+private:
 };

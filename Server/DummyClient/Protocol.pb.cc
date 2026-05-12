@@ -152,6 +152,67 @@ struct S_MOVEDefaultTypeInternal {
   };
 };
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 S_MOVEDefaultTypeInternal _S_MOVE_default_instance_;
+PROTOBUF_CONSTEXPR C_HIT_ZOMBIE::C_HIT_ZOMBIE(
+    ::_pbi::ConstantInitialized): _impl_{
+    /*decltype(_impl_.zombie_id_)*/uint64_t{0u}
+  , /*decltype(_impl_.attacker_id_)*/uint64_t{0u}
+  , /*decltype(_impl_.damage_)*/0
+  , /*decltype(_impl_.hit_x_)*/0
+  , /*decltype(_impl_.hit_y_)*/0
+  , /*decltype(_impl_.hit_z_)*/0
+  , /*decltype(_impl_._cached_size_)*/{}} {}
+struct C_HIT_ZOMBIEDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR C_HIT_ZOMBIEDefaultTypeInternal()
+      : _instance(::_pbi::ConstantInitialized{}) {}
+  ~C_HIT_ZOMBIEDefaultTypeInternal() {}
+  union {
+    C_HIT_ZOMBIE _instance;
+  };
+};
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 C_HIT_ZOMBIEDefaultTypeInternal _C_HIT_ZOMBIE_default_instance_;
+PROTOBUF_CONSTEXPR S_ZOMBIE_ATTACK::S_ZOMBIE_ATTACK(
+    ::_pbi::ConstantInitialized): _impl_{
+    /*decltype(_impl_.zombie_id_)*/uint64_t{0u}
+  , /*decltype(_impl_.target_player_id_)*/uint64_t{0u}
+  , /*decltype(_impl_._cached_size_)*/{}} {}
+struct S_ZOMBIE_ATTACKDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR S_ZOMBIE_ATTACKDefaultTypeInternal()
+      : _instance(::_pbi::ConstantInitialized{}) {}
+  ~S_ZOMBIE_ATTACKDefaultTypeInternal() {}
+  union {
+    S_ZOMBIE_ATTACK _instance;
+  };
+};
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 S_ZOMBIE_ATTACKDefaultTypeInternal _S_ZOMBIE_ATTACK_default_instance_;
+PROTOBUF_CONSTEXPR S_ZOMBIE_HP::S_ZOMBIE_HP(
+    ::_pbi::ConstantInitialized): _impl_{
+    /*decltype(_impl_.zombie_id_)*/uint64_t{0u}
+  , /*decltype(_impl_.hp_)*/0
+  , /*decltype(_impl_.max_hp_)*/0
+  , /*decltype(_impl_._cached_size_)*/{}} {}
+struct S_ZOMBIE_HPDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR S_ZOMBIE_HPDefaultTypeInternal()
+      : _instance(::_pbi::ConstantInitialized{}) {}
+  ~S_ZOMBIE_HPDefaultTypeInternal() {}
+  union {
+    S_ZOMBIE_HP _instance;
+  };
+};
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 S_ZOMBIE_HPDefaultTypeInternal _S_ZOMBIE_HP_default_instance_;
+PROTOBUF_CONSTEXPR S_ZOMBIE_DIE::S_ZOMBIE_DIE(
+    ::_pbi::ConstantInitialized): _impl_{
+    /*decltype(_impl_.zombie_id_)*/uint64_t{0u}
+  , /*decltype(_impl_.killer_id_)*/uint64_t{0u}
+  , /*decltype(_impl_._cached_size_)*/{}} {}
+struct S_ZOMBIE_DIEDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR S_ZOMBIE_DIEDefaultTypeInternal()
+      : _instance(::_pbi::ConstantInitialized{}) {}
+  ~S_ZOMBIE_DIEDefaultTypeInternal() {}
+  union {
+    S_ZOMBIE_DIE _instance;
+  };
+};
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 S_ZOMBIE_DIEDefaultTypeInternal _S_ZOMBIE_DIE_default_instance_;
 PROTOBUF_CONSTEXPR C_CHAT::C_CHAT(
     ::_pbi::ConstantInitialized): _impl_{
     /*decltype(_impl_.msg_)*/{&::_pbi::fixed_address_empty_string, ::_pbi::ConstantInitialized{}}
@@ -353,7 +414,7 @@ struct S_TOGGLE_DOORDefaultTypeInternal {
 };
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 S_TOGGLE_DOORDefaultTypeInternal _S_TOGGLE_DOOR_default_instance_;
 }  // namespace Protocol
-static ::_pb::Metadata file_level_metadata_Protocol_2eproto[25];
+static ::_pb::Metadata file_level_metadata_Protocol_2eproto[29];
 static constexpr ::_pb::EnumDescriptor const** file_level_enum_descriptors_Protocol_2eproto = nullptr;
 static constexpr ::_pb::ServiceDescriptor const** file_level_service_descriptors_Protocol_2eproto = nullptr;
 
@@ -429,6 +490,43 @@ const uint32_t TableStruct_Protocol_2eproto::offsets[] PROTOBUF_SECTION_VARIABLE
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
   PROTOBUF_FIELD_OFFSET(::Protocol::S_MOVE, _impl_.info_),
+  ~0u,  // no _has_bits_
+  PROTOBUF_FIELD_OFFSET(::Protocol::C_HIT_ZOMBIE, _internal_metadata_),
+  ~0u,  // no _extensions_
+  ~0u,  // no _oneof_case_
+  ~0u,  // no _weak_field_map_
+  ~0u,  // no _inlined_string_donated_
+  PROTOBUF_FIELD_OFFSET(::Protocol::C_HIT_ZOMBIE, _impl_.zombie_id_),
+  PROTOBUF_FIELD_OFFSET(::Protocol::C_HIT_ZOMBIE, _impl_.attacker_id_),
+  PROTOBUF_FIELD_OFFSET(::Protocol::C_HIT_ZOMBIE, _impl_.damage_),
+  PROTOBUF_FIELD_OFFSET(::Protocol::C_HIT_ZOMBIE, _impl_.hit_x_),
+  PROTOBUF_FIELD_OFFSET(::Protocol::C_HIT_ZOMBIE, _impl_.hit_y_),
+  PROTOBUF_FIELD_OFFSET(::Protocol::C_HIT_ZOMBIE, _impl_.hit_z_),
+  ~0u,  // no _has_bits_
+  PROTOBUF_FIELD_OFFSET(::Protocol::S_ZOMBIE_ATTACK, _internal_metadata_),
+  ~0u,  // no _extensions_
+  ~0u,  // no _oneof_case_
+  ~0u,  // no _weak_field_map_
+  ~0u,  // no _inlined_string_donated_
+  PROTOBUF_FIELD_OFFSET(::Protocol::S_ZOMBIE_ATTACK, _impl_.zombie_id_),
+  PROTOBUF_FIELD_OFFSET(::Protocol::S_ZOMBIE_ATTACK, _impl_.target_player_id_),
+  ~0u,  // no _has_bits_
+  PROTOBUF_FIELD_OFFSET(::Protocol::S_ZOMBIE_HP, _internal_metadata_),
+  ~0u,  // no _extensions_
+  ~0u,  // no _oneof_case_
+  ~0u,  // no _weak_field_map_
+  ~0u,  // no _inlined_string_donated_
+  PROTOBUF_FIELD_OFFSET(::Protocol::S_ZOMBIE_HP, _impl_.zombie_id_),
+  PROTOBUF_FIELD_OFFSET(::Protocol::S_ZOMBIE_HP, _impl_.hp_),
+  PROTOBUF_FIELD_OFFSET(::Protocol::S_ZOMBIE_HP, _impl_.max_hp_),
+  ~0u,  // no _has_bits_
+  PROTOBUF_FIELD_OFFSET(::Protocol::S_ZOMBIE_DIE, _internal_metadata_),
+  ~0u,  // no _extensions_
+  ~0u,  // no _oneof_case_
+  ~0u,  // no _weak_field_map_
+  ~0u,  // no _inlined_string_donated_
+  PROTOBUF_FIELD_OFFSET(::Protocol::S_ZOMBIE_DIE, _impl_.zombie_id_),
+  PROTOBUF_FIELD_OFFSET(::Protocol::S_ZOMBIE_DIE, _impl_.killer_id_),
   ~0u,  // no _has_bits_
   PROTOBUF_FIELD_OFFSET(::Protocol::C_CHAT, _internal_metadata_),
   ~0u,  // no _extensions_
@@ -553,21 +651,25 @@ static const ::_pbi::MigrationSchema schemas[] PROTOBUF_SECTION_VARIABLE(protode
   { 50, -1, -1, sizeof(::Protocol::S_DESPAWN)},
   { 57, -1, -1, sizeof(::Protocol::C_MOVE)},
   { 64, -1, -1, sizeof(::Protocol::S_MOVE)},
-  { 71, -1, -1, sizeof(::Protocol::C_CHAT)},
-  { 78, -1, -1, sizeof(::Protocol::S_CHAT)},
-  { 86, -1, -1, sizeof(::Protocol::C_EQUIP_WEAPON)},
-  { 93, -1, -1, sizeof(::Protocol::S_EQUIP_WEAPON)},
-  { 102, -1, -1, sizeof(::Protocol::S_SPAWN_ITEM)},
-  { 109, -1, -1, sizeof(::Protocol::C_FIRE)},
-  { 115, -1, -1, sizeof(::Protocol::S_FIRE)},
-  { 122, -1, -1, sizeof(::Protocol::C_ENTER_TRUCK)},
-  { 130, -1, -1, sizeof(::Protocol::S_ENTER_TRUCK)},
-  { 139, -1, -1, sizeof(::Protocol::C_EXIT_TRUCK)},
-  { 145, -1, -1, sizeof(::Protocol::S_EXIT_TRUCK)},
-  { 154, -1, -1, sizeof(::Protocol::C_TRUCK_MOVE)},
-  { 161, -1, -1, sizeof(::Protocol::S_TRUCK_MOVE)},
-  { 168, -1, -1, sizeof(::Protocol::C_TOGGLE_DOOR)},
-  { 175, -1, -1, sizeof(::Protocol::S_TOGGLE_DOOR)},
+  { 71, -1, -1, sizeof(::Protocol::C_HIT_ZOMBIE)},
+  { 83, -1, -1, sizeof(::Protocol::S_ZOMBIE_ATTACK)},
+  { 91, -1, -1, sizeof(::Protocol::S_ZOMBIE_HP)},
+  { 100, -1, -1, sizeof(::Protocol::S_ZOMBIE_DIE)},
+  { 108, -1, -1, sizeof(::Protocol::C_CHAT)},
+  { 115, -1, -1, sizeof(::Protocol::S_CHAT)},
+  { 123, -1, -1, sizeof(::Protocol::C_EQUIP_WEAPON)},
+  { 130, -1, -1, sizeof(::Protocol::S_EQUIP_WEAPON)},
+  { 139, -1, -1, sizeof(::Protocol::S_SPAWN_ITEM)},
+  { 146, -1, -1, sizeof(::Protocol::C_FIRE)},
+  { 152, -1, -1, sizeof(::Protocol::S_FIRE)},
+  { 159, -1, -1, sizeof(::Protocol::C_ENTER_TRUCK)},
+  { 167, -1, -1, sizeof(::Protocol::S_ENTER_TRUCK)},
+  { 176, -1, -1, sizeof(::Protocol::C_EXIT_TRUCK)},
+  { 182, -1, -1, sizeof(::Protocol::S_EXIT_TRUCK)},
+  { 191, -1, -1, sizeof(::Protocol::C_TRUCK_MOVE)},
+  { 198, -1, -1, sizeof(::Protocol::S_TRUCK_MOVE)},
+  { 205, -1, -1, sizeof(::Protocol::C_TOGGLE_DOOR)},
+  { 212, -1, -1, sizeof(::Protocol::S_TOGGLE_DOOR)},
 };
 
 static const ::_pb::Message* const file_default_instances[] = {
@@ -581,6 +683,10 @@ static const ::_pb::Message* const file_default_instances[] = {
   &::Protocol::_S_DESPAWN_default_instance_._instance,
   &::Protocol::_C_MOVE_default_instance_._instance,
   &::Protocol::_S_MOVE_default_instance_._instance,
+  &::Protocol::_C_HIT_ZOMBIE_default_instance_._instance,
+  &::Protocol::_S_ZOMBIE_ATTACK_default_instance_._instance,
+  &::Protocol::_S_ZOMBIE_HP_default_instance_._instance,
+  &::Protocol::_S_ZOMBIE_DIE_default_instance_._instance,
   &::Protocol::_C_CHAT_default_instance_._instance,
   &::Protocol::_S_CHAT_default_instance_._instance,
   &::Protocol::_C_EQUIP_WEAPON_default_instance_._instance,
@@ -610,26 +716,34 @@ const char descriptor_table_protodef_Protocol_2eproto[] PROTOBUF_SECTION_VARIABL
   "\n\007players\030\001 \003(\0132\024.Protocol.ObjectInfo\"\037\n"
   "\tS_DESPAWN\022\022\n\nobject_ids\030\001 \003(\004\")\n\006C_MOVE"
   "\022\037\n\004info\030\001 \001(\0132\021.Protocol.PosInfo\")\n\006S_M"
-  "OVE\022\037\n\004info\030\001 \001(\0132\021.Protocol.PosInfo\"\025\n\006"
-  "C_CHAT\022\013\n\003msg\030\001 \001(\t\"\'\n\006S_CHAT\022\020\n\010playerI"
-  "d\030\001 \001(\004\022\013\n\003msg\030\002 \001(\t\"&\n\016C_EQUIP_WEAPON\022\024"
-  "\n\014itemObjectId\030\001 \001(\004\"L\n\016S_EQUIP_WEAPON\022\020"
-  "\n\010playerId\030\001 \001(\004\022\024\n\014itemObjectId\030\002 \001(\004\022\022"
-  "\n\nweaponType\030\003 \001(\005\"3\n\014S_SPAWN_ITEM\022#\n\005it"
-  "ems\030\001 \003(\0132\024.Protocol.ObjectInfo\"\010\n\006C_FIR"
-  "E\"\033\n\006S_FIRE\022\021\n\tobject_id\030\001 \001(\004\"M\n\rC_ENTE"
-  "R_TRUCK\022\020\n\010truck_id\030\001 \001(\004\022*\n\tseat_type\030\002"
-  " \001(\0162\027.Protocol.TruckSeatType\"`\n\rS_ENTER"
-  "_TRUCK\022\021\n\tplayer_id\030\001 \001(\004\022\020\n\010truck_id\030\002 "
-  "\001(\004\022*\n\tseat_type\030\003 \001(\0162\027.Protocol.TruckS"
-  "eatType\"\016\n\014C_EXIT_TRUCK\"_\n\014S_EXIT_TRUCK\022"
-  "\021\n\tplayer_id\030\001 \001(\004\022\020\n\010truck_id\030\002 \001(\004\022*\n\t"
-  "seat_type\030\003 \001(\0162\027.Protocol.TruckSeatType"
-  "\"/\n\014C_TRUCK_MOVE\022\037\n\004info\030\001 \001(\0132\021.Protoco"
-  "l.PosInfo\"/\n\014S_TRUCK_MOVE\022\037\n\004info\030\001 \001(\0132"
-  "\021.Protocol.PosInfo\" \n\rC_TOGGLE_DOOR\022\017\n\007d"
-  "oor_id\030\001 \001(\004\"1\n\rS_TOGGLE_DOOR\022\017\n\007door_id"
-  "\030\001 \001(\004\022\017\n\007is_open\030\002 \001(\010b\006proto3"
+  "OVE\022\037\n\004info\030\001 \001(\0132\021.Protocol.PosInfo\"s\n\014"
+  "C_HIT_ZOMBIE\022\021\n\tzombie_id\030\001 \001(\004\022\023\n\013attac"
+  "ker_id\030\002 \001(\004\022\016\n\006damage\030\003 \001(\002\022\r\n\005hit_x\030\004 "
+  "\001(\002\022\r\n\005hit_y\030\005 \001(\002\022\r\n\005hit_z\030\006 \001(\002\">\n\017S_Z"
+  "OMBIE_ATTACK\022\021\n\tzombie_id\030\001 \001(\004\022\030\n\020targe"
+  "t_player_id\030\002 \001(\004\"<\n\013S_ZOMBIE_HP\022\021\n\tzomb"
+  "ie_id\030\001 \001(\004\022\n\n\002hp\030\002 \001(\002\022\016\n\006max_hp\030\003 \001(\002\""
+  "4\n\014S_ZOMBIE_DIE\022\021\n\tzombie_id\030\001 \001(\004\022\021\n\tki"
+  "ller_id\030\002 \001(\004\"\025\n\006C_CHAT\022\013\n\003msg\030\001 \001(\t\"\'\n\006"
+  "S_CHAT\022\020\n\010playerId\030\001 \001(\004\022\013\n\003msg\030\002 \001(\t\"&\n"
+  "\016C_EQUIP_WEAPON\022\024\n\014itemObjectId\030\001 \001(\004\"L\n"
+  "\016S_EQUIP_WEAPON\022\020\n\010playerId\030\001 \001(\004\022\024\n\014ite"
+  "mObjectId\030\002 \001(\004\022\022\n\nweaponType\030\003 \001(\005\"3\n\014S"
+  "_SPAWN_ITEM\022#\n\005items\030\001 \003(\0132\024.Protocol.Ob"
+  "jectInfo\"\010\n\006C_FIRE\"\033\n\006S_FIRE\022\021\n\tobject_i"
+  "d\030\001 \001(\004\"M\n\rC_ENTER_TRUCK\022\020\n\010truck_id\030\001 \001"
+  "(\004\022*\n\tseat_type\030\002 \001(\0162\027.Protocol.TruckSe"
+  "atType\"`\n\rS_ENTER_TRUCK\022\021\n\tplayer_id\030\001 \001"
+  "(\004\022\020\n\010truck_id\030\002 \001(\004\022*\n\tseat_type\030\003 \001(\0162"
+  "\027.Protocol.TruckSeatType\"\016\n\014C_EXIT_TRUCK"
+  "\"_\n\014S_EXIT_TRUCK\022\021\n\tplayer_id\030\001 \001(\004\022\020\n\010t"
+  "ruck_id\030\002 \001(\004\022*\n\tseat_type\030\003 \001(\0162\027.Proto"
+  "col.TruckSeatType\"/\n\014C_TRUCK_MOVE\022\037\n\004inf"
+  "o\030\001 \001(\0132\021.Protocol.PosInfo\"/\n\014S_TRUCK_MO"
+  "VE\022\037\n\004info\030\001 \001(\0132\021.Protocol.PosInfo\" \n\rC"
+  "_TOGGLE_DOOR\022\017\n\007door_id\030\001 \001(\004\"1\n\rS_TOGGL"
+  "E_DOOR\022\017\n\007door_id\030\001 \001(\004\022\017\n\007is_open\030\002 \001(\010"
+  "b\006proto3"
   ;
 static const ::_pbi::DescriptorTable* const descriptor_table_Protocol_2eproto_deps[2] = {
   &::descriptor_table_Enum_2eproto,
@@ -637,9 +751,9 @@ static const ::_pbi::DescriptorTable* const descriptor_table_Protocol_2eproto_de
 };
 static ::_pbi::once_flag descriptor_table_Protocol_2eproto_once;
 const ::_pbi::DescriptorTable descriptor_table_Protocol_2eproto = {
-    false, false, 1231, descriptor_table_protodef_Protocol_2eproto,
+    false, false, 1528, descriptor_table_protodef_Protocol_2eproto,
     "Protocol.proto",
-    &descriptor_table_Protocol_2eproto_once, descriptor_table_Protocol_2eproto_deps, 2, 25,
+    &descriptor_table_Protocol_2eproto_once, descriptor_table_Protocol_2eproto_deps, 2, 29,
     schemas, file_default_instances, TableStruct_Protocol_2eproto::offsets,
     file_level_metadata_Protocol_2eproto, file_level_enum_descriptors_Protocol_2eproto,
     file_level_service_descriptors_Protocol_2eproto,
@@ -2477,6 +2591,1042 @@ void S_MOVE::InternalSwap(S_MOVE* other) {
 
 // ===================================================================
 
+class C_HIT_ZOMBIE::_Internal {
+ public:
+};
+
+C_HIT_ZOMBIE::C_HIT_ZOMBIE(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
+  SharedCtor(arena, is_message_owned);
+  // @@protoc_insertion_point(arena_constructor:Protocol.C_HIT_ZOMBIE)
+}
+C_HIT_ZOMBIE::C_HIT_ZOMBIE(const C_HIT_ZOMBIE& from)
+  : ::PROTOBUF_NAMESPACE_ID::Message() {
+  C_HIT_ZOMBIE* const _this = this; (void)_this;
+  new (&_impl_) Impl_{
+      decltype(_impl_.zombie_id_){}
+    , decltype(_impl_.attacker_id_){}
+    , decltype(_impl_.damage_){}
+    , decltype(_impl_.hit_x_){}
+    , decltype(_impl_.hit_y_){}
+    , decltype(_impl_.hit_z_){}
+    , /*decltype(_impl_._cached_size_)*/{}};
+
+  _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+  ::memcpy(&_impl_.zombie_id_, &from._impl_.zombie_id_,
+    static_cast<size_t>(reinterpret_cast<char*>(&_impl_.hit_z_) -
+    reinterpret_cast<char*>(&_impl_.zombie_id_)) + sizeof(_impl_.hit_z_));
+  // @@protoc_insertion_point(copy_constructor:Protocol.C_HIT_ZOMBIE)
+}
+
+inline void C_HIT_ZOMBIE::SharedCtor(
+    ::_pb::Arena* arena, bool is_message_owned) {
+  (void)arena;
+  (void)is_message_owned;
+  new (&_impl_) Impl_{
+      decltype(_impl_.zombie_id_){uint64_t{0u}}
+    , decltype(_impl_.attacker_id_){uint64_t{0u}}
+    , decltype(_impl_.damage_){0}
+    , decltype(_impl_.hit_x_){0}
+    , decltype(_impl_.hit_y_){0}
+    , decltype(_impl_.hit_z_){0}
+    , /*decltype(_impl_._cached_size_)*/{}
+  };
+}
+
+C_HIT_ZOMBIE::~C_HIT_ZOMBIE() {
+  // @@protoc_insertion_point(destructor:Protocol.C_HIT_ZOMBIE)
+  if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
+  (void)arena;
+    return;
+  }
+  SharedDtor();
+}
+
+inline void C_HIT_ZOMBIE::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+}
+
+void C_HIT_ZOMBIE::SetCachedSize(int size) const {
+  _impl_._cached_size_.Set(size);
+}
+
+void C_HIT_ZOMBIE::Clear() {
+// @@protoc_insertion_point(message_clear_start:Protocol.C_HIT_ZOMBIE)
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  ::memset(&_impl_.zombie_id_, 0, static_cast<size_t>(
+      reinterpret_cast<char*>(&_impl_.hit_z_) -
+      reinterpret_cast<char*>(&_impl_.zombie_id_)) + sizeof(_impl_.hit_z_));
+  _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
+}
+
+const char* C_HIT_ZOMBIE::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  while (!ctx->Done(&ptr)) {
+    uint32_t tag;
+    ptr = ::_pbi::ReadTag(ptr, &tag);
+    switch (tag >> 3) {
+      // uint64 zombie_id = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 8)) {
+          _impl_.zombie_id_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // uint64 attacker_id = 2;
+      case 2:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 16)) {
+          _impl_.attacker_id_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // float damage = 3;
+      case 3:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 29)) {
+          _impl_.damage_ = ::PROTOBUF_NAMESPACE_ID::internal::UnalignedLoad<float>(ptr);
+          ptr += sizeof(float);
+        } else
+          goto handle_unusual;
+        continue;
+      // float hit_x = 4;
+      case 4:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 37)) {
+          _impl_.hit_x_ = ::PROTOBUF_NAMESPACE_ID::internal::UnalignedLoad<float>(ptr);
+          ptr += sizeof(float);
+        } else
+          goto handle_unusual;
+        continue;
+      // float hit_y = 5;
+      case 5:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 45)) {
+          _impl_.hit_y_ = ::PROTOBUF_NAMESPACE_ID::internal::UnalignedLoad<float>(ptr);
+          ptr += sizeof(float);
+        } else
+          goto handle_unusual;
+        continue;
+      // float hit_z = 6;
+      case 6:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 53)) {
+          _impl_.hit_z_ = ::PROTOBUF_NAMESPACE_ID::internal::UnalignedLoad<float>(ptr);
+          ptr += sizeof(float);
+        } else
+          goto handle_unusual;
+        continue;
+      default:
+        goto handle_unusual;
+    }  // switch
+  handle_unusual:
+    if ((tag == 0) || ((tag & 7) == 4)) {
+      CHK_(ptr);
+      ctx->SetLastTag(tag);
+      goto message_done;
+    }
+    ptr = UnknownFieldParse(
+        tag,
+        _internal_metadata_.mutable_unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(),
+        ptr, ctx);
+    CHK_(ptr != nullptr);
+  }  // while
+message_done:
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto message_done;
+#undef CHK_
+}
+
+uint8_t* C_HIT_ZOMBIE::_InternalSerialize(
+    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:Protocol.C_HIT_ZOMBIE)
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  // uint64 zombie_id = 1;
+  if (this->_internal_zombie_id() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt64ToArray(1, this->_internal_zombie_id(), target);
+  }
+
+  // uint64 attacker_id = 2;
+  if (this->_internal_attacker_id() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt64ToArray(2, this->_internal_attacker_id(), target);
+  }
+
+  // float damage = 3;
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_damage = this->_internal_damage();
+  uint32_t raw_damage;
+  memcpy(&raw_damage, &tmp_damage, sizeof(tmp_damage));
+  if (raw_damage != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteFloatToArray(3, this->_internal_damage(), target);
+  }
+
+  // float hit_x = 4;
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_hit_x = this->_internal_hit_x();
+  uint32_t raw_hit_x;
+  memcpy(&raw_hit_x, &tmp_hit_x, sizeof(tmp_hit_x));
+  if (raw_hit_x != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteFloatToArray(4, this->_internal_hit_x(), target);
+  }
+
+  // float hit_y = 5;
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_hit_y = this->_internal_hit_y();
+  uint32_t raw_hit_y;
+  memcpy(&raw_hit_y, &tmp_hit_y, sizeof(tmp_hit_y));
+  if (raw_hit_y != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteFloatToArray(5, this->_internal_hit_y(), target);
+  }
+
+  // float hit_z = 6;
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_hit_z = this->_internal_hit_z();
+  uint32_t raw_hit_z;
+  memcpy(&raw_hit_z, &tmp_hit_z, sizeof(tmp_hit_z));
+  if (raw_hit_z != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteFloatToArray(6, this->_internal_hit_z(), target);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+        _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:Protocol.C_HIT_ZOMBIE)
+  return target;
+}
+
+size_t C_HIT_ZOMBIE::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:Protocol.C_HIT_ZOMBIE)
+  size_t total_size = 0;
+
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  // uint64 zombie_id = 1;
+  if (this->_internal_zombie_id() != 0) {
+    total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(this->_internal_zombie_id());
+  }
+
+  // uint64 attacker_id = 2;
+  if (this->_internal_attacker_id() != 0) {
+    total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(this->_internal_attacker_id());
+  }
+
+  // float damage = 3;
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_damage = this->_internal_damage();
+  uint32_t raw_damage;
+  memcpy(&raw_damage, &tmp_damage, sizeof(tmp_damage));
+  if (raw_damage != 0) {
+    total_size += 1 + 4;
+  }
+
+  // float hit_x = 4;
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_hit_x = this->_internal_hit_x();
+  uint32_t raw_hit_x;
+  memcpy(&raw_hit_x, &tmp_hit_x, sizeof(tmp_hit_x));
+  if (raw_hit_x != 0) {
+    total_size += 1 + 4;
+  }
+
+  // float hit_y = 5;
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_hit_y = this->_internal_hit_y();
+  uint32_t raw_hit_y;
+  memcpy(&raw_hit_y, &tmp_hit_y, sizeof(tmp_hit_y));
+  if (raw_hit_y != 0) {
+    total_size += 1 + 4;
+  }
+
+  // float hit_z = 6;
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_hit_z = this->_internal_hit_z();
+  uint32_t raw_hit_z;
+  memcpy(&raw_hit_z, &tmp_hit_z, sizeof(tmp_hit_z));
+  if (raw_hit_z != 0) {
+    total_size += 1 + 4;
+  }
+
+  return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
+}
+
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData C_HIT_ZOMBIE::_class_data_ = {
+    ::PROTOBUF_NAMESPACE_ID::Message::CopyWithSourceCheck,
+    C_HIT_ZOMBIE::MergeImpl
+};
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*C_HIT_ZOMBIE::GetClassData() const { return &_class_data_; }
+
+
+void C_HIT_ZOMBIE::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
+  auto* const _this = static_cast<C_HIT_ZOMBIE*>(&to_msg);
+  auto& from = static_cast<const C_HIT_ZOMBIE&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:Protocol.C_HIT_ZOMBIE)
+  GOOGLE_DCHECK_NE(&from, _this);
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  if (from._internal_zombie_id() != 0) {
+    _this->_internal_set_zombie_id(from._internal_zombie_id());
+  }
+  if (from._internal_attacker_id() != 0) {
+    _this->_internal_set_attacker_id(from._internal_attacker_id());
+  }
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_damage = from._internal_damage();
+  uint32_t raw_damage;
+  memcpy(&raw_damage, &tmp_damage, sizeof(tmp_damage));
+  if (raw_damage != 0) {
+    _this->_internal_set_damage(from._internal_damage());
+  }
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_hit_x = from._internal_hit_x();
+  uint32_t raw_hit_x;
+  memcpy(&raw_hit_x, &tmp_hit_x, sizeof(tmp_hit_x));
+  if (raw_hit_x != 0) {
+    _this->_internal_set_hit_x(from._internal_hit_x());
+  }
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_hit_y = from._internal_hit_y();
+  uint32_t raw_hit_y;
+  memcpy(&raw_hit_y, &tmp_hit_y, sizeof(tmp_hit_y));
+  if (raw_hit_y != 0) {
+    _this->_internal_set_hit_y(from._internal_hit_y());
+  }
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_hit_z = from._internal_hit_z();
+  uint32_t raw_hit_z;
+  memcpy(&raw_hit_z, &tmp_hit_z, sizeof(tmp_hit_z));
+  if (raw_hit_z != 0) {
+    _this->_internal_set_hit_z(from._internal_hit_z());
+  }
+  _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+}
+
+void C_HIT_ZOMBIE::CopyFrom(const C_HIT_ZOMBIE& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:Protocol.C_HIT_ZOMBIE)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool C_HIT_ZOMBIE::IsInitialized() const {
+  return true;
+}
+
+void C_HIT_ZOMBIE::InternalSwap(C_HIT_ZOMBIE* other) {
+  using std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  ::PROTOBUF_NAMESPACE_ID::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(C_HIT_ZOMBIE, _impl_.hit_z_)
+      + sizeof(C_HIT_ZOMBIE::_impl_.hit_z_)
+      - PROTOBUF_FIELD_OFFSET(C_HIT_ZOMBIE, _impl_.zombie_id_)>(
+          reinterpret_cast<char*>(&_impl_.zombie_id_),
+          reinterpret_cast<char*>(&other->_impl_.zombie_id_));
+}
+
+::PROTOBUF_NAMESPACE_ID::Metadata C_HIT_ZOMBIE::GetMetadata() const {
+  return ::_pbi::AssignDescriptors(
+      &descriptor_table_Protocol_2eproto_getter, &descriptor_table_Protocol_2eproto_once,
+      file_level_metadata_Protocol_2eproto[10]);
+}
+
+// ===================================================================
+
+class S_ZOMBIE_ATTACK::_Internal {
+ public:
+};
+
+S_ZOMBIE_ATTACK::S_ZOMBIE_ATTACK(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
+  SharedCtor(arena, is_message_owned);
+  // @@protoc_insertion_point(arena_constructor:Protocol.S_ZOMBIE_ATTACK)
+}
+S_ZOMBIE_ATTACK::S_ZOMBIE_ATTACK(const S_ZOMBIE_ATTACK& from)
+  : ::PROTOBUF_NAMESPACE_ID::Message() {
+  S_ZOMBIE_ATTACK* const _this = this; (void)_this;
+  new (&_impl_) Impl_{
+      decltype(_impl_.zombie_id_){}
+    , decltype(_impl_.target_player_id_){}
+    , /*decltype(_impl_._cached_size_)*/{}};
+
+  _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+  ::memcpy(&_impl_.zombie_id_, &from._impl_.zombie_id_,
+    static_cast<size_t>(reinterpret_cast<char*>(&_impl_.target_player_id_) -
+    reinterpret_cast<char*>(&_impl_.zombie_id_)) + sizeof(_impl_.target_player_id_));
+  // @@protoc_insertion_point(copy_constructor:Protocol.S_ZOMBIE_ATTACK)
+}
+
+inline void S_ZOMBIE_ATTACK::SharedCtor(
+    ::_pb::Arena* arena, bool is_message_owned) {
+  (void)arena;
+  (void)is_message_owned;
+  new (&_impl_) Impl_{
+      decltype(_impl_.zombie_id_){uint64_t{0u}}
+    , decltype(_impl_.target_player_id_){uint64_t{0u}}
+    , /*decltype(_impl_._cached_size_)*/{}
+  };
+}
+
+S_ZOMBIE_ATTACK::~S_ZOMBIE_ATTACK() {
+  // @@protoc_insertion_point(destructor:Protocol.S_ZOMBIE_ATTACK)
+  if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
+  (void)arena;
+    return;
+  }
+  SharedDtor();
+}
+
+inline void S_ZOMBIE_ATTACK::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+}
+
+void S_ZOMBIE_ATTACK::SetCachedSize(int size) const {
+  _impl_._cached_size_.Set(size);
+}
+
+void S_ZOMBIE_ATTACK::Clear() {
+// @@protoc_insertion_point(message_clear_start:Protocol.S_ZOMBIE_ATTACK)
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  ::memset(&_impl_.zombie_id_, 0, static_cast<size_t>(
+      reinterpret_cast<char*>(&_impl_.target_player_id_) -
+      reinterpret_cast<char*>(&_impl_.zombie_id_)) + sizeof(_impl_.target_player_id_));
+  _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
+}
+
+const char* S_ZOMBIE_ATTACK::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  while (!ctx->Done(&ptr)) {
+    uint32_t tag;
+    ptr = ::_pbi::ReadTag(ptr, &tag);
+    switch (tag >> 3) {
+      // uint64 zombie_id = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 8)) {
+          _impl_.zombie_id_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // uint64 target_player_id = 2;
+      case 2:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 16)) {
+          _impl_.target_player_id_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      default:
+        goto handle_unusual;
+    }  // switch
+  handle_unusual:
+    if ((tag == 0) || ((tag & 7) == 4)) {
+      CHK_(ptr);
+      ctx->SetLastTag(tag);
+      goto message_done;
+    }
+    ptr = UnknownFieldParse(
+        tag,
+        _internal_metadata_.mutable_unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(),
+        ptr, ctx);
+    CHK_(ptr != nullptr);
+  }  // while
+message_done:
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto message_done;
+#undef CHK_
+}
+
+uint8_t* S_ZOMBIE_ATTACK::_InternalSerialize(
+    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:Protocol.S_ZOMBIE_ATTACK)
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  // uint64 zombie_id = 1;
+  if (this->_internal_zombie_id() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt64ToArray(1, this->_internal_zombie_id(), target);
+  }
+
+  // uint64 target_player_id = 2;
+  if (this->_internal_target_player_id() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt64ToArray(2, this->_internal_target_player_id(), target);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+        _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:Protocol.S_ZOMBIE_ATTACK)
+  return target;
+}
+
+size_t S_ZOMBIE_ATTACK::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:Protocol.S_ZOMBIE_ATTACK)
+  size_t total_size = 0;
+
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  // uint64 zombie_id = 1;
+  if (this->_internal_zombie_id() != 0) {
+    total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(this->_internal_zombie_id());
+  }
+
+  // uint64 target_player_id = 2;
+  if (this->_internal_target_player_id() != 0) {
+    total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(this->_internal_target_player_id());
+  }
+
+  return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
+}
+
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData S_ZOMBIE_ATTACK::_class_data_ = {
+    ::PROTOBUF_NAMESPACE_ID::Message::CopyWithSourceCheck,
+    S_ZOMBIE_ATTACK::MergeImpl
+};
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*S_ZOMBIE_ATTACK::GetClassData() const { return &_class_data_; }
+
+
+void S_ZOMBIE_ATTACK::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
+  auto* const _this = static_cast<S_ZOMBIE_ATTACK*>(&to_msg);
+  auto& from = static_cast<const S_ZOMBIE_ATTACK&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:Protocol.S_ZOMBIE_ATTACK)
+  GOOGLE_DCHECK_NE(&from, _this);
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  if (from._internal_zombie_id() != 0) {
+    _this->_internal_set_zombie_id(from._internal_zombie_id());
+  }
+  if (from._internal_target_player_id() != 0) {
+    _this->_internal_set_target_player_id(from._internal_target_player_id());
+  }
+  _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+}
+
+void S_ZOMBIE_ATTACK::CopyFrom(const S_ZOMBIE_ATTACK& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:Protocol.S_ZOMBIE_ATTACK)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool S_ZOMBIE_ATTACK::IsInitialized() const {
+  return true;
+}
+
+void S_ZOMBIE_ATTACK::InternalSwap(S_ZOMBIE_ATTACK* other) {
+  using std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  ::PROTOBUF_NAMESPACE_ID::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(S_ZOMBIE_ATTACK, _impl_.target_player_id_)
+      + sizeof(S_ZOMBIE_ATTACK::_impl_.target_player_id_)
+      - PROTOBUF_FIELD_OFFSET(S_ZOMBIE_ATTACK, _impl_.zombie_id_)>(
+          reinterpret_cast<char*>(&_impl_.zombie_id_),
+          reinterpret_cast<char*>(&other->_impl_.zombie_id_));
+}
+
+::PROTOBUF_NAMESPACE_ID::Metadata S_ZOMBIE_ATTACK::GetMetadata() const {
+  return ::_pbi::AssignDescriptors(
+      &descriptor_table_Protocol_2eproto_getter, &descriptor_table_Protocol_2eproto_once,
+      file_level_metadata_Protocol_2eproto[11]);
+}
+
+// ===================================================================
+
+class S_ZOMBIE_HP::_Internal {
+ public:
+};
+
+S_ZOMBIE_HP::S_ZOMBIE_HP(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
+  SharedCtor(arena, is_message_owned);
+  // @@protoc_insertion_point(arena_constructor:Protocol.S_ZOMBIE_HP)
+}
+S_ZOMBIE_HP::S_ZOMBIE_HP(const S_ZOMBIE_HP& from)
+  : ::PROTOBUF_NAMESPACE_ID::Message() {
+  S_ZOMBIE_HP* const _this = this; (void)_this;
+  new (&_impl_) Impl_{
+      decltype(_impl_.zombie_id_){}
+    , decltype(_impl_.hp_){}
+    , decltype(_impl_.max_hp_){}
+    , /*decltype(_impl_._cached_size_)*/{}};
+
+  _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+  ::memcpy(&_impl_.zombie_id_, &from._impl_.zombie_id_,
+    static_cast<size_t>(reinterpret_cast<char*>(&_impl_.max_hp_) -
+    reinterpret_cast<char*>(&_impl_.zombie_id_)) + sizeof(_impl_.max_hp_));
+  // @@protoc_insertion_point(copy_constructor:Protocol.S_ZOMBIE_HP)
+}
+
+inline void S_ZOMBIE_HP::SharedCtor(
+    ::_pb::Arena* arena, bool is_message_owned) {
+  (void)arena;
+  (void)is_message_owned;
+  new (&_impl_) Impl_{
+      decltype(_impl_.zombie_id_){uint64_t{0u}}
+    , decltype(_impl_.hp_){0}
+    , decltype(_impl_.max_hp_){0}
+    , /*decltype(_impl_._cached_size_)*/{}
+  };
+}
+
+S_ZOMBIE_HP::~S_ZOMBIE_HP() {
+  // @@protoc_insertion_point(destructor:Protocol.S_ZOMBIE_HP)
+  if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
+  (void)arena;
+    return;
+  }
+  SharedDtor();
+}
+
+inline void S_ZOMBIE_HP::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+}
+
+void S_ZOMBIE_HP::SetCachedSize(int size) const {
+  _impl_._cached_size_.Set(size);
+}
+
+void S_ZOMBIE_HP::Clear() {
+// @@protoc_insertion_point(message_clear_start:Protocol.S_ZOMBIE_HP)
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  ::memset(&_impl_.zombie_id_, 0, static_cast<size_t>(
+      reinterpret_cast<char*>(&_impl_.max_hp_) -
+      reinterpret_cast<char*>(&_impl_.zombie_id_)) + sizeof(_impl_.max_hp_));
+  _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
+}
+
+const char* S_ZOMBIE_HP::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  while (!ctx->Done(&ptr)) {
+    uint32_t tag;
+    ptr = ::_pbi::ReadTag(ptr, &tag);
+    switch (tag >> 3) {
+      // uint64 zombie_id = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 8)) {
+          _impl_.zombie_id_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // float hp = 2;
+      case 2:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 21)) {
+          _impl_.hp_ = ::PROTOBUF_NAMESPACE_ID::internal::UnalignedLoad<float>(ptr);
+          ptr += sizeof(float);
+        } else
+          goto handle_unusual;
+        continue;
+      // float max_hp = 3;
+      case 3:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 29)) {
+          _impl_.max_hp_ = ::PROTOBUF_NAMESPACE_ID::internal::UnalignedLoad<float>(ptr);
+          ptr += sizeof(float);
+        } else
+          goto handle_unusual;
+        continue;
+      default:
+        goto handle_unusual;
+    }  // switch
+  handle_unusual:
+    if ((tag == 0) || ((tag & 7) == 4)) {
+      CHK_(ptr);
+      ctx->SetLastTag(tag);
+      goto message_done;
+    }
+    ptr = UnknownFieldParse(
+        tag,
+        _internal_metadata_.mutable_unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(),
+        ptr, ctx);
+    CHK_(ptr != nullptr);
+  }  // while
+message_done:
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto message_done;
+#undef CHK_
+}
+
+uint8_t* S_ZOMBIE_HP::_InternalSerialize(
+    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:Protocol.S_ZOMBIE_HP)
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  // uint64 zombie_id = 1;
+  if (this->_internal_zombie_id() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt64ToArray(1, this->_internal_zombie_id(), target);
+  }
+
+  // float hp = 2;
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_hp = this->_internal_hp();
+  uint32_t raw_hp;
+  memcpy(&raw_hp, &tmp_hp, sizeof(tmp_hp));
+  if (raw_hp != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteFloatToArray(2, this->_internal_hp(), target);
+  }
+
+  // float max_hp = 3;
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_max_hp = this->_internal_max_hp();
+  uint32_t raw_max_hp;
+  memcpy(&raw_max_hp, &tmp_max_hp, sizeof(tmp_max_hp));
+  if (raw_max_hp != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteFloatToArray(3, this->_internal_max_hp(), target);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+        _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:Protocol.S_ZOMBIE_HP)
+  return target;
+}
+
+size_t S_ZOMBIE_HP::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:Protocol.S_ZOMBIE_HP)
+  size_t total_size = 0;
+
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  // uint64 zombie_id = 1;
+  if (this->_internal_zombie_id() != 0) {
+    total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(this->_internal_zombie_id());
+  }
+
+  // float hp = 2;
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_hp = this->_internal_hp();
+  uint32_t raw_hp;
+  memcpy(&raw_hp, &tmp_hp, sizeof(tmp_hp));
+  if (raw_hp != 0) {
+    total_size += 1 + 4;
+  }
+
+  // float max_hp = 3;
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_max_hp = this->_internal_max_hp();
+  uint32_t raw_max_hp;
+  memcpy(&raw_max_hp, &tmp_max_hp, sizeof(tmp_max_hp));
+  if (raw_max_hp != 0) {
+    total_size += 1 + 4;
+  }
+
+  return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
+}
+
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData S_ZOMBIE_HP::_class_data_ = {
+    ::PROTOBUF_NAMESPACE_ID::Message::CopyWithSourceCheck,
+    S_ZOMBIE_HP::MergeImpl
+};
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*S_ZOMBIE_HP::GetClassData() const { return &_class_data_; }
+
+
+void S_ZOMBIE_HP::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
+  auto* const _this = static_cast<S_ZOMBIE_HP*>(&to_msg);
+  auto& from = static_cast<const S_ZOMBIE_HP&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:Protocol.S_ZOMBIE_HP)
+  GOOGLE_DCHECK_NE(&from, _this);
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  if (from._internal_zombie_id() != 0) {
+    _this->_internal_set_zombie_id(from._internal_zombie_id());
+  }
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_hp = from._internal_hp();
+  uint32_t raw_hp;
+  memcpy(&raw_hp, &tmp_hp, sizeof(tmp_hp));
+  if (raw_hp != 0) {
+    _this->_internal_set_hp(from._internal_hp());
+  }
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_max_hp = from._internal_max_hp();
+  uint32_t raw_max_hp;
+  memcpy(&raw_max_hp, &tmp_max_hp, sizeof(tmp_max_hp));
+  if (raw_max_hp != 0) {
+    _this->_internal_set_max_hp(from._internal_max_hp());
+  }
+  _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+}
+
+void S_ZOMBIE_HP::CopyFrom(const S_ZOMBIE_HP& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:Protocol.S_ZOMBIE_HP)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool S_ZOMBIE_HP::IsInitialized() const {
+  return true;
+}
+
+void S_ZOMBIE_HP::InternalSwap(S_ZOMBIE_HP* other) {
+  using std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  ::PROTOBUF_NAMESPACE_ID::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(S_ZOMBIE_HP, _impl_.max_hp_)
+      + sizeof(S_ZOMBIE_HP::_impl_.max_hp_)
+      - PROTOBUF_FIELD_OFFSET(S_ZOMBIE_HP, _impl_.zombie_id_)>(
+          reinterpret_cast<char*>(&_impl_.zombie_id_),
+          reinterpret_cast<char*>(&other->_impl_.zombie_id_));
+}
+
+::PROTOBUF_NAMESPACE_ID::Metadata S_ZOMBIE_HP::GetMetadata() const {
+  return ::_pbi::AssignDescriptors(
+      &descriptor_table_Protocol_2eproto_getter, &descriptor_table_Protocol_2eproto_once,
+      file_level_metadata_Protocol_2eproto[12]);
+}
+
+// ===================================================================
+
+class S_ZOMBIE_DIE::_Internal {
+ public:
+};
+
+S_ZOMBIE_DIE::S_ZOMBIE_DIE(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
+  SharedCtor(arena, is_message_owned);
+  // @@protoc_insertion_point(arena_constructor:Protocol.S_ZOMBIE_DIE)
+}
+S_ZOMBIE_DIE::S_ZOMBIE_DIE(const S_ZOMBIE_DIE& from)
+  : ::PROTOBUF_NAMESPACE_ID::Message() {
+  S_ZOMBIE_DIE* const _this = this; (void)_this;
+  new (&_impl_) Impl_{
+      decltype(_impl_.zombie_id_){}
+    , decltype(_impl_.killer_id_){}
+    , /*decltype(_impl_._cached_size_)*/{}};
+
+  _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+  ::memcpy(&_impl_.zombie_id_, &from._impl_.zombie_id_,
+    static_cast<size_t>(reinterpret_cast<char*>(&_impl_.killer_id_) -
+    reinterpret_cast<char*>(&_impl_.zombie_id_)) + sizeof(_impl_.killer_id_));
+  // @@protoc_insertion_point(copy_constructor:Protocol.S_ZOMBIE_DIE)
+}
+
+inline void S_ZOMBIE_DIE::SharedCtor(
+    ::_pb::Arena* arena, bool is_message_owned) {
+  (void)arena;
+  (void)is_message_owned;
+  new (&_impl_) Impl_{
+      decltype(_impl_.zombie_id_){uint64_t{0u}}
+    , decltype(_impl_.killer_id_){uint64_t{0u}}
+    , /*decltype(_impl_._cached_size_)*/{}
+  };
+}
+
+S_ZOMBIE_DIE::~S_ZOMBIE_DIE() {
+  // @@protoc_insertion_point(destructor:Protocol.S_ZOMBIE_DIE)
+  if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
+  (void)arena;
+    return;
+  }
+  SharedDtor();
+}
+
+inline void S_ZOMBIE_DIE::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+}
+
+void S_ZOMBIE_DIE::SetCachedSize(int size) const {
+  _impl_._cached_size_.Set(size);
+}
+
+void S_ZOMBIE_DIE::Clear() {
+// @@protoc_insertion_point(message_clear_start:Protocol.S_ZOMBIE_DIE)
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  ::memset(&_impl_.zombie_id_, 0, static_cast<size_t>(
+      reinterpret_cast<char*>(&_impl_.killer_id_) -
+      reinterpret_cast<char*>(&_impl_.zombie_id_)) + sizeof(_impl_.killer_id_));
+  _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
+}
+
+const char* S_ZOMBIE_DIE::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  while (!ctx->Done(&ptr)) {
+    uint32_t tag;
+    ptr = ::_pbi::ReadTag(ptr, &tag);
+    switch (tag >> 3) {
+      // uint64 zombie_id = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 8)) {
+          _impl_.zombie_id_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // uint64 killer_id = 2;
+      case 2:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 16)) {
+          _impl_.killer_id_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      default:
+        goto handle_unusual;
+    }  // switch
+  handle_unusual:
+    if ((tag == 0) || ((tag & 7) == 4)) {
+      CHK_(ptr);
+      ctx->SetLastTag(tag);
+      goto message_done;
+    }
+    ptr = UnknownFieldParse(
+        tag,
+        _internal_metadata_.mutable_unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(),
+        ptr, ctx);
+    CHK_(ptr != nullptr);
+  }  // while
+message_done:
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto message_done;
+#undef CHK_
+}
+
+uint8_t* S_ZOMBIE_DIE::_InternalSerialize(
+    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:Protocol.S_ZOMBIE_DIE)
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  // uint64 zombie_id = 1;
+  if (this->_internal_zombie_id() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt64ToArray(1, this->_internal_zombie_id(), target);
+  }
+
+  // uint64 killer_id = 2;
+  if (this->_internal_killer_id() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt64ToArray(2, this->_internal_killer_id(), target);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+        _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:Protocol.S_ZOMBIE_DIE)
+  return target;
+}
+
+size_t S_ZOMBIE_DIE::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:Protocol.S_ZOMBIE_DIE)
+  size_t total_size = 0;
+
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  // uint64 zombie_id = 1;
+  if (this->_internal_zombie_id() != 0) {
+    total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(this->_internal_zombie_id());
+  }
+
+  // uint64 killer_id = 2;
+  if (this->_internal_killer_id() != 0) {
+    total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(this->_internal_killer_id());
+  }
+
+  return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
+}
+
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData S_ZOMBIE_DIE::_class_data_ = {
+    ::PROTOBUF_NAMESPACE_ID::Message::CopyWithSourceCheck,
+    S_ZOMBIE_DIE::MergeImpl
+};
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*S_ZOMBIE_DIE::GetClassData() const { return &_class_data_; }
+
+
+void S_ZOMBIE_DIE::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
+  auto* const _this = static_cast<S_ZOMBIE_DIE*>(&to_msg);
+  auto& from = static_cast<const S_ZOMBIE_DIE&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:Protocol.S_ZOMBIE_DIE)
+  GOOGLE_DCHECK_NE(&from, _this);
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  if (from._internal_zombie_id() != 0) {
+    _this->_internal_set_zombie_id(from._internal_zombie_id());
+  }
+  if (from._internal_killer_id() != 0) {
+    _this->_internal_set_killer_id(from._internal_killer_id());
+  }
+  _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+}
+
+void S_ZOMBIE_DIE::CopyFrom(const S_ZOMBIE_DIE& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:Protocol.S_ZOMBIE_DIE)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool S_ZOMBIE_DIE::IsInitialized() const {
+  return true;
+}
+
+void S_ZOMBIE_DIE::InternalSwap(S_ZOMBIE_DIE* other) {
+  using std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  ::PROTOBUF_NAMESPACE_ID::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(S_ZOMBIE_DIE, _impl_.killer_id_)
+      + sizeof(S_ZOMBIE_DIE::_impl_.killer_id_)
+      - PROTOBUF_FIELD_OFFSET(S_ZOMBIE_DIE, _impl_.zombie_id_)>(
+          reinterpret_cast<char*>(&_impl_.zombie_id_),
+          reinterpret_cast<char*>(&other->_impl_.zombie_id_));
+}
+
+::PROTOBUF_NAMESPACE_ID::Metadata S_ZOMBIE_DIE::GetMetadata() const {
+  return ::_pbi::AssignDescriptors(
+      &descriptor_table_Protocol_2eproto_getter, &descriptor_table_Protocol_2eproto_once,
+      file_level_metadata_Protocol_2eproto[13]);
+}
+
+// ===================================================================
+
 class C_CHAT::_Internal {
  public:
 };
@@ -2675,7 +3825,7 @@ void C_CHAT::InternalSwap(C_CHAT* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata C_CHAT::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_Protocol_2eproto_getter, &descriptor_table_Protocol_2eproto_once,
-      file_level_metadata_Protocol_2eproto[10]);
+      file_level_metadata_Protocol_2eproto[14]);
 }
 
 // ===================================================================
@@ -2905,7 +4055,7 @@ void S_CHAT::InternalSwap(S_CHAT* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata S_CHAT::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_Protocol_2eproto_getter, &descriptor_table_Protocol_2eproto_once,
-      file_level_metadata_Protocol_2eproto[11]);
+      file_level_metadata_Protocol_2eproto[15]);
 }
 
 // ===================================================================
@@ -3083,7 +4233,7 @@ void C_EQUIP_WEAPON::InternalSwap(C_EQUIP_WEAPON* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata C_EQUIP_WEAPON::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_Protocol_2eproto_getter, &descriptor_table_Protocol_2eproto_once,
-      file_level_metadata_Protocol_2eproto[12]);
+      file_level_metadata_Protocol_2eproto[16]);
 }
 
 // ===================================================================
@@ -3318,7 +4468,7 @@ void S_EQUIP_WEAPON::InternalSwap(S_EQUIP_WEAPON* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata S_EQUIP_WEAPON::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_Protocol_2eproto_getter, &descriptor_table_Protocol_2eproto_once,
-      file_level_metadata_Protocol_2eproto[13]);
+      file_level_metadata_Protocol_2eproto[17]);
 }
 
 // ===================================================================
@@ -3506,7 +4656,7 @@ void S_SPAWN_ITEM::InternalSwap(S_SPAWN_ITEM* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata S_SPAWN_ITEM::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_Protocol_2eproto_getter, &descriptor_table_Protocol_2eproto_once,
-      file_level_metadata_Protocol_2eproto[14]);
+      file_level_metadata_Protocol_2eproto[18]);
 }
 
 // ===================================================================
@@ -3546,7 +4696,7 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*C_FIRE::GetClassData() const {
 ::PROTOBUF_NAMESPACE_ID::Metadata C_FIRE::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_Protocol_2eproto_getter, &descriptor_table_Protocol_2eproto_once,
-      file_level_metadata_Protocol_2eproto[15]);
+      file_level_metadata_Protocol_2eproto[19]);
 }
 
 // ===================================================================
@@ -3724,7 +4874,7 @@ void S_FIRE::InternalSwap(S_FIRE* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata S_FIRE::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_Protocol_2eproto_getter, &descriptor_table_Protocol_2eproto_once,
-      file_level_metadata_Protocol_2eproto[16]);
+      file_level_metadata_Protocol_2eproto[20]);
 }
 
 // ===================================================================
@@ -3938,7 +5088,7 @@ void C_ENTER_TRUCK::InternalSwap(C_ENTER_TRUCK* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata C_ENTER_TRUCK::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_Protocol_2eproto_getter, &descriptor_table_Protocol_2eproto_once,
-      file_level_metadata_Protocol_2eproto[17]);
+      file_level_metadata_Protocol_2eproto[21]);
 }
 
 // ===================================================================
@@ -4176,7 +5326,7 @@ void S_ENTER_TRUCK::InternalSwap(S_ENTER_TRUCK* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata S_ENTER_TRUCK::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_Protocol_2eproto_getter, &descriptor_table_Protocol_2eproto_once,
-      file_level_metadata_Protocol_2eproto[18]);
+      file_level_metadata_Protocol_2eproto[22]);
 }
 
 // ===================================================================
@@ -4216,7 +5366,7 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*C_EXIT_TRUCK::GetClassData() c
 ::PROTOBUF_NAMESPACE_ID::Metadata C_EXIT_TRUCK::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_Protocol_2eproto_getter, &descriptor_table_Protocol_2eproto_once,
-      file_level_metadata_Protocol_2eproto[19]);
+      file_level_metadata_Protocol_2eproto[23]);
 }
 
 // ===================================================================
@@ -4454,7 +5604,7 @@ void S_EXIT_TRUCK::InternalSwap(S_EXIT_TRUCK* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata S_EXIT_TRUCK::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_Protocol_2eproto_getter, &descriptor_table_Protocol_2eproto_once,
-      file_level_metadata_Protocol_2eproto[20]);
+      file_level_metadata_Protocol_2eproto[24]);
 }
 
 // ===================================================================
@@ -4653,7 +5803,7 @@ void C_TRUCK_MOVE::InternalSwap(C_TRUCK_MOVE* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata C_TRUCK_MOVE::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_Protocol_2eproto_getter, &descriptor_table_Protocol_2eproto_once,
-      file_level_metadata_Protocol_2eproto[21]);
+      file_level_metadata_Protocol_2eproto[25]);
 }
 
 // ===================================================================
@@ -4852,7 +6002,7 @@ void S_TRUCK_MOVE::InternalSwap(S_TRUCK_MOVE* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata S_TRUCK_MOVE::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_Protocol_2eproto_getter, &descriptor_table_Protocol_2eproto_once,
-      file_level_metadata_Protocol_2eproto[22]);
+      file_level_metadata_Protocol_2eproto[26]);
 }
 
 // ===================================================================
@@ -5030,7 +6180,7 @@ void C_TOGGLE_DOOR::InternalSwap(C_TOGGLE_DOOR* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata C_TOGGLE_DOOR::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_Protocol_2eproto_getter, &descriptor_table_Protocol_2eproto_once,
-      file_level_metadata_Protocol_2eproto[23]);
+      file_level_metadata_Protocol_2eproto[27]);
 }
 
 // ===================================================================
@@ -5241,7 +6391,7 @@ void S_TOGGLE_DOOR::InternalSwap(S_TOGGLE_DOOR* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata S_TOGGLE_DOOR::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_Protocol_2eproto_getter, &descriptor_table_Protocol_2eproto_once,
-      file_level_metadata_Protocol_2eproto[24]);
+      file_level_metadata_Protocol_2eproto[28]);
 }
 
 // @@protoc_insertion_point(namespace_scope)
@@ -5286,6 +6436,22 @@ Arena::CreateMaybeMessage< ::Protocol::C_MOVE >(Arena* arena) {
 template<> PROTOBUF_NOINLINE ::Protocol::S_MOVE*
 Arena::CreateMaybeMessage< ::Protocol::S_MOVE >(Arena* arena) {
   return Arena::CreateMessageInternal< ::Protocol::S_MOVE >(arena);
+}
+template<> PROTOBUF_NOINLINE ::Protocol::C_HIT_ZOMBIE*
+Arena::CreateMaybeMessage< ::Protocol::C_HIT_ZOMBIE >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::Protocol::C_HIT_ZOMBIE >(arena);
+}
+template<> PROTOBUF_NOINLINE ::Protocol::S_ZOMBIE_ATTACK*
+Arena::CreateMaybeMessage< ::Protocol::S_ZOMBIE_ATTACK >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::Protocol::S_ZOMBIE_ATTACK >(arena);
+}
+template<> PROTOBUF_NOINLINE ::Protocol::S_ZOMBIE_HP*
+Arena::CreateMaybeMessage< ::Protocol::S_ZOMBIE_HP >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::Protocol::S_ZOMBIE_HP >(arena);
+}
+template<> PROTOBUF_NOINLINE ::Protocol::S_ZOMBIE_DIE*
+Arena::CreateMaybeMessage< ::Protocol::S_ZOMBIE_DIE >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::Protocol::S_ZOMBIE_DIE >(arena);
 }
 template<> PROTOBUF_NOINLINE ::Protocol::C_CHAT*
 Arena::CreateMaybeMessage< ::Protocol::C_CHAT >(Arena* arena) {

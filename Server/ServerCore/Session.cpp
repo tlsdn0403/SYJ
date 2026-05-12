@@ -91,7 +91,7 @@ bool Session::RegisterConnect()
 	if (SocketUtils::SetReuseAddress(_socket, true) == false)
 		return false;
 
-	if (SocketUtils::BindAnyAddress(_socket, 0/*남는거*/) == false)
+	if (SocketUtils::BindAnyAddress(_socket, 0 /* any available port */) == false)
 		return false;
 
 	_connectEvent.Init();

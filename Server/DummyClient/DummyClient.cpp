@@ -9,6 +9,9 @@
 char sendData[] = "Hello World";
 std::atomic<int32> GConnectedCount = 0;
 
+constexpr int32 kDummyConnectionCount = 5000;
+constexpr int32 kDummyWorkerThreadCount = 5;
+
 class ServerSession : public PacketSession
 {
 public:
@@ -55,11 +58,11 @@ int main()
 		NetAddress(L"127.0.0.1", 7777),
 		make_shared<IocpCore>(),
 		[=]() { return make_shared<ServerSession>(); }, // TODO : SessionManager 등
-		5000);
+		kDummyConnectionCount);
 
 	ASSERT_CRASH(service->Start());
 
-	for (int32 i = 0; i < 5; i++)
+	for (int32 i = 0; i < kDummyWorkerThreadCount; i++)
 	{
 		GThreadManager->Launch([=]()
 			{
@@ -73,7 +76,9 @@ int main()
 	while (true)
 	{
 		//service->Broadcast(sendBuffer);
-		cout << "현재 접속된 클라이언트 수: " << GConnectedCount.load() << " / 5000" << endl;
+		cout << "[DummyClient] connected callbacks=" << GConnectedCount.load()
+			<< ", service sessions=" << service->GetCurrentSessionCount()
+			<< " / target=" << kDummyConnectionCount << endl;
 		this_thread::sleep_for(1s);
 	}
 

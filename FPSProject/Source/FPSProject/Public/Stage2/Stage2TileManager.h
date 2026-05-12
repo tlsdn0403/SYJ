@@ -7,6 +7,9 @@
 
 class ULevelStreamingDynamic;
 class UWorld;
+class ABaseZombie;
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FStage2InitialTilesReadySignature);
 
 USTRUCT(BlueprintType)
 struct FStage2LoadedTile
@@ -33,6 +36,9 @@ struct FStage2LoadedTile
 
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "Stage2")
 	bool bInitialized = false;
+
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Stage2|Zombie")
+	TArray<TObjectPtr<ABaseZombie>> SpawnedZombies;
 };
 
 UCLASS(Blueprintable)
@@ -54,6 +60,19 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Stage2")
 	void ClearGeneratedTiles();
+
+	UFUNCTION(BlueprintPure, Category = "Stage2")
+	bool HasInitializedTiles() const;
+
+	UFUNCTION(BlueprintPure, Category = "Stage2")
+	bool TryGetInitialPlayerSpawnTransform(FTransform& OutTransform) const;
+
+	UFUNCTION(BlueprintPure, Category = "Stage2")
+	bool HasCompletedInitialGeneration() const;
+	bool AreInitialTilesReady() const;
+
+	UPROPERTY(BlueprintAssignable, Category = "Stage2")
+	FStage2InitialTilesReadySignature OnInitialTilesReady;
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stage2|Tiles")
@@ -107,6 +126,27 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stage2|Navigation")
 	bool bRebuildNavigationAfterTileLoad = true;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stage2|Zombie")
+	TArray<TSubclassOf<ABaseZombie>> ZombieClasses;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stage2|Zombie", meta = (ClampMin = "0"))
+	int32 MinZombiesPerPlayableTile = 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stage2|Zombie", meta = (ClampMin = "0"))
+	int32 MaxZombiesPerPlayableTile = 3;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stage2|Zombie", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	float ZombieSpawnChancePerTile = 1.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stage2|Zombie")
+	bool bSpawnZombiesOnStartTile = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stage2|Zombie")
+	bool bSpawnZombiesOnGoalTile = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stage2|Zombie", meta = (ClampMin = "0.0"))
+	float ZombieSpawnCollisionRadius = 120.0f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stage2|Debug")
 	bool bVerboseLog = true;
 
@@ -122,6 +162,7 @@ protected:
 private:
 	bool bGenerationStarted = false;
 	bool bGoalTileSpawnRequested = false;
+	bool bInitialTilesReady = false;
 	bool bLoggedKeepStartConflict = false;
 	int32 ConsecutiveLeftTurns = 0;
 	int32 ConsecutiveRightTurns = 0;
@@ -134,6 +175,8 @@ private:
 	void UpdateNextSpawnTransformFromTile(const AStage2TileMarker* TileMarker);
 	void TrimOldTiles();
 	void ResetGenerationState();
+	void SpawnZombiesForTile(FStage2LoadedTile& LoadedTile);
+	void DestroySpawnedZombiesForTile(FStage2LoadedTile& LoadedTile);
 	void UpdateTurnHistory(EStage2TileType TileType);
 	EStage2TileType ChooseNextTileType();
 	TSoftObjectPtr<UWorld> ChooseLevelForTileType(EStage2TileType TileType);
@@ -142,6 +185,7 @@ private:
 	void RefreshNavigationForStreamingTile(const FStage2LoadedTile& LoadedTile) const;
 	int32 GetInitializedTileCount() const;
 	bool HasPendingUninitializedTile() const;
+	void MarkInitialTilesReadyIfNeeded();
 
 	UFUNCTION()
 	void HandleTileTrigger(AStage2TileMarker* TileMarker, AActor* TriggeringActor);

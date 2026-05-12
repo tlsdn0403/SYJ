@@ -70,9 +70,14 @@ void AWeaponBase::SetWeaponUser(AFPSBaseCharacter* NewCharacter)
 
 void AWeaponBase::SetWeaponCollisionEnabled(bool bEnabled)
 {
+	if (!IsValid(this))
+	{
+		return;
+	}
+
 	SetActorEnableCollision(bEnabled);
 
-	if (WeaponMesh)
+	if (IsValid(WeaponMesh))
 	{
 		WeaponMesh->SetCollisionEnabled(bEnabled ? ECollisionEnabled::QueryOnly : ECollisionEnabled::NoCollision);
 	}
@@ -80,9 +85,14 @@ void AWeaponBase::SetWeaponCollisionEnabled(bool bEnabled)
 
 void AWeaponBase::SetWeaponHidden(bool Hidden)
 {
+	if (!IsValid(this))
+	{
+		return;
+	}
+
 	SetActorHiddenInGame(Hidden);
 
-	if (WeaponMesh)
+	if (IsValid(WeaponMesh))
 	{
 		WeaponMesh->SetVisibility(!Hidden, true);
 	}

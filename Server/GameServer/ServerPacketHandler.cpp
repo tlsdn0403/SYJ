@@ -54,12 +54,9 @@ bool Handle_C_ENTER_GAME(PacketSessionRef& session, Protocol::C_ENTER_GAME& pkt)
 		return true;
 	}
 
-	// 플레이어 생성
-	PlayerRef player = ObjectUtils::CreatePlayer(gameSession);
-
-	// 방에 입장
-	GRoom->DoAsync(&Room::HandleEnterPlayer, player);
-	//GRoom->HandleEnterPlayerLocked(player);
+	// 클라이언트가 맵 준비를 끝냈다고 알리면 대기열에 넣고,
+	// 3명이 모두 준비됐을 때 한 번에 입장 처리한다.
+	GRoom->DoAsync(&Room::HandleReadyPlayer, gameSession);
 
 	return true;
 }
@@ -93,9 +90,25 @@ bool Handle_C_MOVE(PacketSessionRef& session, Protocol::C_MOVE& pkt)
 	if (room == nullptr)
 		return false;
 
-	room->DoAsync(&Room::HandleMove, pkt);
+	room->DoAsync(&Room::HandleMove, player, Protocol::C_MOVE(pkt));
 	//room->HandleMove(pkt);
 
+	return true;
+}
+
+bool Handle_C_HIT_ZOMBIE(PacketSessionRef& session, Protocol::C_HIT_ZOMBIE& pkt)
+{
+	auto gameSession = static_pointer_cast<GameSession>(session);
+
+	PlayerRef player = gameSession->player.load();
+	if (player == nullptr)
+		return false;
+
+	RoomRef room = player->room.load().lock();
+	if (room == nullptr)
+		return false;
+
+	room->DoAsync(&Room::HandleHitZombie, player, Protocol::C_HIT_ZOMBIE(pkt));
 	return true;
 }
 

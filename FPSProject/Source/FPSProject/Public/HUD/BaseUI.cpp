@@ -3,6 +3,8 @@
 #include "HUD/BaseUI.h"
 #include "Components/CanvasPanel.h"
 #include "Components/TextBlock.h"
+#include "EngineUtils.h"
+#include "Truck/Truck.h"
 
 /*
 NativeOnInitialized : 위젯이 생성될 때 딱 한 번 호출,  에디터 편집 시에도 생성될 때 호출
@@ -28,8 +30,14 @@ void UBaseUI::NativeConstruct()
 void UBaseUI:: UpdateTimer()
 {
 	totalTime -= 1;
-	if(totalTime < 0)
+	if(totalTime <= 0)
 	{
+		totalTime = 0;
+		if (TimerText)
+		{
+			TimerText->SetText(FText::FromString(TEXT("00:00")));
+		}
+		FinishTruckLoadingPhase();
 		GetWorld()->GetTimerManager().ClearTimer(TimerHandle);
 		return;
 	}
@@ -43,4 +51,21 @@ void UBaseUI:: UpdateTimer()
 
 	FString Stime = FString::Printf(TEXT("%02d:%02d"), totalTime/60,totalTime%60);
 	TimerText->SetText(FText::FromString(Stime));
+}
+
+void UBaseUI::FinishTruckLoadingPhase()
+{
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+
+	for (TActorIterator<ATruck> It(World); It; ++It)
+	{
+		if (ATruck* Truck = *It)
+		{
+			Truck->SetLoadingPhase(false);
+		}
+	}
 }

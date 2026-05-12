@@ -97,6 +97,7 @@ void AFPSBaseCharacter::BeginPlay()
 		if (auto* GameInstance = Cast<UFPSProjectGameInstance>(GetGameInstance()))
 		{
 			GameInstance->RequestEnterGameWhenReady();
+			GameInstance->RefreshStage2StartupActorHold();
 		}
 
 		// 마우스 커서 숨기기

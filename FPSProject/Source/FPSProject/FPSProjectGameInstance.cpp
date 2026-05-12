@@ -22,9 +22,28 @@
 #include "Stage2/Stage2TileManager.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/BoxComponent.h"
+#include "Components/PrimitiveComponent.h"
 #include "Blueprint/UserWidget.h"
 #include "UObject/UObjectGlobals.h"
 #include "HUD/LoadingUI.h"
+
+namespace
+{
+	AStage2TileManager* FindStage2TileManager(UWorld* World)
+	{
+		if (!World)
+		{
+			return nullptr;
+		}
+
+		for (TActorIterator<AStage2TileManager> It(World); It; ++It)
+		{
+			return *It;
+		}
+
+		return nullptr;
+	}
+}
 
 void UFPSProjectGameInstance::Init()
 {
@@ -193,12 +212,9 @@ bool UFPSProjectGameInstance::ShouldUseLocalInteractionFallback() const
 
 bool UFPSProjectGameInstance::ShouldDelayEnterGameRequest() const
 {
-	if (UWorld* World = GetWorld())
+	if (const AStage2TileManager* Stage2TileManager = FindStage2TileManager(GetWorld()))
 	{
-		for (TActorIterator<AStage2TileManager> It(World); It; ++It)
-		{
-			return !It->HasCompletedInitialGeneration();
-		}
+		return !Stage2TileManager->AreInitialTilesReady();
 	}
 
 	return false;
@@ -238,6 +254,15 @@ bool UFPSProjectGameInstance::TrySendEnterGamePacket()
 	bPendingEnterGameRequest = false;
 	UE_LOG(LogTemp, Warning, TEXT("[Network] Stage2 ready check passed. C_ENTER_GAME 전송 완료!"));
 	return true;
+}
+
+void UFPSProjectGameInstance::RefreshStage2StartupActorHold()
+{
+	const bool bShouldHold = ShouldDelayStage2ActorSpawn();
+	if (bShouldHold || bStage2StartupHoldApplied)
+	{
+		ApplyStage2StartupActorHold(bShouldHold);
+	}
 }
 
 void UFPSProjectGameInstance::SetEntryLoadingWidgetClass(TSubclassOf<UUserWidget> WidgetClass)
@@ -296,6 +321,10 @@ void UFPSProjectGameInstance::RemoveEntryLoadingWidget()
 void UFPSProjectGameInstance::HandlePostLoadMap(UWorld* LoadedWorld)
 {
 	(void)LoadedWorld;
+
+	PendingStage2SpawnInfos.Reset();
+	bProcessingPendingStage2Spawns = false;
+	bStage2StartupHoldApplied = false;
 
 	if (EntryLoadingWidget)
 	{
@@ -454,6 +483,17 @@ bool UFPSProjectGameInstance::TryExitTruckLocally(AFPSBaseCharacter* Character)
 
 void UFPSProjectGameInstance::HandleSpawn(const Protocol::ObjectInfo& ObjectInfo, bool IsMine)
 {
+	if (!bProcessingPendingStage2Spawns && ShouldDelayStage2ActorSpawn())
+	{
+		QueueStage2Spawn(ObjectInfo, IsMine);
+		return;
+	}
+
+	ProcessSpawnObject(ObjectInfo, IsMine);
+}
+
+void UFPSProjectGameInstance::ProcessSpawnObject(const Protocol::ObjectInfo& ObjectInfo, bool IsMine)
+{
 	if (Socket == nullptr || GameServerSession == nullptr)
 		return;
 
@@ -558,6 +598,12 @@ void UFPSProjectGameInstance::HandleSpawn(const Protocol::ObjectInfo& ObjectInfo
 
 void UFPSProjectGameInstance::HandleSpawn(const Protocol::S_ENTER_GAME& EnterGamePkt)
 {
+	if (!bProcessingPendingStage2Spawns && ShouldDelayStage2ActorSpawn())
+	{
+		QueueStage2Spawn(EnterGamePkt.player(), true);
+		return;
+	}
+
 	RemoveEntryLoadingWidget();
 	HandleSpawn(EnterGamePkt.player(), true);
 }
@@ -568,6 +614,147 @@ void UFPSProjectGameInstance::HandleSpawn(const Protocol::S_SPAWN& SpawnPkt)
 	{
 		HandleSpawn(Player, false);
 	}
+}
+
+bool UFPSProjectGameInstance::ShouldDelayStage2ActorSpawn() const
+{
+	if (const AStage2TileManager* Stage2TileManager = FindStage2TileManager(GetWorld()))
+	{
+		return !Stage2TileManager->AreInitialTilesReady();
+	}
+
+	return false;
+}
+
+void UFPSProjectGameInstance::QueueStage2Spawn(const Protocol::ObjectInfo& ObjectInfo, bool IsMine)
+{
+	const uint64 ObjectId = ObjectInfo.object_id();
+	for (FPendingStage2SpawnInfo& PendingSpawn : PendingStage2SpawnInfos)
+	{
+		if (PendingSpawn.ObjectInfo.object_id() == ObjectId)
+		{
+			PendingSpawn.ObjectInfo = ObjectInfo;
+			PendingSpawn.bIsMine = PendingSpawn.bIsMine || IsMine;
+			return;
+		}
+	}
+
+	FPendingStage2SpawnInfo& PendingSpawn = PendingStage2SpawnInfos.AddDefaulted_GetRef();
+	PendingSpawn.ObjectInfo = ObjectInfo;
+	PendingSpawn.bIsMine = IsMine;
+}
+
+void UFPSProjectGameInstance::ProcessPendingStage2Spawns()
+{
+	if (PendingStage2SpawnInfos.Num() == 0 || ShouldDelayStage2ActorSpawn())
+	{
+		return;
+	}
+
+	TArray<FPendingStage2SpawnInfo> SpawnsToProcess = MoveTemp(PendingStage2SpawnInfos);
+	PendingStage2SpawnInfos.Reset();
+
+	TGuardValue<bool> ProcessingGuard(bProcessingPendingStage2Spawns, true);
+	for (const FPendingStage2SpawnInfo& PendingSpawn : SpawnsToProcess)
+	{
+		if (PendingSpawn.bIsMine)
+		{
+			RemoveEntryLoadingWidget();
+		}
+
+		ProcessSpawnObject(PendingSpawn.ObjectInfo, PendingSpawn.bIsMine);
+	}
+}
+
+void UFPSProjectGameInstance::ApplyStage2StartupActorHold(bool bHold)
+{
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+
+	auto ApplyCharacterHold = [this](AFPSBaseCharacter* Character, bool bShouldHold)
+		{
+			if (!IsValid(Character))
+			{
+				return;
+			}
+
+			Character->SetActorHiddenInGame(bShouldHold);
+			Character->SetActorEnableCollision(!bShouldHold);
+
+			if (UCapsuleComponent* Capsule = Character->GetCapsuleComponent())
+			{
+				Capsule->SetCollisionEnabled(bShouldHold ? ECollisionEnabled::NoCollision : ECollisionEnabled::QueryAndPhysics);
+			}
+
+			if (UCharacterMovementComponent* MoveComp = Character->GetCharacterMovement())
+			{
+				if (bShouldHold)
+				{
+					MoveComp->StopMovementImmediately();
+					MoveComp->DisableMovement();
+				}
+				else
+				{
+					MoveComp->SetMovementMode(MOVE_Walking);
+				}
+			}
+		};
+
+	AFPSBaseCharacter* LocalCharacter = nullptr;
+	if (APlayerController* PlayerController = UGameplayStatics::GetPlayerController(World, 0))
+	{
+		LocalCharacter = Cast<AFPSBaseCharacter>(PlayerController->GetPawn());
+	}
+
+	bool bLocalCharacterRegistered = false;
+	if (LocalCharacter)
+	{
+		for (const TPair<uint64, AFPSBaseCharacter*>& PlayerEntry : Players)
+		{
+			if (PlayerEntry.Value == LocalCharacter)
+			{
+				bLocalCharacterRegistered = true;
+				break;
+			}
+		}
+	}
+
+	const bool bHoldLocalCharacter =
+		bHold ||
+		(IsConnectedToGameServer() && LocalCharacter != nullptr && !bLocalCharacterRegistered);
+	ApplyCharacterHold(LocalCharacter, bHoldLocalCharacter);
+
+	for (TActorIterator<ATruck> It(World); It; ++It)
+	{
+		ATruck* Truck = *It;
+		if (!IsValid(Truck))
+		{
+			continue;
+		}
+
+		Truck->SetActorHiddenInGame(bHold);
+		Truck->SetActorEnableCollision(!bHold);
+
+		if (USkeletalMeshComponent* TruckMesh = Truck->GetMesh())
+		{
+			TruckMesh->SetEnableGravity(!bHold);
+			if (bHold)
+			{
+				TruckMesh->SetPhysicsLinearVelocity(FVector::ZeroVector);
+				TruckMesh->SetPhysicsAngularVelocityInDegrees(FVector::ZeroVector);
+				TruckMesh->PutAllRigidBodiesToSleep();
+			}
+			else
+			{
+				TruckMesh->WakeAllRigidBodies();
+			}
+		}
+	}
+
+	bStage2StartupHoldApplied = bHold;
 }
 
 void UFPSProjectGameInstance::HandleDespawn(uint64 ObjectId)
@@ -1180,8 +1367,11 @@ void UFPSProjectGameInstance::Shutdown()
 
 void UFPSProjectGameInstance::Tick(float DeltaTime)
 {
+	RefreshStage2StartupActorHold();
 	TrySendEnterGamePacket();
 	HandleRecvPackets();
+	ProcessPendingStage2Spawns();
+	RefreshStage2StartupActorHold();
 }
 
 TStatId UFPSProjectGameInstance::GetStatId() const

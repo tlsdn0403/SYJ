@@ -243,6 +243,11 @@ void ATruck::BeginPlay()
 		TurretInteractWidget->InitWidget();
 	}
 
+	if (UFPSProjectGameInstance* GameInstance = Cast<UFPSProjectGameInstance>(GetGameInstance()))
+	{
+		GameInstance->RefreshStage2StartupActorHold();
+	}
+
 	if (TurretSeatInteractTrigger)
 	{
 		TurretSeatInteractTrigger->OnEnter.AddDynamic(this, &ATruck::OnTurretInteractEnter);

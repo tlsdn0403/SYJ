@@ -21,6 +21,14 @@ class FPSPROJECT_API ULoadingUI : public UUserWidget
 {
 	GENERATED_BODY()
 	virtual void NativeConstruct() override;
+	virtual void NativeDestruct() override;
+
+private:
+	FTimerHandle LoadingDotTimerHandle;
+
+	int32 DotCount = 0;
+
+	void UpdateLoadingText();
 
 public:
 	UPROPERTY(meta = (BindWidget))
@@ -30,11 +38,18 @@ public:
 	UPROPERTY(meta = (BindWidget))	//
 	UImage* Player3;
 
-
-
 	UPROPERTY(meta = (BindWidget))
-	UTextBlock* GunText;
+	UTextBlock* loadingmemo;
 
+
+	UPROPERTY()
+	TArray<UImage*> Players;
+
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Settings")
+	TArray<FText> setText;
+
+	int32 CurrentTextIndex = 0;
 
 	void connect(int num);		//플레이어 접속하면 사람에 불켜짐
 	void logout();		//나가면 다시 불꺼져

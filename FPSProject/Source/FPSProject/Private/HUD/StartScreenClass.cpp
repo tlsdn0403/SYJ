@@ -75,6 +75,17 @@ void UStartScreenClass::OnClickLogin()
 		SendBufferRef SendBuffer = ClientPacketHandler::MakeSendBuffer(LoginPkt);
 		GameInstance->SendPacket(SendBuffer);
 
+		// 다음 UI 생성
+		if (LoadingUIClass)
+		{
+			UUserWidget* LoadingUI = CreateWidget<UUserWidget>(GetWorld(), LoadingUIClass);
+			if (LoadingUI)
+			{
+				LoadingUI->AddToViewport();
+			}
+		}
+
+
 		this -> RemoveFromParent();
 
 		if (APlayerController* PC = GetWorld()->GetFirstPlayerController())

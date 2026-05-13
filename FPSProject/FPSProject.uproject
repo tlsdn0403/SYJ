@@ -48,5 +48,8 @@
 			"Name": "MotionTrajectory",
 			"Enabled": true
 		}
+	],
+	"TargetPlatforms": [
+		"Windows"
 	]
 }

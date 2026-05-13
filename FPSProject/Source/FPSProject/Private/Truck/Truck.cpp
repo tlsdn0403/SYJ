@@ -199,7 +199,7 @@ ATruck::ATruck()
 	MountedWeaponRelativeTransform = FTransform(FRotator::ZeroRotator, FVector::ZeroVector, FVector(1.0f));
 	MountedWeaponClass = AMountedMachineGun::StaticClass();
 
-	static ConstructorHelpers::FClassFinder<AMountedMachineGun> MountedWeaponBP(TEXT("/Game/Truck/BP_MountedMachineGun"));
+	static ConstructorHelpers::FClassFinder<AMountedMachineGun> MountedWeaponBP(TEXT("/Game/Truck/MachineGun/BP_MountedMachineGun"));
 	UE_LOG(LogTemp, Warning, TEXT("MountedWeaponBP success: %d, class: %s"),
 		MountedWeaponBP.Succeeded(),
 		*GetNameSafe(MountedWeaponBP.Class));

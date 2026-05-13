@@ -55,6 +55,9 @@
 # Static / shared libs generated in sub-builds
 *.dynlib
 
+# Unreal generated folders
+FPSProject/Windows/
+
 ################################################################################
 # Unreal Engine (C++ 프로젝트)
 ################################################################################

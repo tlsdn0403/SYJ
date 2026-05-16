@@ -16,8 +16,8 @@ void ULoadingUI::NativeConstruct()
 	Players.Add(Player1);
 	Players.Add(Player2);
 	Players.Add(Player3);
-
-	for (int i = 0; i < 3; ++i) {
+	Players[0]->SetColorAndOpacity(FLinearColor(0.74f, 0.74f, 0.74f, 1.f));
+	for (int i = 1; i < 3; ++i) {
 
 		Players[i]->SetColorAndOpacity(FLinearColor(0.0625f, 0.0625f, 0.0625f, 1.f));
 	}

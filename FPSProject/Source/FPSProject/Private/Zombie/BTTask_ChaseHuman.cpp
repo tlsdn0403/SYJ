@@ -82,6 +82,7 @@ bool UBTTask_ChaseHuman::RequestChaseMove(AAIController* AIController, AActor* T
 		!bHasLastIssuedMovingTruckSetting ||
 		bLastIssuedMovingTruckSetting != bMovingTruckTarget;
 
+	// Avoid spamming the same MoveTo request every tick when nothing changed.
 	if (!bForceRequest && !bTargetChanged && !bMoveSettingsChanged && MoveStatus != EPathFollowingStatus::Idle)
 	{
 		return true;
@@ -118,6 +119,7 @@ bool UBTTask_ChaseHuman::RequestFallZoneMove(AAIController* AIController, const 
 		!bHasLastIssuedFallZoneLocation ||
 		FVector::DistSquared2D(LastIssuedFallZoneLocation, FallZoneLocation) >= FMath::Square(FallZoneRetargetDistance);
 
+	// Reuse the current move while a custom link is active or the goal is effectively unchanged.
 	if (!bForceRequest && (bUsingCustomLink || (!bLocationChanged && MoveStatus != EPathFollowingStatus::Idle)))
 	{
 		return true;
@@ -143,22 +145,25 @@ bool UBTTask_ChaseHuman::TryUseFallZone(AAIController* AIController, ABaseZombie
 	{
 		return false;
 	}
-
+	
 	FVector ApproachLocation = FVector::ZeroVector;
 	FVector CommitLocation = FVector::ZeroVector;
+	// 낙하지점이 유효하지 않으면 낙하지점 시도 안함
 	if (!ZombieCharacter->TryGetFallZonePursuitLocation(TargetActor, ApproachLocation, CommitLocation))
 	{
 		return false;
 	}
-
+	// 타겟에게 시선
 	AIController->SetFocus(TargetActor);
 
 	const float DistanceToApproach = FVector::Dist2D(ZombieCharacter->GetActorLocation(), ApproachLocation);
 	if (DistanceToApproach > FallZoneCommitDistance)
 	{
+		// 낙하지점으로 가는 길이 멀면 일단 낙하지점 근처까지 이동하도록
 		return RequestFallZoneMove(AIController, ApproachLocation, false);
 	}
 
+	// 좀비를 낙하지점으로 이동시켜버림
 	AIController->StopMovement();
 	ZombieCharacter->ApplyDirectPursuitInput(CommitLocation);
 	return true;
@@ -202,6 +207,7 @@ bool UBTTask_ChaseHuman::ShouldUseMovingTruckChase(AActor* TargetActor)
 	const float StopMovingThreshold = FMath::Clamp(StoppedTruckSpeedThreshold, 0.0f, StartMovingThreshold);
 	const float SpeedSquared2D = Truck->GetVelocity().SizeSquared2D();
 
+	// Use hysteresis so chase mode does not rapidly flip around the threshold.
 	if (!bHasTruckChaseMode)
 	{
 		bTruckChaseMode = SpeedSquared2D >= FMath::Square(StartMovingThreshold);
@@ -246,6 +252,7 @@ EBTNodeResult::Type UBTTask_ChaseHuman::ExecuteTask(UBehaviorTreeComponent& Owne
 	}
 
 	AIController->SetFocus(TargetActor);
+	// Prefer a valid fall route before falling back to normal chase movement.
 	if (TryUseFallZone(AIController, ZombieCharacter, TargetActor))
 	{
 		return EBTNodeResult::InProgress;
@@ -283,6 +290,7 @@ void UBTTask_ChaseHuman::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* Node
 
 	AIController->SetFocus(TargetActor);
 
+	// Re-evaluate fall usage every tick so the zombie can enter and leave the route naturally.
 	if (TryUseFallZone(AIController, ZombieCharacter, TargetActor))
 	{
 		return;

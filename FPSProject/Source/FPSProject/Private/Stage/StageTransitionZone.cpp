@@ -6,6 +6,7 @@
 
 AStageTransitionZone::AStageTransitionZone()
 {
+	// 매 프레임 tick 함수 호출 X
 	PrimaryActorTick.bCanEverTick = false;
 
 	TransitionBox = CreateDefaultSubobject<UBoxComponent>(TEXT("TransitionBox"));
@@ -15,6 +16,7 @@ AStageTransitionZone::AStageTransitionZone()
 	TransitionBox->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	TransitionBox->SetGenerateOverlapEvents(true);
 	TransitionBox->SetCollisionResponseToAllChannels(ECR_Ignore);
+	// vehicle 채널과 겹칠 때만 오버랩 이벤트 발생하도록.
 	TransitionBox->SetCollisionResponseToChannel(ECC_Vehicle, ECR_Overlap);
 }
 
@@ -60,6 +62,7 @@ void AStageTransitionZone::HandleTransitionBoxBeginOverlap(
 	bool bFromSweep,
 	const FHitResult& SweepResult)
 {
+	// 넘어온 엑터가 트럭이라면
 	ATruck* TriggerTruck = Cast<ATruck>(OtherActor);
 	if (!TriggerTruck)
 	{

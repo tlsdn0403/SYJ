@@ -339,43 +339,6 @@ void ABaseZombie::ApplyDirectPursuitInput(const FVector& TargetLocation)
 	}
 }
 
-void ABaseZombie::RegisterFallZone(AZombieFallZone* FallZone)
-{
-	if (!FallZone)
-	{
-		return;
-	}
-
-	ActiveFallZones.RemoveAll([](const TWeakObjectPtr<AZombieFallZone>& ZonePtr)
-		{
-			return !ZonePtr.IsValid();
-		});
-
-	const bool bAlreadyRegistered = ActiveFallZones.ContainsByPredicate(
-		[FallZone](const TWeakObjectPtr<AZombieFallZone>& ZonePtr)
-		{
-			return ZonePtr.Get() == FallZone;
-		});
-
-	if (!bAlreadyRegistered)
-	{
-		ActiveFallZones.Add(FallZone);
-	}
-}
-
-void ABaseZombie::UnregisterFallZone(AZombieFallZone* FallZone)
-{
-	if (!FallZone)
-	{
-		return;
-	}
-
-	ActiveFallZones.RemoveAll([FallZone](const TWeakObjectPtr<AZombieFallZone>& ZonePtr)
-		{
-			return !ZonePtr.IsValid() || ZonePtr.Get() == FallZone;
-		});
-}
-
 bool ABaseZombie::TryGetFallZonePursuitLocation(AActor* TargetActor, FVector& OutApproachLocation, FVector& OutCommitLocation)
 {
 	if (!bIsAlive || !TargetActor)
@@ -383,51 +346,31 @@ bool ABaseZombie::TryGetFallZonePursuitLocation(AActor* TargetActor, FVector& Ou
 		return false;
 	}
 
+	// 규모가 큰 프로젝트가 아니라면 좀비마다 활성 Zone을 캐시하지 않고
+	// 등록된 Zone 전체를 훑어 가장 적합한 경로를 고르는 편이 더 읽기 쉽다.
+	TArray<AZombieFallZone*> RegisteredZones;
+	AZombieFallZone::GetRegisteredFallZones(GetWorld(), RegisteredZones);
+
 	float BestScore = TNumericLimits<float>::Lowest();
 	bool bFoundZone = false;
-	TSet<AZombieFallZone*> EvaluatedZones;
-
-	auto EvaluateZone = [&](AZombieFallZone* FallZone)
-		{
-			if (!FallZone || EvaluatedZones.Contains(FallZone))
-			{
-				return;
-			}
-
-			EvaluatedZones.Add(FallZone);
-
-			FVector CandidateApproachLocation = FVector::ZeroVector;
-			FVector CandidateCommitLocation = FVector::ZeroVector;
-			float CandidateScore = 0.0f;
-			if (FallZone->CanGuideZombieTowardTarget(this, TargetActor, CandidateApproachLocation, CandidateCommitLocation, CandidateScore) &&
-				CandidateScore > BestScore)
-			{
-				BestScore = CandidateScore;
-				OutApproachLocation = CandidateApproachLocation;
-				OutCommitLocation = CandidateCommitLocation;
-				bFoundZone = true;
-			}
-		};
-
-	for (int32 Index = ActiveFallZones.Num() - 1; Index >= 0; --Index)
+	for (AZombieFallZone* FallZone : RegisteredZones)
 	{
-		AZombieFallZone* FallZone = ActiveFallZones[Index].Get();
 		if (!FallZone)
 		{
-			ActiveFallZones.RemoveAtSwap(Index);
 			continue;
 		}
 
-		EvaluateZone(FallZone);
-	}
-
-	if (!bFoundZone)
-	{
-		TArray<AZombieFallZone*> RegisteredZones;
-		AZombieFallZone::GetRegisteredFallZones(GetWorld(), RegisteredZones);
-		for (AZombieFallZone* FallZone : RegisteredZones)
+		// 점수가 가장 높은 Zone 하나만 선택해 추격 경로로 사용한다.
+		FVector CandidateApproachLocation = FVector::ZeroVector;
+		FVector CandidateCommitLocation = FVector::ZeroVector;
+		float CandidateScore = 0.0f;
+		if (FallZone->CanGuideZombieTowardTarget(this, TargetActor, CandidateApproachLocation, CandidateCommitLocation, CandidateScore) &&
+			CandidateScore > BestScore)
 		{
-			EvaluateZone(FallZone);
+			BestScore = CandidateScore;
+			OutApproachLocation = CandidateApproachLocation;
+			OutCommitLocation = CandidateCommitLocation;
+			bFoundZone = true;
 		}
 	}
 

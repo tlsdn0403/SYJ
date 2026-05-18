@@ -447,6 +447,29 @@ ALootItemBase* UFPSProjectGameInstance::FindNetworkLootItemById(uint64 LootItemI
 		}
 	}
 
+	FString KnownItemIds;
+	int32 LoggedCount = 0;
+	for (const TPair<uint64, TObjectPtr<ALootItemBase>>& Entry : NetworkLootItems)
+	{
+		if (LoggedCount >= 10)
+		{
+			KnownItemIds += TEXT(" ...");
+			break;
+		}
+
+		if (!KnownItemIds.IsEmpty())
+		{
+			KnownItemIds += TEXT(", ");
+		}
+
+		KnownItemIds += FString::Printf(TEXT("%llu"), Entry.Key);
+		++LoggedCount;
+	}
+
+	UE_LOG(LogTemp, Warning, TEXT("[DespawnLookup] Failed to find LootItemId=%llu. RegisteredIds=[%s]"),
+		LootItemId,
+		KnownItemIds.IsEmpty() ? TEXT("none") : *KnownItemIds);
+
 	return nullptr;
 }
 
@@ -841,14 +864,9 @@ void UFPSProjectGameInstance::HandleDespawn(uint64 ObjectId)
 	if (World == nullptr)
 		return;
 
-	if (ObjectId >= 1000000)
+	if (ABaseZombie* Zombie = Zombies.FindRef(ObjectId))
 	{
-		ABaseZombie* Zombie = Zombies.FindRef(ObjectId);
-		if (Zombie)
-		{
-			World->DestroyActor(Zombie);
-		}
-
+		World->DestroyActor(Zombie);
 		Zombies.Remove(ObjectId);
 		return;
 	}
@@ -866,6 +884,9 @@ void UFPSProjectGameInstance::HandleDespawn(uint64 ObjectId)
 
 	if (ALootItemBase* LootItem = FindNetworkLootItemById(ObjectId))
 	{
+		UE_LOG(LogTemp, Warning, TEXT("[HandleDespawn] Hiding loot item '%s' with NetworkItemId=%llu"),
+			*LootItem->GetName(),
+			LootItem->GetNetworkItemId());
 		LootItem->SetNetworkItemActive(false);
 		return;
 	}
@@ -888,8 +909,68 @@ void UFPSProjectGameInstance::HandleDespawn(uint64 ObjectId)
 
 void UFPSProjectGameInstance::HandleDespawn(const Protocol::S_DESPAWN& DespawnPkt)
 {
-	for (auto& ObjectId : DespawnPkt.object_ids())
+	if (Socket == nullptr || GameServerSession == nullptr)
+		return;
+
+	auto* World = GetWorld();
+	if (World == nullptr)
+		return;
+
+	for (const Protocol::DespawnInfo& DespawnInfo : DespawnPkt.despawn_infos())
 	{
+		const uint64 ObjectId = DespawnInfo.object_id();
+		const Protocol::ObjectType ObjectType = DespawnInfo.object_type();
+
+		UE_LOG(LogTemp, Warning, TEXT("[HandleDespawn] Received ObjectId=%llu Type=%d"), ObjectId, static_cast<int32>(ObjectType));
+
+		switch (ObjectType)
+		{
+		case Protocol::OBJECT_TYPE_ITEM:
+			if (AActor** ItemActor = FieldItems.Find(ObjectId))
+			{
+				if (AActor* Actor = *ItemActor)
+				{
+					World->DestroyActor(Actor);
+				}
+
+				FieldItems.Remove(ObjectId);
+				continue;
+			}
+
+			if (ALootItemBase* LootItem = FindNetworkLootItemById(ObjectId))
+			{
+				UE_LOG(LogTemp, Warning, TEXT("[HandleDespawn] Hiding loot item '%s' with NetworkItemId=%llu"),
+					*LootItem->GetName(),
+					LootItem->GetNetworkItemId());
+				LootItem->SetNetworkItemActive(false);
+				continue;
+			}
+			break;
+
+		case Protocol::OBJECT_TYPE_CREATURE:
+			if (ABaseZombie* Zombie = Zombies.FindRef(ObjectId))
+			{
+				World->DestroyActor(Zombie);
+				Zombies.Remove(ObjectId);
+				continue;
+			}
+
+			if (AFPSBaseCharacter** FindActor = Players.Find(ObjectId))
+			{
+				if (AFPSBaseCharacter* Player = *FindActor)
+				{
+					World->DestroyActor(Player);
+				}
+
+				Players.Remove(ObjectId);
+				continue;
+			}
+			break;
+
+		default:
+			break;
+		}
+
 		HandleDespawn(ObjectId);
 	}
 }

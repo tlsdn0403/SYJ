@@ -114,8 +114,7 @@ struct S_SPAWNDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 S_SPAWNDefaultTypeInternal _S_SPAWN_default_instance_;
 PROTOBUF_CONSTEXPR S_DESPAWN::S_DESPAWN(
     ::_pbi::ConstantInitialized): _impl_{
-    /*decltype(_impl_.object_ids_)*/{}
-  , /*decltype(_impl_._object_ids_cached_byte_size_)*/{0}
+    /*decltype(_impl_.despawn_infos_)*/{}
   , /*decltype(_impl_._cached_size_)*/{}} {}
 struct S_DESPAWNDefaultTypeInternal {
   PROTOBUF_CONSTEXPR S_DESPAWNDefaultTypeInternal()
@@ -545,7 +544,7 @@ const uint32_t TableStruct_Protocol_2eproto::offsets[] PROTOBUF_SECTION_VARIABLE
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::Protocol::S_DESPAWN, _impl_.object_ids_),
+  PROTOBUF_FIELD_OFFSET(::Protocol::S_DESPAWN, _impl_.despawn_infos_),
   ~0u,  // no _has_bits_
   PROTOBUF_FIELD_OFFSET(::Protocol::C_MOVE, _internal_metadata_),
   ~0u,  // no _extensions_
@@ -832,45 +831,45 @@ const char descriptor_table_protodef_Protocol_2eproto[] PROTOBUF_SECTION_VARIABL
   "E\022\017\n\007success\030\001 \001(\010\022$\n\006player\030\002 \001(\0132\024.Pro"
   "tocol.ObjectInfo\"\016\n\014C_LEAVE_GAME\"!\n\014S_LE"
   "AVE_GAME\022\021\n\tobject_id\030\001 \001(\004\"0\n\007S_SPAWN\022%"
-  "\n\007players\030\001 \003(\0132\024.Protocol.ObjectInfo\"\037\n"
-  "\tS_DESPAWN\022\022\n\nobject_ids\030\001 \003(\004\")\n\006C_MOVE"
-  "\022\037\n\004info\030\001 \001(\0132\021.Protocol.PosInfo\")\n\006S_M"
-  "OVE\022\037\n\004info\030\001 \001(\0132\021.Protocol.PosInfo\"s\n\014"
-  "C_HIT_ZOMBIE\022\021\n\tzombie_id\030\001 \001(\004\022\023\n\013attac"
-  "ker_id\030\002 \001(\004\022\016\n\006damage\030\003 \001(\002\022\r\n\005hit_x\030\004 "
-  "\001(\002\022\r\n\005hit_y\030\005 \001(\002\022\r\n\005hit_z\030\006 \001(\002\">\n\017S_Z"
-  "OMBIE_ATTACK\022\021\n\tzombie_id\030\001 \001(\004\022\030\n\020targe"
-  "t_player_id\030\002 \001(\004\"<\n\013S_ZOMBIE_HP\022\021\n\tzomb"
-  "ie_id\030\001 \001(\004\022\n\n\002hp\030\002 \001(\002\022\016\n\006max_hp\030\003 \001(\002\""
-  "4\n\014S_ZOMBIE_DIE\022\021\n\tzombie_id\030\001 \001(\004\022\021\n\tki"
-  "ller_id\030\002 \001(\004\"\025\n\006C_CHAT\022\013\n\003msg\030\001 \001(\t\"\'\n\006"
-  "S_CHAT\022\020\n\010playerId\030\001 \001(\004\022\013\n\003msg\030\002 \001(\t\"&\n"
-  "\016C_EQUIP_WEAPON\022\024\n\014itemObjectId\030\001 \001(\004\"[\n"
-  "\022C_PICKUP_LOOT_ITEM\022\026\n\016item_object_id\030\001 "
-  "\001(\004\022\026\n\016should_respawn\030\002 \001(\010\022\025\n\rrespawn_d"
-  "elay\030\003 \001(\002\"L\n\016S_EQUIP_WEAPON\022\020\n\010playerId"
-  "\030\001 \001(\004\022\024\n\014itemObjectId\030\002 \001(\004\022\022\n\nweaponTy"
-  "pe\030\003 \001(\005\"3\n\014S_SPAWN_ITEM\022#\n\005items\030\001 \003(\0132"
-  "\024.Protocol.ObjectInfo\"\010\n\006C_FIRE\"\033\n\006S_FIR"
-  "E\022\021\n\tobject_id\030\001 \001(\004\"M\n\rC_ENTER_TRUCK\022\020\n"
-  "\010truck_id\030\001 \001(\004\022*\n\tseat_type\030\002 \001(\0162\027.Pro"
-  "tocol.TruckSeatType\"`\n\rS_ENTER_TRUCK\022\021\n\t"
-  "player_id\030\001 \001(\004\022\020\n\010truck_id\030\002 \001(\004\022*\n\tsea"
-  "t_type\030\003 \001(\0162\027.Protocol.TruckSeatType\"\016\n"
-  "\014C_EXIT_TRUCK\"_\n\014S_EXIT_TRUCK\022\021\n\tplayer_"
-  "id\030\001 \001(\004\022\020\n\010truck_id\030\002 \001(\004\022*\n\tseat_type\030"
-  "\003 \001(\0162\027.Protocol.TruckSeatType\"/\n\014C_TRUC"
-  "K_MOVE\022\037\n\004info\030\001 \001(\0132\021.Protocol.PosInfo\""
-  "/\n\014S_TRUCK_MOVE\022\037\n\004info\030\001 \001(\0132\021.Protocol"
-  ".PosInfo\" \n\rC_TOGGLE_DOOR\022\017\n\007door_id\030\001 \001"
-  "(\004\"1\n\rS_TOGGLE_DOOR\022\017\n\007door_id\030\001 \001(\004\022\017\n\007"
-  "is_open\030\002 \001(\010\"G\n\030S_ENTER_GAME_READY_COUN"
-  "T\022\023\n\013ready_count\030\001 \001(\005\022\026\n\016required_count"
-  "\030\002 \001(\005\"D\n\rS_STAGE_TIMER\022\031\n\021remaining_sec"
-  "onds\030\001 \001(\005\022\030\n\020is_loading_phase\030\002 \001(\010\"\"\n\022"
-  "S_STAGE1_ITEM_SEED\022\014\n\004seed\030\001 \001(\r\".\n\023S_RE"
-  "SPAWN_LOOT_ITEM\022\027\n\017item_object_ids\030\001 \003(\004"
-  "b\006proto3"
+  "\n\007players\030\001 \003(\0132\024.Protocol.ObjectInfo\"9\n"
+  "\tS_DESPAWN\022,\n\rdespawn_infos\030\001 \003(\0132\025.Prot"
+  "ocol.DespawnInfo\")\n\006C_MOVE\022\037\n\004info\030\001 \001(\013"
+  "2\021.Protocol.PosInfo\")\n\006S_MOVE\022\037\n\004info\030\001 "
+  "\001(\0132\021.Protocol.PosInfo\"s\n\014C_HIT_ZOMBIE\022\021"
+  "\n\tzombie_id\030\001 \001(\004\022\023\n\013attacker_id\030\002 \001(\004\022\016"
+  "\n\006damage\030\003 \001(\002\022\r\n\005hit_x\030\004 \001(\002\022\r\n\005hit_y\030\005"
+  " \001(\002\022\r\n\005hit_z\030\006 \001(\002\">\n\017S_ZOMBIE_ATTACK\022\021"
+  "\n\tzombie_id\030\001 \001(\004\022\030\n\020target_player_id\030\002 "
+  "\001(\004\"<\n\013S_ZOMBIE_HP\022\021\n\tzombie_id\030\001 \001(\004\022\n\n"
+  "\002hp\030\002 \001(\002\022\016\n\006max_hp\030\003 \001(\002\"4\n\014S_ZOMBIE_DI"
+  "E\022\021\n\tzombie_id\030\001 \001(\004\022\021\n\tkiller_id\030\002 \001(\004\""
+  "\025\n\006C_CHAT\022\013\n\003msg\030\001 \001(\t\"\'\n\006S_CHAT\022\020\n\010play"
+  "erId\030\001 \001(\004\022\013\n\003msg\030\002 \001(\t\"&\n\016C_EQUIP_WEAPO"
+  "N\022\024\n\014itemObjectId\030\001 \001(\004\"[\n\022C_PICKUP_LOOT"
+  "_ITEM\022\026\n\016item_object_id\030\001 \001(\004\022\026\n\016should_"
+  "respawn\030\002 \001(\010\022\025\n\rrespawn_delay\030\003 \001(\002\"L\n\016"
+  "S_EQUIP_WEAPON\022\020\n\010playerId\030\001 \001(\004\022\024\n\014item"
+  "ObjectId\030\002 \001(\004\022\022\n\nweaponType\030\003 \001(\005\"3\n\014S_"
+  "SPAWN_ITEM\022#\n\005items\030\001 \003(\0132\024.Protocol.Obj"
+  "ectInfo\"\010\n\006C_FIRE\"\033\n\006S_FIRE\022\021\n\tobject_id"
+  "\030\001 \001(\004\"M\n\rC_ENTER_TRUCK\022\020\n\010truck_id\030\001 \001("
+  "\004\022*\n\tseat_type\030\002 \001(\0162\027.Protocol.TruckSea"
+  "tType\"`\n\rS_ENTER_TRUCK\022\021\n\tplayer_id\030\001 \001("
+  "\004\022\020\n\010truck_id\030\002 \001(\004\022*\n\tseat_type\030\003 \001(\0162\027"
+  ".Protocol.TruckSeatType\"\016\n\014C_EXIT_TRUCK\""
+  "_\n\014S_EXIT_TRUCK\022\021\n\tplayer_id\030\001 \001(\004\022\020\n\010tr"
+  "uck_id\030\002 \001(\004\022*\n\tseat_type\030\003 \001(\0162\027.Protoc"
+  "ol.TruckSeatType\"/\n\014C_TRUCK_MOVE\022\037\n\004info"
+  "\030\001 \001(\0132\021.Protocol.PosInfo\"/\n\014S_TRUCK_MOV"
+  "E\022\037\n\004info\030\001 \001(\0132\021.Protocol.PosInfo\" \n\rC_"
+  "TOGGLE_DOOR\022\017\n\007door_id\030\001 \001(\004\"1\n\rS_TOGGLE"
+  "_DOOR\022\017\n\007door_id\030\001 \001(\004\022\017\n\007is_open\030\002 \001(\010\""
+  "G\n\030S_ENTER_GAME_READY_COUNT\022\023\n\013ready_cou"
+  "nt\030\001 \001(\005\022\026\n\016required_count\030\002 \001(\005\"D\n\rS_ST"
+  "AGE_TIMER\022\031\n\021remaining_seconds\030\001 \001(\005\022\030\n\020"
+  "is_loading_phase\030\002 \001(\010\"\"\n\022S_STAGE1_ITEM_"
+  "SEED\022\014\n\004seed\030\001 \001(\r\".\n\023S_RESPAWN_LOOT_ITE"
+  "M\022\027\n\017item_object_ids\030\001 \003(\004b\006proto3"
   ;
 static const ::_pbi::DescriptorTable* const descriptor_table_Protocol_2eproto_deps[2] = {
   &::descriptor_table_Enum_2eproto,
@@ -878,7 +877,7 @@ static const ::_pbi::DescriptorTable* const descriptor_table_Protocol_2eproto_de
 };
 static ::_pbi::once_flag descriptor_table_Protocol_2eproto_once;
 const ::_pbi::DescriptorTable descriptor_table_Protocol_2eproto = {
-    false, false, 1848, descriptor_table_protodef_Protocol_2eproto,
+    false, false, 1874, descriptor_table_protodef_Protocol_2eproto,
     "Protocol.proto",
     &descriptor_table_Protocol_2eproto_once, descriptor_table_Protocol_2eproto_deps, 2, 34,
     schemas, file_default_instances, TableStruct_Protocol_2eproto::offsets,
@@ -2131,6 +2130,9 @@ class S_DESPAWN::_Internal {
  public:
 };
 
+void S_DESPAWN::clear_despawn_infos() {
+  _impl_.despawn_infos_.Clear();
+}
 S_DESPAWN::S_DESPAWN(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
@@ -2141,8 +2143,7 @@ S_DESPAWN::S_DESPAWN(const S_DESPAWN& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
   S_DESPAWN* const _this = this; (void)_this;
   new (&_impl_) Impl_{
-      decltype(_impl_.object_ids_){from._impl_.object_ids_}
-    , /*decltype(_impl_._object_ids_cached_byte_size_)*/{0}
+      decltype(_impl_.despawn_infos_){from._impl_.despawn_infos_}
     , /*decltype(_impl_._cached_size_)*/{}};
 
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
@@ -2154,8 +2155,7 @@ inline void S_DESPAWN::SharedCtor(
   (void)arena;
   (void)is_message_owned;
   new (&_impl_) Impl_{
-      decltype(_impl_.object_ids_){arena}
-    , /*decltype(_impl_._object_ids_cached_byte_size_)*/{0}
+      decltype(_impl_.despawn_infos_){arena}
     , /*decltype(_impl_._cached_size_)*/{}
   };
 }
@@ -2171,7 +2171,7 @@ S_DESPAWN::~S_DESPAWN() {
 
 inline void S_DESPAWN::SharedDtor() {
   GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
-  _impl_.object_ids_.~RepeatedField();
+  _impl_.despawn_infos_.~RepeatedPtrField();
 }
 
 void S_DESPAWN::SetCachedSize(int size) const {
@@ -2184,7 +2184,7 @@ void S_DESPAWN::Clear() {
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  _impl_.object_ids_.Clear();
+  _impl_.despawn_infos_.Clear();
   _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
 }
 
@@ -2194,14 +2194,16 @@ const char* S_DESPAWN::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx
     uint32_t tag;
     ptr = ::_pbi::ReadTag(ptr, &tag);
     switch (tag >> 3) {
-      // repeated uint64 object_ids = 1;
+      // repeated .Protocol.DespawnInfo despawn_infos = 1;
       case 1:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
-          ptr = ::PROTOBUF_NAMESPACE_ID::internal::PackedUInt64Parser(_internal_mutable_object_ids(), ptr, ctx);
-          CHK_(ptr);
-        } else if (static_cast<uint8_t>(tag) == 8) {
-          _internal_add_object_ids(::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr));
-          CHK_(ptr);
+          ptr -= 1;
+          do {
+            ptr += 1;
+            ptr = ctx->ParseMessage(_internal_add_despawn_infos(), ptr);
+            CHK_(ptr);
+            if (!ctx->DataAvailable(ptr)) break;
+          } while (::PROTOBUF_NAMESPACE_ID::internal::ExpectTag<10>(ptr));
         } else
           goto handle_unusual;
         continue;
@@ -2234,13 +2236,12 @@ uint8_t* S_DESPAWN::_InternalSerialize(
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  // repeated uint64 object_ids = 1;
-  {
-    int byte_size = _impl_._object_ids_cached_byte_size_.load(std::memory_order_relaxed);
-    if (byte_size > 0) {
-      target = stream->WriteUInt64Packed(
-          1, _internal_object_ids(), byte_size, target);
-    }
+  // repeated .Protocol.DespawnInfo despawn_infos = 1;
+  for (unsigned i = 0,
+      n = static_cast<unsigned>(this->_internal_despawn_infos_size()); i < n; i++) {
+    const auto& repfield = this->_internal_despawn_infos(i);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+        InternalWriteMessage(1, repfield, repfield.GetCachedSize(), target, stream);
   }
 
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
@@ -2259,18 +2260,11 @@ size_t S_DESPAWN::ByteSizeLong() const {
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  // repeated uint64 object_ids = 1;
-  {
-    size_t data_size = ::_pbi::WireFormatLite::
-      UInt64Size(this->_impl_.object_ids_);
-    if (data_size > 0) {
-      total_size += 1 +
-        ::_pbi::WireFormatLite::Int32Size(static_cast<int32_t>(data_size));
-    }
-    int cached_size = ::_pbi::ToCachedSize(data_size);
-    _impl_._object_ids_cached_byte_size_.store(cached_size,
-                                    std::memory_order_relaxed);
-    total_size += data_size;
+  // repeated .Protocol.DespawnInfo despawn_infos = 1;
+  total_size += 1UL * this->_internal_despawn_infos_size();
+  for (const auto& msg : this->_impl_.despawn_infos_) {
+    total_size +=
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(msg);
   }
 
   return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
@@ -2291,7 +2285,7 @@ void S_DESPAWN::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROT
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  _this->_impl_.object_ids_.MergeFrom(from._impl_.object_ids_);
+  _this->_impl_.despawn_infos_.MergeFrom(from._impl_.despawn_infos_);
   _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
 }
 
@@ -2309,7 +2303,7 @@ bool S_DESPAWN::IsInitialized() const {
 void S_DESPAWN::InternalSwap(S_DESPAWN* other) {
   using std::swap;
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
-  _impl_.object_ids_.InternalSwap(&other->_impl_.object_ids_);
+  _impl_.despawn_infos_.InternalSwap(&other->_impl_.despawn_infos_);
 }
 
 ::PROTOBUF_NAMESPACE_ID::Metadata S_DESPAWN::GetMetadata() const {

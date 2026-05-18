@@ -1372,29 +1372,25 @@ class S_DESPAWN final :
   // accessors -------------------------------------------------------
 
   enum : int {
-    kObjectIdsFieldNumber = 1,
+    kDespawnInfosFieldNumber = 1,
   };
-  // repeated uint64 object_ids = 1;
-  int object_ids_size() const;
+  // repeated .Protocol.DespawnInfo despawn_infos = 1;
+  int despawn_infos_size() const;
   private:
-  int _internal_object_ids_size() const;
+  int _internal_despawn_infos_size() const;
   public:
-  void clear_object_ids();
+  void clear_despawn_infos();
+  ::Protocol::DespawnInfo* mutable_despawn_infos(int index);
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::Protocol::DespawnInfo >*
+      mutable_despawn_infos();
   private:
-  uint64_t _internal_object_ids(int index) const;
-  const ::PROTOBUF_NAMESPACE_ID::RepeatedField< uint64_t >&
-      _internal_object_ids() const;
-  void _internal_add_object_ids(uint64_t value);
-  ::PROTOBUF_NAMESPACE_ID::RepeatedField< uint64_t >*
-      _internal_mutable_object_ids();
+  const ::Protocol::DespawnInfo& _internal_despawn_infos(int index) const;
+  ::Protocol::DespawnInfo* _internal_add_despawn_infos();
   public:
-  uint64_t object_ids(int index) const;
-  void set_object_ids(int index, uint64_t value);
-  void add_object_ids(uint64_t value);
-  const ::PROTOBUF_NAMESPACE_ID::RepeatedField< uint64_t >&
-      object_ids() const;
-  ::PROTOBUF_NAMESPACE_ID::RepeatedField< uint64_t >*
-      mutable_object_ids();
+  const ::Protocol::DespawnInfo& despawn_infos(int index) const;
+  ::Protocol::DespawnInfo* add_despawn_infos();
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::Protocol::DespawnInfo >&
+      despawn_infos() const;
 
   // @@protoc_insertion_point(class_scope:Protocol.S_DESPAWN)
  private:
@@ -1404,8 +1400,7 @@ class S_DESPAWN final :
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
   struct Impl_ {
-    ::PROTOBUF_NAMESPACE_ID::RepeatedField< uint64_t > object_ids_;
-    mutable std::atomic<int> _object_ids_cached_byte_size_;
+    ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::Protocol::DespawnInfo > despawn_infos_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   };
   union { Impl_ _impl_; };
@@ -5838,51 +5833,41 @@ S_SPAWN::players() const {
 
 // S_DESPAWN
 
-// repeated uint64 object_ids = 1;
-inline int S_DESPAWN::_internal_object_ids_size() const {
-  return _impl_.object_ids_.size();
+// repeated .Protocol.DespawnInfo despawn_infos = 1;
+inline int S_DESPAWN::_internal_despawn_infos_size() const {
+  return _impl_.despawn_infos_.size();
 }
-inline int S_DESPAWN::object_ids_size() const {
-  return _internal_object_ids_size();
+inline int S_DESPAWN::despawn_infos_size() const {
+  return _internal_despawn_infos_size();
 }
-inline void S_DESPAWN::clear_object_ids() {
-  _impl_.object_ids_.Clear();
+inline ::Protocol::DespawnInfo* S_DESPAWN::mutable_despawn_infos(int index) {
+  // @@protoc_insertion_point(field_mutable:Protocol.S_DESPAWN.despawn_infos)
+  return _impl_.despawn_infos_.Mutable(index);
 }
-inline uint64_t S_DESPAWN::_internal_object_ids(int index) const {
-  return _impl_.object_ids_.Get(index);
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::Protocol::DespawnInfo >*
+S_DESPAWN::mutable_despawn_infos() {
+  // @@protoc_insertion_point(field_mutable_list:Protocol.S_DESPAWN.despawn_infos)
+  return &_impl_.despawn_infos_;
 }
-inline uint64_t S_DESPAWN::object_ids(int index) const {
-  // @@protoc_insertion_point(field_get:Protocol.S_DESPAWN.object_ids)
-  return _internal_object_ids(index);
+inline const ::Protocol::DespawnInfo& S_DESPAWN::_internal_despawn_infos(int index) const {
+  return _impl_.despawn_infos_.Get(index);
 }
-inline void S_DESPAWN::set_object_ids(int index, uint64_t value) {
-  _impl_.object_ids_.Set(index, value);
-  // @@protoc_insertion_point(field_set:Protocol.S_DESPAWN.object_ids)
+inline const ::Protocol::DespawnInfo& S_DESPAWN::despawn_infos(int index) const {
+  // @@protoc_insertion_point(field_get:Protocol.S_DESPAWN.despawn_infos)
+  return _internal_despawn_infos(index);
 }
-inline void S_DESPAWN::_internal_add_object_ids(uint64_t value) {
-  _impl_.object_ids_.Add(value);
+inline ::Protocol::DespawnInfo* S_DESPAWN::_internal_add_despawn_infos() {
+  return _impl_.despawn_infos_.Add();
 }
-inline void S_DESPAWN::add_object_ids(uint64_t value) {
-  _internal_add_object_ids(value);
-  // @@protoc_insertion_point(field_add:Protocol.S_DESPAWN.object_ids)
+inline ::Protocol::DespawnInfo* S_DESPAWN::add_despawn_infos() {
+  ::Protocol::DespawnInfo* _add = _internal_add_despawn_infos();
+  // @@protoc_insertion_point(field_add:Protocol.S_DESPAWN.despawn_infos)
+  return _add;
 }
-inline const ::PROTOBUF_NAMESPACE_ID::RepeatedField< uint64_t >&
-S_DESPAWN::_internal_object_ids() const {
-  return _impl_.object_ids_;
-}
-inline const ::PROTOBUF_NAMESPACE_ID::RepeatedField< uint64_t >&
-S_DESPAWN::object_ids() const {
-  // @@protoc_insertion_point(field_list:Protocol.S_DESPAWN.object_ids)
-  return _internal_object_ids();
-}
-inline ::PROTOBUF_NAMESPACE_ID::RepeatedField< uint64_t >*
-S_DESPAWN::_internal_mutable_object_ids() {
-  return &_impl_.object_ids_;
-}
-inline ::PROTOBUF_NAMESPACE_ID::RepeatedField< uint64_t >*
-S_DESPAWN::mutable_object_ids() {
-  // @@protoc_insertion_point(field_mutable_list:Protocol.S_DESPAWN.object_ids)
-  return _internal_mutable_object_ids();
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::Protocol::DespawnInfo >&
+S_DESPAWN::despawn_infos() const {
+  // @@protoc_insertion_point(field_list:Protocol.S_DESPAWN.despawn_infos)
+  return _impl_.despawn_infos_;
 }
 
 // -------------------------------------------------------------------

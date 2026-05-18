@@ -211,7 +211,9 @@ bool Room::LeaveRoom(ObjectRef object)
 	// 퇴장 사실을 알린다
 	{
 		Protocol::S_DESPAWN despawnPkt;
-		despawnPkt.add_object_ids(objectId);
+		Protocol::DespawnInfo* despawnInfo = despawnPkt.add_despawn_infos();
+		despawnInfo->set_object_id(objectId);
+		despawnInfo->set_object_type(Protocol::OBJECT_TYPE_CREATURE);
 
 		SendBufferRef sendBuffer = ServerPacketHandler::MakeSendBuffer(despawnPkt);
 		Broadcast(sendBuffer, objectId);
@@ -607,23 +609,33 @@ void Room::HandleEquipWeapon(PlayerRef player, Protocol::C_EQUIP_WEAPON pkt)
 
 void Room::HandlePickupLootItem(PlayerRef player, Protocol::C_PICKUP_LOOT_ITEM pkt)
 {
-	UNREFERENCED_PARAMETER(player);
-
 	const uint64 itemId = pkt.item_object_id();
+	const uint64 playerId = (player ? player->objectInfo->object_id() : 0);
+	cout << "[PickupLootItem] playerId=" << playerId
+		<< " itemId=" << itemId
+		<< " shouldRespawn=" << pkt.should_respawn()
+		<< " respawnDelay=" << pkt.respawn_delay()
+		<< endl;
+
 	if (itemId == 0)
 	{
+		cout << "[PickupLootItem] ignored because itemId is 0" << endl;
 		return;
 	}
 
 	if (_inactiveLootItemIds.find(itemId) != _inactiveLootItemIds.end())
 	{
+		cout << "[PickupLootItem] ignored because itemId is already inactive: " << itemId << endl;
 		return;
 	}
 
 	_inactiveLootItemIds.insert(itemId);
 
 	Protocol::S_DESPAWN despawnPkt;
-	despawnPkt.add_object_ids(itemId);
+	Protocol::DespawnInfo* despawnInfo = despawnPkt.add_despawn_infos();
+	despawnInfo->set_object_id(itemId);
+	despawnInfo->set_object_type(Protocol::OBJECT_TYPE_ITEM);
+	cout << "[PickupLootItem] broadcasting despawn for itemId=" << itemId << endl;
 	SendBufferRef despawnBuffer = ServerPacketHandler::MakeSendBuffer(despawnPkt);
 	Broadcast(despawnBuffer);
 
@@ -821,7 +833,9 @@ void Room::UpdateTick()
 		if (_objects.find(pending.zombieId) != _objects.end())
 		{
 			Protocol::S_DESPAWN despawnPkt;
-			despawnPkt.add_object_ids(pending.zombieId);
+			Protocol::DespawnInfo* despawnInfo = despawnPkt.add_despawn_infos();
+			despawnInfo->set_object_id(pending.zombieId);
+			despawnInfo->set_object_type(Protocol::OBJECT_TYPE_CREATURE);
 
 			RemoveObject(pending.zombieId);
 

@@ -123,6 +123,12 @@ void ALootItemBase::Interact_Implementation(AFPSBaseCharacter* Character)
 				const bool bAddedToInventory = PlayerController->PickUp_Item(itemimage, HandWeight);
 				if (bAddedToInventory)
 				{
+					UE_LOG(LogTemp, Warning, TEXT("[PickupSend] Item='%s' NetworkItemId=%llu Respawn=%s Delay=%.2f"),
+						*GetName(),
+						NetworkItemId,
+						bRespawnOnPickup ? TEXT("true") : TEXT("false"),
+						RespawnDelay);
+
 					bPickupPending = true;
 					SetNetworkItemActive(false);
 

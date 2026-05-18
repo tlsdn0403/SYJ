@@ -46,6 +46,9 @@ struct TableStruct_Struct_2eproto {
 };
 extern const ::PROTOBUF_NAMESPACE_ID::internal::DescriptorTable descriptor_table_Struct_2eproto;
 namespace Protocol {
+class DespawnInfo;
+struct DespawnInfoDefaultTypeInternal;
+extern DespawnInfoDefaultTypeInternal _DespawnInfo_default_instance_;
 class ObjectInfo;
 struct ObjectInfoDefaultTypeInternal;
 extern ObjectInfoDefaultTypeInternal _ObjectInfo_default_instance_;
@@ -54,6 +57,7 @@ struct PosInfoDefaultTypeInternal;
 extern PosInfoDefaultTypeInternal _PosInfo_default_instance_;
 }  // namespace Protocol
 PROTOBUF_NAMESPACE_OPEN
+template<> ::Protocol::DespawnInfo* Arena::CreateMaybeMessage<::Protocol::DespawnInfo>(Arena*);
 template<> ::Protocol::ObjectInfo* Arena::CreateMaybeMessage<::Protocol::ObjectInfo>(Arena*);
 template<> ::Protocol::PosInfo* Arena::CreateMaybeMessage<::Protocol::PosInfo>(Arena*);
 PROTOBUF_NAMESPACE_CLOSE
@@ -452,6 +456,165 @@ class ObjectInfo final :
   union { Impl_ _impl_; };
   friend struct ::TableStruct_Struct_2eproto;
 };
+// -------------------------------------------------------------------
+
+class DespawnInfo final :
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:Protocol.DespawnInfo) */ {
+ public:
+  inline DespawnInfo() : DespawnInfo(nullptr) {}
+  ~DespawnInfo() override;
+  explicit PROTOBUF_CONSTEXPR DespawnInfo(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized);
+
+  DespawnInfo(const DespawnInfo& from);
+  DespawnInfo(DespawnInfo&& from) noexcept
+    : DespawnInfo() {
+    *this = ::std::move(from);
+  }
+
+  inline DespawnInfo& operator=(const DespawnInfo& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline DespawnInfo& operator=(DespawnInfo&& from) noexcept {
+    if (this == &from) return *this;
+    if (GetOwningArena() == from.GetOwningArena()
+  #ifdef PROTOBUF_FORCE_COPY_IN_MOVE
+        && GetOwningArena() != nullptr
+  #endif  // !PROTOBUF_FORCE_COPY_IN_MOVE
+    ) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* descriptor() {
+    return GetDescriptor();
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Reflection* GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const DespawnInfo& default_instance() {
+    return *internal_default_instance();
+  }
+  static inline const DespawnInfo* internal_default_instance() {
+    return reinterpret_cast<const DespawnInfo*>(
+               &_DespawnInfo_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    2;
+
+  friend void swap(DespawnInfo& a, DespawnInfo& b) {
+    a.Swap(&b);
+  }
+  inline void Swap(DespawnInfo* other) {
+    if (other == this) return;
+  #ifdef PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() != nullptr &&
+        GetOwningArena() == other->GetOwningArena()) {
+   #else  // PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() == other->GetOwningArena()) {
+  #endif  // !PROTOBUF_FORCE_COPY_IN_SWAP
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(DespawnInfo* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetOwningArena() == other->GetOwningArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  DespawnInfo* New(::PROTOBUF_NAMESPACE_ID::Arena* arena = nullptr) const final {
+    return CreateMaybeMessage<DespawnInfo>(arena);
+  }
+  using ::PROTOBUF_NAMESPACE_ID::Message::CopyFrom;
+  void CopyFrom(const DespawnInfo& from);
+  using ::PROTOBUF_NAMESPACE_ID::Message::MergeFrom;
+  void MergeFrom( const DespawnInfo& from) {
+    DespawnInfo::MergeImpl(*this, from);
+  }
+  private:
+  static void MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg);
+  public:
+  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
+  uint8_t* _InternalSerialize(
+      uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
+  int GetCachedSize() const final { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::PROTOBUF_NAMESPACE_ID::Arena* arena, bool is_message_owned);
+  void SharedDtor();
+  void SetCachedSize(int size) const final;
+  void InternalSwap(DespawnInfo* other);
+
+  private:
+  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
+  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
+    return "Protocol.DespawnInfo";
+  }
+  protected:
+  explicit DespawnInfo(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                       bool is_message_owned = false);
+  public:
+
+  static const ClassData _class_data_;
+  const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*GetClassData() const final;
+
+  ::PROTOBUF_NAMESPACE_ID::Metadata GetMetadata() const final;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  enum : int {
+    kObjectIdFieldNumber = 1,
+    kObjectTypeFieldNumber = 2,
+  };
+  // uint64 object_id = 1;
+  void clear_object_id();
+  uint64_t object_id() const;
+  void set_object_id(uint64_t value);
+  private:
+  uint64_t _internal_object_id() const;
+  void _internal_set_object_id(uint64_t value);
+  public:
+
+  // .Protocol.ObjectType object_type = 2;
+  void clear_object_type();
+  ::Protocol::ObjectType object_type() const;
+  void set_object_type(::Protocol::ObjectType value);
+  private:
+  ::Protocol::ObjectType _internal_object_type() const;
+  void _internal_set_object_type(::Protocol::ObjectType value);
+  public:
+
+  // @@protoc_insertion_point(class_scope:Protocol.DespawnInfo)
+ private:
+  class _Internal;
+
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  struct Impl_ {
+    uint64_t object_id_;
+    int object_type_;
+    mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_Struct_2eproto;
+};
 // ===================================================================
 
 
@@ -737,9 +900,55 @@ inline void ObjectInfo::set_weapon_type(int32_t value) {
   // @@protoc_insertion_point(field_set:Protocol.ObjectInfo.weapon_type)
 }
 
+// -------------------------------------------------------------------
+
+// DespawnInfo
+
+// uint64 object_id = 1;
+inline void DespawnInfo::clear_object_id() {
+  _impl_.object_id_ = uint64_t{0u};
+}
+inline uint64_t DespawnInfo::_internal_object_id() const {
+  return _impl_.object_id_;
+}
+inline uint64_t DespawnInfo::object_id() const {
+  // @@protoc_insertion_point(field_get:Protocol.DespawnInfo.object_id)
+  return _internal_object_id();
+}
+inline void DespawnInfo::_internal_set_object_id(uint64_t value) {
+  
+  _impl_.object_id_ = value;
+}
+inline void DespawnInfo::set_object_id(uint64_t value) {
+  _internal_set_object_id(value);
+  // @@protoc_insertion_point(field_set:Protocol.DespawnInfo.object_id)
+}
+
+// .Protocol.ObjectType object_type = 2;
+inline void DespawnInfo::clear_object_type() {
+  _impl_.object_type_ = 0;
+}
+inline ::Protocol::ObjectType DespawnInfo::_internal_object_type() const {
+  return static_cast< ::Protocol::ObjectType >(_impl_.object_type_);
+}
+inline ::Protocol::ObjectType DespawnInfo::object_type() const {
+  // @@protoc_insertion_point(field_get:Protocol.DespawnInfo.object_type)
+  return _internal_object_type();
+}
+inline void DespawnInfo::_internal_set_object_type(::Protocol::ObjectType value) {
+  
+  _impl_.object_type_ = value;
+}
+inline void DespawnInfo::set_object_type(::Protocol::ObjectType value) {
+  _internal_set_object_type(value);
+  // @@protoc_insertion_point(field_set:Protocol.DespawnInfo.object_type)
+}
+
 #ifdef __GNUC__
   #pragma GCC diagnostic pop
 #endif  // __GNUC__
+// -------------------------------------------------------------------
+
 // -------------------------------------------------------------------
 
 

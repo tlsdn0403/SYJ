@@ -42,7 +42,7 @@ message S_SPAWN
 
 message S_DESPAWN
 {
-	repeated uint64 object_ids = 1;
+	repeated DespawnInfo despawn_infos = 1;
 }
 
 message C_MOVE

@@ -20,3 +20,9 @@ message ObjectInfo
 	PosInfo pos_info = 3;	// 현재 위치 및 상태
 	int32 weapon_type = 4;
 }
+
+message DespawnInfo
+{
+	uint64 object_id = 1;
+	ObjectType object_type = 2;
+}

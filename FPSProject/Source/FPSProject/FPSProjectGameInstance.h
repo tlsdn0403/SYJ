@@ -57,11 +57,13 @@ public:
 	void HandleEnterTruck(const Protocol::S_ENTER_TRUCK& pkt);
 	void HandleExitTruck(const Protocol::S_EXIT_TRUCK& pkt);
 	void HandleTruckMove(const Protocol::S_TRUCK_MOVE& pkt);
+	void HandleLoadTruckItem(const Protocol::S_LOAD_TRUCK_ITEM& pkt);
 	void HandleToggleDoor(const Protocol::S_TOGGLE_DOOR& pkt);
 	void HandleEnterGameReadyCount(const Protocol::S_ENTER_GAME_READY_COUNT& pkt);
 	void HandleStageTimer(const Protocol::S_STAGE_TIMER& pkt);
 	void HandleStage1ItemSeed(const Protocol::S_STAGE1_ITEM_SEED& pkt);
 	void HandleRespawnLootItem(const Protocol::S_RESPAWN_LOOT_ITEM& pkt);
+	void HandleStageTransition(const Protocol::S_STAGE_TRANSITION& pkt);
 
 	void HandleEquipWeapon(const Protocol::S_EQUIP_WEAPON& pkt);
 	void HandleSpawnItem(const Protocol::S_SPAWN_ITEM& pkt);

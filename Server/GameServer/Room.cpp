@@ -54,6 +54,17 @@ bool Room::IsTruckSeatOccupied(const TruckState& truckState, Protocol::TruckSeat
 	}
 }
 
+size_t Room::GetTruckOccupantCount(const TruckState& truckState) const
+{
+	size_t occupantCount = truckState.cargoPlayerIds.size();
+	if (truckState.driverPlayerId != 0)
+		++occupantCount;
+	if (truckState.turretPlayerId != 0)
+		++occupantCount;
+
+	return occupantCount;
+}
+
 void Room::SetTruckSeatOccupant(TruckState& truckState, Protocol::TruckSeatType seatType, uint64 playerId)
 {
 	switch (seatType)
@@ -355,6 +366,86 @@ void Room::HandleReadyPlayer(GameSessionRef session)
 	{
 		StartTruckLoadingPhase();
 	}
+}
+
+void Room::HandleStageMapReady(GameSessionRef session)
+{
+	if (session == nullptr)
+		return;
+
+	PlayerRef readyPlayer = session->player.load();
+	if (readyPlayer == nullptr)
+		return;
+
+	const uint64 readyPlayerId = readyPlayer->objectInfo->object_id();
+	if (_bStageTransitionStarted == false)
+	{
+		std::cout << "[Server][EnterGame] Duplicate C_ENTER_GAME ignored. ExistingPlayerId="
+			<< readyPlayerId << std::endl;
+		return;
+	}
+
+	_stageTransitionReadyPlayerIds.insert(readyPlayerId);
+	BroadcastStageTransitionReadyCount();
+
+	if (_stageTransitionReadyPlayerIds.size() < REQUIRED_STAGE2_PLAYER_COUNT)
+		return;
+
+	vector<PlayerRef> readyPlayers;
+	readyPlayers.reserve(REQUIRED_STAGE2_PLAYER_COUNT);
+	for (const auto& item : _objects)
+	{
+		PlayerRef player = dynamic_pointer_cast<Player>(item.second);
+		if (player == nullptr)
+			continue;
+
+		const uint64 playerId = player->objectInfo->object_id();
+		if (_stageTransitionReadyPlayerIds.find(playerId) == _stageTransitionReadyPlayerIds.end())
+			continue;
+
+		readyPlayers.push_back(player);
+	}
+
+	for (const PlayerRef& player : readyPlayers)
+	{
+		ClearPlayerTruckState(player);
+	}
+	_trucks.clear();
+
+	for (const PlayerRef& player : readyPlayers)
+	{
+		if (player == nullptr)
+			continue;
+
+		GameSessionRef playerSession = player->session.lock();
+		if (playerSession == nullptr)
+			continue;
+
+		Protocol::S_ENTER_GAME enterGamePkt;
+		enterGamePkt.set_success(true);
+
+		Protocol::ObjectInfo* playerInfo = new Protocol::ObjectInfo();
+		playerInfo->CopyFrom(*player->objectInfo);
+		enterGamePkt.set_allocated_player(playerInfo);
+
+		playerSession->Send(ServerPacketHandler::MakeSendBuffer(enterGamePkt));
+
+		Protocol::S_SPAWN spawnPkt;
+		for (const PlayerRef& otherPlayer : readyPlayers)
+		{
+			if (otherPlayer == nullptr || otherPlayer == player)
+				continue;
+
+			Protocol::ObjectInfo* otherPlayerInfo = spawnPkt.add_players();
+			otherPlayerInfo->CopyFrom(*otherPlayer->objectInfo);
+		}
+
+		if (spawnPkt.players_size() > 0)
+			playerSession->Send(ServerPacketHandler::MakeSendBuffer(spawnPkt));
+	}
+
+	_stageTransitionReadyPlayerIds.clear();
+	_bStageTransitionStarted = false;
 }
 
 void Room::RemovePendingReadySession(GameSessionRef session)
@@ -799,6 +890,29 @@ void Room::HandleTruckMove(PlayerRef player, Protocol::C_TRUCK_MOVE pkt)
 	Broadcast(sendBuffer);
 }
 
+void Room::HandleLoadTruckItem(PlayerRef player, Protocol::C_LOAD_TRUCK_ITEM pkt)
+{
+	if (player == nullptr)
+		return;
+
+	const uint64 truckId = pkt.truck_id();
+	if (truckId == 0 || pkt.item_types_size() <= 0)
+		return;
+
+	GetOrCreateTruckState(truckId);
+
+	Protocol::S_LOAD_TRUCK_ITEM loadPkt;
+	loadPkt.set_player_id(player->objectInfo->object_id());
+	loadPkt.set_truck_id(truckId);
+	for (const int32 itemType : pkt.item_types())
+	{
+		loadPkt.add_item_types(itemType);
+	}
+
+	SendBufferRef sendBuffer = ServerPacketHandler::MakeSendBuffer(loadPkt);
+	Broadcast(sendBuffer, player->objectInfo->object_id());
+}
+
 void Room::HandleToggleDoor(PlayerRef player, Protocol::C_TOGGLE_DOOR pkt)
 {
 	UNREFERENCED_PARAMETER(player);
@@ -815,6 +929,39 @@ void Room::HandleToggleDoor(PlayerRef player, Protocol::C_TOGGLE_DOOR pkt)
 	doorPkt.set_is_open(bIsOpen);
 
 	SendBufferRef sendBuffer = ServerPacketHandler::MakeSendBuffer(doorPkt);
+	Broadcast(sendBuffer);
+}
+
+void Room::HandleStageTransitionRequest(PlayerRef player, Protocol::C_STAGE_TRANSITION_REQUEST pkt)
+{
+	if (player == nullptr || _bStageTransitionStarted)
+		return;
+
+	const uint64 playerId = player->objectInfo->object_id();
+	const uint64 truckId = pkt.truck_id();
+	if (truckId == 0 || pkt.target_level().empty())
+		return;
+
+	TruckState* truckState = FindTruckState(truckId);
+	if (truckState == nullptr)
+		return;
+
+	if (truckState->driverPlayerId != playerId)
+		return;
+
+	if (_bTruckLoadingPhaseActive && GetTruckLoadingPhaseRemainingSeconds() > 0)
+		return;
+
+	if (GetTruckOccupantCount(*truckState) < REQUIRED_STAGE2_PLAYER_COUNT)
+		return;
+
+	_bStageTransitionStarted = true;
+	_stageTransitionReadyPlayerIds.clear();
+
+	Protocol::S_STAGE_TRANSITION transitionPkt;
+	transitionPkt.set_target_level(pkt.target_level());
+
+	SendBufferRef sendBuffer = ServerPacketHandler::MakeSendBuffer(transitionPkt);
 	Broadcast(sendBuffer);
 }
 
@@ -950,9 +1097,21 @@ void Room::BroadcastPendingReadyCount()
 	}
 }
 
+void Room::BroadcastStageTransitionReadyCount()
+{
+	Protocol::S_ENTER_GAME_READY_COUNT readyCountPkt;
+	readyCountPkt.set_ready_count(static_cast<int32>(_stageTransitionReadyPlayerIds.size()));
+	readyCountPkt.set_required_count(static_cast<int32>(REQUIRED_STAGE2_PLAYER_COUNT));
+
+	SendBufferRef sendBuffer = ServerPacketHandler::MakeSendBuffer(readyCountPkt);
+	Broadcast(sendBuffer);
+}
+
 void Room::StartTruckLoadingPhase()
 {
 	_bTruckLoadingPhaseActive = true;
+	_bStageTransitionStarted = false;
+	_stageTransitionReadyPlayerIds.clear();
 	_truckLoadingPhaseEndTime = std::chrono::steady_clock::now() + std::chrono::seconds(TRUCK_LOADING_PHASE_DURATION_SECONDS);
 	_lastBroadcastTruckLoadingRemainingSeconds = -1;
 	BroadcastStageTimer();

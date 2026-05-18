@@ -118,7 +118,18 @@ bool Handle_S_TRUCK_MOVE(PacketSessionRef& session, Protocol::S_TRUCK_MOVE& pkt)
 	return false;
 }
 
+bool Handle_S_LOAD_TRUCK_ITEM(PacketSessionRef& session, Protocol::S_LOAD_TRUCK_ITEM& pkt)
+{
+	return true;
+}
+
 bool Handle_S_TOGGLE_DOOR(PacketSessionRef& session, Protocol::S_TOGGLE_DOOR& pkt)
 {
 	return false;
+}
+
+bool Handle_S_STAGE_TRANSITION(PacketSessionRef& session, Protocol::S_STAGE_TRANSITION& pkt)
+{
+	cout << "[DummyClient] S_STAGE_TRANSITION targetLevel=" << pkt.target_level() << endl;
+	return true;
 }

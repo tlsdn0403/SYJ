@@ -1,7 +1,10 @@
 #include "Stage/StageTransitionZone.h"
 
+#include "ClientPacketHandler.h"
 #include "Components/BoxComponent.h"
+#include "FPSProjectGameInstance.h"
 #include "Kismet/GameplayStatics.h"
+#include "Protocol.pb.h"
 #include "Truck/Truck.h"
 
 AStageTransitionZone::AStageTransitionZone()
@@ -51,6 +54,19 @@ void AStageTransitionZone::TravelToTargetLevel(ATruck* TriggerTruck)
 	}
 
 	bHasTriggered = true;
+
+	if (UFPSProjectGameInstance* GameInstance = GetGameInstance<UFPSProjectGameInstance>())
+	{
+		if (GameInstance->IsConnectedToGameServer())
+		{
+			Protocol::C_STAGE_TRANSITION_REQUEST RequestPkt;
+			RequestPkt.set_truck_id(TriggerTruck->NetworkTruckId);
+			RequestPkt.set_target_level(TCHAR_TO_UTF8(*TargetLevelName.ToString()));
+			GameInstance->SendPacket(ClientPacketHandler::MakeSendBuffer(RequestPkt));
+			return;
+		}
+	}
+
 	UGameplayStatics::OpenLevel(this, TargetLevelName);
 }
 

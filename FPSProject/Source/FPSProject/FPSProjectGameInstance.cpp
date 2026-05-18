@@ -1336,6 +1336,33 @@ void UFPSProjectGameInstance::HandleTruckMove(const Protocol::S_TRUCK_MOVE& pkt)
 	}
 }
 
+void UFPSProjectGameInstance::HandleLoadTruckItem(const Protocol::S_LOAD_TRUCK_ITEM& pkt)
+{
+	const uint64 LocalPlayerId = (MyPlayer && MyPlayer->GetPlayerInfo()) ? MyPlayer->GetPlayerInfo()->object_id() : 0;
+	if (LocalPlayerId != 0 && pkt.player_id() == LocalPlayerId)
+	{
+		return;
+	}
+
+	ATruck* Truck = FindTruckById(pkt.truck_id());
+	if (Truck == nullptr)
+	{
+		return;
+	}
+
+	TArray<EItemType> LoadedItems;
+	LoadedItems.Reserve(pkt.item_types_size());
+
+	for (const int32 ItemTypeValue : pkt.item_types())
+	{
+		const EItemType ItemType = static_cast<EItemType>(ItemTypeValue);
+		LoadedItems.Add(ItemType);
+		Truck->ApplyLoadedCargoItem(ItemType);
+	}
+
+	RecordStage1CargoItems(LoadedItems);
+}
+
 void UFPSProjectGameInstance::HandleToggleDoor(const Protocol::S_TOGGLE_DOOR& pkt)
 {
 	if (AADoor* Door = FindDoorById(pkt.door_id()))
@@ -1372,6 +1399,17 @@ void UFPSProjectGameInstance::HandleRespawnLootItem(const Protocol::S_RESPAWN_LO
 			LootItem->SetNetworkItemActive(true);
 		}
 	}
+}
+
+void UFPSProjectGameInstance::HandleStageTransition(const Protocol::S_STAGE_TRANSITION& pkt)
+{
+	const FString TargetLevelName = UTF8_TO_TCHAR(pkt.target_level().c_str());
+	if (TargetLevelName.IsEmpty())
+	{
+		return;
+	}
+
+	UGameplayStatics::OpenLevel(this, FName(*TargetLevelName));
 }
 
 void UFPSProjectGameInstance::ApplyStageTimerToLocalUI()

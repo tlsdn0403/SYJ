@@ -16,6 +16,7 @@ public:
 
 	bool HandleEnterPlayer(PlayerRef player);
 	void HandleReadyPlayer(GameSessionRef session);
+	void HandleStageMapReady(GameSessionRef session);
 	void RemovePendingReadySession(GameSessionRef session);
 	bool HandleLeavePlayer(PlayerRef player);
 	void HandleMove(PlayerRef player, Protocol::C_MOVE pkt);
@@ -26,7 +27,9 @@ public:
 	void HandleEnterTruck(PlayerRef player, Protocol::C_ENTER_TRUCK pkt);
 	void HandleExitTruck(PlayerRef player, Protocol::C_EXIT_TRUCK pkt);
 	void HandleTruckMove(PlayerRef player, Protocol::C_TRUCK_MOVE pkt);
+	void HandleLoadTruckItem(PlayerRef player, Protocol::C_LOAD_TRUCK_ITEM pkt);
 	void HandleToggleDoor(PlayerRef player, Protocol::C_TOGGLE_DOOR pkt);
+	void HandleStageTransitionRequest(PlayerRef player, Protocol::C_STAGE_TRANSITION_REQUEST pkt);
 
 public:
 	void UpdateTick();
@@ -43,6 +46,7 @@ private:
 private:
 	void Broadcast(SendBufferRef sendBuffer, uint64 exceptId = 0);
 	void BroadcastPendingReadyCount();
+	void BroadcastStageTransitionReadyCount();
 	void StartTruckLoadingPhase();
 	void BroadcastStageTimer();
 	void SendStageTimerToSession(const GameSessionRef& session) const;
@@ -73,6 +77,7 @@ private:
 	TruckState* FindTruckState(uint64 truckId);
 	TruckState& GetOrCreateTruckState(uint64 truckId);
 	bool IsTruckSeatOccupied(const TruckState& truckState, Protocol::TruckSeatType seatType) const;
+	size_t GetTruckOccupantCount(const TruckState& truckState) const;
 	void SetTruckSeatOccupant(TruckState& truckState, Protocol::TruckSeatType seatType, uint64 playerId);
 	void ClearTruckSeatOccupant(TruckState& truckState, Protocol::TruckSeatType seatType, uint64 playerId);
 	void ClearPlayerTruckState(PlayerRef player);
@@ -91,7 +96,9 @@ private:
 	vector<PendingZombieDespawn> _pendingZombieDespawns;
 	vector<PendingLootItemRespawn> _pendingLootItemRespawns;
 	unordered_set<uint64> _inactiveLootItemIds;
+	unordered_set<uint64> _stageTransitionReadyPlayerIds;
 	bool _bTruckLoadingPhaseActive = false;
+	bool _bStageTransitionStarted = false;
 	std::chrono::steady_clock::time_point _truckLoadingPhaseEndTime;
 	int32 _lastBroadcastTruckLoadingRemainingSeconds = -1;
 	uint32 _stage1ItemSpawnSeed = 0;

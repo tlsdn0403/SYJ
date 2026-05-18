@@ -49,8 +49,7 @@ bool Handle_C_ENTER_GAME(PacketSessionRef& session, Protocol::C_ENTER_GAME& pkt)
 
 	if (PlayerRef existingPlayer = gameSession->player.load())
 	{
-		std::cout << "[Server][EnterGame] Duplicate C_ENTER_GAME ignored. ExistingPlayerId="
-			<< existingPlayer->objectInfo->object_id() << std::endl;
+		GRoom->DoAsync(&Room::HandleStageMapReady, gameSession);
 		return true;
 	}
 
@@ -219,6 +218,23 @@ bool Handle_C_TRUCK_MOVE(PacketSessionRef& session, Protocol::C_TRUCK_MOVE& pkt)
 	return true;
 }
 
+bool Handle_C_LOAD_TRUCK_ITEM(PacketSessionRef& session, Protocol::C_LOAD_TRUCK_ITEM& pkt)
+{
+	auto gameSession = static_pointer_cast<GameSession>(session);
+
+	PlayerRef player = gameSession->player.load();
+	if (player == nullptr)
+		return false;
+
+	RoomRef room = player->room.load().lock();
+	if (room == nullptr)
+		return false;
+
+	room->DoAsync(&Room::HandleLoadTruckItem, player, Protocol::C_LOAD_TRUCK_ITEM(pkt));
+
+	return true;
+}
+
 bool Handle_C_TOGGLE_DOOR(PacketSessionRef& session, Protocol::C_TOGGLE_DOOR& pkt)
 {
 	auto gameSession = static_pointer_cast<GameSession>(session);
@@ -232,6 +248,23 @@ bool Handle_C_TOGGLE_DOOR(PacketSessionRef& session, Protocol::C_TOGGLE_DOOR& pk
 		return false;
 
 	room->DoAsync(&Room::HandleToggleDoor, player, Protocol::C_TOGGLE_DOOR(pkt));
+
+	return true;
+}
+
+bool Handle_C_STAGE_TRANSITION_REQUEST(PacketSessionRef& session, Protocol::C_STAGE_TRANSITION_REQUEST& pkt)
+{
+	auto gameSession = static_pointer_cast<GameSession>(session);
+
+	PlayerRef player = gameSession->player.load();
+	if (player == nullptr)
+		return false;
+
+	RoomRef room = player->room.load().lock();
+	if (room == nullptr)
+		return false;
+
+	room->DoAsync(&Room::HandleStageTransitionRequest, player, Protocol::C_STAGE_TRANSITION_REQUEST(pkt));
 
 	return true;
 }

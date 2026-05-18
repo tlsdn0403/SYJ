@@ -38,12 +38,16 @@ enum : uint16
 	PKT_S_EXIT_TRUCK = 1025,
 	PKT_C_TRUCK_MOVE = 1026,
 	PKT_S_TRUCK_MOVE = 1027,
-	PKT_C_TOGGLE_DOOR = 1028,
-	PKT_S_TOGGLE_DOOR = 1029,
-	PKT_S_ENTER_GAME_READY_COUNT = 1030,
-	PKT_S_STAGE_TIMER = 1031,
-	PKT_S_STAGE1_ITEM_SEED = 1032,
-	PKT_S_RESPAWN_LOOT_ITEM = 1033,
+	PKT_C_LOAD_TRUCK_ITEM = 1028,
+	PKT_S_LOAD_TRUCK_ITEM = 1029,
+	PKT_C_TOGGLE_DOOR = 1030,
+	PKT_S_TOGGLE_DOOR = 1031,
+	PKT_S_ENTER_GAME_READY_COUNT = 1032,
+	PKT_S_STAGE_TIMER = 1033,
+	PKT_S_STAGE1_ITEM_SEED = 1034,
+	PKT_S_RESPAWN_LOOT_ITEM = 1035,
+	PKT_C_STAGE_TRANSITION_REQUEST = 1036,
+	PKT_S_STAGE_TRANSITION = 1037,
 };
 
 // Custom Handlers
@@ -64,11 +68,13 @@ bool Handle_S_FIRE(PacketSessionRef& session, Protocol::S_FIRE& pkt);
 bool Handle_S_ENTER_TRUCK(PacketSessionRef& session, Protocol::S_ENTER_TRUCK& pkt);
 bool Handle_S_EXIT_TRUCK(PacketSessionRef& session, Protocol::S_EXIT_TRUCK& pkt);
 bool Handle_S_TRUCK_MOVE(PacketSessionRef& session, Protocol::S_TRUCK_MOVE& pkt);
+bool Handle_S_LOAD_TRUCK_ITEM(PacketSessionRef& session, Protocol::S_LOAD_TRUCK_ITEM& pkt);
 bool Handle_S_TOGGLE_DOOR(PacketSessionRef& session, Protocol::S_TOGGLE_DOOR& pkt);
 bool Handle_S_ENTER_GAME_READY_COUNT(PacketSessionRef& session, Protocol::S_ENTER_GAME_READY_COUNT& pkt);
 bool Handle_S_STAGE_TIMER(PacketSessionRef& session, Protocol::S_STAGE_TIMER& pkt);
 bool Handle_S_STAGE1_ITEM_SEED(PacketSessionRef& session, Protocol::S_STAGE1_ITEM_SEED& pkt);
 bool Handle_S_RESPAWN_LOOT_ITEM(PacketSessionRef& session, Protocol::S_RESPAWN_LOOT_ITEM& pkt);
+bool Handle_S_STAGE_TRANSITION(PacketSessionRef& session, Protocol::S_STAGE_TRANSITION& pkt);
 
 class ClientPacketHandler
 {
@@ -93,11 +99,13 @@ public:
 		GPacketHandler[PKT_S_ENTER_TRUCK] = [](PacketSessionRef& session, BYTE* buffer, int32 len) { return HandlePacket<Protocol::S_ENTER_TRUCK>(Handle_S_ENTER_TRUCK, session, buffer, len); };
 		GPacketHandler[PKT_S_EXIT_TRUCK] = [](PacketSessionRef& session, BYTE* buffer, int32 len) { return HandlePacket<Protocol::S_EXIT_TRUCK>(Handle_S_EXIT_TRUCK, session, buffer, len); };
 		GPacketHandler[PKT_S_TRUCK_MOVE] = [](PacketSessionRef& session, BYTE* buffer, int32 len) { return HandlePacket<Protocol::S_TRUCK_MOVE>(Handle_S_TRUCK_MOVE, session, buffer, len); };
+		GPacketHandler[PKT_S_LOAD_TRUCK_ITEM] = [](PacketSessionRef& session, BYTE* buffer, int32 len) { return HandlePacket<Protocol::S_LOAD_TRUCK_ITEM>(Handle_S_LOAD_TRUCK_ITEM, session, buffer, len); };
 		GPacketHandler[PKT_S_TOGGLE_DOOR] = [](PacketSessionRef& session, BYTE* buffer, int32 len) { return HandlePacket<Protocol::S_TOGGLE_DOOR>(Handle_S_TOGGLE_DOOR, session, buffer, len); };
 		GPacketHandler[PKT_S_ENTER_GAME_READY_COUNT] = [](PacketSessionRef& session, BYTE* buffer, int32 len) { return HandlePacket<Protocol::S_ENTER_GAME_READY_COUNT>(Handle_S_ENTER_GAME_READY_COUNT, session, buffer, len); };
 		GPacketHandler[PKT_S_STAGE_TIMER] = [](PacketSessionRef& session, BYTE* buffer, int32 len) { return HandlePacket<Protocol::S_STAGE_TIMER>(Handle_S_STAGE_TIMER, session, buffer, len); };
 		GPacketHandler[PKT_S_STAGE1_ITEM_SEED] = [](PacketSessionRef& session, BYTE* buffer, int32 len) { return HandlePacket<Protocol::S_STAGE1_ITEM_SEED>(Handle_S_STAGE1_ITEM_SEED, session, buffer, len); };
 		GPacketHandler[PKT_S_RESPAWN_LOOT_ITEM] = [](PacketSessionRef& session, BYTE* buffer, int32 len) { return HandlePacket<Protocol::S_RESPAWN_LOOT_ITEM>(Handle_S_RESPAWN_LOOT_ITEM, session, buffer, len); };
+		GPacketHandler[PKT_S_STAGE_TRANSITION] = [](PacketSessionRef& session, BYTE* buffer, int32 len) { return HandlePacket<Protocol::S_STAGE_TRANSITION>(Handle_S_STAGE_TRANSITION, session, buffer, len); };
 	}
 
 	static bool HandlePacket(PacketSessionRef& session, BYTE* buffer, int32 len)
@@ -117,7 +125,9 @@ public:
 	static SendBufferRef MakeSendBuffer(Protocol::C_ENTER_TRUCK& pkt) { return MakeSendBuffer(pkt, PKT_C_ENTER_TRUCK); }
 	static SendBufferRef MakeSendBuffer(Protocol::C_EXIT_TRUCK& pkt) { return MakeSendBuffer(pkt, PKT_C_EXIT_TRUCK); }
 	static SendBufferRef MakeSendBuffer(Protocol::C_TRUCK_MOVE& pkt) { return MakeSendBuffer(pkt, PKT_C_TRUCK_MOVE); }
+	static SendBufferRef MakeSendBuffer(Protocol::C_LOAD_TRUCK_ITEM& pkt) { return MakeSendBuffer(pkt, PKT_C_LOAD_TRUCK_ITEM); }
 	static SendBufferRef MakeSendBuffer(Protocol::C_TOGGLE_DOOR& pkt) { return MakeSendBuffer(pkt, PKT_C_TOGGLE_DOOR); }
+	static SendBufferRef MakeSendBuffer(Protocol::C_STAGE_TRANSITION_REQUEST& pkt) { return MakeSendBuffer(pkt, PKT_C_STAGE_TRANSITION_REQUEST); }
 
 private:
 	template<typename PacketType, typename ProcessFunc>

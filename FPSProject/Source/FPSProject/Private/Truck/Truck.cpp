@@ -727,6 +727,12 @@ void ATruck::AddCargoVisual(EItemType ItemType)
 	UE_LOG(LogTemp, Warning, TEXT("Failed to find a visible cargo slot for item type %d on truck %s"), static_cast<int32>(ItemType), *GetName());
 }
 
+void ATruck::ApplyLoadedCargoItem(EItemType ItemType)
+{
+	TotalLoadedItems++;
+	AddCargoVisual(ItemType);
+}
+
 void ATruck::Interact_Implementation(AFPSBaseCharacter* Character)
 {
 	UE_LOG(LogTemp, Warning,
@@ -755,8 +761,7 @@ void ATruck::Interact_Implementation(AFPSBaseCharacter* Character)
 
 			for (EItemType Item : ReceivedItems)
 			{
-				TotalLoadedItems++;
-				AddCargoVisual(Item);
+				ApplyLoadedCargoItem(Item);
 
 				switch (Item)
 				{
@@ -783,6 +788,24 @@ void ATruck::Interact_Implementation(AFPSBaseCharacter* Character)
 				//AFPSPlayerController* PC = Cast<AFPSPlayerController>(GetController());
 				PC->InventoryW->ClearItem();
 			}
+
+			if (NetworkTruckId != 0)
+			{
+				if (UFPSProjectGameInstance* GameInstance = Cast<UFPSProjectGameInstance>(GetGameInstance()))
+				{
+					if (GameInstance->IsConnectedToGameServer())
+					{
+						Protocol::C_LOAD_TRUCK_ITEM LoadPkt;
+						LoadPkt.set_truck_id(NetworkTruckId);
+						for (EItemType Item : ReceivedItems)
+						{
+							LoadPkt.add_item_types(static_cast<int32>(Item));
+						}
+						GameInstance->SendPacket(ClientPacketHandler::MakeSendBuffer(LoadPkt));
+					}
+				}
+			}
+
 			UE_LOG(LogTemp, Log, TEXT("Offloaded %d items to Truck!"), ReceivedItems.Num());
 		}
 

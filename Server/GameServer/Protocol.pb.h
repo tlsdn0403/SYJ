@@ -72,6 +72,9 @@ extern C_HIT_ZOMBIEDefaultTypeInternal _C_HIT_ZOMBIE_default_instance_;
 class C_LEAVE_GAME;
 struct C_LEAVE_GAMEDefaultTypeInternal;
 extern C_LEAVE_GAMEDefaultTypeInternal _C_LEAVE_GAME_default_instance_;
+class C_LOAD_TRUCK_ITEM;
+struct C_LOAD_TRUCK_ITEMDefaultTypeInternal;
+extern C_LOAD_TRUCK_ITEMDefaultTypeInternal _C_LOAD_TRUCK_ITEM_default_instance_;
 class C_LOGIN;
 struct C_LOGINDefaultTypeInternal;
 extern C_LOGINDefaultTypeInternal _C_LOGIN_default_instance_;
@@ -81,6 +84,9 @@ extern C_MOVEDefaultTypeInternal _C_MOVE_default_instance_;
 class C_PICKUP_LOOT_ITEM;
 struct C_PICKUP_LOOT_ITEMDefaultTypeInternal;
 extern C_PICKUP_LOOT_ITEMDefaultTypeInternal _C_PICKUP_LOOT_ITEM_default_instance_;
+class C_STAGE_TRANSITION_REQUEST;
+struct C_STAGE_TRANSITION_REQUESTDefaultTypeInternal;
+extern C_STAGE_TRANSITION_REQUESTDefaultTypeInternal _C_STAGE_TRANSITION_REQUEST_default_instance_;
 class C_TOGGLE_DOOR;
 struct C_TOGGLE_DOORDefaultTypeInternal;
 extern C_TOGGLE_DOORDefaultTypeInternal _C_TOGGLE_DOOR_default_instance_;
@@ -114,6 +120,9 @@ extern S_FIREDefaultTypeInternal _S_FIRE_default_instance_;
 class S_LEAVE_GAME;
 struct S_LEAVE_GAMEDefaultTypeInternal;
 extern S_LEAVE_GAMEDefaultTypeInternal _S_LEAVE_GAME_default_instance_;
+class S_LOAD_TRUCK_ITEM;
+struct S_LOAD_TRUCK_ITEMDefaultTypeInternal;
+extern S_LOAD_TRUCK_ITEMDefaultTypeInternal _S_LOAD_TRUCK_ITEM_default_instance_;
 class S_LOGIN;
 struct S_LOGINDefaultTypeInternal;
 extern S_LOGINDefaultTypeInternal _S_LOGIN_default_instance_;
@@ -135,6 +144,9 @@ extern S_STAGE1_ITEM_SEEDDefaultTypeInternal _S_STAGE1_ITEM_SEED_default_instanc
 class S_STAGE_TIMER;
 struct S_STAGE_TIMERDefaultTypeInternal;
 extern S_STAGE_TIMERDefaultTypeInternal _S_STAGE_TIMER_default_instance_;
+class S_STAGE_TRANSITION;
+struct S_STAGE_TRANSITIONDefaultTypeInternal;
+extern S_STAGE_TRANSITIONDefaultTypeInternal _S_STAGE_TRANSITION_default_instance_;
 class S_TOGGLE_DOOR;
 struct S_TOGGLE_DOORDefaultTypeInternal;
 extern S_TOGGLE_DOORDefaultTypeInternal _S_TOGGLE_DOOR_default_instance_;
@@ -160,9 +172,11 @@ template<> ::Protocol::C_EXIT_TRUCK* Arena::CreateMaybeMessage<::Protocol::C_EXI
 template<> ::Protocol::C_FIRE* Arena::CreateMaybeMessage<::Protocol::C_FIRE>(Arena*);
 template<> ::Protocol::C_HIT_ZOMBIE* Arena::CreateMaybeMessage<::Protocol::C_HIT_ZOMBIE>(Arena*);
 template<> ::Protocol::C_LEAVE_GAME* Arena::CreateMaybeMessage<::Protocol::C_LEAVE_GAME>(Arena*);
+template<> ::Protocol::C_LOAD_TRUCK_ITEM* Arena::CreateMaybeMessage<::Protocol::C_LOAD_TRUCK_ITEM>(Arena*);
 template<> ::Protocol::C_LOGIN* Arena::CreateMaybeMessage<::Protocol::C_LOGIN>(Arena*);
 template<> ::Protocol::C_MOVE* Arena::CreateMaybeMessage<::Protocol::C_MOVE>(Arena*);
 template<> ::Protocol::C_PICKUP_LOOT_ITEM* Arena::CreateMaybeMessage<::Protocol::C_PICKUP_LOOT_ITEM>(Arena*);
+template<> ::Protocol::C_STAGE_TRANSITION_REQUEST* Arena::CreateMaybeMessage<::Protocol::C_STAGE_TRANSITION_REQUEST>(Arena*);
 template<> ::Protocol::C_TOGGLE_DOOR* Arena::CreateMaybeMessage<::Protocol::C_TOGGLE_DOOR>(Arena*);
 template<> ::Protocol::C_TRUCK_MOVE* Arena::CreateMaybeMessage<::Protocol::C_TRUCK_MOVE>(Arena*);
 template<> ::Protocol::S_CHAT* Arena::CreateMaybeMessage<::Protocol::S_CHAT>(Arena*);
@@ -174,6 +188,7 @@ template<> ::Protocol::S_EQUIP_WEAPON* Arena::CreateMaybeMessage<::Protocol::S_E
 template<> ::Protocol::S_EXIT_TRUCK* Arena::CreateMaybeMessage<::Protocol::S_EXIT_TRUCK>(Arena*);
 template<> ::Protocol::S_FIRE* Arena::CreateMaybeMessage<::Protocol::S_FIRE>(Arena*);
 template<> ::Protocol::S_LEAVE_GAME* Arena::CreateMaybeMessage<::Protocol::S_LEAVE_GAME>(Arena*);
+template<> ::Protocol::S_LOAD_TRUCK_ITEM* Arena::CreateMaybeMessage<::Protocol::S_LOAD_TRUCK_ITEM>(Arena*);
 template<> ::Protocol::S_LOGIN* Arena::CreateMaybeMessage<::Protocol::S_LOGIN>(Arena*);
 template<> ::Protocol::S_MOVE* Arena::CreateMaybeMessage<::Protocol::S_MOVE>(Arena*);
 template<> ::Protocol::S_RESPAWN_LOOT_ITEM* Arena::CreateMaybeMessage<::Protocol::S_RESPAWN_LOOT_ITEM>(Arena*);
@@ -181,6 +196,7 @@ template<> ::Protocol::S_SPAWN* Arena::CreateMaybeMessage<::Protocol::S_SPAWN>(A
 template<> ::Protocol::S_SPAWN_ITEM* Arena::CreateMaybeMessage<::Protocol::S_SPAWN_ITEM>(Arena*);
 template<> ::Protocol::S_STAGE1_ITEM_SEED* Arena::CreateMaybeMessage<::Protocol::S_STAGE1_ITEM_SEED>(Arena*);
 template<> ::Protocol::S_STAGE_TIMER* Arena::CreateMaybeMessage<::Protocol::S_STAGE_TIMER>(Arena*);
+template<> ::Protocol::S_STAGE_TRANSITION* Arena::CreateMaybeMessage<::Protocol::S_STAGE_TRANSITION>(Arena*);
 template<> ::Protocol::S_TOGGLE_DOOR* Arena::CreateMaybeMessage<::Protocol::S_TOGGLE_DOOR>(Arena*);
 template<> ::Protocol::S_TRUCK_MOVE* Arena::CreateMaybeMessage<::Protocol::S_TRUCK_MOVE>(Arena*);
 template<> ::Protocol::S_ZOMBIE_ATTACK* Arena::CreateMaybeMessage<::Protocol::S_ZOMBIE_ATTACK>(Arena*);
@@ -4572,6 +4588,363 @@ class S_TRUCK_MOVE final :
 };
 // -------------------------------------------------------------------
 
+class C_LOAD_TRUCK_ITEM final :
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:Protocol.C_LOAD_TRUCK_ITEM) */ {
+ public:
+  inline C_LOAD_TRUCK_ITEM() : C_LOAD_TRUCK_ITEM(nullptr) {}
+  ~C_LOAD_TRUCK_ITEM() override;
+  explicit PROTOBUF_CONSTEXPR C_LOAD_TRUCK_ITEM(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized);
+
+  C_LOAD_TRUCK_ITEM(const C_LOAD_TRUCK_ITEM& from);
+  C_LOAD_TRUCK_ITEM(C_LOAD_TRUCK_ITEM&& from) noexcept
+    : C_LOAD_TRUCK_ITEM() {
+    *this = ::std::move(from);
+  }
+
+  inline C_LOAD_TRUCK_ITEM& operator=(const C_LOAD_TRUCK_ITEM& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline C_LOAD_TRUCK_ITEM& operator=(C_LOAD_TRUCK_ITEM&& from) noexcept {
+    if (this == &from) return *this;
+    if (GetOwningArena() == from.GetOwningArena()
+  #ifdef PROTOBUF_FORCE_COPY_IN_MOVE
+        && GetOwningArena() != nullptr
+  #endif  // !PROTOBUF_FORCE_COPY_IN_MOVE
+    ) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* descriptor() {
+    return GetDescriptor();
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Reflection* GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const C_LOAD_TRUCK_ITEM& default_instance() {
+    return *internal_default_instance();
+  }
+  static inline const C_LOAD_TRUCK_ITEM* internal_default_instance() {
+    return reinterpret_cast<const C_LOAD_TRUCK_ITEM*>(
+               &_C_LOAD_TRUCK_ITEM_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    28;
+
+  friend void swap(C_LOAD_TRUCK_ITEM& a, C_LOAD_TRUCK_ITEM& b) {
+    a.Swap(&b);
+  }
+  inline void Swap(C_LOAD_TRUCK_ITEM* other) {
+    if (other == this) return;
+  #ifdef PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() != nullptr &&
+        GetOwningArena() == other->GetOwningArena()) {
+   #else  // PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() == other->GetOwningArena()) {
+  #endif  // !PROTOBUF_FORCE_COPY_IN_SWAP
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(C_LOAD_TRUCK_ITEM* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetOwningArena() == other->GetOwningArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  C_LOAD_TRUCK_ITEM* New(::PROTOBUF_NAMESPACE_ID::Arena* arena = nullptr) const final {
+    return CreateMaybeMessage<C_LOAD_TRUCK_ITEM>(arena);
+  }
+  using ::PROTOBUF_NAMESPACE_ID::Message::CopyFrom;
+  void CopyFrom(const C_LOAD_TRUCK_ITEM& from);
+  using ::PROTOBUF_NAMESPACE_ID::Message::MergeFrom;
+  void MergeFrom( const C_LOAD_TRUCK_ITEM& from) {
+    C_LOAD_TRUCK_ITEM::MergeImpl(*this, from);
+  }
+  private:
+  static void MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg);
+  public:
+  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
+  uint8_t* _InternalSerialize(
+      uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
+  int GetCachedSize() const final { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::PROTOBUF_NAMESPACE_ID::Arena* arena, bool is_message_owned);
+  void SharedDtor();
+  void SetCachedSize(int size) const final;
+  void InternalSwap(C_LOAD_TRUCK_ITEM* other);
+
+  private:
+  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
+  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
+    return "Protocol.C_LOAD_TRUCK_ITEM";
+  }
+  protected:
+  explicit C_LOAD_TRUCK_ITEM(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                       bool is_message_owned = false);
+  public:
+
+  static const ClassData _class_data_;
+  const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*GetClassData() const final;
+
+  ::PROTOBUF_NAMESPACE_ID::Metadata GetMetadata() const final;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  enum : int {
+    kItemTypesFieldNumber = 2,
+    kTruckIdFieldNumber = 1,
+  };
+  // repeated int32 item_types = 2;
+  int item_types_size() const;
+  private:
+  int _internal_item_types_size() const;
+  public:
+  void clear_item_types();
+  private:
+  int32_t _internal_item_types(int index) const;
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >&
+      _internal_item_types() const;
+  void _internal_add_item_types(int32_t value);
+  ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >*
+      _internal_mutable_item_types();
+  public:
+  int32_t item_types(int index) const;
+  void set_item_types(int index, int32_t value);
+  void add_item_types(int32_t value);
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >&
+      item_types() const;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >*
+      mutable_item_types();
+
+  // uint64 truck_id = 1;
+  void clear_truck_id();
+  uint64_t truck_id() const;
+  void set_truck_id(uint64_t value);
+  private:
+  uint64_t _internal_truck_id() const;
+  void _internal_set_truck_id(uint64_t value);
+  public:
+
+  // @@protoc_insertion_point(class_scope:Protocol.C_LOAD_TRUCK_ITEM)
+ private:
+  class _Internal;
+
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  struct Impl_ {
+    ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t > item_types_;
+    mutable std::atomic<int> _item_types_cached_byte_size_;
+    uint64_t truck_id_;
+    mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_Protocol_2eproto;
+};
+// -------------------------------------------------------------------
+
+class S_LOAD_TRUCK_ITEM final :
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:Protocol.S_LOAD_TRUCK_ITEM) */ {
+ public:
+  inline S_LOAD_TRUCK_ITEM() : S_LOAD_TRUCK_ITEM(nullptr) {}
+  ~S_LOAD_TRUCK_ITEM() override;
+  explicit PROTOBUF_CONSTEXPR S_LOAD_TRUCK_ITEM(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized);
+
+  S_LOAD_TRUCK_ITEM(const S_LOAD_TRUCK_ITEM& from);
+  S_LOAD_TRUCK_ITEM(S_LOAD_TRUCK_ITEM&& from) noexcept
+    : S_LOAD_TRUCK_ITEM() {
+    *this = ::std::move(from);
+  }
+
+  inline S_LOAD_TRUCK_ITEM& operator=(const S_LOAD_TRUCK_ITEM& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline S_LOAD_TRUCK_ITEM& operator=(S_LOAD_TRUCK_ITEM&& from) noexcept {
+    if (this == &from) return *this;
+    if (GetOwningArena() == from.GetOwningArena()
+  #ifdef PROTOBUF_FORCE_COPY_IN_MOVE
+        && GetOwningArena() != nullptr
+  #endif  // !PROTOBUF_FORCE_COPY_IN_MOVE
+    ) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* descriptor() {
+    return GetDescriptor();
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Reflection* GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const S_LOAD_TRUCK_ITEM& default_instance() {
+    return *internal_default_instance();
+  }
+  static inline const S_LOAD_TRUCK_ITEM* internal_default_instance() {
+    return reinterpret_cast<const S_LOAD_TRUCK_ITEM*>(
+               &_S_LOAD_TRUCK_ITEM_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    29;
+
+  friend void swap(S_LOAD_TRUCK_ITEM& a, S_LOAD_TRUCK_ITEM& b) {
+    a.Swap(&b);
+  }
+  inline void Swap(S_LOAD_TRUCK_ITEM* other) {
+    if (other == this) return;
+  #ifdef PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() != nullptr &&
+        GetOwningArena() == other->GetOwningArena()) {
+   #else  // PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() == other->GetOwningArena()) {
+  #endif  // !PROTOBUF_FORCE_COPY_IN_SWAP
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(S_LOAD_TRUCK_ITEM* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetOwningArena() == other->GetOwningArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  S_LOAD_TRUCK_ITEM* New(::PROTOBUF_NAMESPACE_ID::Arena* arena = nullptr) const final {
+    return CreateMaybeMessage<S_LOAD_TRUCK_ITEM>(arena);
+  }
+  using ::PROTOBUF_NAMESPACE_ID::Message::CopyFrom;
+  void CopyFrom(const S_LOAD_TRUCK_ITEM& from);
+  using ::PROTOBUF_NAMESPACE_ID::Message::MergeFrom;
+  void MergeFrom( const S_LOAD_TRUCK_ITEM& from) {
+    S_LOAD_TRUCK_ITEM::MergeImpl(*this, from);
+  }
+  private:
+  static void MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg);
+  public:
+  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
+  uint8_t* _InternalSerialize(
+      uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
+  int GetCachedSize() const final { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::PROTOBUF_NAMESPACE_ID::Arena* arena, bool is_message_owned);
+  void SharedDtor();
+  void SetCachedSize(int size) const final;
+  void InternalSwap(S_LOAD_TRUCK_ITEM* other);
+
+  private:
+  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
+  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
+    return "Protocol.S_LOAD_TRUCK_ITEM";
+  }
+  protected:
+  explicit S_LOAD_TRUCK_ITEM(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                       bool is_message_owned = false);
+  public:
+
+  static const ClassData _class_data_;
+  const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*GetClassData() const final;
+
+  ::PROTOBUF_NAMESPACE_ID::Metadata GetMetadata() const final;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  enum : int {
+    kItemTypesFieldNumber = 3,
+    kPlayerIdFieldNumber = 1,
+    kTruckIdFieldNumber = 2,
+  };
+  // repeated int32 item_types = 3;
+  int item_types_size() const;
+  private:
+  int _internal_item_types_size() const;
+  public:
+  void clear_item_types();
+  private:
+  int32_t _internal_item_types(int index) const;
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >&
+      _internal_item_types() const;
+  void _internal_add_item_types(int32_t value);
+  ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >*
+      _internal_mutable_item_types();
+  public:
+  int32_t item_types(int index) const;
+  void set_item_types(int index, int32_t value);
+  void add_item_types(int32_t value);
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >&
+      item_types() const;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >*
+      mutable_item_types();
+
+  // uint64 player_id = 1;
+  void clear_player_id();
+  uint64_t player_id() const;
+  void set_player_id(uint64_t value);
+  private:
+  uint64_t _internal_player_id() const;
+  void _internal_set_player_id(uint64_t value);
+  public:
+
+  // uint64 truck_id = 2;
+  void clear_truck_id();
+  uint64_t truck_id() const;
+  void set_truck_id(uint64_t value);
+  private:
+  uint64_t _internal_truck_id() const;
+  void _internal_set_truck_id(uint64_t value);
+  public:
+
+  // @@protoc_insertion_point(class_scope:Protocol.S_LOAD_TRUCK_ITEM)
+ private:
+  class _Internal;
+
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  struct Impl_ {
+    ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t > item_types_;
+    mutable std::atomic<int> _item_types_cached_byte_size_;
+    uint64_t player_id_;
+    uint64_t truck_id_;
+    mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_Protocol_2eproto;
+};
+// -------------------------------------------------------------------
+
 class C_TOGGLE_DOOR final :
     public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:Protocol.C_TOGGLE_DOOR) */ {
  public:
@@ -4620,7 +4993,7 @@ class C_TOGGLE_DOOR final :
                &_C_TOGGLE_DOOR_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    28;
+    30;
 
   friend void swap(C_TOGGLE_DOOR& a, C_TOGGLE_DOOR& b) {
     a.Swap(&b);
@@ -4768,7 +5141,7 @@ class S_TOGGLE_DOOR final :
                &_S_TOGGLE_DOOR_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    29;
+    31;
 
   friend void swap(S_TOGGLE_DOOR& a, S_TOGGLE_DOOR& b) {
     a.Swap(&b);
@@ -4927,7 +5300,7 @@ class S_ENTER_GAME_READY_COUNT final :
                &_S_ENTER_GAME_READY_COUNT_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    30;
+    32;
 
   friend void swap(S_ENTER_GAME_READY_COUNT& a, S_ENTER_GAME_READY_COUNT& b) {
     a.Swap(&b);
@@ -5086,7 +5459,7 @@ class S_STAGE_TIMER final :
                &_S_STAGE_TIMER_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    31;
+    33;
 
   friend void swap(S_STAGE_TIMER& a, S_STAGE_TIMER& b) {
     a.Swap(&b);
@@ -5245,7 +5618,7 @@ class S_STAGE1_ITEM_SEED final :
                &_S_STAGE1_ITEM_SEED_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    32;
+    34;
 
   friend void swap(S_STAGE1_ITEM_SEED& a, S_STAGE1_ITEM_SEED& b) {
     a.Swap(&b);
@@ -5393,7 +5766,7 @@ class S_RESPAWN_LOOT_ITEM final :
                &_S_RESPAWN_LOOT_ITEM_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    33;
+    35;
 
   friend void swap(S_RESPAWN_LOOT_ITEM& a, S_RESPAWN_LOOT_ITEM& b) {
     a.Swap(&b);
@@ -5500,6 +5873,323 @@ class S_RESPAWN_LOOT_ITEM final :
   struct Impl_ {
     ::PROTOBUF_NAMESPACE_ID::RepeatedField< uint64_t > item_object_ids_;
     mutable std::atomic<int> _item_object_ids_cached_byte_size_;
+    mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_Protocol_2eproto;
+};
+// -------------------------------------------------------------------
+
+class C_STAGE_TRANSITION_REQUEST final :
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:Protocol.C_STAGE_TRANSITION_REQUEST) */ {
+ public:
+  inline C_STAGE_TRANSITION_REQUEST() : C_STAGE_TRANSITION_REQUEST(nullptr) {}
+  ~C_STAGE_TRANSITION_REQUEST() override;
+  explicit PROTOBUF_CONSTEXPR C_STAGE_TRANSITION_REQUEST(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized);
+
+  C_STAGE_TRANSITION_REQUEST(const C_STAGE_TRANSITION_REQUEST& from);
+  C_STAGE_TRANSITION_REQUEST(C_STAGE_TRANSITION_REQUEST&& from) noexcept
+    : C_STAGE_TRANSITION_REQUEST() {
+    *this = ::std::move(from);
+  }
+
+  inline C_STAGE_TRANSITION_REQUEST& operator=(const C_STAGE_TRANSITION_REQUEST& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline C_STAGE_TRANSITION_REQUEST& operator=(C_STAGE_TRANSITION_REQUEST&& from) noexcept {
+    if (this == &from) return *this;
+    if (GetOwningArena() == from.GetOwningArena()
+  #ifdef PROTOBUF_FORCE_COPY_IN_MOVE
+        && GetOwningArena() != nullptr
+  #endif  // !PROTOBUF_FORCE_COPY_IN_MOVE
+    ) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* descriptor() {
+    return GetDescriptor();
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Reflection* GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const C_STAGE_TRANSITION_REQUEST& default_instance() {
+    return *internal_default_instance();
+  }
+  static inline const C_STAGE_TRANSITION_REQUEST* internal_default_instance() {
+    return reinterpret_cast<const C_STAGE_TRANSITION_REQUEST*>(
+               &_C_STAGE_TRANSITION_REQUEST_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    36;
+
+  friend void swap(C_STAGE_TRANSITION_REQUEST& a, C_STAGE_TRANSITION_REQUEST& b) {
+    a.Swap(&b);
+  }
+  inline void Swap(C_STAGE_TRANSITION_REQUEST* other) {
+    if (other == this) return;
+  #ifdef PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() != nullptr &&
+        GetOwningArena() == other->GetOwningArena()) {
+   #else  // PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() == other->GetOwningArena()) {
+  #endif  // !PROTOBUF_FORCE_COPY_IN_SWAP
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(C_STAGE_TRANSITION_REQUEST* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetOwningArena() == other->GetOwningArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  C_STAGE_TRANSITION_REQUEST* New(::PROTOBUF_NAMESPACE_ID::Arena* arena = nullptr) const final {
+    return CreateMaybeMessage<C_STAGE_TRANSITION_REQUEST>(arena);
+  }
+  using ::PROTOBUF_NAMESPACE_ID::Message::CopyFrom;
+  void CopyFrom(const C_STAGE_TRANSITION_REQUEST& from);
+  using ::PROTOBUF_NAMESPACE_ID::Message::MergeFrom;
+  void MergeFrom( const C_STAGE_TRANSITION_REQUEST& from) {
+    C_STAGE_TRANSITION_REQUEST::MergeImpl(*this, from);
+  }
+  private:
+  static void MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg);
+  public:
+  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
+  uint8_t* _InternalSerialize(
+      uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
+  int GetCachedSize() const final { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::PROTOBUF_NAMESPACE_ID::Arena* arena, bool is_message_owned);
+  void SharedDtor();
+  void SetCachedSize(int size) const final;
+  void InternalSwap(C_STAGE_TRANSITION_REQUEST* other);
+
+  private:
+  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
+  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
+    return "Protocol.C_STAGE_TRANSITION_REQUEST";
+  }
+  protected:
+  explicit C_STAGE_TRANSITION_REQUEST(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                       bool is_message_owned = false);
+  public:
+
+  static const ClassData _class_data_;
+  const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*GetClassData() const final;
+
+  ::PROTOBUF_NAMESPACE_ID::Metadata GetMetadata() const final;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  enum : int {
+    kTargetLevelFieldNumber = 2,
+    kTruckIdFieldNumber = 1,
+  };
+  // string target_level = 2;
+  void clear_target_level();
+  const std::string& target_level() const;
+  template <typename ArgT0 = const std::string&, typename... ArgT>
+  void set_target_level(ArgT0&& arg0, ArgT... args);
+  std::string* mutable_target_level();
+  PROTOBUF_NODISCARD std::string* release_target_level();
+  void set_allocated_target_level(std::string* target_level);
+  private:
+  const std::string& _internal_target_level() const;
+  inline PROTOBUF_ALWAYS_INLINE void _internal_set_target_level(const std::string& value);
+  std::string* _internal_mutable_target_level();
+  public:
+
+  // uint64 truck_id = 1;
+  void clear_truck_id();
+  uint64_t truck_id() const;
+  void set_truck_id(uint64_t value);
+  private:
+  uint64_t _internal_truck_id() const;
+  void _internal_set_truck_id(uint64_t value);
+  public:
+
+  // @@protoc_insertion_point(class_scope:Protocol.C_STAGE_TRANSITION_REQUEST)
+ private:
+  class _Internal;
+
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  struct Impl_ {
+    ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr target_level_;
+    uint64_t truck_id_;
+    mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_Protocol_2eproto;
+};
+// -------------------------------------------------------------------
+
+class S_STAGE_TRANSITION final :
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:Protocol.S_STAGE_TRANSITION) */ {
+ public:
+  inline S_STAGE_TRANSITION() : S_STAGE_TRANSITION(nullptr) {}
+  ~S_STAGE_TRANSITION() override;
+  explicit PROTOBUF_CONSTEXPR S_STAGE_TRANSITION(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized);
+
+  S_STAGE_TRANSITION(const S_STAGE_TRANSITION& from);
+  S_STAGE_TRANSITION(S_STAGE_TRANSITION&& from) noexcept
+    : S_STAGE_TRANSITION() {
+    *this = ::std::move(from);
+  }
+
+  inline S_STAGE_TRANSITION& operator=(const S_STAGE_TRANSITION& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline S_STAGE_TRANSITION& operator=(S_STAGE_TRANSITION&& from) noexcept {
+    if (this == &from) return *this;
+    if (GetOwningArena() == from.GetOwningArena()
+  #ifdef PROTOBUF_FORCE_COPY_IN_MOVE
+        && GetOwningArena() != nullptr
+  #endif  // !PROTOBUF_FORCE_COPY_IN_MOVE
+    ) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* descriptor() {
+    return GetDescriptor();
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Reflection* GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const S_STAGE_TRANSITION& default_instance() {
+    return *internal_default_instance();
+  }
+  static inline const S_STAGE_TRANSITION* internal_default_instance() {
+    return reinterpret_cast<const S_STAGE_TRANSITION*>(
+               &_S_STAGE_TRANSITION_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    37;
+
+  friend void swap(S_STAGE_TRANSITION& a, S_STAGE_TRANSITION& b) {
+    a.Swap(&b);
+  }
+  inline void Swap(S_STAGE_TRANSITION* other) {
+    if (other == this) return;
+  #ifdef PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() != nullptr &&
+        GetOwningArena() == other->GetOwningArena()) {
+   #else  // PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() == other->GetOwningArena()) {
+  #endif  // !PROTOBUF_FORCE_COPY_IN_SWAP
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(S_STAGE_TRANSITION* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetOwningArena() == other->GetOwningArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  S_STAGE_TRANSITION* New(::PROTOBUF_NAMESPACE_ID::Arena* arena = nullptr) const final {
+    return CreateMaybeMessage<S_STAGE_TRANSITION>(arena);
+  }
+  using ::PROTOBUF_NAMESPACE_ID::Message::CopyFrom;
+  void CopyFrom(const S_STAGE_TRANSITION& from);
+  using ::PROTOBUF_NAMESPACE_ID::Message::MergeFrom;
+  void MergeFrom( const S_STAGE_TRANSITION& from) {
+    S_STAGE_TRANSITION::MergeImpl(*this, from);
+  }
+  private:
+  static void MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg);
+  public:
+  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
+  uint8_t* _InternalSerialize(
+      uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
+  int GetCachedSize() const final { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::PROTOBUF_NAMESPACE_ID::Arena* arena, bool is_message_owned);
+  void SharedDtor();
+  void SetCachedSize(int size) const final;
+  void InternalSwap(S_STAGE_TRANSITION* other);
+
+  private:
+  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
+  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
+    return "Protocol.S_STAGE_TRANSITION";
+  }
+  protected:
+  explicit S_STAGE_TRANSITION(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                       bool is_message_owned = false);
+  public:
+
+  static const ClassData _class_data_;
+  const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*GetClassData() const final;
+
+  ::PROTOBUF_NAMESPACE_ID::Metadata GetMetadata() const final;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  enum : int {
+    kTargetLevelFieldNumber = 1,
+  };
+  // string target_level = 1;
+  void clear_target_level();
+  const std::string& target_level() const;
+  template <typename ArgT0 = const std::string&, typename... ArgT>
+  void set_target_level(ArgT0&& arg0, ArgT... args);
+  std::string* mutable_target_level();
+  PROTOBUF_NODISCARD std::string* release_target_level();
+  void set_allocated_target_level(std::string* target_level);
+  private:
+  const std::string& _internal_target_level() const;
+  inline PROTOBUF_ALWAYS_INLINE void _internal_set_target_level(const std::string& value);
+  std::string* _internal_mutable_target_level();
+  public:
+
+  // @@protoc_insertion_point(class_scope:Protocol.S_STAGE_TRANSITION)
+ private:
+  class _Internal;
+
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  struct Impl_ {
+    ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr target_level_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   };
   union { Impl_ _impl_; };
@@ -7029,6 +7719,168 @@ inline void S_TRUCK_MOVE::set_allocated_info(::Protocol::PosInfo* info) {
 
 // -------------------------------------------------------------------
 
+// C_LOAD_TRUCK_ITEM
+
+// uint64 truck_id = 1;
+inline void C_LOAD_TRUCK_ITEM::clear_truck_id() {
+  _impl_.truck_id_ = uint64_t{0u};
+}
+inline uint64_t C_LOAD_TRUCK_ITEM::_internal_truck_id() const {
+  return _impl_.truck_id_;
+}
+inline uint64_t C_LOAD_TRUCK_ITEM::truck_id() const {
+  // @@protoc_insertion_point(field_get:Protocol.C_LOAD_TRUCK_ITEM.truck_id)
+  return _internal_truck_id();
+}
+inline void C_LOAD_TRUCK_ITEM::_internal_set_truck_id(uint64_t value) {
+  
+  _impl_.truck_id_ = value;
+}
+inline void C_LOAD_TRUCK_ITEM::set_truck_id(uint64_t value) {
+  _internal_set_truck_id(value);
+  // @@protoc_insertion_point(field_set:Protocol.C_LOAD_TRUCK_ITEM.truck_id)
+}
+
+// repeated int32 item_types = 2;
+inline int C_LOAD_TRUCK_ITEM::_internal_item_types_size() const {
+  return _impl_.item_types_.size();
+}
+inline int C_LOAD_TRUCK_ITEM::item_types_size() const {
+  return _internal_item_types_size();
+}
+inline void C_LOAD_TRUCK_ITEM::clear_item_types() {
+  _impl_.item_types_.Clear();
+}
+inline int32_t C_LOAD_TRUCK_ITEM::_internal_item_types(int index) const {
+  return _impl_.item_types_.Get(index);
+}
+inline int32_t C_LOAD_TRUCK_ITEM::item_types(int index) const {
+  // @@protoc_insertion_point(field_get:Protocol.C_LOAD_TRUCK_ITEM.item_types)
+  return _internal_item_types(index);
+}
+inline void C_LOAD_TRUCK_ITEM::set_item_types(int index, int32_t value) {
+  _impl_.item_types_.Set(index, value);
+  // @@protoc_insertion_point(field_set:Protocol.C_LOAD_TRUCK_ITEM.item_types)
+}
+inline void C_LOAD_TRUCK_ITEM::_internal_add_item_types(int32_t value) {
+  _impl_.item_types_.Add(value);
+}
+inline void C_LOAD_TRUCK_ITEM::add_item_types(int32_t value) {
+  _internal_add_item_types(value);
+  // @@protoc_insertion_point(field_add:Protocol.C_LOAD_TRUCK_ITEM.item_types)
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >&
+C_LOAD_TRUCK_ITEM::_internal_item_types() const {
+  return _impl_.item_types_;
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >&
+C_LOAD_TRUCK_ITEM::item_types() const {
+  // @@protoc_insertion_point(field_list:Protocol.C_LOAD_TRUCK_ITEM.item_types)
+  return _internal_item_types();
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >*
+C_LOAD_TRUCK_ITEM::_internal_mutable_item_types() {
+  return &_impl_.item_types_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >*
+C_LOAD_TRUCK_ITEM::mutable_item_types() {
+  // @@protoc_insertion_point(field_mutable_list:Protocol.C_LOAD_TRUCK_ITEM.item_types)
+  return _internal_mutable_item_types();
+}
+
+// -------------------------------------------------------------------
+
+// S_LOAD_TRUCK_ITEM
+
+// uint64 player_id = 1;
+inline void S_LOAD_TRUCK_ITEM::clear_player_id() {
+  _impl_.player_id_ = uint64_t{0u};
+}
+inline uint64_t S_LOAD_TRUCK_ITEM::_internal_player_id() const {
+  return _impl_.player_id_;
+}
+inline uint64_t S_LOAD_TRUCK_ITEM::player_id() const {
+  // @@protoc_insertion_point(field_get:Protocol.S_LOAD_TRUCK_ITEM.player_id)
+  return _internal_player_id();
+}
+inline void S_LOAD_TRUCK_ITEM::_internal_set_player_id(uint64_t value) {
+  
+  _impl_.player_id_ = value;
+}
+inline void S_LOAD_TRUCK_ITEM::set_player_id(uint64_t value) {
+  _internal_set_player_id(value);
+  // @@protoc_insertion_point(field_set:Protocol.S_LOAD_TRUCK_ITEM.player_id)
+}
+
+// uint64 truck_id = 2;
+inline void S_LOAD_TRUCK_ITEM::clear_truck_id() {
+  _impl_.truck_id_ = uint64_t{0u};
+}
+inline uint64_t S_LOAD_TRUCK_ITEM::_internal_truck_id() const {
+  return _impl_.truck_id_;
+}
+inline uint64_t S_LOAD_TRUCK_ITEM::truck_id() const {
+  // @@protoc_insertion_point(field_get:Protocol.S_LOAD_TRUCK_ITEM.truck_id)
+  return _internal_truck_id();
+}
+inline void S_LOAD_TRUCK_ITEM::_internal_set_truck_id(uint64_t value) {
+  
+  _impl_.truck_id_ = value;
+}
+inline void S_LOAD_TRUCK_ITEM::set_truck_id(uint64_t value) {
+  _internal_set_truck_id(value);
+  // @@protoc_insertion_point(field_set:Protocol.S_LOAD_TRUCK_ITEM.truck_id)
+}
+
+// repeated int32 item_types = 3;
+inline int S_LOAD_TRUCK_ITEM::_internal_item_types_size() const {
+  return _impl_.item_types_.size();
+}
+inline int S_LOAD_TRUCK_ITEM::item_types_size() const {
+  return _internal_item_types_size();
+}
+inline void S_LOAD_TRUCK_ITEM::clear_item_types() {
+  _impl_.item_types_.Clear();
+}
+inline int32_t S_LOAD_TRUCK_ITEM::_internal_item_types(int index) const {
+  return _impl_.item_types_.Get(index);
+}
+inline int32_t S_LOAD_TRUCK_ITEM::item_types(int index) const {
+  // @@protoc_insertion_point(field_get:Protocol.S_LOAD_TRUCK_ITEM.item_types)
+  return _internal_item_types(index);
+}
+inline void S_LOAD_TRUCK_ITEM::set_item_types(int index, int32_t value) {
+  _impl_.item_types_.Set(index, value);
+  // @@protoc_insertion_point(field_set:Protocol.S_LOAD_TRUCK_ITEM.item_types)
+}
+inline void S_LOAD_TRUCK_ITEM::_internal_add_item_types(int32_t value) {
+  _impl_.item_types_.Add(value);
+}
+inline void S_LOAD_TRUCK_ITEM::add_item_types(int32_t value) {
+  _internal_add_item_types(value);
+  // @@protoc_insertion_point(field_add:Protocol.S_LOAD_TRUCK_ITEM.item_types)
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >&
+S_LOAD_TRUCK_ITEM::_internal_item_types() const {
+  return _impl_.item_types_;
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >&
+S_LOAD_TRUCK_ITEM::item_types() const {
+  // @@protoc_insertion_point(field_list:Protocol.S_LOAD_TRUCK_ITEM.item_types)
+  return _internal_item_types();
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >*
+S_LOAD_TRUCK_ITEM::_internal_mutable_item_types() {
+  return &_impl_.item_types_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >*
+S_LOAD_TRUCK_ITEM::mutable_item_types() {
+  // @@protoc_insertion_point(field_mutable_list:Protocol.S_LOAD_TRUCK_ITEM.item_types)
+  return _internal_mutable_item_types();
+}
+
+// -------------------------------------------------------------------
+
 // C_TOGGLE_DOOR
 
 // uint64 door_id = 1;
@@ -7258,9 +8110,145 @@ S_RESPAWN_LOOT_ITEM::mutable_item_object_ids() {
   return _internal_mutable_item_object_ids();
 }
 
+// -------------------------------------------------------------------
+
+// C_STAGE_TRANSITION_REQUEST
+
+// uint64 truck_id = 1;
+inline void C_STAGE_TRANSITION_REQUEST::clear_truck_id() {
+  _impl_.truck_id_ = uint64_t{0u};
+}
+inline uint64_t C_STAGE_TRANSITION_REQUEST::_internal_truck_id() const {
+  return _impl_.truck_id_;
+}
+inline uint64_t C_STAGE_TRANSITION_REQUEST::truck_id() const {
+  // @@protoc_insertion_point(field_get:Protocol.C_STAGE_TRANSITION_REQUEST.truck_id)
+  return _internal_truck_id();
+}
+inline void C_STAGE_TRANSITION_REQUEST::_internal_set_truck_id(uint64_t value) {
+  
+  _impl_.truck_id_ = value;
+}
+inline void C_STAGE_TRANSITION_REQUEST::set_truck_id(uint64_t value) {
+  _internal_set_truck_id(value);
+  // @@protoc_insertion_point(field_set:Protocol.C_STAGE_TRANSITION_REQUEST.truck_id)
+}
+
+// string target_level = 2;
+inline void C_STAGE_TRANSITION_REQUEST::clear_target_level() {
+  _impl_.target_level_.ClearToEmpty();
+}
+inline const std::string& C_STAGE_TRANSITION_REQUEST::target_level() const {
+  // @@protoc_insertion_point(field_get:Protocol.C_STAGE_TRANSITION_REQUEST.target_level)
+  return _internal_target_level();
+}
+template <typename ArgT0, typename... ArgT>
+inline PROTOBUF_ALWAYS_INLINE
+void C_STAGE_TRANSITION_REQUEST::set_target_level(ArgT0&& arg0, ArgT... args) {
+ 
+ _impl_.target_level_.Set(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
+  // @@protoc_insertion_point(field_set:Protocol.C_STAGE_TRANSITION_REQUEST.target_level)
+}
+inline std::string* C_STAGE_TRANSITION_REQUEST::mutable_target_level() {
+  std::string* _s = _internal_mutable_target_level();
+  // @@protoc_insertion_point(field_mutable:Protocol.C_STAGE_TRANSITION_REQUEST.target_level)
+  return _s;
+}
+inline const std::string& C_STAGE_TRANSITION_REQUEST::_internal_target_level() const {
+  return _impl_.target_level_.Get();
+}
+inline void C_STAGE_TRANSITION_REQUEST::_internal_set_target_level(const std::string& value) {
+  
+  _impl_.target_level_.Set(value, GetArenaForAllocation());
+}
+inline std::string* C_STAGE_TRANSITION_REQUEST::_internal_mutable_target_level() {
+  
+  return _impl_.target_level_.Mutable(GetArenaForAllocation());
+}
+inline std::string* C_STAGE_TRANSITION_REQUEST::release_target_level() {
+  // @@protoc_insertion_point(field_release:Protocol.C_STAGE_TRANSITION_REQUEST.target_level)
+  return _impl_.target_level_.Release();
+}
+inline void C_STAGE_TRANSITION_REQUEST::set_allocated_target_level(std::string* target_level) {
+  if (target_level != nullptr) {
+    
+  } else {
+    
+  }
+  _impl_.target_level_.SetAllocated(target_level, GetArenaForAllocation());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (_impl_.target_level_.IsDefault()) {
+    _impl_.target_level_.Set("", GetArenaForAllocation());
+  }
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  // @@protoc_insertion_point(field_set_allocated:Protocol.C_STAGE_TRANSITION_REQUEST.target_level)
+}
+
+// -------------------------------------------------------------------
+
+// S_STAGE_TRANSITION
+
+// string target_level = 1;
+inline void S_STAGE_TRANSITION::clear_target_level() {
+  _impl_.target_level_.ClearToEmpty();
+}
+inline const std::string& S_STAGE_TRANSITION::target_level() const {
+  // @@protoc_insertion_point(field_get:Protocol.S_STAGE_TRANSITION.target_level)
+  return _internal_target_level();
+}
+template <typename ArgT0, typename... ArgT>
+inline PROTOBUF_ALWAYS_INLINE
+void S_STAGE_TRANSITION::set_target_level(ArgT0&& arg0, ArgT... args) {
+ 
+ _impl_.target_level_.Set(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
+  // @@protoc_insertion_point(field_set:Protocol.S_STAGE_TRANSITION.target_level)
+}
+inline std::string* S_STAGE_TRANSITION::mutable_target_level() {
+  std::string* _s = _internal_mutable_target_level();
+  // @@protoc_insertion_point(field_mutable:Protocol.S_STAGE_TRANSITION.target_level)
+  return _s;
+}
+inline const std::string& S_STAGE_TRANSITION::_internal_target_level() const {
+  return _impl_.target_level_.Get();
+}
+inline void S_STAGE_TRANSITION::_internal_set_target_level(const std::string& value) {
+  
+  _impl_.target_level_.Set(value, GetArenaForAllocation());
+}
+inline std::string* S_STAGE_TRANSITION::_internal_mutable_target_level() {
+  
+  return _impl_.target_level_.Mutable(GetArenaForAllocation());
+}
+inline std::string* S_STAGE_TRANSITION::release_target_level() {
+  // @@protoc_insertion_point(field_release:Protocol.S_STAGE_TRANSITION.target_level)
+  return _impl_.target_level_.Release();
+}
+inline void S_STAGE_TRANSITION::set_allocated_target_level(std::string* target_level) {
+  if (target_level != nullptr) {
+    
+  } else {
+    
+  }
+  _impl_.target_level_.SetAllocated(target_level, GetArenaForAllocation());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (_impl_.target_level_.IsDefault()) {
+    _impl_.target_level_.Set("", GetArenaForAllocation());
+  }
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  // @@protoc_insertion_point(field_set_allocated:Protocol.S_STAGE_TRANSITION.target_level)
+}
+
 #ifdef __GNUC__
   #pragma GCC diagnostic pop
 #endif  // __GNUC__
+// -------------------------------------------------------------------
+
+// -------------------------------------------------------------------
+
+// -------------------------------------------------------------------
+
+// -------------------------------------------------------------------
+
 // -------------------------------------------------------------------
 
 // -------------------------------------------------------------------

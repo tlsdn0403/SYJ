@@ -161,6 +161,8 @@ public:
 	UFUNCTION(BlueprintPure, Category = "GameLogic")
 	bool IsLoadingPhase() const { return bIsLoadingPhase; }
 
+	void ApplyLoadedCargoItem(EItemType ItemType);
+
 	UFUNCTION(BlueprintCallable, Category = "Turret")
 	bool TryEnterMountedWeapon(AFPSBaseCharacter* Character);
 

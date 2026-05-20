@@ -35,7 +35,16 @@ struct FStage2LoadedTile
 	FTransform AppliedLevelTransform;
 
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "Stage2")
+	FTransform EntryLocalTransform;
+
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Stage2")
+	bool bHasEntryLocalTransform = false;
+
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Stage2")
 	bool bInitialized = false;
+
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Stage2")
+	bool bActivatedFromPool = false;
 
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "Stage2|Zombie")
 	TArray<TObjectPtr<ABaseZombie>> SpawnedZombies;
@@ -96,6 +105,15 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stage2|Rules", meta = (ClampMin = "2"))
 	int32 MaxActiveTiles = 5;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stage2|Pool", meta = (ClampMin = "1"))
+	int32 PreloadedTilesPerType = 3;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stage2|Pool")
+	FVector PoolParkingOffset = FVector(0.0f, 0.0f, -1000000.0f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stage2|Pool", meta = (ClampMin = "1000.0"))
+	float PoolParkingSpacing = 20000.0f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stage2|Rules", meta = (ClampMin = "1"))
 	int32 GoalAfterPlayableTileCount = 8;
 
@@ -126,6 +144,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stage2|Navigation")
 	bool bRebuildNavigationAfterTileLoad = true;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stage2|Navigation")
+	bool bRebuildNavigationWhenActivatingPooledTile = false;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stage2|Zombie")
 	TArray<TSubclassOf<ABaseZombie>> ZombieClasses;
 
@@ -154,6 +175,9 @@ protected:
 	TArray<FStage2LoadedTile> ActiveTiles;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Stage2")
+	TArray<FStage2LoadedTile> TilePool;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Stage2")
 	FTransform NextSpawnTransform;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Stage2")
@@ -164,16 +188,32 @@ private:
 	bool bGoalTileSpawnRequested = false;
 	bool bInitialTilesReady = false;
 	bool bLoggedKeepStartConflict = false;
+	bool bTilePoolPreloadStarted = false;
+	bool bTilePoolReady = false;
 	int32 ConsecutiveLeftTurns = 0;
 	int32 ConsecutiveRightTurns = 0;
+	int32 ExpectedPooledTileCount = 0;
+	int32 NextPoolParkingIndex = 0;
 	FRandomStream RandomStream;
 	TMap<FSoftObjectPath, FTransform> CachedEntryLocalTransforms;
 
+	void PreloadTilePool();
+	void QueueTilePoolLevels(const TArray<TSoftObjectPtr<UWorld>>& LevelArray, EStage2TileType TileType);
+	bool TryLoadPooledTileLevel(const TSoftObjectPtr<UWorld>& TileLevel, EStage2TileType TileType);
+	void TryFinalizePooledTiles();
+	void FinalizePooledTile(int32 PoolIndex);
+	bool IsTilePoolReady() const;
+	bool IsPoolTileAvailable(EStage2TileType TileType) const;
+	bool TryActivatePooledTile(EStage2TileType TileType, const FTransform& EntryTransform);
+	bool MoveLoadedTileToLevelTransform(FStage2LoadedTile& LoadedTile, const FTransform& NewLevelTransform) const;
+	FTransform MakePoolParkingTransform();
 	bool TrySpawnTileLevel(const TSoftObjectPtr<UWorld>& TileLevel, EStage2TileType TileType, const FTransform& SpawnTransform);
 	void TryFinalizeLoadedTiles();
 	void FinalizeLoadedTile(int32 TileIndex);
 	void UpdateNextSpawnTransformFromTile(const AStage2TileMarker* TileMarker);
-	void TrimOldTiles();
+	void TrimOldTiles(int32 DesiredMaxActiveTiles = INDEX_NONE);
+	void RecycleActiveTileAt(int32 TileIndex);
+	void UnloadTile(FStage2LoadedTile& LoadedTile);
 	void ResetGenerationState();
 	void SpawnZombiesForTile(FStage2LoadedTile& LoadedTile);
 	void DestroySpawnedZombiesForTile(FStage2LoadedTile& LoadedTile);

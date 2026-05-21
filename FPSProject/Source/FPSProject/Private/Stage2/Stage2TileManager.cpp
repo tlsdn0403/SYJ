@@ -49,11 +49,15 @@ void AStage2TileManager::StartGeneration()
 	{
 		return;
 	}
-
+	// 기존 생성 상태 초기화
 	ResetGenerationState();
+	// 생성시작 플래그 설정
 	bGenerationStarted = true;
+
+	// 타일이 배치 될 위치는 매니저 액터의 위치
 	NextSpawnTransform = GetActorTransform();
 
+	// 시드값이 고정되어 있으면 랜덤 스트림을 초기화된 시드값으로 초기화, 그렇지 않으면 새로운 시드값 생성
 	if (bUseDeterministicSeed)
 	{
 		RandomStream.Initialize(RandomSeed);
@@ -63,6 +67,7 @@ void AStage2TileManager::StartGeneration()
 		RandomStream.GenerateNewSeed();
 	}
 
+	// 타일 풀에 미리 저장
 	PreloadTilePool();
 	SpawnNextTile();
 }
@@ -152,10 +157,6 @@ bool AStage2TileManager::TryGetInitialPlayerSpawnTransform(FTransform& OutTransf
 	return false;
 }
 
-bool AStage2TileManager::HasCompletedInitialGeneration() const
-{
-	return GetInitializedTileCount() >= InitialTilesToSpawn;
-}
 
 bool AStage2TileManager::AreInitialTilesReady() const
 {
@@ -174,6 +175,7 @@ void AStage2TileManager::PreloadTilePool()
 	ExpectedPooledTileCount = 0;
 	NextPoolParkingIndex = 0;
 
+	// 각 타일 타입별로 풀에 넣을 타일을 미리 로드
 	QueueTilePoolLevels(StartTileLevels, EStage2TileType::Start);
 	QueueTilePoolLevels(StraightTileLevels, EStage2TileType::Straight);
 	QueueTilePoolLevels(LeftTileLevels, EStage2TileType::Left);
@@ -183,7 +185,7 @@ void AStage2TileManager::PreloadTilePool()
 	if (ExpectedPooledTileCount == 0)
 	{
 		bTilePoolReady = true;
-		UE_LOG(LogTemp, Warning, TEXT("Stage2TileManager: Tile pool has no configured level assets."));
+		UE_LOG(LogTemp, Warning, TEXT("Tile pool count is zero"));
 	}
 }
 
@@ -212,9 +214,11 @@ bool AStage2TileManager::TryLoadPooledTileLevel(const TSoftObjectPtr<UWorld>& Ti
 		return false;
 	}
 
+	// 구석에다가 타일을 주차해놓는 위치
 	const FTransform ParkingTransform = MakePoolParkingTransform();
 
 	bool bLoadSucceeded = false;
+	// 레벨들을 미리 로드 하는데, 플레이어가 보지 못할 위치에 생성해둠
 	ULevelStreamingDynamic* StreamingLevel = ULevelStreamingDynamic::LoadLevelInstanceBySoftObjectPtr(
 		this,
 		TileLevel,
@@ -228,6 +232,7 @@ bool AStage2TileManager::TryLoadPooledTileLevel(const TSoftObjectPtr<UWorld>& Ti
 		return false;
 	}
 
+	// 풀에 로드한 타일의 정보를 저장
 	FStage2LoadedTile& PooledTile = TilePool.AddDefaulted_GetRef();
 	PooledTile.SourceLevel = TileLevel;
 	PooledTile.StreamingLevel = StreamingLevel;
@@ -262,7 +267,7 @@ void AStage2TileManager::TryFinalizePooledTiles()
 		{
 			continue;
 		}
-
+		// 풀 타일이 보이고 , 로딩이 되었는지 확인
 		if (!PooledTile.StreamingLevel->IsLevelLoaded() ||
 			!PooledTile.StreamingLevel->IsLevelVisible())
 		{
@@ -274,7 +279,7 @@ void AStage2TileManager::TryFinalizePooledTiles()
 		{
 			continue;
 		}
-
+		// 로드가 완료 되었다면 타일 마커를 찾아서 풀 타일 정보에 저장
 		PooledTile.TileMarker = TileMarker;
 		FinalizePooledTile(PoolIndex);
 	}
@@ -447,6 +452,7 @@ bool AStage2TileManager::MoveLoadedTileToLevelTransform(FStage2LoadedTile& Loade
 
 FTransform AStage2TileManager::MakePoolParkingTransform()
 {
+	
 	const FVector ParkingLocation =
 		GetActorLocation() +
 		PoolParkingOffset +

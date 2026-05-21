@@ -267,6 +267,12 @@ $RECYCLE.BIN/
 tmp/
 temp/
 
+# Personal report materials
+박신우/
+
+# Local portfolio drafting artifacts
+portfolio_work/
+
 # =========================
 # Protobuf required files
 # =========================

@@ -19,6 +19,7 @@ struct FStage2LoadedTile
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "Stage2")
 	TSoftObjectPtr<UWorld> SourceLevel = nullptr;
 
+	//동적으로 로드된 타일 레벨 인스턴스 포인터
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "Stage2")
 	TObjectPtr<ULevelStreamingDynamic> StreamingLevel = nullptr;
 
@@ -77,7 +78,6 @@ public:
 	bool TryGetInitialPlayerSpawnTransform(FTransform& OutTransform) const;
 
 	UFUNCTION(BlueprintPure, Category = "Stage2")
-	bool HasCompletedInitialGeneration() const;
 	bool AreInitialTilesReady() const;
 
 	UPROPERTY(BlueprintAssignable, Category = "Stage2")

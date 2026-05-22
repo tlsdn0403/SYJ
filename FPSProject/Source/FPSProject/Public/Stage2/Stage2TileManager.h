@@ -193,7 +193,7 @@ private:
 	bool IsTilePoolReady() const;
 	bool IsPoolTileAvailable(EStage2TileType TileType) const;
 	bool TryActivatePooledTile(EStage2TileType TileType, const FTransform& EntryTransform);
-	bool MoveLoadedTileToLevelTransform(FStage2LoadedTile& LoadedTile, const FTransform& NewLevelTransform) const;
+	bool TryMoveTileTolocation(FStage2LoadedTile& LoadedTile, const FTransform& NewLevelTransform) const;
 	FTransform MakePoolParkingTransform();
 	void FinalizeLoadedTile(int32 TileIndex);
 	void UpdateNextSpawnTransformFromTile(const AStage2TileMarker* TileMarker);

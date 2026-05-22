@@ -348,15 +348,18 @@ bool AStage2TileManager::TryActivatePooledTile(EStage2TileType TileType, const F
 	const int32 CandidateIndex = RandomStream.RandRange(0, CandidatePoolIndexes.Num() - 1);
 	const int32 PoolIndex = CandidatePoolIndexes[CandidateIndex];
 
+	// 타일 풀에서 사용할 타일을 하나 꺼냄
 	FStage2LoadedTile ActivatedTile = TilePool[PoolIndex];
 	TilePool.RemoveAt(PoolIndex);
 
+	// 타일이 와야할 위치를 정해줌
 	const FTransform EntryLocalTransform = ActivatedTile.bHasEntryLocalTransform
 		? ActivatedTile.EntryLocalTransform
 		: ActivatedTile.TileMarker->GetEntryTransform().GetRelativeTransform(ActivatedTile.AppliedLevelTransform);
 	const FTransform LevelTransformToApply = EntryLocalTransform.Inverse() * EntryTransform;
 
-	if (!MoveLoadedTileToLevelTransform(ActivatedTile, LevelTransformToApply))
+	// 이제 실제로 타일을 위치로 옮겨줌
+	if (!TryMoveTileTolocation(ActivatedTile, LevelTransformToApply))
 	{
 		TilePool.Add(ActivatedTile);
 		return false;
@@ -372,22 +375,26 @@ bool AStage2TileManager::TryActivatePooledTile(EStage2TileType TileType, const F
 	return true;
 }
 
-bool AStage2TileManager::MoveLoadedTileToLevelTransform(FStage2LoadedTile& LoadedTile, const FTransform& NewLevelTransform) const
+bool AStage2TileManager::TryMoveTileTolocation(FStage2LoadedTile& LoadedTile, const FTransform& NewLevelTransform) const
 {
 	if (!LoadedTile.StreamingLevel)
 	{
 		return false;
 	}
 
+	//스트리밍 레벨을 관리하는 객체에서 실제로 로드된 레벨을 가져옴
 	ULevel* LoadedLevel = LoadedTile.StreamingLevel->GetLoadedLevel();
 	if (!LoadedLevel)
 	{
 		return false;
 	}
 
+	// 현재 이 타일에 적용되어 있는 위치(플레이어에게 안보이는 위치)
 	const FTransform OldLevelTransform = LoadedTile.AppliedLevelTransform;
+	// 바꿀 위치랑 같다면 굳이 적용 안함
 	if (!OldLevelTransform.Equals(NewLevelTransform))
 	{
+		//타일의 위치를 옮길 때 얼마나 위치를 옮겨야 하는지
 		const FTransform DeltaTransform = OldLevelTransform.Inverse() * NewLevelTransform;
 		FLevelUtils::FApplyLevelTransformParams TransformParams(LoadedLevel, DeltaTransform);
 		TransformParams.bSetRelativeTransformDirectly = true;
@@ -555,7 +562,7 @@ void AStage2TileManager::RecycleActiveTileAt(int32 TileIndex)
 		RecycledTile.TileMarker->SetNextTileTriggerEnabled(false);
 	}
 
-	MoveLoadedTileToLevelTransform(RecycledTile, MakePoolParkingTransform());
+	TryMoveTileTolocation(RecycledTile, MakePoolParkingTransform());
 	RecycledTile.RequestedEntryTransform = RecycledTile.AppliedLevelTransform;
 	RecycledTile.bInitialized = true;
 	TilePool.Add(RecycledTile);

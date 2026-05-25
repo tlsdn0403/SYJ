@@ -13,6 +13,7 @@
 
 class UInventoryWidget;
 class UBaseUI;
+class UEffectUI;
 class UBasicUI;
 class UInputMappingContext;
 class UInputAction;
@@ -35,6 +36,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory")
 	TSubclassOf<UBaseUI> TimerWidgetClass;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory")
+	TSubclassOf<UEffectUI> EffectWidgetClass;
+
 	UPROPERTY()
 	UBaseUI* TimerW;
 
@@ -49,6 +53,9 @@ public:
 public:
 	UPROPERTY()
 	UInventoryWidget* InventoryW;
+
+	UPROPERTY()
+	UEffectUI* EffectW;
 
 	// 입력 액션
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")

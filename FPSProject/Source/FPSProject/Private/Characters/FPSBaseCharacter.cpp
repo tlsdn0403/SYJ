@@ -10,6 +10,7 @@
 #include "Components/HealthComponent.h"
 #include "HUD/InventoryWidget.h"
 #include "HUD/BasicUI.h"
+#include "HUD/EffectUI.h"
 #include "HUD/BaseUI.h"     //이거 타이머 용
 #include "Characters/FPSPlayerController.h"
 #include "Interface/InteractInterface.h"
@@ -116,7 +117,8 @@ void AFPSBaseCharacter::BeginPlay()
 			PC->InventoryW->AddToViewport();
 			PC->TimerW->AddToViewport();
 			PC->BasicW->AddToViewport();
-			SetHealth(100,100); //이건 처음값 임의 세팅
+			PC->EffectW->AddToViewport();
+			SetHealth(100,100); //이건 처음값 임의 세팅 
 		}
 	}
 }
@@ -1388,6 +1390,11 @@ void AFPSBaseCharacter::SetHealth(float currentHp,float maxHp) {
 		if (PC->BasicW)
 		{
 			PC->BasicW->SetHealth(currentHp, maxHp);
+			if (currentHp <= 40) {
+				PC->EffectW->PlayAni_Effect(true);
+			}
+			else
+				PC->EffectW->PlayAni_Effect(false);
 		}
 	}
 

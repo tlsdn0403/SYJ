@@ -1392,6 +1392,7 @@ void AFPSBaseCharacter::SetHealth(float currentHp,float maxHp) {
 			PC->BasicW->SetHealth(currentHp, maxHp);
 			if (currentHp <= 40) {
 				PC->EffectW->PlayAni_Effect(true);
+				PC->EffectW->SpawnBloodEffects();
 			}
 			else
 				PC->EffectW->PlayAni_Effect(false);

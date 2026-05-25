@@ -10,7 +10,8 @@
  * 
  */
 class UImage;
-class UProgressBar;
+class UBloodEfWidget;
+class UCanvasPanel;
 
 UCLASS()
 class FPSPROJECT_API UEffectUI : public UUserWidget
@@ -19,12 +20,21 @@ class FPSPROJECT_API UEffectUI : public UUserWidget
 
 protected:
 	virtual void NativeConstruct() override;
+	UPROPERTY(meta = (BindWidget))
+	UCanvasPanel* BaseCanvas;
 
 	UPROPERTY(meta = (BindWidgetAnim), Transient)
 	UWidgetAnimation* B_EdgeAni; //체력 몇 이하면 이 애니메이션 계속 유지.
 
-	UPROPERTY(meta = (BindWidgetAnim), Transient)
-	UWidgetAnimation* B_EffectAni; //좀비들 들이박을때 팍 하고 튀겎뜸...
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory")
+	TSubclassOf<UBloodEfWidget> BloodWidgetClass;
+
+	UPROPERTY()
+	UBloodEfWidget* BloodW;
+
+	//UPROPERTY(meta = (BindWidgetAnim), Transient)
+	//UWidgetAnimation* B_EffectAni; //좀비들 들이박을때 팍 하고 튀겎뜸...
 
 public:
 	bool replay = false;
@@ -32,11 +42,12 @@ public:
 	UPROPERTY(meta = (BindWidget))	//
 		UImage* BloodEdge;
 
-	UPROPERTY(meta = (BindWidget))	//
-		UImage* BloodEf;
+	//UPROPERTY(meta = (BindWidget))	//
+	//	UImage* BloodEf;
 
-	void PlayAni_Edge() { PlayAnimation(B_EdgeAni); }
+	//void PlayAni_Edge() { PlayAnimation(B_EdgeAni); }
 	void PlayAni_Effect(bool re);
+	void SpawnBloodEffects();
 
 
 };

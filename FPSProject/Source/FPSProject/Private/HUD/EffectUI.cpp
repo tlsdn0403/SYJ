@@ -3,11 +3,17 @@
 
 #include "HUD/EffectUI.h"
 #include "Components/Image.h"
-#include "Components/TextBlock.h"
+#include "Components/CanvasPanel.h"
+#include "HUD/BloodEfWidget.h"
+#include "Components/CanvasPanelSlot.h"
+#include "Math/UnrealMathUtility.h"
+
 
 void UEffectUI::NativeConstruct()
 {
 	Super::NativeConstruct();
+
+    BloodW = CreateWidget<UBloodEfWidget>(this, BloodWidgetClass);
 }
 
 void UEffectUI::PlayAni_Effect(bool re)
@@ -19,4 +25,42 @@ void UEffectUI::PlayAni_Effect(bool re)
 	else {
 		StopAnimation(B_EdgeAni);
 	}
+}
+
+void UEffectUI::SpawnBloodEffects()
+{
+    if (!BloodW || !BloodWidgetClass) return;
+
+    int32 BloodCount = FMath::RandRange(1, 5);
+
+    for (int32 i = 0; i < BloodCount; ++i)
+    {
+        UBloodEfWidget* BloodWidget = CreateWidget<UBloodEfWidget>(GetWorld(), BloodWidgetClass);
+        if (!BloodWidget) continue;
+
+        BaseCanvas->AddChild(BloodWidget);
+
+        UCanvasPanelSlot* bloodSlot = Cast<UCanvasPanelSlot>(BloodWidget->Slot);
+        if (bloodSlot)
+        {
+            FVector2D ViewportSize;
+            GEngine->GameViewport->GetViewportSize(ViewportSize);
+
+            const float RandomX = FMath::RandRange(0.0f, static_cast<float>(ViewportSize.X));
+            const float RandomY = FMath::RandRange(0.0f, static_cast<float>(ViewportSize.Y));
+
+            bloodSlot->SetPosition(FVector2D(RandomX, RandomY));
+            bloodSlot->SetAutoSize(true);
+        }
+
+        float RandomAngle = FMath::RandRange(0.0f, 360.0f);
+        float RandomScale = FMath::RandRange(0.7f, 1.3f);
+
+        FWidgetTransform Transform;
+        Transform.Angle = RandomAngle;
+        Transform.Scale = FVector2D(RandomScale, RandomScale);
+
+        BloodWidget->SetRenderTransform(Transform);
+        BloodWidget->PlayAni_Ef();
+    }
 }

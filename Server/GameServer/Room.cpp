@@ -487,6 +487,47 @@ namespace
 	constexpr float ZOMBIE_ATTACK_RANGE = 140.0f;
 	constexpr float ZOMBIE_ATTACK_COOLDOWN_SECONDS = 1.0f;
 	constexpr float ZOMBIE_DESPAWN_DELAY_SECONDS = 3.0f;
+
+	struct ZombieSpawnInfo
+	{
+		float x;
+		float y;
+		float z;
+		float yaw;
+	};
+
+	constexpr ZombieSpawnInfo INITIAL_ZOMBIE_SPAWNS[] =
+	{
+		{ 700.0f, 150.0f, 588.0f, 180.0f },
+		{ 850.0f, 350.0f, 588.0f, 180.0f },
+		{ 650.0f, 550.0f, 588.0f, 180.0f },
+		{ -150.0f, 200.0f, 588.0f, 0.0f },
+		{ -250.0f, 450.0f, 588.0f, 0.0f },
+	};
+}
+
+void Room::SpawnInitialZombies()
+{
+	if (_bInitialZombiesSpawned)
+		return;
+
+	_bInitialZombiesSpawned = true;
+
+	uint64 zombieId = ZOMBIE_OBJECT_ID_START;
+	for (const ZombieSpawnInfo& spawnInfo : INITIAL_ZOMBIE_SPAWNS)
+	{
+		MonsterRef zombie = ObjectUtils::CreateMonster(zombieId++);
+		zombie->posInfo->set_x(spawnInfo.x);
+		zombie->posInfo->set_y(spawnInfo.y);
+		zombie->posInfo->set_z(spawnInfo.z);
+		zombie->posInfo->set_yaw(spawnInfo.yaw);
+		zombie->posInfo->set_state(Protocol::MOVE_STATE_IDLE);
+		zombie->objectInfo->mutable_pos_info()->CopyFrom(*zombie->posInfo);
+
+		EnterRoom(zombie, false);
+	}
+
+	cout << "[ZombieSync] SpawnInitialZombies count=" << static_cast<int32>(sizeof(INITIAL_ZOMBIE_SPAWNS) / sizeof(INITIAL_ZOMBIE_SPAWNS[0])) << endl;
 }
 
 PlayerRef Room::FindNearestPlayer(const Protocol::PosInfo& origin, float maxRange) const

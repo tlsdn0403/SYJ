@@ -25,9 +25,9 @@ void UBasicUI::GetGunAR4() {
 
 void UBasicUI::SetHealth(float CurrentHP,float MaxHP) {
 
-	if (!HpBar) return;
+	if (!HpBar || !HpText || MaxHP <= 0.0f) return;
 
-	float Ratio = (float)CurrentHP / MaxHP;
+	float Ratio = FMath::Clamp(CurrentHP / MaxHP, 0.0f, 1.0f);
 
 	FLinearColor HpColor;
 
@@ -45,8 +45,8 @@ void UBasicUI::SetHealth(float CurrentHP,float MaxHP) {
 	}
 
 	HpBar->SetFillColorAndOpacity(HpColor);
-	HpColor.A = 1.0f; // 텍스트는 투명도 1로 고정`
+	HpColor.A = 1.0f; // ?�스?�는 ?�명??1�?고정`
 	HpText->SetColorAndOpacity(HpColor);
 	HpBar->SetPercent(Ratio);
-	HpText->SetText(FText::FromString(FString::FromInt(CurrentHP)));
+	HpText->SetText(FText::AsNumber(FMath::RoundToInt(CurrentHP)));
 }

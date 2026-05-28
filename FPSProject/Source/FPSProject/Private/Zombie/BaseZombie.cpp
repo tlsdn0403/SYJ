@@ -171,7 +171,7 @@ void ABaseZombie::HandleNetworkAttack(AActor* TargetActor)
 		return;
 	}
 
-	CurrentAttackTarget = TargetActor ? TargetActor : UGameplayStatics::GetPlayerPawn(GetWorld(), 0);
+	CurrentAttackTarget = TargetActor;
 	bIsAttacking = true;
 
 	UAnimInstance* AnimInstance = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr;
@@ -443,10 +443,18 @@ void ABaseZombie::ApplyAttackDamage(AActor* TargetActor)
 		return;
 	}
 
-	TargetHealth->ApplyDamage(AttackDamage);
+	AFPSBaseCharacter* PlayerPawn = Cast<AFPSBaseCharacter>(TargetActor);
+	if (PlayerPawn)
+	{
+		TargetHealth->ApplyDamageSilently(AttackDamage);
+	}
+	else
+	{
+		TargetHealth->ApplyDamage(AttackDamage);
+	}
 	UE_LOG(LogTemp, Warning, TEXT("Zombie dealt %f damage to %s!"), AttackDamage, *GetNameSafe(TargetActor));
 
-	if (AFPSBaseCharacter* PlayerPawn = Cast<AFPSBaseCharacter>(TargetActor))
+	if (PlayerPawn)
 	{
 		PlayerPawn->SetHealth(TargetHealth->GetHealth(), TargetHealth->MaxGetHealth());
 	}
@@ -460,7 +468,15 @@ void ABaseZombie::OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 	{
 		AActor* TargetActor = IsValid(CurrentAttackTarget)
 			? CurrentAttackTarget
-			: UGameplayStatics::GetPlayerPawn(GetWorld(), 0);
+			: (NetworkObjectId == 0 ? UGameplayStatics::GetPlayerPawn(GetWorld(), 0) : nullptr);
+		if (NetworkObjectId != 0)
+		{
+			AFPSBaseCharacter* TargetPlayer = Cast<AFPSBaseCharacter>(TargetActor);
+			if (TargetPlayer == nullptr || !TargetPlayer->IsLocallyControlled())
+			{
+				TargetActor = nullptr;
+			}
+		}
 		ApplyAttackDamage(TargetActor);
 	}
 
@@ -744,5 +760,3 @@ void ABaseZombie::Die()
 
 	SetLifeSpan(5.f);
 }
-
-

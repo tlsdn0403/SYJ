@@ -33,7 +33,7 @@ public:
 
 public:
 	void UpdateTick();
-	void SpawnInitialZombies();
+	void SpawnStage2Zombies();
 
 	RoomRef GetRoomRef();
 
@@ -100,7 +100,7 @@ private:
 	unordered_set<uint64> _stageTransitionReadyPlayerIds;
 	bool _bTruckLoadingPhaseActive = false;
 	bool _bStageTransitionStarted = false;
-	bool _bInitialZombiesSpawned = false;
+	bool _bStage2ZombiesSpawned = false;
 	std::chrono::steady_clock::time_point _truckLoadingPhaseEndTime;
 	int32 _lastBroadcastTruckLoadingRemainingSeconds = -1;
 	uint32 _stage1ItemSpawnSeed = 0;

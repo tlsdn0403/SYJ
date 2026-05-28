@@ -9,9 +9,12 @@ void UBloodEfWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 
-	FWidgetAnimationDynamicEvent EndDelegate;
-	EndDelegate.BindDynamic(this, &UBloodEfWidget::OnEffectAniFinished);
-	BindToAnimationFinished(B_EffectAni, EndDelegate);
+	if (B_EffectAni)
+	{
+		FWidgetAnimationDynamicEvent EndDelegate;
+		EndDelegate.BindDynamic(this, &UBloodEfWidget::OnEffectAniFinished);
+		BindToAnimationFinished(B_EffectAni, EndDelegate);
+	}
 }
 
 

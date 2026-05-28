@@ -60,7 +60,6 @@ void UFPSProjectGameInstance::ConnectToGameServer(const FString& IPAddress)
 	FIPv4Address Ip;
 	if (FIPv4Address::Parse(IPAddress, Ip) == false)
 	{
-		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("Connection Failed : 잘못된 IP 주소 형식입니다."));
 		return; // 이상한 IP면 여기서 함수를 바로 종료해서 크래시를 막습니다!
 	}
 
@@ -70,21 +69,16 @@ void UFPSProjectGameInstance::ConnectToGameServer(const FString& IPAddress)
 	InternetAddr->SetIp(Ip.Value);
 	InternetAddr->SetPort(Port);
 
-	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("Connecting To Server...")));
-
 	bool Connected = Socket->Connect(*InternetAddr);
 
 	if (Connected)
 	{
-		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("Connection Success")));
-
 		// Session
 		GameServerSession = MakeShared<PacketSession>(Socket);
 		GameServerSession->Run();
 	}
 	else
 	{
-		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("Connection Failed")));
 	}
 }
 

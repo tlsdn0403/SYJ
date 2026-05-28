@@ -446,6 +446,7 @@ void Room::HandleStageMapReady(GameSessionRef session)
 
 	_stageTransitionReadyPlayerIds.clear();
 	_bStageTransitionStarted = false;
+	SpawnStage2Zombies();
 }
 
 void Room::RemovePendingReadySession(GameSessionRef session)
@@ -496,7 +497,7 @@ namespace
 		float yaw;
 	};
 
-	constexpr ZombieSpawnInfo INITIAL_ZOMBIE_SPAWNS[] =
+	constexpr ZombieSpawnInfo STAGE2_ZOMBIE_SPAWNS[] =
 	{
 		{ 700.0f, 150.0f, 588.0f, 180.0f },
 		{ 850.0f, 350.0f, 588.0f, 180.0f },
@@ -506,15 +507,15 @@ namespace
 	};
 }
 
-void Room::SpawnInitialZombies()
+void Room::SpawnStage2Zombies()
 {
-	if (_bInitialZombiesSpawned)
+	if (_bStage2ZombiesSpawned)
 		return;
 
-	_bInitialZombiesSpawned = true;
+	_bStage2ZombiesSpawned = true;
 
 	uint64 zombieId = ZOMBIE_OBJECT_ID_START;
-	for (const ZombieSpawnInfo& spawnInfo : INITIAL_ZOMBIE_SPAWNS)
+	for (const ZombieSpawnInfo& spawnInfo : STAGE2_ZOMBIE_SPAWNS)
 	{
 		MonsterRef zombie = ObjectUtils::CreateMonster(zombieId++);
 		zombie->posInfo->set_x(spawnInfo.x);
@@ -527,7 +528,7 @@ void Room::SpawnInitialZombies()
 		EnterRoom(zombie, false);
 	}
 
-	cout << "[ZombieSync] SpawnInitialZombies count=" << static_cast<int32>(sizeof(INITIAL_ZOMBIE_SPAWNS) / sizeof(INITIAL_ZOMBIE_SPAWNS[0])) << endl;
+	cout << "[ZombieSync] SpawnStage2Zombies count=" << static_cast<int32>(sizeof(STAGE2_ZOMBIE_SPAWNS) / sizeof(STAGE2_ZOMBIE_SPAWNS[0])) << endl;
 }
 
 PlayerRef Room::FindNearestPlayer(const Protocol::PosInfo& origin, float maxRange) const

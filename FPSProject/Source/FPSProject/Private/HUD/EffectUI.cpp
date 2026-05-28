@@ -13,12 +13,20 @@ void UEffectUI::NativeConstruct()
 {
 	Super::NativeConstruct();
 
-    BloodW = CreateWidget<UBloodEfWidget>(this, BloodWidgetClass);
+    if (BloodWidgetClass)
+    {
+        BloodW = CreateWidget<UBloodEfWidget>(this, BloodWidgetClass);
+    }
 }
 
 void UEffectUI::PlayAni_Effect(bool re)
 {
 	replay = re;
+	if (!B_EdgeAni)
+	{
+		return;
+	}
+
 	if (replay) {
 		PlayAnimation(B_EdgeAni, 0.0f, 0);
 	}
@@ -29,7 +37,7 @@ void UEffectUI::PlayAni_Effect(bool re)
 
 void UEffectUI::SpawnBloodEffects()
 {
-    if (!BloodW || !BloodWidgetClass) return;
+    if (!BloodWidgetClass || !BaseCanvas || !GEngine || !GEngine->GameViewport) return;
 
     int32 BloodCount = FMath::RandRange(1, 5);
 

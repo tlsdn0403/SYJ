@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "TimerManager.h"
 #include "BaseZombie.generated.h"
 
 class UHealthComponent;
@@ -102,6 +103,10 @@ private:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zombie|Attack", meta = (AllowPrivateAccess = "true"))
 	float AttackRange = 200.0f;
 
+	// 몽타주 45퍼 진행되면 데미지를 줌
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zombie|Attack", meta = (AllowPrivateAccess = "true", ClampMin = "0.0", ClampMax = "0.95"))
+	float AttackDamageTimeRatio = 0.23f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zombie|Crawling", meta = (AllowPrivateAccess = "true"))
 	float CrawlingMaxSpeed = 100.0f;
 
@@ -127,6 +132,9 @@ private:
 
 	// --- 내부 헬퍼 함수 (클래스 내부에서만 사용되는 함수) ---
 	FVector GetAttackPointForTarget(AActor* TargetActor) const;
+	AActor* ResolveAttackDamageTarget() const;
+	void ScheduleAttackDamage(float MontageDuration);
+	void TriggerAttackDamage();
 	void ApplyAttackDamage(AActor* TargetActor);
 	void ApplyAnimationDesync();
 	void ApplyMovementTuning();
@@ -184,6 +192,8 @@ private:
 	bool bNetworkTargetIsMoving = false;
 	FVector NetworkTargetLocation = FVector::ZeroVector;
 	FRotator NetworkTargetRotation = FRotator::ZeroRotator;
+	FTimerHandle AttackDamageTimerHandle;
+	bool bAttackDamageApplied = false;
 
 	UFUNCTION()
 	void OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);

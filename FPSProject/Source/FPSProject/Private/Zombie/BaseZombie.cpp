@@ -136,6 +136,8 @@ void ABaseZombie::Attack(AActor* TargetActor)
 	}
 
 	bIsAttacking = true;
+	bAttackDamageApplied = false;
+	GetWorldTimerManager().ClearTimer(AttackDamageTimerHandle);
 
 	UE_LOG(LogTemp, Warning, TEXT("Zombie %s Attack!"), *GetName());
 
@@ -147,13 +149,25 @@ void ABaseZombie::Attack(AActor* TargetActor)
 		const float AttackPlayRate = FMath::Max(
 			0.1f,
 			AnimationRateScale * FMath::FRandRange(1.0f - AttackMontagePlayRateVariance, 1.0f + AttackMontagePlayRateVariance));
-		AnimInstance->Montage_Play(AttackMontage, AttackPlayRate);
 
-		UE_LOG(LogTemp, Warning, TEXT("Zombie %s Montage!"), *GetName());
-		// 몽타주가 끝나면 OnAttackMontageEnded 호출
-		FOnMontageEnded EndDelegate;
-		EndDelegate.BindUObject(this, &ABaseZombie::OnAttackMontageEnded);
-		AnimInstance->Montage_SetEndDelegate(EndDelegate, AttackMontage);
+		// 
+		const float MontageDuration = AnimInstance->Montage_Play(AttackMontage, AttackPlayRate, EMontagePlayReturnType::Duration);
+		if (MontageDuration > 0.0f)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Zombie %s Montage!"), *GetName());
+			ScheduleAttackDamage(MontageDuration);
+
+			// 몽타주가 끝나면 OnAttackMontageEnded 호출
+			FOnMontageEnded EndDelegate;
+			EndDelegate.BindUObject(this, &ABaseZombie::OnAttackMontageEnded);
+			AnimInstance->Montage_SetEndDelegate(EndDelegate, AttackMontage);
+		}
+		else
+		{
+			TriggerAttackDamage();
+			CurrentAttackTarget = nullptr;
+			bIsAttacking = false;
+		}
 	}
 	else
 	{
@@ -173,6 +187,8 @@ void ABaseZombie::HandleNetworkAttack(AActor* TargetActor)
 
 	CurrentAttackTarget = TargetActor;
 	bIsAttacking = true;
+	bAttackDamageApplied = false;
+	GetWorldTimerManager().ClearTimer(AttackDamageTimerHandle);
 
 	UAnimInstance* AnimInstance = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr;
 	if (AnimInstance && AttackMontage)
@@ -180,11 +196,21 @@ void ABaseZombie::HandleNetworkAttack(AActor* TargetActor)
 		const float AttackPlayRate = FMath::Max(
 			0.1f,
 			AnimationRateScale * FMath::FRandRange(1.0f - AttackMontagePlayRateVariance, 1.0f + AttackMontagePlayRateVariance));
-		AnimInstance->Montage_Play(AttackMontage, AttackPlayRate);
+		const float MontageDuration = AnimInstance->Montage_Play(AttackMontage, AttackPlayRate, EMontagePlayReturnType::Duration);
+		if (MontageDuration > 0.0f)
+		{
+			ScheduleAttackDamage(MontageDuration);
 
-		FOnMontageEnded EndDelegate;
-		EndDelegate.BindUObject(this, &ABaseZombie::OnAttackMontageEnded);
-		AnimInstance->Montage_SetEndDelegate(EndDelegate, AttackMontage);
+			FOnMontageEnded EndDelegate;
+			EndDelegate.BindUObject(this, &ABaseZombie::OnAttackMontageEnded);
+			AnimInstance->Montage_SetEndDelegate(EndDelegate, AttackMontage);
+		}
+		else
+		{
+			TriggerAttackDamage();
+			bIsAttacking = false;
+			CurrentAttackTarget = nullptr;
+		}
 	}
 	else
 	{
@@ -225,8 +251,10 @@ void ABaseZombie::HandleNetworkDeath()
 
 	bIsAlive = false;
 	bIsAttacking = false;
+	bAttackDamageApplied = false;
 	CurrentAttackTarget = nullptr;
 	MovementState = EZombieMovementState::Dead;
+	GetWorldTimerManager().ClearTimer(AttackDamageTimerHandle);
 
 	if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
 	{
@@ -421,6 +449,56 @@ void ABaseZombie::ApplyMovementTuning()
 	MoveComp->AvoidanceWeight = AvoidanceWeight;
 }
 
+AActor* ABaseZombie::ResolveAttackDamageTarget() const
+{
+	AActor* TargetActor = IsValid(CurrentAttackTarget)
+		? CurrentAttackTarget
+		: (NetworkObjectId == 0 ? UGameplayStatics::GetPlayerPawn(GetWorld(), 0) : nullptr);
+
+	if (NetworkObjectId != 0)
+	{
+		AFPSBaseCharacter* TargetPlayer = Cast<AFPSBaseCharacter>(TargetActor);
+		if (TargetPlayer == nullptr || !TargetPlayer->IsLocallyControlled())
+		{
+			TargetActor = nullptr;
+		}
+	}
+
+	return TargetActor;
+}
+
+void ABaseZombie::ScheduleAttackDamage(float MontageDuration)
+{
+	bAttackDamageApplied = false;
+	GetWorldTimerManager().ClearTimer(AttackDamageTimerHandle);
+
+	// 얼마나 딜레이 될건지 구함 AttackDamageTimeRatio는 현재 0.23으로 설정
+	const float DamageDelay = FMath::Max(0.0f, MontageDuration) * FMath::Clamp(AttackDamageTimeRatio, 0.0f, 0.95f);
+	if (DamageDelay <= KINDA_SMALL_NUMBER)
+	{
+		TriggerAttackDamage();
+		return;
+	}
+
+	GetWorldTimerManager().SetTimer(
+		AttackDamageTimerHandle,
+		this,
+		&ABaseZombie::TriggerAttackDamage,
+		DamageDelay,
+		false);
+}
+
+void ABaseZombie::TriggerAttackDamage()
+{
+	if (bAttackDamageApplied || !bIsAlive || !bIsAttacking)
+	{
+		return;
+	}
+
+	bAttackDamageApplied = true;
+	ApplyAttackDamage(ResolveAttackDamageTarget());
+}
+
 void ABaseZombie::ApplyAttackDamage(AActor* TargetActor)
 {
 	if (!TargetActor)
@@ -463,25 +541,10 @@ void ABaseZombie::ApplyAttackDamage(AActor* TargetActor)
 
 void ABaseZombie::OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 {
-	// 몽타주가 끝나는 시점에 대미지 적용
-	if (!bInterrupted) // 중단되지 않았다면
-	{
-		AActor* TargetActor = IsValid(CurrentAttackTarget)
-			? CurrentAttackTarget
-			: (NetworkObjectId == 0 ? UGameplayStatics::GetPlayerPawn(GetWorld(), 0) : nullptr);
-		if (NetworkObjectId != 0)
-		{
-			AFPSBaseCharacter* TargetPlayer = Cast<AFPSBaseCharacter>(TargetActor);
-			if (TargetPlayer == nullptr || !TargetPlayer->IsLocallyControlled())
-			{
-				TargetActor = nullptr;
-			}
-		}
-		ApplyAttackDamage(TargetActor);
-	}
-
+	GetWorldTimerManager().ClearTimer(AttackDamageTimerHandle);
 	CurrentAttackTarget = nullptr;
 	bIsAttacking = false;
+	bAttackDamageApplied = false;
 	UE_LOG(LogTemp, Log, TEXT("Attack Montage Ended"));
 }
 
@@ -728,7 +791,11 @@ void ABaseZombie::Die()
 	if (!bIsAlive) return;
 
 	bIsAlive = false;
+	bIsAttacking = false;
+	bAttackDamageApplied = false;
 	MovementState = EZombieMovementState::Dead;
+	CurrentAttackTarget = nullptr;
+	GetWorldTimerManager().ClearTimer(AttackDamageTimerHandle);
 
 	UE_LOG(LogTemp, Warning, TEXT("Zombie %s Died!"), *GetName());
 

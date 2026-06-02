@@ -7,7 +7,7 @@
 #include "L2BaseUI.generated.h"
 
 /**
- *
+ * 
  */
 
 class UImage;
@@ -26,24 +26,19 @@ public:
 	UPROPERTY(meta = (BindWidget))	//
 		UImage* HealPack;
 
+	//UPROPERTY(meta = (BindWidget))
+	//UTextBlock* GunText;
+
+	//UPROPERTY(meta = (BindWidget))	//
+	//	UImage* HealthP;
+
 	UPROPERTY(meta = (BindWidget))
 	UTextBlock* HealPackText;
 
 
-	UPROPERTY(meta = (BindWidget))	//
-		UImage* ToolBox;
-
-	UPROPERTY(meta = (BindWidget))
-	UTextBlock* ToolBoxText;
-
-	UPROPERTY(meta = (BindWidget))	//
-		UImage* EngineOil;
-
-	UPROPERTY(meta = (BindWidget))
-	UTextBlock* EngineOilText;
 
 	//void GetGunAR4();
 	//void SetHealth(float CurrentHP, float MaxHP);
 
-
+	
 };

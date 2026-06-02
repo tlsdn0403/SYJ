@@ -7,6 +7,7 @@
 #include "HUD/BaseUI.h"
 #include "HUD/BasicUI.h"
 #include "HUD/EffectUI.h"
+#include "HUD/L2BaseUI.h"
 #include "EnhancedInputSubsystems.h"
 #include "EnhancedInputComponent.h"
 
@@ -20,6 +21,7 @@ void AFPSPlayerController::BeginPlay()
 	TimerW = CreateWidget<UBaseUI>(this, TimerWidgetClass);
 	BasicW = CreateWidget<UBasicUI>(this, BasicWidgetClass);
 	EffectW = CreateWidget<UEffectUI>(this, EffectWidgetClass);
+	L2BaseW = CreateWidget<UL2BaseUI>(this, L2BaseWidgetClass);
 	//여기서 위젯 생성 후 플레이어에서 뷰포트에 추가함. 여기서 뷰포트 추가하면 순서때문에 화면에 안그려짐.
 
 	//입력 시스템 등록

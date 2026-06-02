@@ -17,6 +17,7 @@ class UEffectUI;
 class UBasicUI;
 class UInputMappingContext;
 class UInputAction;
+class UL2BaseUI;
 
 UCLASS()
 class FPSPROJECT_API AFPSPlayerController : public APlayerController
@@ -50,6 +51,12 @@ public:
 	UBasicUI* BasicW;
 
 
+	//스테이지2 위젯
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory")
+	TSubclassOf<UL2BaseUI> L2BaseWidgetClass;
+
+	UPROPERTY()
+	UL2BaseUI* L2BaseW;
 public:
 	UPROPERTY()
 	UInventoryWidget* InventoryW;

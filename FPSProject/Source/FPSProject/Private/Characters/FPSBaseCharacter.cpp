@@ -12,6 +12,7 @@
 #include "HUD/BasicUI.h"
 #include "HUD/EffectUI.h"
 #include "HUD/BaseUI.h"     //이거 타이머 용
+#include "HUD/L2BaseUI.h"
 #include "Characters/FPSPlayerController.h"
 #include "Interface/InteractInterface.h"
 #include "Truck/Truck.h"
@@ -118,6 +119,7 @@ void AFPSBaseCharacter::BeginPlay()
 			PC->TimerW->AddToViewport();
 			PC->BasicW->AddToViewport();
 			PC->EffectW->AddToViewport();
+			PC->L2BaseW->AddToViewport();
 			SetHealth(100,100); //이건 처음값 임의 세팅 
 		}
 	}

@@ -42,6 +42,9 @@ public:
 	UPROPERTY(meta = (BindWidget))
 	UTextBlock* EngineOilText;
 
+	UPROPERTY(meta = (BindWidgetAnim), Transient)
+	UWidgetAnimation* Ani_ItemOpen;
+
 	//void GetGunAR4();
 	//void SetHealth(float CurrentHP, float MaxHP);
 

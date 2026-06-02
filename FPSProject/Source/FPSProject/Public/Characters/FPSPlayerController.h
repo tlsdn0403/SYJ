@@ -83,6 +83,11 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
 	UInputAction* IA_SelectSlot5;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
+	UInputAction* IA_TAB;
+
+	bool openItem = false;
+
 
 	// 실제 실행 함수
 	UFUNCTION()
@@ -99,6 +104,9 @@ public:
 
 	UFUNCTION()
 	void Pressed5(const FInputActionValue& InputValue);
+
+	UFUNCTION()
+	void PressedTAB(const FInputActionValue& InputValue);
 
 	UFUNCTION()
 	bool PickUp_Item(UTexture2D* image,int32 handw);

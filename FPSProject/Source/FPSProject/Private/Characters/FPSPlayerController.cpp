@@ -47,6 +47,7 @@ void AFPSPlayerController::SetupInputComponent()
 		EnhancedInput->BindAction(IA_SelectSlot3, ETriggerEvent::Started, this, &AFPSPlayerController::Pressed3);
 		EnhancedInput->BindAction(IA_SelectSlot4, ETriggerEvent::Started, this, &AFPSPlayerController::Pressed4);
 		EnhancedInput->BindAction(IA_SelectSlot5, ETriggerEvent::Started, this, &AFPSPlayerController::Pressed5);
+		EnhancedInput->BindAction(IA_TAB, ETriggerEvent::Started, this, &AFPSPlayerController::PressedTAB);
 	}
 }
 
@@ -88,6 +89,18 @@ void AFPSPlayerController::Pressed5(const FInputActionValue& Value)
 
 	// 여기서 인벤토리 / 무기 변경 / 슬롯 선택 처리
 	InventoryW->SelectSlot(4); // 예시로 슬롯 1 선택
+}
+
+void AFPSPlayerController::PressedTAB(const FInputActionValue& Value)	//Tab눌리면 아이템바 열기/닫기
+{
+	openItem = !openItem;
+	if (openItem) { 
+		L2BaseW->PlayAnimation(L2BaseW->Ani_ItemOpen);
+
+	}
+	else {
+		L2BaseW->PlayAnimationReverse(L2BaseW->Ani_ItemOpen);
+	}
 }
 
 bool AFPSPlayerController::PickUp_Item(UTexture2D* image, int32 handw)

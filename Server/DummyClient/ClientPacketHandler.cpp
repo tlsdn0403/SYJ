@@ -83,6 +83,14 @@ bool Handle_S_ZOMBIE_DIE(PacketSessionRef& session, Protocol::S_ZOMBIE_DIE& pkt)
 	return true;
 }
 
+bool Handle_S_ZOMBIE_DISMEMBER(PacketSessionRef& session, Protocol::S_ZOMBIE_DISMEMBER& pkt)
+{
+	cout << "[DummyClient] S_ZOMBIE_DISMEMBER zombieId=" << pkt.zombie_id()
+		<< " bone=" << pkt.bone_name()
+		<< endl;
+	return true;
+}
+
 bool Handle_S_CHAT(PacketSessionRef& session, Protocol::S_CHAT& pkt)
 {
 	return true;
@@ -126,6 +134,26 @@ bool Handle_S_LOAD_TRUCK_ITEM(PacketSessionRef& session, Protocol::S_LOAD_TRUCK_
 bool Handle_S_TOGGLE_DOOR(PacketSessionRef& session, Protocol::S_TOGGLE_DOOR& pkt)
 {
 	return false;
+}
+
+bool Handle_S_ENTER_GAME_READY_COUNT(PacketSessionRef& session, Protocol::S_ENTER_GAME_READY_COUNT& pkt)
+{
+	return true;
+}
+
+bool Handle_S_STAGE_TIMER(PacketSessionRef& session, Protocol::S_STAGE_TIMER& pkt)
+{
+	return true;
+}
+
+bool Handle_S_STAGE1_ITEM_SEED(PacketSessionRef& session, Protocol::S_STAGE1_ITEM_SEED& pkt)
+{
+	return true;
+}
+
+bool Handle_S_RESPAWN_LOOT_ITEM(PacketSessionRef& session, Protocol::S_RESPAWN_LOOT_ITEM& pkt)
+{
+	return true;
 }
 
 bool Handle_S_STAGE_TRANSITION(PacketSessionRef& session, Protocol::S_STAGE_TRANSITION& pkt)

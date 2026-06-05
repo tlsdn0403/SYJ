@@ -181,6 +181,7 @@ void AFPSProjectile::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor
 				20.0f,
 				DamageHit.ImpactPoint);
 
+
 		if (!bSentZombieHitPacket)
 		{
 			UGameplayStatics::ApplyPointDamage(

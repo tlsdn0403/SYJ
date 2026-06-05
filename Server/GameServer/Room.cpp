@@ -488,6 +488,8 @@ namespace
 	constexpr float ZOMBIE_ATTACK_RANGE = 140.0f;
 	constexpr float ZOMBIE_ATTACK_COOLDOWN_SECONDS = 1.0f;
 	constexpr float ZOMBIE_DESPAWN_DELAY_SECONDS = 3.0f;
+	constexpr float ZOMBIE_SEPARATION_RADIUS = 180.0f;
+	constexpr float ZOMBIE_SEPARATION_WEIGHT = 1.35f;
 
 	struct ZombieSpawnInfo
 	{
@@ -598,10 +600,51 @@ void Room::UpdateZombies()
 		const float dz = targetPlayer->posInfo->z() - monster->posInfo->z();
 		const float distSq = dx * dx + dy * dy + dz * dz;
 		const float attackRangeSq = ZOMBIE_ATTACK_RANGE * ZOMBIE_ATTACK_RANGE;
+		float separationX = 0.0f;
+		float separationY = 0.0f;
+		const float separationRadiusSq = ZOMBIE_SEPARATION_RADIUS * ZOMBIE_SEPARATION_RADIUS;
+
+		for (const auto& otherItem : _objects)
+		{
+			if (otherItem.first == item.first)
+				continue;
+
+			MonsterRef otherMonster = dynamic_pointer_cast<Monster>(otherItem.second);
+			if (otherMonster == nullptr || otherMonster->IsDead())
+				continue;
+
+			const float awayX = monster->posInfo->x() - otherMonster->posInfo->x();
+			const float awayY = monster->posInfo->y() - otherMonster->posInfo->y();
+			const float otherDistSq = awayX * awayX + awayY * awayY;
+			if (otherDistSq >= separationRadiusSq)
+				continue;
+
+			if (otherDistSq <= 0.001f)
+			{
+				const float fallbackAngle = static_cast<float>((item.first * 37 + otherItem.first * 17) % 360) * (3.1415926535f / 180.0f);
+				separationX += cosf(fallbackAngle);
+				separationY += sinf(fallbackAngle);
+				continue;
+			}
+
+			const float otherDist = sqrtf(otherDistSq);
+			const float strength = (ZOMBIE_SEPARATION_RADIUS - otherDist) / ZOMBIE_SEPARATION_RADIUS;
+			separationX += (awayX / otherDist) * strength;
+			separationY += (awayY / otherDist) * strength;
+		}
 
 		if (distSq <= attackRangeSq)
 		{
 			monster->posInfo->set_state(Protocol::MOVE_STATE_IDLE);
+			const float separationSq = separationX * separationX + separationY * separationY;
+			if (separationSq > 0.001f)
+			{
+				const float separationLen = sqrtf(separationSq);
+				const float moveStep = ZOMBIE_MOVE_SPEED * monster->GetMoveSpeedScale() * ZOMBIE_SERVER_TICK_SECONDS;
+				monster->posInfo->set_x(monster->posInfo->x() + (separationX / separationLen) * moveStep);
+				monster->posInfo->set_y(monster->posInfo->y() + (separationY / separationLen) * moveStep);
+			}
+
 			if (monster->CanAttack())
 			{
 				Protocol::S_ZOMBIE_ATTACK attackPkt;
@@ -618,12 +661,30 @@ void Room::UpdateZombies()
 			const float distance = sqrtf(distSq);
 			if (distance > 0.001f)
 			{
-				const float moveStep = ZOMBIE_MOVE_SPEED * ZOMBIE_SERVER_TICK_SECONDS;
-				const float moveAlpha = (moveStep < distance) ? (moveStep / distance) : 1.0f;
+				const float moveStep = ZOMBIE_MOVE_SPEED * monster->GetMoveSpeedScale() * ZOMBIE_SERVER_TICK_SECONDS;
+				float moveX = dx / distance;
+				float moveY = dy / distance;
+				const float separationSq = separationX * separationX + separationY * separationY;
+				if (separationSq > 0.001f)
+				{
+					const float separationLen = sqrtf(separationSq);
+					moveX += (separationX / separationLen) * ZOMBIE_SEPARATION_WEIGHT;
+					moveY += (separationY / separationLen) * ZOMBIE_SEPARATION_WEIGHT;
+				}
 
-				monster->posInfo->set_x(monster->posInfo->x() + dx * moveAlpha);
-				monster->posInfo->set_y(monster->posInfo->y() + dy * moveAlpha);
-				monster->posInfo->set_z(monster->posInfo->z() + dz * moveAlpha);
+				const float moveLenSq = moveX * moveX + moveY * moveY;
+				if (moveLenSq > 0.001f)
+				{
+					const float moveLen = sqrtf(moveLenSq);
+					moveX /= moveLen;
+					moveY /= moveLen;
+				}
+
+				const float moveAlpha = (moveStep < distance) ? moveStep : distance;
+
+				monster->posInfo->set_x(monster->posInfo->x() + moveX * moveAlpha);
+				monster->posInfo->set_y(monster->posInfo->y() + moveY * moveAlpha);
+				monster->posInfo->set_z(monster->posInfo->z() + dz * ((moveAlpha < distance) ? (moveAlpha / distance) : 1.0f));
 				monster->posInfo->set_yaw(atan2f(dy, dx) * (180.0f / 3.1415926535f));
 			}
 
@@ -696,6 +757,27 @@ void Room::HandleHitZombie(PlayerRef player, Protocol::C_HIT_ZOMBIE pkt)
 		return;
 
 	monster->ApplyDamage(damage);
+	std::string brokenBoneName;
+	if (monster->ApplyBoneDamage(pkt.hit_bone_name(), damage, brokenBoneName))
+	{
+		Protocol::S_ZOMBIE_DISMEMBER dismemberPkt;
+		dismemberPkt.set_zombie_id(zombieId);
+		dismemberPkt.set_bone_name(brokenBoneName);
+		dismemberPkt.set_hit_x(pkt.hit_x());
+		dismemberPkt.set_hit_y(pkt.hit_y());
+		dismemberPkt.set_hit_z(pkt.hit_z());
+		dismemberPkt.set_impulse_x(-pkt.hit_normal_x() * 300.0f);
+		dismemberPkt.set_impulse_y(-pkt.hit_normal_y() * 300.0f);
+		dismemberPkt.set_impulse_z(-pkt.hit_normal_z() * 300.0f);
+
+		SendBufferRef dismemberBuffer = ServerPacketHandler::MakeSendBuffer(dismemberPkt);
+		Broadcast(dismemberBuffer);
+
+		if (brokenBoneName == "head" || brokenBoneName == "spine_01")
+		{
+			monster->ApplyDamage(monster->GetMaxHp());
+		}
+	}
 
 	Protocol::S_ZOMBIE_HP hpPkt;
 	hpPkt.set_zombie_id(zombieId);

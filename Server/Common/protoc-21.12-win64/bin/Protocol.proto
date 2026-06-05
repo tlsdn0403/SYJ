@@ -63,6 +63,10 @@ message C_HIT_ZOMBIE
 	float hit_x = 4;
 	float hit_y = 5;
 	float hit_z = 6;
+	string hit_bone_name = 7;
+	float hit_normal_x = 8;
+	float hit_normal_y = 9;
+	float hit_normal_z = 10;
 }
 
 message S_ZOMBIE_ATTACK
@@ -218,4 +222,16 @@ message C_STAGE_TRANSITION_REQUEST
 message S_STAGE_TRANSITION
 {
   string target_level = 1;
+}
+
+message S_ZOMBIE_DISMEMBER
+{
+	uint64 zombie_id = 1;
+	string bone_name = 2;
+	float hit_x = 3;
+	float hit_y = 4;
+	float hit_z = 5;
+	float impulse_x = 6;
+	float impulse_y = 7;
+	float impulse_z = 8;
 }

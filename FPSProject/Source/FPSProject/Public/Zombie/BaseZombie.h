@@ -89,6 +89,15 @@ protected:
 
 	uint64 NetworkObjectId = 0;
 
+	virtual void InitializeBoneDurability();
+	virtual FName GetParentBoneForDamage(FName HitBoneName) const;
+	virtual FName GetPhysicsRootBoneName() const;
+	virtual bool IsFatalDismemberBone(FName BoneName) const;
+	virtual bool IsLegBone(FName BoneName) const;
+
+	void ResetDismemberBones();
+	void RegisterDismemberBone(FName BoneName, float Durability);
+
 private:
 
 
@@ -138,12 +147,9 @@ private:
 	void ApplyAttackDamage(AActor* TargetActor);
 	void ApplyAnimationDesync();
 	void ApplyMovementTuning();
-	void InitializeBoneDurability();
-	FName GetParentBoneForDamage(FName HitBoneName);
 	void ProcessBoneDamage(FName BoneName, float Damage, FVector ImpactPoint, FVector ImpactDirection);
 	void DismemberLimb(FName BoneName, FVector Impulse, FVector HitLocation);
 	void StartCrawling();
-	bool IsLegBone(FName BoneName) const;
 
 	UPROPERTY()
 	AActor* CurrentAttackTarget = nullptr;

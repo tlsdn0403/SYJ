@@ -271,7 +271,7 @@ void ABaseZombie::HandleNetworkDeath()
 	if (USkeletalMeshComponent* MeshComp = GetMesh())
 	{
 		MeshComp->SetSimulatePhysics(true);
-		MeshComp->SetAllBodiesBelowSimulatePhysics(FName("pelvis"), true, true);
+		MeshComp->SetAllBodiesBelowSimulatePhysics(GetPhysicsRootBoneName(), true, true);
 	}
 
 	SetLifeSpan(5.0f);
@@ -600,25 +600,41 @@ void ABaseZombie::OnZombieDamaged(float NewHealth, float Damage, const FHitResul
 
 void ABaseZombie::InitializeBoneDurability()
 {
-	BoneDurability.Add(FName("head"), 10.0f);
+	ResetDismemberBones();
+
+	RegisterDismemberBone(FName("head"), 10.0f);
 
 	// 팔
-	BoneDurability.Add(FName("upperarm_l"), 15.0f);
-	BoneDurability.Add(FName("lowerarm_l"), 10.0f);
-	BoneDurability.Add(FName("upperarm_r"), 15.0f);
-	BoneDurability.Add(FName("lowerarm_r"), 10.0f);
+	RegisterDismemberBone(FName("upperarm_l"), 15.0f);
+	RegisterDismemberBone(FName("lowerarm_l"), 10.0f);
+	RegisterDismemberBone(FName("upperarm_r"), 15.0f);
+	RegisterDismemberBone(FName("lowerarm_r"), 10.0f);
 
 	// 다리
-	BoneDurability.Add(FName("thigh_l"), 20.0f);
-	BoneDurability.Add(FName("calf_l"), 15.0f);
-	BoneDurability.Add(FName("thigh_r"), 20.0f);
-	BoneDurability.Add(FName("calf_r"), 15.0f);
+	RegisterDismemberBone(FName("thigh_l"), 20.0f);
+	RegisterDismemberBone(FName("calf_l"), 15.0f);
+	RegisterDismemberBone(FName("thigh_r"), 20.0f);
+	RegisterDismemberBone(FName("calf_r"), 15.0f);
 
 	// 척추 (옵션: 허리가 끊어지게 할 것인지)
-	BoneDurability.Add(FName("spine_01"), 50.0f);
+	RegisterDismemberBone(FName("spine_01"), 50.0f);
 }
 
-FName ABaseZombie::GetParentBoneForDamage(FName HitBoneName)
+void ABaseZombie::ResetDismemberBones()
+{
+	BoneDurability.Reset();
+	BrokenBones.Reset();
+}
+
+void ABaseZombie::RegisterDismemberBone(FName BoneName, float Durability)
+{
+	if (BoneName != NAME_None && Durability > 0.0f)
+	{
+		BoneDurability.Add(BoneName, Durability);
+	}
+}
+
+FName ABaseZombie::GetParentBoneForDamage(FName HitBoneName) const
 {
 	FString BoneString = HitBoneName.ToString();
 
@@ -664,6 +680,16 @@ FName ABaseZombie::GetParentBoneForDamage(FName HitBoneName)
 	return HitBoneName; // 매핑되지 않으면 그대로 반환
 }
 
+FName ABaseZombie::GetPhysicsRootBoneName() const
+{
+	return FName("pelvis");
+}
+
+bool ABaseZombie::IsFatalDismemberBone(FName BoneName) const
+{
+	return BoneName == FName("head") || BoneName == FName("spine_01");
+}
+
 void ABaseZombie::ProcessBoneDamage(FName BoneName, float Damage, FVector ImpactPoint, FVector ImpactDirection)
 {
 	// 이미 분리된 뼈라면 무시
@@ -684,11 +710,7 @@ void ABaseZombie::ProcessBoneDamage(FName BoneName, float Damage, FVector Impact
 			FVector Impulse = ImpactDirection * 300.0f; // 힘 조절 필요
 			DismemberLimb(BoneName, Impulse, ImpactPoint);
 
-			const bool bShouldDieImmediately =
-				BoneName == FName("head") ||
-				BoneName == FName("spine_01");
-
-			if (bShouldDieImmediately && bIsAlive)
+			if (IsFatalDismemberBone(BoneName) && bIsAlive)
 			{
 				Die();
 				return;
@@ -826,7 +848,7 @@ void ABaseZombie::Die()
 	if (USkeletalMeshComponent* MeshComp = GetMesh())
 	{
 		MeshComp->SetSimulatePhysics(true);
-		MeshComp->SetAllBodiesBelowSimulatePhysics(FName("pelvis"), true, true);
+		MeshComp->SetAllBodiesBelowSimulatePhysics(GetPhysicsRootBoneName(), true, true);
 	}
 
 	SetLifeSpan(5.f);

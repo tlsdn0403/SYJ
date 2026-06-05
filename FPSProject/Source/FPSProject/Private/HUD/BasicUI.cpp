@@ -26,6 +26,8 @@ void UBasicUI::GetGunAR4() {
 void UBasicUI::SetHealth(float CurrentHP,float MaxHP) {
 
 	if (!HpBar) return;
+	MaxHp = MaxHP;
+	currentHp = CurrentHP;
 
 	float Ratio = (float)CurrentHP / MaxHP;
 

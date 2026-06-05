@@ -1,13 +1,13 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-
 #include "Characters/FPSPlayerController.h"
 #include "HUD/InventoryWidget.h"
 #include "HUD/BaseUI.h"
 #include "HUD/BasicUI.h"
 #include "HUD/EffectUI.h"
 #include "HUD/L2BaseUI.h"
+#include<algorithm>
 #include "EnhancedInputSubsystems.h"
 #include "EnhancedInputComponent.h"
 
@@ -15,7 +15,7 @@
 void AFPSPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
-	if (!InvenWidgetClass||!TimerWidgetClass) return;
+	if (!InvenWidgetClass || !TimerWidgetClass) return;
 
 	InventoryW = CreateWidget<UInventoryWidget>(this, InvenWidgetClass);
 	TimerW = CreateWidget<UBaseUI>(this, TimerWidgetClass);
@@ -62,11 +62,12 @@ void AFPSPlayerController::Pressed1(const FInputActionValue& Value)		//2라운�
 void AFPSPlayerController::Pressed2(const FInputActionValue& Value)		//2라운드 힐팩 사용
 {
 	UE_LOG(LogTemp, Warning, TEXT("2 Key Pressed"));
+	bool success = L2BaseW->UsingItem(2);
+	if (success) {
+		int temp = std::min(BasicW->currentHp + 20, BasicW->MaxHp);		//체력 업데이트		//여기서 힐팩양 수정
+		BasicW->SetHealth(temp, BasicW->MaxHp);
+	}
 
-	// 여기서 인벤토리 / 무기 변경 / 슬롯 선택 처리
-	InventoryW->SelectSlot(1); // 예시로 슬롯 1 선택
-
-	L2BaseW->UsingItem(2);
 }
 
 void AFPSPlayerController::Pressed3(const FInputActionValue& Value)		//2라운드 정비툴박스 사용
@@ -96,7 +97,7 @@ void AFPSPlayerController::Pressed5(const FInputActionValue& Value)
 void AFPSPlayerController::PressedTAB(const FInputActionValue& Value)	//2라운드 Tab눌리면 아이템바 열기/닫기
 {
 	openItem = !openItem;
-	if (openItem) { 
+	if (openItem) {
 		L2BaseW->PlayAnimation(L2BaseW->Ani_ItemOpen);
 
 	}
@@ -107,10 +108,10 @@ void AFPSPlayerController::PressedTAB(const FInputActionValue& Value)	//2라운�
 
 bool AFPSPlayerController::PickUp_Item(UTexture2D* image, int32 handw)
 {
-	bool t=false;
+	bool t = false;
 	if (InventoryW)
 	{
-		t=InventoryW->PickUp_Item(image, handw);
+		t = InventoryW->PickUp_Item(image, handw);
 	}
 	return t;
 }

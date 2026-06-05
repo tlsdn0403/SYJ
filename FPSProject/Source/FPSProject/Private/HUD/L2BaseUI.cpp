@@ -24,12 +24,14 @@ void UL2BaseUI::ItemSetting(int oil, int heal, int box)
 	ToolBoxText->SetText(FText::FromString(FString::FromInt(item3)));
 }
 
-void UL2BaseUI::UsingItem(int num)
+bool UL2BaseUI::UsingItem(int num)
 {
+	bool success = false;
 	switch (num) {
 	case 1:	//기름
 		if (0 < item1) {
 			item1--;
+			success = true;
 			EngineOilText->SetText(FText::FromString(FString::FromInt(item1)));
 			//이제 기름바..회복..
 		}
@@ -37,6 +39,7 @@ void UL2BaseUI::UsingItem(int num)
 	case 2:	//힐팩
 		if (0 < item2) {
 			item2--;
+			success = true;
 			HealPackText->SetText(FText::FromString(FString::FromInt(item2)));
 			//이제 체력회복하는 코드.
 		}
@@ -44,9 +47,11 @@ void UL2BaseUI::UsingItem(int num)
 	case 3: //정비툴박스
 		if (0 < item3) {
 			item3--;
+			success = true;
 			ToolBoxText->SetText(FText::FromString(FString::FromInt(item3)));
 			//이제 차량회복 코드
 		}
 		break;
 	}
+	return success;
 }

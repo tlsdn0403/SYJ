@@ -20,7 +20,9 @@ class FPSPROJECT_API UL2BaseUI : public UUserWidget
 
 protected:
 	virtual void NativeConstruct() override;
-
+	int item1 = 0;
+	int item2 = 0;
+	int item3 = 0;
 public:
 
 	UPROPERTY(meta = (BindWidget))	//
@@ -45,8 +47,8 @@ public:
 	UPROPERTY(meta = (BindWidgetAnim), Transient)
 	UWidgetAnimation* Ani_ItemOpen;
 
-	//void GetGunAR4();
-	//void SetHealth(float CurrentHP, float MaxHP);
-
+	
+	void ItemSetting(int oil, int heal, int box);
+	void UsingItem(int num);
 
 };

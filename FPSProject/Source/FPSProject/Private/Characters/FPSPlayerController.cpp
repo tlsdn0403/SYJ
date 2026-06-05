@@ -51,7 +51,7 @@ void AFPSPlayerController::SetupInputComponent()
 	}
 }
 
-void AFPSPlayerController::Pressed1(const FInputActionValue& Value)
+void AFPSPlayerController::Pressed1(const FInputActionValue& Value)		//2라운드 기름 사용
 {
 	UE_LOG(LogTemp, Warning, TEXT("1 Key Pressed"));
 
@@ -59,15 +59,17 @@ void AFPSPlayerController::Pressed1(const FInputActionValue& Value)
 	InventoryW->SelectSlot(0); // 예시로 슬롯 1 선택
 }
 
-void AFPSPlayerController::Pressed2(const FInputActionValue& Value)
+void AFPSPlayerController::Pressed2(const FInputActionValue& Value)		//2라운드 힐팩 사용
 {
 	UE_LOG(LogTemp, Warning, TEXT("2 Key Pressed"));
 
 	// 여기서 인벤토리 / 무기 변경 / 슬롯 선택 처리
 	InventoryW->SelectSlot(1); // 예시로 슬롯 1 선택
+
+	L2BaseW->UsingItem(2);
 }
 
-void AFPSPlayerController::Pressed3(const FInputActionValue& Value)
+void AFPSPlayerController::Pressed3(const FInputActionValue& Value)		//2라운드 정비툴박스 사용
 {
 	UE_LOG(LogTemp, Warning, TEXT("1 Key Pressed"));
 
@@ -91,7 +93,7 @@ void AFPSPlayerController::Pressed5(const FInputActionValue& Value)
 	InventoryW->SelectSlot(4); // 예시로 슬롯 1 선택
 }
 
-void AFPSPlayerController::PressedTAB(const FInputActionValue& Value)	//Tab눌리면 아이템바 열기/닫기
+void AFPSPlayerController::PressedTAB(const FInputActionValue& Value)	//2라운드 Tab눌리면 아이템바 열기/닫기
 {
 	openItem = !openItem;
 	if (openItem) { 

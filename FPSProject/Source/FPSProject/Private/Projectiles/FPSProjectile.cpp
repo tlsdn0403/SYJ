@@ -179,7 +179,9 @@ void AFPSProjectile::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor
 				InstigatorCharacter,
 				HitZombie,
 				20.0f,
-				DamageHit.ImpactPoint);
+				Hit.ImpactPoint,
+				Hit.BoneName,
+				Hit.ImpactNormal);
 
 
 		if (!bSentZombieHitPacket)

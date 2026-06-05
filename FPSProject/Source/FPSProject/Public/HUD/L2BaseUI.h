@@ -49,6 +49,9 @@ public:
 
 	UPROPERTY(meta = (BindWidget))		//아이템 부족합니다! 멘트
 	UTextBlock* errorT;
+
+	UPROPERTY(meta = (BindWidgetAnim), Transient)
+	UWidgetAnimation* Ani_itemError;
 	
 	void ItemSetting(int oil, int heal, int box);
 	bool UsingItem(int num);

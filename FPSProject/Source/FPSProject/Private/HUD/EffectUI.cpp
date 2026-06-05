@@ -20,10 +20,13 @@ void UEffectUI::PlayAni_Effect(bool re)
 {
 	replay = re;
 	if (replay) {
+       // BloodEdge->SetRenderOpacity(1.0f);
 		PlayAnimation(B_EdgeAni, 0.0f, 0);
 	}
 	else {
-		StopAnimation(B_EdgeAni);
+       // SetAnimationCurrentTime(B_EdgeAni, 0.0f);
+        StopAnimation(B_EdgeAni);
+        BloodEdge->SetRenderOpacity(0.0f);
 	}
 }
 

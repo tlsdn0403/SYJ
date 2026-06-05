@@ -121,7 +121,7 @@ void AFPSBaseCharacter::BeginPlay()
 			PC->EffectW->AddToViewport();
 			PC->L2BaseW->AddToViewport();
 			SetHealth(100,100); //이건 처음값 임의 세팅 
-			PC->L2BaseW->ItemSetting(3, 3, 3);		//아이템임의값 세팅
+			PC->L2BaseW->ItemSetting(3, 5, 3);		//아이템임의값 세팅
 		}
 	}
 }

@@ -2,6 +2,7 @@
 
 
 #include "Characters/FPSPlayerController.h"
+#include "Characters/FPSBaseCharacter.h"
 #include "HUD/InventoryWidget.h"
 #include "HUD/BaseUI.h"
 #include "HUD/BasicUI.h"
@@ -64,8 +65,10 @@ void AFPSPlayerController::Pressed2(const FInputActionValue& Value)		//2라운�
 	UE_LOG(LogTemp, Warning, TEXT("2 Key Pressed"));
 	bool success = L2BaseW->UsingItem(2);
 	if (success) {
+		AFPSBaseCharacter* player = Cast<AFPSBaseCharacter>(GetPawn());
+
 		int temp = std::min(BasicW->currentHp + 20, BasicW->MaxHp);		//체력 업데이트		//여기서 힐팩양 수정
-		BasicW->SetHealth(temp, BasicW->MaxHp);
+		player->SetHealth(temp, BasicW->MaxHp);
 	}
 
 }

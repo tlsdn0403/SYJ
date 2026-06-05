@@ -59,6 +59,7 @@ public:
 	void HandleNetworkAttack(AActor* TargetActor);
 	void HandleNetworkHit(float NewHealth, float MaxHealth);
 	void HandleNetworkDeath();
+	void HandleNetworkDismember(FName BoneName, const FVector& Impulse, const FVector& HitLocation);
 	void SetNetworkMoveTarget(const FVector& TargetLocation, const FRotator& TargetRotation, bool bInIsMoving);
 
 protected:

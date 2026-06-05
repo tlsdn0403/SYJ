@@ -48,6 +48,7 @@ enum : uint16
 	PKT_S_RESPAWN_LOOT_ITEM = 1035,
 	PKT_C_STAGE_TRANSITION_REQUEST = 1036,
 	PKT_S_STAGE_TRANSITION = 1037,
+	PKT_S_ZOMBIE_DISMEMBER = 1038,
 };
 
 // Custom Handlers
@@ -75,6 +76,7 @@ bool Handle_S_STAGE_TIMER(PacketSessionRef& session, Protocol::S_STAGE_TIMER& pk
 bool Handle_S_STAGE1_ITEM_SEED(PacketSessionRef& session, Protocol::S_STAGE1_ITEM_SEED& pkt);
 bool Handle_S_RESPAWN_LOOT_ITEM(PacketSessionRef& session, Protocol::S_RESPAWN_LOOT_ITEM& pkt);
 bool Handle_S_STAGE_TRANSITION(PacketSessionRef& session, Protocol::S_STAGE_TRANSITION& pkt);
+bool Handle_S_ZOMBIE_DISMEMBER(PacketSessionRef& session, Protocol::S_ZOMBIE_DISMEMBER& pkt);
 
 class ClientPacketHandler
 {
@@ -106,6 +108,7 @@ public:
 		GPacketHandler[PKT_S_STAGE1_ITEM_SEED] = [](PacketSessionRef& session, BYTE* buffer, int32 len) { return HandlePacket<Protocol::S_STAGE1_ITEM_SEED>(Handle_S_STAGE1_ITEM_SEED, session, buffer, len); };
 		GPacketHandler[PKT_S_RESPAWN_LOOT_ITEM] = [](PacketSessionRef& session, BYTE* buffer, int32 len) { return HandlePacket<Protocol::S_RESPAWN_LOOT_ITEM>(Handle_S_RESPAWN_LOOT_ITEM, session, buffer, len); };
 		GPacketHandler[PKT_S_STAGE_TRANSITION] = [](PacketSessionRef& session, BYTE* buffer, int32 len) { return HandlePacket<Protocol::S_STAGE_TRANSITION>(Handle_S_STAGE_TRANSITION, session, buffer, len); };
+		GPacketHandler[PKT_S_ZOMBIE_DISMEMBER] = [](PacketSessionRef& session, BYTE* buffer, int32 len) { return HandlePacket<Protocol::S_ZOMBIE_DISMEMBER>(Handle_S_ZOMBIE_DISMEMBER, session, buffer, len); };
 	}
 
 	static bool HandlePacket(PacketSessionRef& session, BYTE* buffer, int32 len)

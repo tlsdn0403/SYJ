@@ -277,6 +277,20 @@ void ABaseZombie::HandleNetworkDeath()
 	SetLifeSpan(5.0f);
 }
 
+void ABaseZombie::HandleNetworkDismember(FName BoneName, const FVector& Impulse, const FVector& HitLocation)
+{
+	if (BoneName == NAME_None)
+	{
+		return;
+	}
+
+	DismemberLimb(BoneName, Impulse, HitLocation);
+	if (IsLegBone(BoneName) && MovementState == EZombieMovementState::Normal)
+	{
+		StartCrawling();
+	}
+}
+
 void ABaseZombie::SetNetworkMoveTarget(const FVector& TargetLocation, const FRotator& TargetRotation, bool bInIsMoving)
 {
 	const FVector PreviousLocation = GetActorLocation();

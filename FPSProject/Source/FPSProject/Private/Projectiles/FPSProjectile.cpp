@@ -9,8 +9,43 @@
 #include "Kismet/GameplayStatics.h"  
 #include "FPSProjectGameInstance.h"
 #include "Characters/FPSBaseCharacter.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "Truck/Truck.h"
 #include "Zombie/BaseZombie.h"
+
+namespace
+{
+FHitResult BuildZombieDamageHit(const FHitResult& Hit, ABaseZombie* HitZombie)
+{
+	FHitResult DamageHit = Hit;
+
+	if (HitZombie == nullptr || DamageHit.BoneName != NAME_None)
+	{
+		return DamageHit;
+	}
+
+	USkeletalMeshComponent* ZombieMesh = HitZombie->GetMesh();
+	if (ZombieMesh == nullptr)
+	{
+		return DamageHit;
+	}
+
+	FVector ClosestBoneLocation = FVector::ZeroVector;
+	const FName ClosestBoneName = ZombieMesh->FindClosestBone(Hit.ImpactPoint, &ClosestBoneLocation);
+	if (ClosestBoneName != NAME_None)
+	{
+		DamageHit.BoneName = ClosestBoneName;
+		DamageHit.Component = ZombieMesh;
+		DamageHit.Location = Hit.ImpactPoint;
+		DamageHit.ImpactPoint = Hit.ImpactPoint;
+		UE_LOG(LogTemp, Log, TEXT("Projectile inferred zombie bone %s from component %s"),
+			*ClosestBoneName.ToString(),
+			*GetNameSafe(Hit.GetComponent()));
+	}
+
+	return DamageHit;
+}
+}
 
 // Sets default values
 AFPSProjectile::AFPSProjectile()
@@ -134,14 +169,17 @@ void AFPSProjectile::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor
 	AActor* InstigatorActor = GetInstigator();
 	if (OtherActor && OtherActor != this && OtherActor != MyOwner && OtherActor != InstigatorActor)
 	{
+		ABaseZombie* HitZombie = Cast<ABaseZombie>(OtherActor);
+		const FHitResult DamageHit = BuildZombieDamageHit(Hit, HitZombie);
+
 		AFPSBaseCharacter* InstigatorCharacter = Cast<AFPSBaseCharacter>(InstigatorActor);
 		const bool bSentZombieHitPacket =
 			InstigatorCharacter &&
 			UFPSProjectGameInstance::SendZombieHitPacket(
 				InstigatorCharacter,
-				Cast<ABaseZombie>(OtherActor),
+				HitZombie,
 				20.0f,
-				Hit.ImpactPoint);
+				DamageHit.ImpactPoint);
 
 		if (!bSentZombieHitPacket)
 		{
@@ -149,14 +187,17 @@ void AFPSProjectile::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor
 				OtherActor,            // 데미지 대상
 				20.f,                  // 데미지 값
 				ProjectileMovementComponent->Velocity.GetSafeNormal(),  // 발사 방향
-				Hit,                   // 충돌 정보
+				DamageHit,             // 충돌 정보
 				GetInstigatorController(),  // 발사자 컨트롤러
 				this,                  // 데미지 원인
 				nullptr                // DamageType
 			);
 		}
 
-		UE_LOG(LogTemp, Warning, TEXT("ammo damage to %s! "), *GetNameSafe(OtherActor));
+		UE_LOG(LogTemp, Warning, TEXT("ammo damage to %s! Bone=%s Component=%s"),
+			*GetNameSafe(OtherActor),
+			*DamageHit.BoneName.ToString(),
+			*GetNameSafe(DamageHit.GetComponent()));
 	}
 
 	const bool bCanApplyPhysicsImpulse =

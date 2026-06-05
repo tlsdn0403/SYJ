@@ -37,7 +37,11 @@ void UHealthComponent::PointDamageTaken(AActor* DamagedActor, float Damage, ACon
 
 	FHitResult DummyHit;
 	DummyHit.ImpactPoint = HitLocation;
+	DummyHit.Location = HitLocation;
+	DummyHit.ImpactNormal = -ShotFromDirection.GetSafeNormal();
+	DummyHit.Normal = DummyHit.ImpactNormal;
 	DummyHit.BoneName = BoneName;
+	DummyHit.Component = FHitComponent;
 	OnDamaged.Broadcast(Health, Damage, DummyHit);
 }
 

@@ -16,6 +16,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Zombie/ZombieFallZone.h"
 #include "Animation/AnimInstance.h"
+#include "UObject/ConstructorHelpers.h"
 #include "UObject/UnrealType.h"
 
 namespace
@@ -64,6 +65,14 @@ ABaseZombie::ABaseZombie()
 	// 메시 콜리전 설정
 	ZombieMesh->SetCollisionProfileName(TEXT("CharacterMesh"));
 	ZombieMesh->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
+	ZombieMesh->SetCollisionResponseToChannel(ECC_GameTraceChannel1, ECR_Block);
+
+	static ConstructorHelpers::FObjectFinder<UNiagaraSystem> DefaultHitEffect(
+		TEXT("/Script/Niagara.NiagaraSystem'/Game/Niagara/NS_BloodEffect.NS_BloodEffect'"));
+	if (DefaultHitEffect.Succeeded())
+	{
+		HitEffect = DefaultHitEffect.Object;
+	}
 
 	HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComponent"));
 
@@ -92,6 +101,7 @@ void ABaseZombie::BeginPlay()
 	if (ZombieMesh)
 	{
 		ZombieMesh->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
+		ZombieMesh->SetCollisionResponseToChannel(ECC_GameTraceChannel1, ECR_Block);
 
 		if (!ZombieMesh->GetAnimClass() && ZombieAnimClass)
 		{
@@ -750,7 +760,7 @@ void ABaseZombie::DismemberLimb(FName BoneName, FVector Impulse, FVector HitLoca
 		
 
 		// 3. 물리 충격 가하기 (잘려나간 부위가 튀어나가도록)
-		MeshComp->AddImpulse(Impulse, BoneName, true);
+		/*MeshComp->AddImpulse(Impulse, BoneName, true);*/
 
 		UE_LOG(LogTemp, Warning, TEXT("Dismembered: %s"), *BoneName.ToString());
 	}

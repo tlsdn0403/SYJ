@@ -763,20 +763,77 @@ void ABaseZombie::DismemberLimb(FName BoneName, FVector Impulse, FVector HitLoca
 
 	if (MeshComp)
 	{
-		// 1. 제약 조건 파괴 (뼈를 물리적으로 분리)
-		MeshComp->BreakConstraint(Impulse, HitLocation, BoneName);
+		SpawnDismemberChunk(BoneName, Impulse, HitLocation);
 
-		MeshComp->HideBoneByName(BoneName, EPhysBodyOp::PBO_None);
-		// 2. 분리된 부위가 물리 시뮬레이션을 하도록 설정
-		// 설정하지 않으면 분리된 부위가 공중에 떠서 애니메이션을 계속 따라갑니다.
-		// SetAllBodiesBelowSimulatePhysics: 해당 뼈 아래쪽 모든 뼈를 물리 시뮬레이션으로 전환
-		MeshComp->SetAllBodiesBelowSimulatePhysics(BoneName, true, true);
-		
-
-		// 3. 물리 충격 가하기 (잘려나간 부위가 튀어나가도록)
-		/*MeshComp->AddImpulse(Impulse, BoneName, true);*/
+		// 살아있는 Character의 메인 메시에서는 절단 부위 물리 바디를 제거한다.
+		// 물리 시뮬레이션은 별도 조각 액터에서만 처리해야 캡슐/CharacterMovement와 충돌하지 않는다.
+		MeshComp->HideBoneByName(BoneName, EPhysBodyOp::PBO_Term);
 
 		UE_LOG(LogTemp, Warning, TEXT("Dismembered: %s"), *BoneName.ToString());
+	}
+}
+
+void ABaseZombie::SpawnDismemberChunk(FName BoneName, const FVector& Impulse, const FVector& HitLocation)
+{
+	UWorld* World = GetWorld();
+	if (World == nullptr || BoneName == NAME_None)
+	{
+		return;
+	}
+
+	TSubclassOf<AActor> ChunkClass = DefaultDismemberChunkClass;
+	if (const TSubclassOf<AActor>* FoundClass = DismemberChunkClasses.Find(BoneName))
+	{
+		ChunkClass = *FoundClass;
+	}
+
+	if (!ChunkClass)
+	{
+		return;
+	}
+
+	FVector SpawnLocation = HitLocation;
+	FRotator SpawnRotation = GetActorRotation();
+	if (USkeletalMeshComponent* MeshComp = GetMesh())
+	{
+		if (MeshComp->GetBoneIndex(BoneName) != INDEX_NONE)
+		{
+			SpawnLocation = MeshComp->GetBoneLocation(BoneName);
+			SpawnRotation = MeshComp->GetBoneQuaternion(BoneName).Rotator();
+		}
+	}
+
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.Owner = this;
+	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+
+	AActor* ChunkActor = World->SpawnActor<AActor>(ChunkClass, SpawnLocation, SpawnRotation, SpawnParams);
+	if (ChunkActor == nullptr)
+	{
+		return;
+	}
+	if (DismemberChunkLifeSpan > 0.0f)
+	{
+		ChunkActor->SetLifeSpan(DismemberChunkLifeSpan);
+	}
+
+	TArray<UPrimitiveComponent*> PrimitiveComponents;
+	ChunkActor->GetComponents<UPrimitiveComponent>(PrimitiveComponents);
+	for (UPrimitiveComponent* PrimitiveComponent : PrimitiveComponents)
+	{
+		if (PrimitiveComponent == nullptr)
+		{
+			continue;
+		}
+
+		PrimitiveComponent->SetSimulatePhysics(true);
+		PrimitiveComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+		PrimitiveComponent->IgnoreActorWhenMoving(this, true);
+		if (UCapsuleComponent* Capsule = GetCapsuleComponent())
+		{
+			PrimitiveComponent->IgnoreComponentWhenMoving(Capsule, true);
+		}
+		PrimitiveComponent->AddImpulse(Impulse, NAME_None, true);
 	}
 }
 

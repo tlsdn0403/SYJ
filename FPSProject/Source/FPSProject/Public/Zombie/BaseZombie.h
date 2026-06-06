@@ -82,6 +82,15 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zombie|Effects")
 	TObjectPtr<UNiagaraSystem> HitEffect;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zombie|Dismember")
+	TMap<FName, TSubclassOf<AActor>> DismemberChunkClasses;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zombie|Dismember")
+	TSubclassOf<AActor> DefaultDismemberChunkClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zombie|Dismember", meta = (ClampMin = "0.0"))
+	float DismemberChunkLifeSpan = 8.0f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zombie|Attack")
 	UAnimMontage* AttackMontage;
 
@@ -150,6 +159,7 @@ private:
 	void ApplyMovementTuning();
 	void ProcessBoneDamage(FName BoneName, float Damage, FVector ImpactPoint, FVector ImpactDirection);
 	void DismemberLimb(FName BoneName, FVector Impulse, FVector HitLocation);
+	void SpawnDismemberChunk(FName BoneName, const FVector& Impulse, const FVector& HitLocation);
 	void StartCrawling();
 
 	UPROPERTY()

@@ -98,6 +98,49 @@ void AWeaponBase::SetWeaponHidden(bool Hidden)
 	}
 }
 
+bool AWeaponBase::GetAimSocketViewPoint(FVector& OutLocation, FRotator& OutRotation) const
+{
+	if (!IsValid(WeaponMesh))
+	{
+		return false;
+	}
+
+	// 소켓이 존재하면 소켓 위치와 회전을 반환
+	if (AimCameraSocketName != NAME_None && WeaponMesh->DoesSocketExist(AimCameraSocketName))
+	{
+		OutLocation = WeaponMesh->GetSocketLocation(AimCameraSocketName);
+		OutRotation = WeaponMesh->GetSocketRotation(AimCameraSocketName);
+		return true;
+	}
+
+	return false;
+}
+
+bool AWeaponBase::GetAimCameraViewPoint(FVector& OutLocation, FRotator& OutRotation) const
+{
+	if (!IsValid(WeaponMesh))
+	{
+		return false;
+	}
+
+	if (GetAimSocketViewPoint(OutLocation, OutRotation))
+	{
+		return true;
+	}
+
+	const FVector BaseLocation = WeaponMesh->DoesSocketExist(MuzzleSocketName)
+		? WeaponMesh->GetSocketLocation(MuzzleSocketName)
+		: WeaponMesh->GetComponentLocation();
+
+	OutLocation =
+		BaseLocation +
+		WeaponMesh->GetForwardVector() * AimCameraFallbackOffset.X +
+		WeaponMesh->GetRightVector() * AimCameraFallbackOffset.Y +
+		WeaponMesh->GetUpVector() * AimCameraFallbackOffset.Z;
+	OutRotation = WeaponMesh->GetForwardVector().Rotation();
+	return true;
+}
+
 void AWeaponBase::Fire()
 {
 	if (!Character || !Character->GetController()) return;
@@ -120,7 +163,14 @@ void AWeaponBase::Fire()
 
 			FVector CameraLocation;
 			FRotator CameraRotation;
-			Character->GetWeaponAimViewPoint(CameraLocation, CameraRotation);
+			const bool bUseAimSocketTrace =
+				bUseAimSocketForIronSightTrace &&
+				Character->IsIronSightAiming() &&
+				GetAimSocketViewPoint(CameraLocation, CameraRotation);
+			if (!bUseAimSocketTrace)
+			{
+				Character->GetWeaponAimViewPoint(CameraLocation, CameraRotation);
+			}
 
 			const FVector AimDirection = CameraRotation.Vector().GetSafeNormal();
 			FVector TraceStart = CameraLocation;
@@ -214,6 +264,7 @@ void AWeaponBase::Fire()
 		}
 	}
 
+	PlayMuzzleFlash();
 	
 }
 
@@ -245,6 +296,8 @@ void AWeaponBase::RemoteFire()
 		GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Blue, TEXT("빵! (상대방 화면에서 가짜 총알 발사됨!)"));
 	}
 	UE_LOG(LogTemp, Warning, TEXT("[Network] RemoteFire 실행됨! 남의 총구에서 쐈습니다."));
+
+	PlayMuzzleFlash();
 
 	// 2. 총알 스폰 (카메라 조준선 계산 없이, 캐릭터가 바라보는 방향으로 무지성 발사!)
 	if (ProjectileClass)
@@ -296,5 +349,32 @@ void AWeaponBase::ApplyFireRecoil() const
 	const float PitchKick = FMath::FRandRange(PitchRange.X, PitchRange.Y);
 	const float YawKick = FMath::FRandRange(-YawMagnitude, YawMagnitude);
 	Character->ApplyWeaponRecoil(PitchKick, YawKick);
+}
+
+void AWeaponBase::PlayMuzzleFlash() const
+{
+	if (!GunParticleEffect || !WeaponMesh)
+	{
+		return;
+	}
+
+	if (WeaponMesh->DoesSocketExist(MuzzleSocketName))
+	{
+		UGameplayStatics::SpawnEmitterAttached(
+			GunParticleEffect,
+			WeaponMesh,
+			MuzzleSocketName,
+			FVector::ZeroVector,
+			FRotator::ZeroRotator,
+			EAttachLocation::SnapToTarget,
+			true);
+		return;
+	}
+
+	UGameplayStatics::SpawnEmitterAtLocation(
+		this,
+		GunParticleEffect,
+		WeaponMesh->GetComponentLocation(),
+		WeaponMesh->GetComponentRotation());
 }
 

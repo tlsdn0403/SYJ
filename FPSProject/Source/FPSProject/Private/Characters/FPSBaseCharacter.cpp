@@ -135,14 +135,69 @@ void AFPSBaseCharacter::Tick(float DeltaTime)
 	}
 
 	// 줌 했을 떄 FOV 확대
+	const bool bUseIronSightCamera =
+		IsLocallyControlled() &&
+		bIsIronSightAiming &&
+		!bIsHoldAiming &&
+		!bIsDrivingTruck &&
+		!bIsUsingMountedWeapon &&
+		!bIsOnTruckCargo &&
+		CurrentWeapon != nullptr;
+
+	if (bUseIronSightCamera && FPSCameraComponent)
+	{
+		if (!FPSCameraComponent->IsActive() && ThirdPersonCameraComponent)
+		{
+			FPSCameraComponent->SetWorldLocationAndRotation(
+				ThirdPersonCameraComponent->GetComponentLocation(),
+				ThirdPersonCameraComponent->GetComponentRotation());
+			FPSCameraComponent->FieldOfView = ThirdPersonCameraComponent->FieldOfView;
+		}
+
+		if (ThirdPersonCameraComponent)
+		{
+			ThirdPersonCameraComponent->SetActive(false);
+		}
+		FPSCameraComponent->SetActive(true);
+
+		FVector TargetAimLocation = FVector::ZeroVector;
+		FRotator TargetAimRotation = FRotator::ZeroRotator;
+		if (CurrentWeapon->GetAimCameraViewPoint(TargetAimLocation, TargetAimRotation))
+		{
+			if (Controller)
+			{
+				TargetAimRotation = Controller->GetControlRotation();
+			}
+
+			FPSCameraComponent->SetWorldLocationAndRotation(
+				FMath::VInterpTo(FPSCameraComponent->GetComponentLocation(), TargetAimLocation, DeltaTime, IronSightInterpSpeed),
+				FMath::RInterpTo(FPSCameraComponent->GetComponentRotation(), TargetAimRotation, DeltaTime, IronSightInterpSpeed));
+			FPSCameraComponent->FieldOfView = FMath::FInterpTo(
+				FPSCameraComponent->FieldOfView,
+				IronSightFOV,
+				DeltaTime,
+				IronSightInterpSpeed);
+		}
+	}
+	else if (!bIsUsingMountedWeapon)
+	{
+		if (FPSCameraComponent)
+		{
+			FPSCameraComponent->SetActive(false);
+		}
+		if (ThirdPersonCameraComponent)
+		{
+			ThirdPersonCameraComponent->SetActive(true);
+		}
+	}
 	if (ThirdPersonCameraComponent && CameraBoom)
 	{
 		// 조준중이면 Aiming 카메라 , 아니면 기존
-		const float TargetFOV = bIsAiming ? AimingThirdPersonFOV : DefaultThirdPersonFOV;
+		const float TargetFOV = bIsHoldAiming ? AimingThirdPersonFOV : DefaultThirdPersonFOV;
 		// 이것도 조준중이면 Aiming 카메라 붐
-		const float TargetBoomLength = bIsAiming ? AimingBoomLength : DefaultBoomLength;
+		const float TargetBoomLength = bIsHoldAiming ? AimingBoomLength : DefaultBoomLength;
 		// 이것도 조준중이면 Aiming 카메라 붐 소켓 오프셋
-		const FVector TargetSocketOffset = bIsAiming ? AimingCameraBoomSocketOffset : DefaultCameraBoomSocketOffset;
+		const FVector TargetSocketOffset = bIsHoldAiming ? AimingCameraBoomSocketOffset : DefaultCameraBoomSocketOffset;
 
 		// 보간을 이용해서, 카메라가 부드럽게 이동하도록
 		ThirdPersonCameraComponent->FieldOfView = FMath::FInterpTo(
@@ -351,6 +406,9 @@ void AFPSBaseCharacter::EnterTruckDriverSeat(ATruck* Truck)
 	CurrentTruck = Truck;
 	bIsDrivingTruck = true;
 	bIsAiming = false;
+	bIsHoldAiming = false;
+	bIsIronSightAiming = false;
+	bAimInputHeld = false;
 	StopFire();
 	SetHeldWeaponVehicleVisibility(true);
 	DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
@@ -424,6 +482,9 @@ void AFPSBaseCharacter::EnterTruckCargo(ATruck* Truck)
 	bIsOnTruckCargo = true;
 	bIsDrivingTruck = false;
 	bIsAiming = false;
+	bIsHoldAiming = false;
+	bIsIronSightAiming = false;
+	bAimInputHeld = false;
 	CurrentTruck = Truck;
 
 	SetActorLocationAndRotation(
@@ -492,6 +553,9 @@ void AFPSBaseCharacter::EnterMountedWeapon(ATruck* Truck, AMountedMachineGun* Mo
 	bIsOnTruckCargo = false;
 	bIsDrivingTruck = false;
 	bIsAiming = false;
+	bIsHoldAiming = false;
+	bIsIronSightAiming = false;
+	bAimInputHeld = false;
 	CurrentTruck = Truck;
 	CurrentMountedWeapon = MountedWeapon;
 	CurrentMountedWeapon->SetWeaponUser(this);
@@ -727,12 +791,26 @@ void AFPSBaseCharacter::StartAim()
 		return;
 	}
 
+	bAimInputHeld = true;
+	AimPressedTime = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0f;
+	bIsHoldAiming = true;
 	bIsAiming = true;
 }
 
 void AFPSBaseCharacter::StopAim()
 {
-	bIsAiming = false;
+	const float CurrentTime = GetWorld() ? GetWorld()->GetTimeSeconds() : AimPressedTime;
+	const float HeldDuration = bAimInputHeld ? CurrentTime - AimPressedTime : AimTapToggleThreshold + 1.0f;
+
+	bAimInputHeld = false;
+	bIsHoldAiming = false;
+
+	if (CurrentWeapon && HeldDuration <= AimTapToggleThreshold)
+	{
+		bIsIronSightAiming = !bIsIronSightAiming;
+	}
+
+	bIsAiming = bIsHoldAiming || bIsIronSightAiming;
 }
 
 void AFPSBaseCharacter::LeaveGame()
@@ -797,6 +875,9 @@ void AFPSBaseCharacter::ClearCurrentWeapon()
 {
 	SetCurrentWeapon(nullptr);
 	bIsAiming = false;
+	bIsHoldAiming = false;
+	bIsIronSightAiming = false;
+	bAimInputHeld = false;
 }
 
 void AFPSBaseCharacter::Fire()

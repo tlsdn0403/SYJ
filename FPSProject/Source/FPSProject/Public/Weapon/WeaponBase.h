@@ -31,6 +31,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Weapon")
 	void SetWeaponHidden(bool Hidden);
 
+	UFUNCTION(BlueprintCallable, Category = "Weapon|Aim")
+	bool GetAimCameraViewPoint(FVector& OutLocation, FRotator& OutRotation) const;
+
 protected:
 	virtual void BeginPlay() override;
 
@@ -50,13 +53,22 @@ protected:
 	FVector MuzzleOffset;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
-	FName MuzzleSocketName = TEXT("b_gun_muzzleflash");
+	FName MuzzleSocketName = TEXT("Muzzle");
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
 	FName AttachSocketName = TEXT("GripPoint");
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Aim")
 	float AimTraceDistance = 30000.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Aim")
+	FName AimCameraSocketName = TEXT("ADS_Socket");
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Aim")
+	FVector AimCameraFallbackOffset = FVector(-35.0f, 0.0f, 4.0f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Aim")
+	bool bUseAimSocketForIronSightTrace = true;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
 	UParticleSystem* GunParticleEffect;
@@ -94,8 +106,10 @@ public:
 	void RemoteFire();
 
 protected:
+	bool GetAimSocketViewPoint(FVector& OutLocation, FRotator& OutRotation) const;
 	float GetCurrentSpreadAngleDegrees() const;
 	void ApplyFireRecoil() const;
+	void PlayMuzzleFlash() const;
 
 	AFPSBaseCharacter* Character;
 };

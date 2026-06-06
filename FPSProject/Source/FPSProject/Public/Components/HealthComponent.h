@@ -56,4 +56,6 @@ public:
 	// 체력 변동 이벤트 (UI 등)
 	UPROPERTY(BlueprintAssignable, Category = "Health")
 	FOnHealthChanged OnHealthChanged;
+
+	void Heal(float Amount);
 };

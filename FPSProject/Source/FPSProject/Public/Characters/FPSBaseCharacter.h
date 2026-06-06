@@ -152,6 +152,7 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FPS|Components")
 	UHealthComponent* HealthComponent;
 
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AI|Perception")
 	UAIPerceptionStimuliSourceComponent* ZombieStimuliSource;
 
@@ -228,6 +229,8 @@ public:
 	void SetDestInfo(const Protocol::PosInfo& Info);
 	void EquipWeapon(AWeaponBase* Weapon);
 	void DestroyEquippedWeapon();
+
+	void Heal(float h);
 
 	Protocol::PosInfo* GetPlayerInfo() { return PlayerInfo; }
 

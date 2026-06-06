@@ -59,3 +59,15 @@ void UHealthComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActo
 	// ...
 }
 
+void UHealthComponent::Heal(float Amount)
+{
+    if (Amount <= 0.f) return;
+
+    float OldHealth = Health;
+
+    Health = FMath::Min(Health + Amount, MaxHealth);
+
+    float HealAmount = Health - OldHealth;
+
+    OnHealthChanged.Broadcast(Health, -HealAmount);
+}

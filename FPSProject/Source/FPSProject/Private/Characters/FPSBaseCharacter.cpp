@@ -1403,3 +1403,12 @@ void AFPSBaseCharacter::SetHealth(float currentHp,float maxHp) {
 	}
 
 }
+
+void AFPSBaseCharacter::Heal(float h) {
+	if (HealthComponent)
+	{
+		HealthComponent->Heal(h);
+		SetHealth(HealthComponent->GetHealth(), HealthComponent->MaxGetHealth());
+	}
+
+}

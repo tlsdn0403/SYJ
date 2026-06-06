@@ -120,8 +120,8 @@ void AFPSBaseCharacter::BeginPlay()
 			PC->BasicW->AddToViewport();
 			PC->EffectW->AddToViewport();
 			PC->L2BaseW->AddToViewport();
+			PC->L2BaseW->ItemSetting(3, 5, 3);
 			SetHealth(100,100); //이건 처음값 임의 세팅 
-			PC->L2BaseW->ItemSetting(3, 5, 3);		//아이템임의값 세팅
 		}
 	}
 }
@@ -1486,7 +1486,6 @@ void AFPSBaseCharacter::SetHealth(float currentHp,float maxHp) {
 				PC->EffectW->PlayAni_Effect(false);
 		}
 	}
-
 }
 
 void AFPSBaseCharacter::Heal(float h) {
@@ -1495,5 +1494,4 @@ void AFPSBaseCharacter::Heal(float h) {
 		HealthComponent->Heal(h);
 		SetHealth(HealthComponent->GetHealth(), HealthComponent->MaxGetHealth());
 	}
-
 }

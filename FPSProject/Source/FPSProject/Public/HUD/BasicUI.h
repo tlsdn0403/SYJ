@@ -39,9 +39,6 @@ public:
 	UPROPERTY(meta = (BindWidget))
 	UProgressBar* HpBar;
 
-	int MaxHp = 100;
-	int currentHp = 100;
-
 	void GetGunAR4();
 	void SetHealth(float CurrentHP, float MaxHP);
 	

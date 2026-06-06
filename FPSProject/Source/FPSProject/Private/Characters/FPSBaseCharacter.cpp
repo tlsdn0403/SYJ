@@ -1,4 +1,4 @@
-ï»¿#include "Characters/FPSBaseCharacter.h"
+#include "Characters/FPSBaseCharacter.h"
 #include "Protocol.pb.h"
 #include "Camera/CameraComponent.h"
 #include "Components/BoxComponent.h"
@@ -11,7 +11,7 @@
 #include "HUD/InventoryWidget.h"
 #include "HUD/BasicUI.h"
 #include "HUD/EffectUI.h"
-#include "HUD/BaseUI.h"     //ì´ê±° íƒ€ì´ë¨¸ ìš©
+#include "HUD/BaseUI.h"     //ÀÌ°Å Å¸ÀÌ¸Ó ¿ë
 #include "HUD/L2BaseUI.h"
 #include "Characters/FPSPlayerController.h"
 #include "Interface/InteractInterface.h"
@@ -102,7 +102,7 @@ void AFPSBaseCharacter::BeginPlay()
 			GameInstance->RefreshStage2StartupActorHold();
 		}
 
-		// ë§ˆìš°ìŠ¤ ì»¤ì„œ ìˆ¨ê¸°ê¸°
+		// ¸¶¿ì½º Ä¿¼­ ¼û±â±â
 		if (PC)
 		{
 			FInputModeGameOnly InputMode;
@@ -120,8 +120,8 @@ void AFPSBaseCharacter::BeginPlay()
 			PC->BasicW->AddToViewport();
 			PC->EffectW->AddToViewport();
 			PC->L2BaseW->AddToViewport();
-			SetHealth(100,100); //ì´ê±´ ì²˜ìŒê°’ ì„ì˜ ì„¸íŒ… 
-			PC->L2BaseW->ItemSetting(3, 5, 3);		//ì•„ì´í…œì„ì˜ê°’ ì„¸íŒ…
+			SetHealth(100,100); //ÀÌ°Ç Ã³À½°ª ÀÓÀÇ ¼¼ÆÃ 
+			PC->L2BaseW->ItemSetting(3, 5, 3);		//¾ÆÀÌÅÛÀÓÀÇ°ª ¼¼ÆÃ
 		}
 	}
 }
@@ -137,17 +137,72 @@ void AFPSBaseCharacter::Tick(float DeltaTime)
 		ConstrainToTruckCargoBounds();
 	}
 
-	// ì¤Œ í–ˆì„ ë–„ FOV í™•ëŒ€
+	// ÁÜ ÇßÀ» ‹š FOV È®´ë
+	const bool bUseIronSightCamera =
+		IsLocallyControlled() &&
+		bIsIronSightAiming &&
+		!bIsHoldAiming &&
+		!bIsDrivingTruck &&
+		!bIsUsingMountedWeapon &&
+		!bIsOnTruckCargo &&
+		CurrentWeapon != nullptr;
+
+	if (bUseIronSightCamera && FPSCameraComponent)
+	{
+		if (!FPSCameraComponent->IsActive() && ThirdPersonCameraComponent)
+		{
+			FPSCameraComponent->SetWorldLocationAndRotation(
+				ThirdPersonCameraComponent->GetComponentLocation(),
+				ThirdPersonCameraComponent->GetComponentRotation());
+			FPSCameraComponent->FieldOfView = ThirdPersonCameraComponent->FieldOfView;
+		}
+
+		if (ThirdPersonCameraComponent)
+		{
+			ThirdPersonCameraComponent->SetActive(false);
+		}
+		FPSCameraComponent->SetActive(true);
+
+		FVector TargetAimLocation = FVector::ZeroVector;
+		FRotator TargetAimRotation = FRotator::ZeroRotator;
+		if (CurrentWeapon->GetAimCameraViewPoint(TargetAimLocation, TargetAimRotation))
+		{
+			if (Controller)
+			{
+				TargetAimRotation = Controller->GetControlRotation();
+			}
+
+			FPSCameraComponent->SetWorldLocationAndRotation(
+				FMath::VInterpTo(FPSCameraComponent->GetComponentLocation(), TargetAimLocation, DeltaTime, IronSightInterpSpeed),
+				FMath::RInterpTo(FPSCameraComponent->GetComponentRotation(), TargetAimRotation, DeltaTime, IronSightInterpSpeed));
+			FPSCameraComponent->FieldOfView = FMath::FInterpTo(
+				FPSCameraComponent->FieldOfView,
+				IronSightFOV,
+				DeltaTime,
+				IronSightInterpSpeed);
+		}
+	}
+	else if (!bIsUsingMountedWeapon)
+	{
+		if (FPSCameraComponent)
+		{
+			FPSCameraComponent->SetActive(false);
+		}
+		if (ThirdPersonCameraComponent)
+		{
+			ThirdPersonCameraComponent->SetActive(true);
+		}
+	}
 	if (ThirdPersonCameraComponent && CameraBoom)
 	{
-		// ì¡°ì¤€ì¤‘ì´ë©´ Aiming ì¹´ë©”ë¼ , ì•„ë‹ˆë©´ ê¸°ì¡´
-		const float TargetFOV = bIsAiming ? AimingThirdPersonFOV : DefaultThirdPersonFOV;
-		// ì´ê²ƒë„ ì¡°ì¤€ì¤‘ì´ë©´ Aiming ì¹´ë©”ë¼ ë¶
-		const float TargetBoomLength = bIsAiming ? AimingBoomLength : DefaultBoomLength;
-		// ì´ê²ƒë„ ì¡°ì¤€ì¤‘ì´ë©´ Aiming ì¹´ë©”ë¼ ë¶ ì†Œì¼“ ì˜¤í”„ì…‹
-		const FVector TargetSocketOffset = bIsAiming ? AimingCameraBoomSocketOffset : DefaultCameraBoomSocketOffset;
+		// Á¶ÁØÁßÀÌ¸é Aiming Ä«¸Ş¶ó , ¾Æ´Ï¸é ±âÁ¸
+		const float TargetFOV = bIsHoldAiming ? AimingThirdPersonFOV : DefaultThirdPersonFOV;
+		// ÀÌ°Íµµ Á¶ÁØÁßÀÌ¸é Aiming Ä«¸Ş¶ó ºÕ
+		const float TargetBoomLength = bIsHoldAiming ? AimingBoomLength : DefaultBoomLength;
+		// ÀÌ°Íµµ Á¶ÁØÁßÀÌ¸é Aiming Ä«¸Ş¶ó ºÕ ¼ÒÄÏ ¿ÀÇÁ¼Â
+		const FVector TargetSocketOffset = bIsHoldAiming ? AimingCameraBoomSocketOffset : DefaultCameraBoomSocketOffset;
 
-		// ë³´ê°„ì„ ì´ìš©í•´ì„œ, ì¹´ë©”ë¼ê°€ ë¶€ë“œëŸ½ê²Œ ì´ë™í•˜ë„ë¡
+		// º¸°£À» ÀÌ¿ëÇØ¼­, Ä«¸Ş¶ó°¡ ºÎµå·´°Ô ÀÌµ¿ÇÏµµ·Ï
 		ThirdPersonCameraComponent->FieldOfView = FMath::FInterpTo(
 			ThirdPersonCameraComponent->FieldOfView,
 			TargetFOV,
@@ -201,12 +256,12 @@ void AFPSBaseCharacter::Tick(float DeltaTime)
 			SendMovePacket();
 		}
 	}
-	//(ì‹ ìš°) íŠ¸ëŸ­ì„ íƒ€ê³  ìˆì„ ë•Œ ìœ„ì¹˜ë³´ì • ì•ˆí•˜ë„ë¡  (ì´ê±° ì•ˆí•˜ë‹ˆê¹Œ ì´ìƒí•œê³³ì— ì•‰ì•„ìˆìŒ)
+	//(½Å¿ì) Æ®·°À» Å¸°í ÀÖÀ» ¶§ À§Ä¡º¸Á¤ ¾ÈÇÏµµ·Ï  (ÀÌ°Å ¾ÈÇÏ´Ï±î ÀÌ»óÇÑ°÷¿¡ ¾É¾ÆÀÖÀ½)
 	else if (bShouldSkipRemoteMovementSync)
 	{
 		return;
 	}
-	// [ì‹ ìš°] íƒ‘ìŠ¹ì ë³´ì •ì„ ë°”ê¿ˆ idleì¼ ë•Œ ë¹ ë¥´ê²Œ ë³´ì •	
+	// [½Å¿ì] Å¾½ÂÀÚ º¸Á¤À» ¹Ù²Ş idleÀÏ ¶§ ºü¸£°Ô º¸Á¤	
 	else if (bIsOnTruckCargo && CurrentTruck)
 	{
 		const FRotator TargetRot(0.f, DestInfo->yaw(), 0.f);
@@ -252,7 +307,7 @@ void AFPSBaseCharacter::Tick(float DeltaTime)
 		}
 		return;
 	}
-	else // ë‚¨ì˜ ìºë¦­í„°ì¼ ë•Œ
+	else // ³²ÀÇ Ä³¸¯ÅÍÀÏ ¶§
 	{
 		const Protocol::MoveState State = PlayerInfo->state();
 		FVector CurrentLocation = GetActorLocation();
@@ -318,7 +373,7 @@ void AFPSBaseCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 	PlayerInputComponent->BindAction("LeaveGame", IE_Pressed, this, &AFPSBaseCharacter::LeaveGame);
 	PlayerInputComponent->BindAction("TravelToStage2Map", IE_Pressed, this, &AFPSBaseCharacter::TravelToStage2Map);
 }
-// 2ìŠ¤í…Œì´ì§€ ë§µìœ¼ë¡œ ì´ë™
+// 2½ºÅ×ÀÌÁö ¸ÊÀ¸·Î ÀÌµ¿
 void AFPSBaseCharacter::TravelToStage2Map()
 {
 	UGameplayStatics::OpenLevel(this, FName(TEXT("map_level2_test")));
@@ -332,14 +387,14 @@ void AFPSBaseCharacter::SendEnterGamePacket()
 	}
 
 	Protocol::C_ENTER_GAME EnterGamePkt;
-	EnterGamePkt.set_playerindex(0); // ì„ì‹œë¡œ 0ë²ˆ
+	EnterGamePkt.set_playerindex(0); // ÀÓ½Ã·Î 0¹ø
 
 	if (auto* GameInstance = Cast<UFPSProjectGameInstance>(GetGameInstance()))
 	{
 		SendBufferRef SendBuffer = ClientPacketHandler::MakeSendBuffer(EnterGamePkt);
 		GameInstance->SendPacket(SendBuffer);
 		bEnterGamePacketSent = true;
-		UE_LOG(LogTemp, Warning, TEXT("[Network] C_ENTER_GAME ì „ì†¡ ì™„ë£Œ!"));
+		UE_LOG(LogTemp, Warning, TEXT("[Network] C_ENTER_GAME sent."));
 	}
 }
 
@@ -354,6 +409,9 @@ void AFPSBaseCharacter::EnterTruckDriverSeat(ATruck* Truck)
 	CurrentTruck = Truck;
 	bIsDrivingTruck = true;
 	bIsAiming = false;
+	bIsHoldAiming = false;
+	bIsIronSightAiming = false;
+	bAimInputHeld = false;
 	StopFire();
 	SetHeldWeaponVehicleVisibility(true);
 	DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
@@ -427,6 +485,9 @@ void AFPSBaseCharacter::EnterTruckCargo(ATruck* Truck)
 	bIsOnTruckCargo = true;
 	bIsDrivingTruck = false;
 	bIsAiming = false;
+	bIsHoldAiming = false;
+	bIsIronSightAiming = false;
+	bAimInputHeld = false;
 	CurrentTruck = Truck;
 
 	SetActorLocationAndRotation(
@@ -495,6 +556,9 @@ void AFPSBaseCharacter::EnterMountedWeapon(ATruck* Truck, AMountedMachineGun* Mo
 	bIsOnTruckCargo = false;
 	bIsDrivingTruck = false;
 	bIsAiming = false;
+	bIsHoldAiming = false;
+	bIsIronSightAiming = false;
+	bAimInputHeld = false;
 	CurrentTruck = Truck;
 	CurrentMountedWeapon = MountedWeapon;
 	CurrentMountedWeapon->SetWeaponUser(this);
@@ -730,19 +794,33 @@ void AFPSBaseCharacter::StartAim()
 		return;
 	}
 
+	bAimInputHeld = true;
+	AimPressedTime = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0f;
+	bIsHoldAiming = true;
 	bIsAiming = true;
 }
 
 void AFPSBaseCharacter::StopAim()
 {
-	bIsAiming = false;
+	const float CurrentTime = GetWorld() ? GetWorld()->GetTimeSeconds() : AimPressedTime;
+	const float HeldDuration = bAimInputHeld ? CurrentTime - AimPressedTime : AimTapToggleThreshold + 1.0f;
+
+	bAimInputHeld = false;
+	bIsHoldAiming = false;
+
+	if (CurrentWeapon && HeldDuration <= AimTapToggleThreshold)
+	{
+		bIsIronSightAiming = !bIsIronSightAiming;
+	}
+
+	bIsAiming = bIsHoldAiming || bIsIronSightAiming;
 }
 
 void AFPSBaseCharacter::LeaveGame()
 {
 	if (IsLocallyControlled())
 	{
-		// ë‚´ ê²Œì„ ì¸ìŠ¤í„´ìŠ¤ë¥¼ ì°¾ì•„ì™€ì„œ ì ‘ì† ëŠê¸° í•¨ìˆ˜ ì‹¤í–‰!
+		// ³» °ÔÀÓ ÀÎ½ºÅÏ½º¸¦ Ã£¾Æ¿Í¼­ Á¢¼Ó ²÷±â ÇÔ¼ö ½ÇÇà!
 		if (UFPSProjectGameInstance* GI = Cast<UFPSProjectGameInstance>(GetGameInstance()))
 		{
 			GI->DisconnectFromGameServer();
@@ -800,6 +878,9 @@ void AFPSBaseCharacter::ClearCurrentWeapon()
 {
 	SetCurrentWeapon(nullptr);
 	bIsAiming = false;
+	bIsHoldAiming = false;
+	bIsIronSightAiming = false;
+	bAimInputHeld = false;
 }
 
 void AFPSBaseCharacter::Fire()
@@ -824,7 +905,7 @@ void AFPSBaseCharacter::Fire()
 		{
 			Protocol::C_FIRE FirePkt;
 			SEND_PACKET(FirePkt);
-			UE_LOG(LogTemp, Error, TEXT("[Network] 1. C_FIRE íŒ¨í‚· ì„œë²„ë¡œ ë°œì‚¬!"));
+			UE_LOG(LogTemp, Error, TEXT("[Network] 1. C_FIRE sent to server."));
 		}
 
 		return;
@@ -854,20 +935,20 @@ void AFPSBaseCharacter::StopFire()
 
 void AFPSBaseCharacter::GetWeaponAimViewPoint(FVector& OutLocation, FRotator& OutRotation) const
 {
-	// ì‹¤ì œ í”Œë ˆì´ì–´ê°€ ì¡°ì¢…ì¤„ì¼ ë•Œ
+	// ½ÇÁ¦ ÇÃ·¹ÀÌ¾î°¡ Á¶Á¾ÁÙÀÏ ¶§
 	if (const APlayerController* PlayerController = Cast<APlayerController>(Controller))
 	{
-		// ë·°í¬íŠ¸ í¬ê¸° ê°€ì ¸ì˜´
+		// ºäÆ÷Æ® Å©±â °¡Á®¿È
 		int32 ViewportSizeX = 0;
 		int32 ViewportSizeY = 0;
 		PlayerController->GetViewportSize(ViewportSizeX, ViewportSizeY);
 
-		// ì¤‘ì•™ ì¢Œí‘œ ê³„ì‚°
+		// Áß¾Ó ÁÂÇ¥ °è»ê
 		if (ViewportSizeX > 0 && ViewportSizeY > 0)
 		{
 			FVector WorldDirection;
-			// í™”ë©´ ì¤‘ì•™ì„ ì›”ë“œ ë°©í–¥ìœ¼ë¡œ ë³€í™˜
-			// 2D í™”ë©´ ì¢Œí‘œë¥¼ 3D ì›”ë“œ ì¢Œí‘œì™€ ë°©í–¥ìœ¼ë¡œ ë°”ê¾¸ì–´ ì£¼ëŠ” í•¨ìˆ˜ë‹¤
+			// È­¸é Áß¾ÓÀ» ¿ùµå ¹æÇâÀ¸·Î º¯È¯
+			// 2D È­¸é ÁÂÇ¥¸¦ 3D ¿ùµå ÁÂÇ¥¿Í ¹æÇâÀ¸·Î ¹Ù²Ù¾î ÁÖ´Â ÇÔ¼ö´Ù
 			if (PlayerController->DeprojectScreenPositionToWorld(
 				ViewportSizeX * 0.5f,
 				ViewportSizeY * 0.5f,
@@ -878,8 +959,8 @@ void AFPSBaseCharacter::GetWeaponAimViewPoint(FVector& OutLocation, FRotator& Ou
 				return;
 			}
 		}
-		// OutLocation -> ì›”ë“œ ê³µê°„ì—ì„œ í™”ë©´ ì¤‘ì•™ì— í•´ë‹¹í•˜ëŠ” ìœ„ì¹˜
-		// OutRotation -> ì›”ë“œ ê³µê°„ì—ì„œ í™”ë©´ ì¤‘ì•™ì„ í–¥í•˜ëŠ” ë°©í–¥ì˜ íšŒì „ê°’
+		// OutLocation -> ¿ùµå °ø°£¿¡¼­ È­¸é Áß¾Ó¿¡ ÇØ´çÇÏ´Â À§Ä¡
+		// OutRotation -> ¿ùµå °ø°£¿¡¼­ È­¸é Áß¾ÓÀ» ÇâÇÏ´Â ¹æÇâÀÇ È¸Àü°ª
 	}
 	
 	if (FPSCameraComponent && FPSCameraComponent->IsActive())
@@ -899,7 +980,7 @@ void AFPSBaseCharacter::GetWeaponAimViewPoint(FVector& OutLocation, FRotator& Ou
 	GetActorEyesViewPoint(OutLocation, OutRotation);
 }
 
-// ì´ì„ ì  ë•Œ ì´ê¸° ë°˜ë™ì„ ì£¼ê¸°.
+// ÃÑÀ» ½ò ¶§ ÃÑ±â ¹İµ¿À» ÁÖ±â.
 void AFPSBaseCharacter::ApplyWeaponRecoil(float PitchKick, float YawKick)
 {
 	if (!IsLocallyControlled() || !Controller || bIsDrivingTruck)
@@ -943,32 +1024,32 @@ void AFPSBaseCharacter::BeginTruckCargoWalk(ATruck* Truck)
 
 	EndTruckCargoWalk();
 
-	// íŠ¸ë í¬ ìœ„ì¹˜ë¡œ ìºë¦­í„° ì´ë™
+	// Æ®··Å© À§Ä¡·Î Ä³¸¯ÅÍ ÀÌµ¿
 	SetActorLocationAndRotation(
 		Truck->GetCargoRideLocation(),
 		Truck->GetCargoRideRotation()
 	);
 
 	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-	// ìºë¦­í„° ë§¤ì‹œê°€ íŠ¸ëŸ­ ë§¤ì‹œì™€ ì¶©ëŒí•˜ì§€ ì•Šë„ë¡ ì„¤ì •
+	// Ä³¸¯ÅÍ ¸Å½Ã°¡ Æ®·° ¸Å½Ã¿Í Ãæµ¹ÇÏÁö ¾Êµµ·Ï ¼³Á¤
 	GetMesh()->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 
 	if (GetCharacterMovement())
 	{
-		// íƒ‘ìŠ¹ ì§ì „ì— ìºë¦­í„°ê°€ ê°€ì§€ê³  ìˆë˜ ì†ë„ë¥¼ ì œê±°
+		// Å¾½Â Á÷Àü¿¡ Ä³¸¯ÅÍ°¡ °¡Áö°í ÀÖ´ø ¼Óµµ¸¦ Á¦°Å
 		GetCharacterMovement()->StopMovementImmediately();
-		// ì ì¬í•¨ ìœ„ì—ì„œ ê±·ê¸° ê°€ëŠ¥í•˜ë„ë¡ ì´ë™ ëª¨ë“œ ë³€ê²½
+		// ÀûÀçÇÔ À§¿¡¼­ °È±â °¡´ÉÇÏµµ·Ï ÀÌµ¿ ¸ğµå º¯°æ
 		GetCharacterMovement()->SetMovementMode(MOVE_Walking);
 
 		GetCharacterMovement()->bFastAttachedMove = true;
 
 	}
-	// ìºë¦­í„° ìº¡ìŠê³¼ íŠ¸ëŸ­ ë©”ì‹œê°€ ì„œë¡œ ì´ë™ ì¶©ëŒì„ ë¬´ì‹œí•˜ë„ë¡ ì„¤ì •
+	// Ä³¸¯ÅÍ Ä¸½¶°ú Æ®·° ¸Ş½Ã°¡ ¼­·Î ÀÌµ¿ Ãæµ¹À» ¹«½ÃÇÏµµ·Ï ¼³Á¤
 	SetTruckMeshMovementIgnored(Truck, true);
 
 	if (UPrimitiveComponent* CargoMovementBase = Truck->GetCargoMovementBase())
 	{
-		// ìºë¦­í„°ê°€ ì–´ë–¤ ë°”ë‹¥ ìœ„ì—ì„œ ì›€ì§ì´ëŠ”ì§€ ì„¤ì •ì„ í•´ì¤Œ
+		// Ä³¸¯ÅÍ°¡ ¾î¶² ¹Ù´Ú À§¿¡¼­ ¿òÁ÷ÀÌ´ÂÁö ¼³Á¤À» ÇØÁÜ
 		SetBase(CargoMovementBase);
 	}
 
@@ -1214,7 +1295,7 @@ void AFPSBaseCharacter::EquipWeapon(AWeaponBase* Weapon)
 		}
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("[Network] %sê°€ ë¬´ê¸°(%s)ë¥¼ ì¥ì°©í–ˆìŠµë‹ˆë‹¤."), *GetName(), *Weapon->GetName());
+	UE_LOG(LogTemp, Log, TEXT("[Network] %s equipped weapon (%s)."), *GetName(), *Weapon->GetName());
 }
 
 void AFPSBaseCharacter::DestroyEquippedWeapon()
@@ -1393,6 +1474,10 @@ void AFPSBaseCharacter::SetHealth(float currentHp,float maxHp) {
 		if (PC->BasicW)
 		{
 			PC->BasicW->SetHealth(currentHp, maxHp);
+		}
+
+		if (PC->EffectW)
+		{
 			if (currentHp <= 40) {
 				PC->EffectW->PlayAni_Effect(true);
 				PC->EffectW->SpawnBloodEffects();

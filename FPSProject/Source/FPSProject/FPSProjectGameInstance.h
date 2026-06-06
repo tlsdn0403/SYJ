@@ -40,7 +40,7 @@ public:
 
 	void SendPacket(SendBufferRef SendBuffer);
 	static void SendPacketStatic(SendBufferRef SendBuffer);
-	static bool SendZombieHitPacket(class AFPSBaseCharacter* Attacker, class ABaseZombie* Zombie, float Damage, const FVector& HitLocation);
+	static bool SendZombieHitPacket(class AFPSBaseCharacter* Attacker, class ABaseZombie* Zombie, float Damage, const FVector& HitLocation, FName HitBoneName = NAME_None, const FVector& HitNormal = FVector::ZeroVector);
 
 public:
 	void HandleSpawn(const Protocol::ObjectInfo& PlayerInfo, bool IsMine);
@@ -54,6 +54,7 @@ public:
 	void HandleZombieAttack(const Protocol::S_ZOMBIE_ATTACK& pkt);
 	void HandleZombieHp(const Protocol::S_ZOMBIE_HP& pkt);
 	void HandleZombieDie(const Protocol::S_ZOMBIE_DIE& pkt);
+	void HandleZombieDismember(const Protocol::S_ZOMBIE_DISMEMBER& pkt);
 	void HandleEnterTruck(const Protocol::S_ENTER_TRUCK& pkt);
 	void HandleExitTruck(const Protocol::S_EXIT_TRUCK& pkt);
 	void HandleTruckMove(const Protocol::S_TRUCK_MOVE& pkt);

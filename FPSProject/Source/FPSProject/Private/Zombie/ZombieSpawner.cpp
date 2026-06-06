@@ -55,6 +55,7 @@ void AZombieSpawner::SpawnZombies()
 
 	UE_LOG(LogTemp, Warning, TEXT("[ZombieSync] %s SpawnZombies start. SpawnPointCount=%d"), *GetName(), SpawnPoints.Num());
 
+	TArray<FVector> UsedSpawnLocations;
 	for (ATargetPoint* SpawnPoint : SpawnPoints)
 	{
 		if (!IsValid(SpawnPoint))
@@ -63,22 +64,51 @@ void AZombieSpawner::SpawnZombies()
 			continue;
 		}
 
+		const FVector BaseSpawnLocation = SpawnPoint->GetActorLocation();
+		FVector SpawnLocation = BaseSpawnLocation;
+		const float MinSpawnSpacingSq = MinSpawnSpacing * MinSpawnSpacing;
+		if (MinSpawnSpacing > 0.0f)
+		{
+			for (int32 AttemptIndex = 0; AttemptIndex < 16; ++AttemptIndex)
+			{
+				bool bTooClose = false;
+				for (const FVector& UsedSpawnLocation : UsedSpawnLocations)
+				{
+					if (FVector::DistSquared2D(SpawnLocation, UsedSpawnLocation) < MinSpawnSpacingSq)
+					{
+						bTooClose = true;
+						break;
+					}
+				}
+
+				if (!bTooClose)
+				{
+					break;
+				}
+
+				const float AngleRadians = FMath::DegreesToRadians((UsedSpawnLocations.Num() * 137.5f) + (AttemptIndex * 45.0f));
+				const float Radius = MinSpawnSpacing * (1.0f + static_cast<float>(AttemptIndex / 8));
+				SpawnLocation = BaseSpawnLocation + FVector(FMath::Cos(AngleRadians) * Radius, FMath::Sin(AngleRadians) * Radius, 0.0f);
+			}
+		}
+
 		FActorSpawnParameters SpawnParameters;
 		SpawnParameters.Owner = this;
 		SpawnParameters.SpawnCollisionHandlingOverride = SpawnCollisionHandling;
 
 		if (ABaseZombie* SpawnedZombie = GetWorld()->SpawnActor<ABaseZombie>(
 			ZombieClass,
-			SpawnPoint->GetActorLocation(),
+			SpawnLocation,
 			SpawnPoint->GetActorRotation(),
 			SpawnParameters))
 		{
-			UE_LOG(LogTemp, Warning, TEXT("[ZombieSync] Spawned zombie %s at %s"), *GetNameSafe(SpawnedZombie), *SpawnPoint->GetActorLocation().ToString());
+			UE_LOG(LogTemp, Warning, TEXT("[ZombieSync] Spawned zombie %s at %s"), *GetNameSafe(SpawnedZombie), *SpawnLocation.ToString());
 			SpawnedZombies.Add(SpawnedZombie);
+			UsedSpawnLocations.Add(SpawnedZombie->GetActorLocation());
 		}
 		else
 		{
-			UE_LOG(LogTemp, Warning, TEXT("[ZombieSync] Failed to spawn zombie from spawner %s at %s"), *GetName(), *SpawnPoint->GetActorLocation().ToString());
+			UE_LOG(LogTemp, Warning, TEXT("[ZombieSync] Failed to spawn zombie from spawner %s at %s"), *GetName(), *SpawnLocation.ToString());
 		}
 	}
 

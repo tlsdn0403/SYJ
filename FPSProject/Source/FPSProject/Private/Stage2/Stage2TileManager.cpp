@@ -1,10 +1,12 @@
-﻿#include "Stage2/Stage2TileManager.h"
+#include "Stage2/Stage2TileManager.h"
 
 #include "Engine/Level.h"
 #include "Engine/LevelStreamingDynamic.h"
 #include "Engine/World.h"
+#include "Components/ModelComponent.h"
+#include "Components/SceneComponent.h"
 #include "Kismet/KismetSystemLibrary.h"
-#include "NavigationSystem.h"
+#include "LevelUtils.h"
 #include "Zombie/BaseZombie.h"
 
 AStage2TileManager::AStage2TileManager()
@@ -31,7 +33,12 @@ void AStage2TileManager::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	TryFinalizeLoadedTiles();
+	TryFinalizePooledTiles();
+
+	if (bGenerationStarted && IsTilePoolReady() && ActiveTiles.Num() == 0)
+	{
+		SpawnNextTile();
+	}
 }
 
 void AStage2TileManager::StartGeneration()
@@ -40,11 +47,14 @@ void AStage2TileManager::StartGeneration()
 	{
 		return;
 	}
-
+	// 풀 전용 방식에서는 시작할 때 한 번만 초기화하고, 이후에는 풀에 있는 타일을 이동해서 재사용한다.
 	ResetGenerationState();
 	bGenerationStarted = true;
+
+	// 타일이 배치 될 위치는 매니저 액터의 위치
 	NextSpawnTransform = GetActorTransform();
 
+	// 시드값이 고정되어 있으면 랜덤 스트림을 초기화된 시드값으로 초기화, 그렇지 않으면 새로운 시드값 생성
 	if (bUseDeterministicSeed)
 	{
 		RandomStream.Initialize(RandomSeed);
@@ -54,6 +64,8 @@ void AStage2TileManager::StartGeneration()
 		RandomStream.GenerateNewSeed();
 	}
 
+	// 타일 풀을 먼저 채운 뒤, 준비가 끝나면 Tick에서 첫 타일을 꺼낸다.
+	PreloadTilePool();
 	SpawnNextTile();
 }
 
@@ -63,25 +75,26 @@ void AStage2TileManager::SpawnNextTile()
 	{
 		return;
 	}
-
-	if (HasPendingUninitializedTile())
+	
+	// 풀에서 꺼내쓸 수 있는지
+	if (!IsTilePoolReady())
 	{
+		PreloadTilePool();
 		return;
 	}
 
 	const bool bNeedsStartTile = ActiveTiles.Num() == 0;
-	const EStage2TileType NextTileType = bNeedsStartTile ? EStage2TileType::Start : ChooseNextTileType();
-	const TSoftObjectPtr<UWorld> LevelToSpawn = ChooseLevelForTileType(NextTileType);
 
-	if (LevelToSpawn.IsNull())
+	if (!bNeedsStartTile && ActiveTiles.Num() >= MaxActiveTiles)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Stage2TileManager: No level asset configured for tile type %d"), static_cast<int32>(NextTileType));
-		return;
+		TrimOldTiles(FMath::Max(0, MaxActiveTiles - 1));
 	}
 
-	if (!TrySpawnTileLevel(LevelToSpawn, NextTileType, NextSpawnTransform))
+	// start 타일이 필요하다면 다음 타일 타입을 start tile로
+	const EStage2TileType NextTileType = bNeedsStartTile ? EStage2TileType::Start : ChooseNextTileType();
+	if (!TryActivatePooledTile(NextTileType, NextSpawnTransform))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Stage2TileManager: Failed to spawn tile level for type %d"), static_cast<int32>(NextTileType));
+		UE_LOG(LogTemp, Warning, TEXT("Stage2TileManager: No preloaded pooled tile is available for type %d"), static_cast<int32>(NextTileType));
 	}
 }
 
@@ -89,22 +102,17 @@ void AStage2TileManager::ClearGeneratedTiles()
 {
 	for (FStage2LoadedTile& LoadedTile : ActiveTiles)
 	{
-		DestroySpawnedZombiesForTile(LoadedTile);
-
-		if (LoadedTile.TileMarker)
-		{
-			LoadedTile.TileMarker->OnNextTileTriggerEntered.RemoveAll(this);
-		}
-
-		if (LoadedTile.StreamingLevel)
-		{
-			LoadedTile.StreamingLevel->SetShouldBeLoaded(false);
-			LoadedTile.StreamingLevel->SetShouldBeVisible(false);
-			LoadedTile.StreamingLevel->SetIsRequestingUnloadAndRemoval(true);
-		}
+		UnloadTile(LoadedTile);
 	}
 
 	ActiveTiles.Empty();
+
+	for (FStage2LoadedTile& PooledTile : TilePool)
+	{
+		UnloadTile(PooledTile);
+	}
+
+	TilePool.Empty();
 	ResetGenerationState();
 }
 
@@ -143,88 +151,297 @@ bool AStage2TileManager::TryGetInitialPlayerSpawnTransform(FTransform& OutTransf
 	return false;
 }
 
-bool AStage2TileManager::HasCompletedInitialGeneration() const
-{
-	return GetInitializedTileCount() >= InitialTilesToSpawn;
-}
 
 bool AStage2TileManager::AreInitialTilesReady() const
 {
 	return bInitialTilesReady;
 }
 
-bool AStage2TileManager::TrySpawnTileLevel(const TSoftObjectPtr<UWorld>& TileLevel, EStage2TileType TileType, const FTransform& SpawnTransform)
+void AStage2TileManager::PreloadTilePool()
+{
+	if (bTilePoolPreloadStarted)
+	{
+		return;
+	}
+
+	bTilePoolPreloadStarted = true;
+	bTilePoolReady = false;
+	NextPoolParkingIndex = 0;
+
+	// 각 타입별 타일을 미리 보이지 않는 위치에 로드해 두고, 런타임에는 새로 로드하지 않는다.
+	QueueTilePoolLevels(StartTileLevels, EStage2TileType::Start);
+	QueueTilePoolLevels(StraightTileLevels, EStage2TileType::Straight);
+	QueueTilePoolLevels(LeftTileLevels, EStage2TileType::Left);
+	QueueTilePoolLevels(RightTileLevels, EStage2TileType::Right);
+	QueueTilePoolLevels(GoalTileLevels, EStage2TileType::Goal);
+
+	if (TilePool.Num() == 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Stage2TileManager: Tile pool is empty. Check Stage2 tile level settings."));
+	}
+}
+
+void AStage2TileManager::QueueTilePoolLevels(const TArray<TSoftObjectPtr<UWorld>>& LevelArray, EStage2TileType TileType)
+{
+	if (LevelArray.Num() == 0)
+	{
+		return;
+	}
+
+	const int32 PoolCount = FMath::Max(1, PreloadedTilesPerType);
+	for (int32 PoolIndex = 0; PoolIndex < PoolCount; ++PoolIndex)
+	{
+		const TSoftObjectPtr<UWorld>& TileLevel = LevelArray[PoolIndex % LevelArray.Num()];
+		LoadPooledTileLevel(TileLevel, TileType);
+	}
+}
+
+void AStage2TileManager::LoadPooledTileLevel(const TSoftObjectPtr<UWorld>& TileLevel, EStage2TileType TileType)
 {
 	if (TileLevel.IsNull())
 	{
-		return false;
+		return;
 	}
 
-	FTransform LevelTransformToApply = SpawnTransform;
-	const FSoftObjectPath LevelPath = TileLevel.ToSoftObjectPath();
-	if (const FTransform* CachedEntryLocalTransform = CachedEntryLocalTransforms.Find(LevelPath))
-	{
-		LevelTransformToApply = CachedEntryLocalTransform->Inverse() * SpawnTransform;
-	}
+	// 구석에다가 타일을 주차해놓는 위치
+	const FTransform ParkingTransform = MakePoolParkingTransform();
 
 	bool bLoadSucceeded = false;
+	// 레벨들을 미리 로드 하는데, 플레이어가 보지 못할 위치에 생성해둠
 	ULevelStreamingDynamic* StreamingLevel = ULevelStreamingDynamic::LoadLevelInstanceBySoftObjectPtr(
 		this,
 		TileLevel,
-		LevelTransformToApply,
+		ParkingTransform,
 		bLoadSucceeded);
 
 	if (!bLoadSucceeded || !StreamingLevel)
 	{
-		return false;
+		UE_LOG(LogTemp, Warning, TEXT("Stage2TileManager: Failed to preload pooled tile %s"),
+			*TileLevel.ToSoftObjectPath().ToString());
+		return;
 	}
 
-	FStage2LoadedTile& LoadedTile = ActiveTiles.AddDefaulted_GetRef();
-	LoadedTile.SourceLevel = TileLevel;
-	LoadedTile.StreamingLevel = StreamingLevel;
-	LoadedTile.TileType = TileType;
-	LoadedTile.RequestedEntryTransform = SpawnTransform;
-	LoadedTile.AppliedLevelTransform = LevelTransformToApply;
-	LoadedTile.bInitialized = false;
+	// 풀에 로드한 타일의 정보를 저장
+	FStage2LoadedTile& PooledTile = TilePool.AddDefaulted_GetRef();
+	PooledTile.SourceLevel = TileLevel;
+	PooledTile.StreamingLevel = StreamingLevel;
+	PooledTile.TileType = TileType;
+	PooledTile.RequestedEntryTransform = ParkingTransform;
+	PooledTile.AppliedLevelTransform = ParkingTransform;
+	PooledTile.bInitialized = false;
 
 	if (bVerboseLog)
 	{
-		UE_LOG(LogTemp, Log, TEXT("Stage2TileManager: Requested load for %s | Requested=%s | Applied=%s"),
+		UE_LOG(LogTemp, Log, TEXT("Stage2TileManager: Requested pooled load for %s type %d at %s"),
 			*TileLevel.ToSoftObjectPath().ToString(),
-			*SpawnTransform.GetLocation().ToString(),
-			*LevelTransformToApply.GetLocation().ToString());
+			static_cast<int32>(TileType),
+			*ParkingTransform.GetLocation().ToString());
 	}
-
-	return true;
 }
 
-void AStage2TileManager::TryFinalizeLoadedTiles()
+void AStage2TileManager::TryFinalizePooledTiles()
 {
-	for (int32 TileIndex = 0; TileIndex < ActiveTiles.Num(); ++TileIndex)
+	if (!bTilePoolPreloadStarted || bTilePoolReady)
 	{
-		FStage2LoadedTile& LoadedTile = ActiveTiles[TileIndex];
+		return;
+	}
 
-		if (LoadedTile.bInitialized || !LoadedTile.StreamingLevel)
+	// 풀 타일만 비동기 로드를 기다린다. 활성 타일은 이미 로드된 풀 타일을 이동시키기만 한다.
+	for (int32 PoolIndex = 0; PoolIndex < TilePool.Num(); ++PoolIndex)
+	{
+		FStage2LoadedTile& PooledTile = TilePool[PoolIndex];
+		if (PooledTile.bInitialized || !PooledTile.StreamingLevel)
+		{
+			continue;
+		}
+		// 풀 타일이 보이고 , 로딩이 되었는지 확인
+		if (!PooledTile.StreamingLevel->IsLevelLoaded() ||
+			!PooledTile.StreamingLevel->IsLevelVisible())
 		{
 			continue;
 		}
 
-		if (!LoadedTile.StreamingLevel->IsLevelLoaded() ||
-			!LoadedTile.StreamingLevel->IsLevelVisible())
-		{
-			continue;
-		}
-
-		AStage2TileMarker* TileMarker = FindTileMarkerFromStreamingLevel(LoadedTile.StreamingLevel);
+		AStage2TileMarker* TileMarker = FindTileMarkerFromStreamingLevel(PooledTile.StreamingLevel);
 		if (!TileMarker)
 		{
 			continue;
 		}
+		// 로드가 완료 되었다면 타일 마커를 찾아서 풀 타일 정보에 저장
+		PooledTile.TileMarker = TileMarker;
+		FinalizePooledTile(PoolIndex);
+	}
 
-		LoadedTile.TileMarker = TileMarker;
-		FinalizeLoadedTile(TileIndex);
+	bool bAllPooledTilesInitialized = TilePool.Num() > 0;
+	for (const FStage2LoadedTile& PooledTile : TilePool)
+	{
+		if (!PooledTile.bInitialized)
+		{
+			bAllPooledTilesInitialized = false;
+			break;
+		}
+	}
+
+	bTilePoolReady = bAllPooledTilesInitialized;
+	if (bTilePoolReady && bVerboseLog)
+	{
+		UE_LOG(LogTemp, Log, TEXT("Stage2TileManager: Preloaded %d pooled tile instance(s)."), TilePool.Num());
+	}
+}
+
+void AStage2TileManager::FinalizePooledTile(int32 PoolIndex)
+{
+	if (!TilePool.IsValidIndex(PoolIndex))
+	{
 		return;
 	}
+
+	FStage2LoadedTile& PooledTile = TilePool[PoolIndex];
+	if (PooledTile.bInitialized || !PooledTile.TileMarker)
+	{
+		return;
+	}
+
+	PooledTile.EntryLocalTransform = PooledTile.TileMarker->GetEntryTransform().GetRelativeTransform(PooledTile.AppliedLevelTransform);
+	PooledTile.bHasEntryLocalTransform = true;
+
+	PooledTile.TileMarker->OnNextTileTriggerEntered.RemoveAll(this);
+	PooledTile.TileMarker->ResetNextTileTrigger();
+	PooledTile.TileMarker->SetNextTileTriggerEnabled(false);
+	PooledTile.bInitialized = true;
+}
+
+bool AStage2TileManager::IsTilePoolReady() const
+{
+	return bTilePoolReady;
+}
+
+bool AStage2TileManager::IsPoolTileAvailable(EStage2TileType TileType) const
+{
+	for (const FStage2LoadedTile& PooledTile : TilePool)
+	{
+		if (PooledTile.bInitialized && PooledTile.TileType == TileType)
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool AStage2TileManager::TryActivatePooledTile(EStage2TileType TileType, const FTransform& EntryTransform)
+{
+	TArray<int32> CandidatePoolIndexes;
+	for (int32 PoolIndex = 0; PoolIndex < TilePool.Num(); ++PoolIndex)
+	{
+		const FStage2LoadedTile& PooledTile = TilePool[PoolIndex];
+		if (PooledTile.bInitialized && PooledTile.TileType == TileType && PooledTile.TileMarker)
+		{
+			CandidatePoolIndexes.Add(PoolIndex);
+		}
+	}
+
+	if (CandidatePoolIndexes.Num() == 0)
+	{
+		return false;
+	}
+
+	const int32 CandidateIndex = RandomStream.RandRange(0, CandidatePoolIndexes.Num() - 1);
+	const int32 PoolIndex = CandidatePoolIndexes[CandidateIndex];
+
+	// 타일 풀에서 사용할 타일을 하나 꺼냄
+	FStage2LoadedTile ActivatedTile = TilePool[PoolIndex];
+	TilePool.RemoveAt(PoolIndex);
+
+	// 타일이 와야할 위치를 정해줌
+	const FTransform EntryLocalTransform = ActivatedTile.bHasEntryLocalTransform
+		? ActivatedTile.EntryLocalTransform
+		: ActivatedTile.TileMarker->GetEntryTransform().GetRelativeTransform(ActivatedTile.AppliedLevelTransform);
+	const FTransform LevelTransformToApply = EntryLocalTransform.Inverse() * EntryTransform;
+
+	// 이제 실제로 타일을 위치로 옮겨줌
+	if (!TryMoveTileTolocation(ActivatedTile, LevelTransformToApply))
+	{
+		TilePool.Add(ActivatedTile);
+		return false;
+	}
+
+	ActivatedTile.RequestedEntryTransform = EntryTransform;
+	ActivatedTile.TileType = TileType;
+	// 풀에서 꺼낸 타일은 이미 로드되어 있으므로, 활성화 단계에서는 위치 이동과 트리거 재연결만 다시 처리한다.
+	ActivatedTile.bInitialized = false;
+
+	const int32 ActiveTileIndex = ActiveTiles.Add(ActivatedTile);
+	FinalizeLoadedTile(ActiveTileIndex);
+	return true;
+}
+
+bool AStage2TileManager::TryMoveTileTolocation(FStage2LoadedTile& LoadedTile, const FTransform& NewLevelTransform) const
+{
+	if (!LoadedTile.StreamingLevel)
+	{
+		return false;
+	}
+
+	//스트리밍 레벨을 관리하는 객체에서 실제로 로드된 레벨을 가져옴
+	ULevel* LoadedLevel = LoadedTile.StreamingLevel->GetLoadedLevel();
+	if (!LoadedLevel)
+	{
+		return false;
+	}
+
+	// 현재 이 타일에 적용되어 있는 위치(플레이어에게 안보이는 위치)
+	const FTransform OldLevelTransform = LoadedTile.AppliedLevelTransform;
+	// 바꿀 위치랑 같다면 굳이 적용 안함
+	if (!OldLevelTransform.Equals(NewLevelTransform))
+	{
+		//타일의 위치를 옮길 때 얼마나 위치를 옮겨야 하는지
+		const FTransform DeltaTransform = OldLevelTransform.Inverse() * NewLevelTransform;
+		FLevelUtils::FApplyLevelTransformParams TransformParams(LoadedLevel, DeltaTransform);
+		TransformParams.bSetRelativeTransformDirectly = true;
+
+#if WITH_EDITOR
+		TransformParams.bDoPostEditMove = false;
+#endif
+
+		FLevelUtils::ApplyLevelTransform(TransformParams);
+
+		for (UModelComponent* ModelComponent : LoadedLevel->ModelComponents)
+		{
+			if (ModelComponent)
+			{
+				ModelComponent->UpdateComponentToWorld(EUpdateTransformFlags::SkipPhysicsUpdate, ETeleportType::TeleportPhysics);
+			}
+		}
+
+		for (AActor* LevelActor : LoadedLevel->Actors)
+		{
+			if (!IsValid(LevelActor))
+			{
+				continue;
+			}
+
+			if (USceneComponent* ActorRootComponent = LevelActor->GetRootComponent())
+			{
+				ActorRootComponent->UpdateComponentToWorld(EUpdateTransformFlags::SkipPhysicsUpdate, ETeleportType::TeleportPhysics);
+			}
+		}
+	}
+
+	LoadedTile.StreamingLevel->LevelTransform = NewLevelTransform;
+	LoadedTile.AppliedLevelTransform = NewLevelTransform;
+	return true;
+}
+
+FTransform AStage2TileManager::MakePoolParkingTransform()
+{
+	
+	const FVector ParkingLocation =
+		GetActorLocation() +
+		PoolParkingOffset +
+		FVector(NextPoolParkingIndex * PoolParkingSpacing, 0.0f, 0.0f);
+
+	++NextPoolParkingIndex;
+	return FTransform(GetActorRotation(), ParkingLocation, GetActorScale3D());
 }
 
 void AStage2TileManager::FinalizeLoadedTile(int32 TileIndex)
@@ -242,12 +459,10 @@ void AStage2TileManager::FinalizeLoadedTile(int32 TileIndex)
 
 	AStage2TileMarker* TileMarker = LoadedTile.TileMarker;
 	const EStage2TileType TileType = LoadedTile.TileType;
-	const FSoftObjectPath SourceLevelPath = LoadedTile.SourceLevel.ToSoftObjectPath();
 
-	if (SourceLevelPath.IsValid())
-	{
-		CachedEntryLocalTransforms.Add(SourceLevelPath, TileMarker->GetEntryTransform().GetRelativeTransform(LoadedTile.AppliedLevelTransform));
-	}
+	// 재활용될 때도 같은 기준점으로 맞출 수 있도록, 타일의 Entry 위치만 저장한다.
+	LoadedTile.EntryLocalTransform = TileMarker->GetEntryTransform().GetRelativeTransform(LoadedTile.AppliedLevelTransform);
+	LoadedTile.bHasEntryLocalTransform = true;
 
 	TileMarker->ResetNextTileTrigger();
 	TileMarker->SetNextTileTriggerEnabled(TileType != EStage2TileType::Goal);
@@ -278,7 +493,6 @@ void AStage2TileManager::FinalizeLoadedTile(int32 TileIndex)
 
 	SpawnZombiesForTile(LoadedTile);
 	TrimOldTiles();
-	RefreshNavigationForStreamingTile(LoadedTile);
 	MarkInitialTilesReadyIfNeeded();
 
 	if (GetInitializedTileCount() < InitialTilesToSpawn && TileType != EStage2TileType::Goal)
@@ -307,9 +521,13 @@ void AStage2TileManager::UpdateNextSpawnTransformFromTile(const AStage2TileMarke
 	}
 }
 
-void AStage2TileManager::TrimOldTiles()
+void AStage2TileManager::TrimOldTiles(int32 DesiredMaxActiveTiles)
 {
-	while (ActiveTiles.Num() > MaxActiveTiles)
+	const int32 EffectiveMaxActiveTiles = DesiredMaxActiveTiles == INDEX_NONE
+		? MaxActiveTiles
+		: DesiredMaxActiveTiles;
+
+	while (ActiveTiles.Num() > EffectiveMaxActiveTiles)
 	{
 		int32 RemoveIndex = 0;
 		if (bKeepStartTileLoaded &&
@@ -317,32 +535,54 @@ void AStage2TileManager::TrimOldTiles()
 			ActiveTiles[0].TileType == EStage2TileType::Start &&
 			ActiveTiles.Num() > 1)
 		{
-			if (MaxActiveTiles >= 3)
-			{
-				RemoveIndex = 1;
-			}
-			else if (!bLoggedKeepStartConflict)
-			{
-				bLoggedKeepStartConflict = true;
-				UE_LOG(LogTemp, Warning, TEXT("Stage2TileManager: bKeepStartTileLoaded is enabled but MaxActiveTiles is %d. The start tile will be unloaded first to avoid removing the bridge tile the truck is currently using."), MaxActiveTiles);
-			}
+			// 시작 타일 보존 옵션은 단순하게 두 번째 타일부터 풀로 돌려보낸다.
+			RemoveIndex = 1;
 		}
 
-		FStage2LoadedTile RemovedTile = ActiveTiles[RemoveIndex];
-		ActiveTiles.RemoveAt(RemoveIndex);
-		DestroySpawnedZombiesForTile(RemovedTile);
+		RecycleActiveTileAt(RemoveIndex);
+	}
+}
 
-		if (RemovedTile.TileMarker)
-		{
-			RemovedTile.TileMarker->OnNextTileTriggerEntered.RemoveAll(this);
-		}
+void AStage2TileManager::RecycleActiveTileAt(int32 TileIndex)
+{
+	if (!ActiveTiles.IsValidIndex(TileIndex))
+	{
+		return;
+	}
 
-		if (RemovedTile.StreamingLevel)
-		{
-			RemovedTile.StreamingLevel->SetShouldBeLoaded(false);
-			RemovedTile.StreamingLevel->SetShouldBeVisible(false);
-			RemovedTile.StreamingLevel->SetIsRequestingUnloadAndRemoval(true);
-		}
+	FStage2LoadedTile RecycledTile = ActiveTiles[TileIndex];
+	ActiveTiles.RemoveAt(TileIndex);
+
+	DestroySpawnedZombiesForTile(RecycledTile);
+
+	if (RecycledTile.TileMarker)
+	{
+		RecycledTile.TileMarker->OnNextTileTriggerEntered.RemoveAll(this);
+		RecycledTile.TileMarker->ResetNextTileTrigger();
+		RecycledTile.TileMarker->SetNextTileTriggerEnabled(false);
+	}
+
+	TryMoveTileTolocation(RecycledTile, MakePoolParkingTransform());
+	RecycledTile.RequestedEntryTransform = RecycledTile.AppliedLevelTransform;
+	RecycledTile.bInitialized = true;
+	TilePool.Add(RecycledTile);
+}
+
+void AStage2TileManager::UnloadTile(FStage2LoadedTile& LoadedTile)
+{
+	DestroySpawnedZombiesForTile(LoadedTile);
+
+	if (LoadedTile.TileMarker)
+	{
+		LoadedTile.TileMarker->OnNextTileTriggerEntered.RemoveAll(this);
+		LoadedTile.TileMarker->SetNextTileTriggerEnabled(false);
+	}
+
+	if (LoadedTile.StreamingLevel)
+	{
+		LoadedTile.StreamingLevel->SetShouldBeLoaded(false);
+		LoadedTile.StreamingLevel->SetShouldBeVisible(false);
+		LoadedTile.StreamingLevel->SetIsRequestingUnloadAndRemoval(true);
 	}
 }
 
@@ -351,9 +591,11 @@ void AStage2TileManager::ResetGenerationState()
 	bGenerationStarted = false;
 	bGoalTileSpawnRequested = false;
 	bInitialTilesReady = false;
-	bLoggedKeepStartConflict = false;
+	bTilePoolPreloadStarted = false;
+	bTilePoolReady = false;
 	ConsecutiveLeftTurns = 0;
 	ConsecutiveRightTurns = 0;
+	NextPoolParkingIndex = 0;
 	SpawnedPlayableTileCount = 0;
 	NextSpawnTransform = GetActorTransform();
 }
@@ -489,7 +731,8 @@ EStage2TileType AStage2TileManager::ChooseNextTileType()
 {
 	if (!bGoalTileSpawnRequested &&
 		GoalTileLevels.Num() > 0 &&
-		SpawnedPlayableTileCount >= GoalAfterPlayableTileCount)
+		SpawnedPlayableTileCount >= GoalAfterPlayableTileCount &&
+		IsPoolTileAvailable(EStage2TileType::Goal))
 	{
 		return EStage2TileType::Goal;
 	}
@@ -504,36 +747,41 @@ EStage2TileType AStage2TileManager::ChooseNextTileType()
 
 	if (StraightTileLevels.Num() > 0 && StraightWeight > 0.0f)
 	{
-		WeightedCandidates.Add({ EStage2TileType::Straight, StraightWeight });
+		if (IsPoolTileAvailable(EStage2TileType::Straight))
+		{
+			WeightedCandidates.Add({ EStage2TileType::Straight, StraightWeight });
+		}
 	}
 
 	if (LeftTileLevels.Num() > 0 &&
 		LeftWeight > 0.0f &&
-		ConsecutiveLeftTurns < MaxSameTurnStreak)
+		ConsecutiveLeftTurns < MaxSameTurnStreak &&
+		IsPoolTileAvailable(EStage2TileType::Left))
 	{
 		WeightedCandidates.Add({ EStage2TileType::Left, LeftWeight });
 	}
 
 	if (RightTileLevels.Num() > 0 &&
 		RightWeight > 0.0f &&
-		ConsecutiveRightTurns < MaxSameTurnStreak)
+		ConsecutiveRightTurns < MaxSameTurnStreak &&
+		IsPoolTileAvailable(EStage2TileType::Right))
 	{
 		WeightedCandidates.Add({ EStage2TileType::Right, RightWeight });
 	}
 
 	if (WeightedCandidates.Num() == 0)
 	{
-		if (StraightTileLevels.Num() > 0)
+		if (IsPoolTileAvailable(EStage2TileType::Straight))
 		{
 			return EStage2TileType::Straight;
 		}
 
-		if (LeftTileLevels.Num() > 0)
+		if (IsPoolTileAvailable(EStage2TileType::Left))
 		{
 			return EStage2TileType::Left;
 		}
 
-		if (RightTileLevels.Num() > 0)
+		if (IsPoolTileAvailable(EStage2TileType::Right))
 		{
 			return EStage2TileType::Right;
 		}
@@ -560,36 +808,6 @@ EStage2TileType AStage2TileManager::ChooseNextTileType()
 	return WeightedCandidates.Last().TileType;
 }
 
-TSoftObjectPtr<UWorld> AStage2TileManager::ChooseLevelForTileType(EStage2TileType TileType)
-{
-	switch (TileType)
-	{
-	case EStage2TileType::Start:
-		return ChooseRandomLevelFromArray(StartTileLevels);
-	case EStage2TileType::Straight:
-		return ChooseRandomLevelFromArray(StraightTileLevels);
-	case EStage2TileType::Left:
-		return ChooseRandomLevelFromArray(LeftTileLevels);
-	case EStage2TileType::Right:
-		return ChooseRandomLevelFromArray(RightTileLevels);
-	case EStage2TileType::Goal:
-		return ChooseRandomLevelFromArray(GoalTileLevels);
-	default:
-		return nullptr;
-	}
-}
-
-TSoftObjectPtr<UWorld> AStage2TileManager::ChooseRandomLevelFromArray(const TArray<TSoftObjectPtr<UWorld>>& LevelArray)
-{
-	if (LevelArray.Num() == 0)
-	{
-		return nullptr;
-	}
-
-	const int32 Index = RandomStream.RandRange(0, LevelArray.Num() - 1);
-	return LevelArray[Index];
-}
-
 AStage2TileMarker* AStage2TileManager::FindTileMarkerFromStreamingLevel(ULevelStreamingDynamic* StreamingLevel) const
 {
 	if (!StreamingLevel)
@@ -614,34 +832,6 @@ AStage2TileMarker* AStage2TileManager::FindTileMarkerFromStreamingLevel(ULevelSt
 	return nullptr;
 }
 
-void AStage2TileManager::RefreshNavigationForStreamingTile(const FStage2LoadedTile& LoadedTile) const
-{
-	if (!bRebuildNavigationAfterTileLoad)
-	{
-		return;
-	}
-
-	UWorld* World = GetWorld();
-	if (!World)
-	{
-		return;
-	}
-
-	UNavigationSystemV1* NavigationSystem = FNavigationSystem::GetCurrent<UNavigationSystemV1>(World);
-	if (!NavigationSystem)
-	{
-		return;
-	}
-
-	NavigationSystem->Build();
-
-	if (bVerboseLog)
-	{
-		UE_LOG(LogTemp, Log, TEXT("Stage2TileManager: Requested navigation rebuild after loading %s"),
-			*LoadedTile.SourceLevel.ToSoftObjectPath().ToString());
-	}
-}
-
 int32 AStage2TileManager::GetInitializedTileCount() const
 {
 	int32 InitializedCount = 0;
@@ -656,19 +846,6 @@ int32 AStage2TileManager::GetInitializedTileCount() const
 	return InitializedCount;
 }
 
-bool AStage2TileManager::HasPendingUninitializedTile() const
-{
-	for (const FStage2LoadedTile& LoadedTile : ActiveTiles)
-	{
-		if (!LoadedTile.bInitialized)
-		{
-			return true;
-		}
-	}
-
-	return false;
-}
-
 void AStage2TileManager::MarkInitialTilesReadyIfNeeded()
 {
 	if (bInitialTilesReady)
@@ -677,7 +854,7 @@ void AStage2TileManager::MarkInitialTilesReadyIfNeeded()
 	}
 
 	const int32 RequiredInitialTileCount = FMath::Max(1, InitialTilesToSpawn);
-	if (GetInitializedTileCount() < RequiredInitialTileCount || HasPendingUninitializedTile())
+	if (GetInitializedTileCount() < RequiredInitialTileCount)
 	{
 		return;
 	}

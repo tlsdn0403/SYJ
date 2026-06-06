@@ -29,7 +29,15 @@ public:
 	UPROPERTY(meta = (BindWidget))	//
 	UImage* BloodEf;
 
-	void PlayAni_Ef() { PlayAnimation(B_EffectAni); }
+	void PlayAni_Ef()
+	{
+		if (B_EffectAni)
+		{
+			PlayAnimation(B_EffectAni);
+		}
+	}
+
+	UFUNCTION()
 	void OnEffectAniFinished();
 
 };

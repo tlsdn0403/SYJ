@@ -57,7 +57,7 @@ int main()
 	// Main Thread
 	//DoWorkerJob(service);
 
-	GRoom->DoAsync(&Room::SpawnInitialZombies);
+	GRoom->SpawnStage2Zombies();
 	GRoom->DoAsync(&Room::UpdateTick);
 
 	while (true)

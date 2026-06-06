@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "TimerManager.h"
 #include "BaseZombie.generated.h"
 
 class UHealthComponent;
@@ -58,6 +59,7 @@ public:
 	void HandleNetworkAttack(AActor* TargetActor);
 	void HandleNetworkHit(float NewHealth, float MaxHealth);
 	void HandleNetworkDeath();
+	void HandleNetworkDismember(FName BoneName, const FVector& Impulse, const FVector& HitLocation);
 	void SetNetworkMoveTarget(const FVector& TargetLocation, const FRotator& TargetRotation, bool bInIsMoving);
 
 protected:
@@ -80,6 +82,15 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zombie|Effects")
 	TObjectPtr<UNiagaraSystem> HitEffect;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zombie|Dismember")
+	TMap<FName, TSubclassOf<AActor>> DismemberChunkClasses;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zombie|Dismember")
+	TSubclassOf<AActor> DefaultDismemberChunkClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zombie|Dismember", meta = (ClampMin = "0.0"))
+	float DismemberChunkLifeSpan = 8.0f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zombie|Attack")
 	UAnimMontage* AttackMontage;
 
@@ -87,6 +98,15 @@ protected:
 	TSubclassOf<UAnimInstance> ZombieAnimClass;
 
 	uint64 NetworkObjectId = 0;
+
+	virtual void InitializeBoneDurability();
+	virtual FName GetParentBoneForDamage(FName HitBoneName) const;
+	virtual FName GetPhysicsRootBoneName() const;
+	virtual bool IsFatalDismemberBone(FName BoneName) const;
+	virtual bool IsLegBone(FName BoneName) const;
+
+	void ResetDismemberBones();
+	void RegisterDismemberBone(FName BoneName, float Durability);
 
 private:
 
@@ -101,6 +121,10 @@ private:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zombie|Attack", meta = (AllowPrivateAccess = "true"))
 	float AttackRange = 200.0f;
+
+	// 몽타주 45퍼 진행되면 데미지를 줌
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zombie|Attack", meta = (AllowPrivateAccess = "true", ClampMin = "0.0", ClampMax = "0.95"))
+	float AttackDamageTimeRatio = 0.23f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zombie|Crawling", meta = (AllowPrivateAccess = "true"))
 	float CrawlingMaxSpeed = 100.0f;
@@ -127,15 +151,16 @@ private:
 
 	// --- 내부 헬퍼 함수 (클래스 내부에서만 사용되는 함수) ---
 	FVector GetAttackPointForTarget(AActor* TargetActor) const;
+	AActor* ResolveAttackDamageTarget() const;
+	void ScheduleAttackDamage(float MontageDuration);
+	void TriggerAttackDamage();
 	void ApplyAttackDamage(AActor* TargetActor);
 	void ApplyAnimationDesync();
 	void ApplyMovementTuning();
-	void InitializeBoneDurability();
-	FName GetParentBoneForDamage(FName HitBoneName);
 	void ProcessBoneDamage(FName BoneName, float Damage, FVector ImpactPoint, FVector ImpactDirection);
 	void DismemberLimb(FName BoneName, FVector Impulse, FVector HitLocation);
+	void SpawnDismemberChunk(FName BoneName, const FVector& Impulse, const FVector& HitLocation);
 	void StartCrawling();
-	bool IsLegBone(FName BoneName) const;
 
 	UPROPERTY()
 	AActor* CurrentAttackTarget = nullptr;
@@ -184,6 +209,8 @@ private:
 	bool bNetworkTargetIsMoving = false;
 	FVector NetworkTargetLocation = FVector::ZeroVector;
 	FRotator NetworkTargetRotation = FRotator::ZeroRotator;
+	FTimerHandle AttackDamageTimerHandle;
+	bool bAttackDamageApplied = false;
 
 	UFUNCTION()
 	void OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);

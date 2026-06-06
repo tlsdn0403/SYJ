@@ -46,6 +46,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "ZombieSpawner")
 	ESpawnActorCollisionHandlingMethod SpawnCollisionHandling = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "ZombieSpawner", meta = (ClampMin = "0.0"))
+	float MinSpawnSpacing = 180.0f;
+
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "ZombieSpawner")
 	TArray<TObjectPtr<ABaseZombie>> SpawnedZombies;
 

@@ -159,6 +159,9 @@ extern S_ZOMBIE_ATTACKDefaultTypeInternal _S_ZOMBIE_ATTACK_default_instance_;
 class S_ZOMBIE_DIE;
 struct S_ZOMBIE_DIEDefaultTypeInternal;
 extern S_ZOMBIE_DIEDefaultTypeInternal _S_ZOMBIE_DIE_default_instance_;
+class S_ZOMBIE_DISMEMBER;
+struct S_ZOMBIE_DISMEMBERDefaultTypeInternal;
+extern S_ZOMBIE_DISMEMBERDefaultTypeInternal _S_ZOMBIE_DISMEMBER_default_instance_;
 class S_ZOMBIE_HP;
 struct S_ZOMBIE_HPDefaultTypeInternal;
 extern S_ZOMBIE_HPDefaultTypeInternal _S_ZOMBIE_HP_default_instance_;
@@ -201,6 +204,7 @@ template<> ::Protocol::S_TOGGLE_DOOR* Arena::CreateMaybeMessage<::Protocol::S_TO
 template<> ::Protocol::S_TRUCK_MOVE* Arena::CreateMaybeMessage<::Protocol::S_TRUCK_MOVE>(Arena*);
 template<> ::Protocol::S_ZOMBIE_ATTACK* Arena::CreateMaybeMessage<::Protocol::S_ZOMBIE_ATTACK>(Arena*);
 template<> ::Protocol::S_ZOMBIE_DIE* Arena::CreateMaybeMessage<::Protocol::S_ZOMBIE_DIE>(Arena*);
+template<> ::Protocol::S_ZOMBIE_DISMEMBER* Arena::CreateMaybeMessage<::Protocol::S_ZOMBIE_DISMEMBER>(Arena*);
 template<> ::Protocol::S_ZOMBIE_HP* Arena::CreateMaybeMessage<::Protocol::S_ZOMBIE_HP>(Arena*);
 PROTOBUF_NAMESPACE_CLOSE
 namespace Protocol {
@@ -1859,13 +1863,31 @@ class C_HIT_ZOMBIE final :
   // accessors -------------------------------------------------------
 
   enum : int {
+    kHitBoneNameFieldNumber = 7,
     kZombieIdFieldNumber = 1,
     kAttackerIdFieldNumber = 2,
     kDamageFieldNumber = 3,
     kHitXFieldNumber = 4,
     kHitYFieldNumber = 5,
     kHitZFieldNumber = 6,
+    kHitNormalXFieldNumber = 8,
+    kHitNormalYFieldNumber = 9,
+    kHitNormalZFieldNumber = 10,
   };
+  // string hit_bone_name = 7;
+  void clear_hit_bone_name();
+  const std::string& hit_bone_name() const;
+  template <typename ArgT0 = const std::string&, typename... ArgT>
+  void set_hit_bone_name(ArgT0&& arg0, ArgT... args);
+  std::string* mutable_hit_bone_name();
+  PROTOBUF_NODISCARD std::string* release_hit_bone_name();
+  void set_allocated_hit_bone_name(std::string* hit_bone_name);
+  private:
+  const std::string& _internal_hit_bone_name() const;
+  inline PROTOBUF_ALWAYS_INLINE void _internal_set_hit_bone_name(const std::string& value);
+  std::string* _internal_mutable_hit_bone_name();
+  public:
+
   // uint64 zombie_id = 1;
   void clear_zombie_id();
   uint64_t zombie_id() const;
@@ -1920,6 +1942,33 @@ class C_HIT_ZOMBIE final :
   void _internal_set_hit_z(float value);
   public:
 
+  // float hit_normal_x = 8;
+  void clear_hit_normal_x();
+  float hit_normal_x() const;
+  void set_hit_normal_x(float value);
+  private:
+  float _internal_hit_normal_x() const;
+  void _internal_set_hit_normal_x(float value);
+  public:
+
+  // float hit_normal_y = 9;
+  void clear_hit_normal_y();
+  float hit_normal_y() const;
+  void set_hit_normal_y(float value);
+  private:
+  float _internal_hit_normal_y() const;
+  void _internal_set_hit_normal_y(float value);
+  public:
+
+  // float hit_normal_z = 10;
+  void clear_hit_normal_z();
+  float hit_normal_z() const;
+  void set_hit_normal_z(float value);
+  private:
+  float _internal_hit_normal_z() const;
+  void _internal_set_hit_normal_z(float value);
+  public:
+
   // @@protoc_insertion_point(class_scope:Protocol.C_HIT_ZOMBIE)
  private:
   class _Internal;
@@ -1928,12 +1977,16 @@ class C_HIT_ZOMBIE final :
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
   struct Impl_ {
+    ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr hit_bone_name_;
     uint64_t zombie_id_;
     uint64_t attacker_id_;
     float damage_;
     float hit_x_;
     float hit_y_;
     float hit_z_;
+    float hit_normal_x_;
+    float hit_normal_y_;
+    float hit_normal_z_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   };
   union { Impl_ _impl_; };
@@ -6195,6 +6248,236 @@ class S_STAGE_TRANSITION final :
   union { Impl_ _impl_; };
   friend struct ::TableStruct_Protocol_2eproto;
 };
+// -------------------------------------------------------------------
+
+class S_ZOMBIE_DISMEMBER final :
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:Protocol.S_ZOMBIE_DISMEMBER) */ {
+ public:
+  inline S_ZOMBIE_DISMEMBER() : S_ZOMBIE_DISMEMBER(nullptr) {}
+  ~S_ZOMBIE_DISMEMBER() override;
+  explicit PROTOBUF_CONSTEXPR S_ZOMBIE_DISMEMBER(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized);
+
+  S_ZOMBIE_DISMEMBER(const S_ZOMBIE_DISMEMBER& from);
+  S_ZOMBIE_DISMEMBER(S_ZOMBIE_DISMEMBER&& from) noexcept
+    : S_ZOMBIE_DISMEMBER() {
+    *this = ::std::move(from);
+  }
+
+  inline S_ZOMBIE_DISMEMBER& operator=(const S_ZOMBIE_DISMEMBER& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline S_ZOMBIE_DISMEMBER& operator=(S_ZOMBIE_DISMEMBER&& from) noexcept {
+    if (this == &from) return *this;
+    if (GetOwningArena() == from.GetOwningArena()
+  #ifdef PROTOBUF_FORCE_COPY_IN_MOVE
+        && GetOwningArena() != nullptr
+  #endif  // !PROTOBUF_FORCE_COPY_IN_MOVE
+    ) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* descriptor() {
+    return GetDescriptor();
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Reflection* GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const S_ZOMBIE_DISMEMBER& default_instance() {
+    return *internal_default_instance();
+  }
+  static inline const S_ZOMBIE_DISMEMBER* internal_default_instance() {
+    return reinterpret_cast<const S_ZOMBIE_DISMEMBER*>(
+               &_S_ZOMBIE_DISMEMBER_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    38;
+
+  friend void swap(S_ZOMBIE_DISMEMBER& a, S_ZOMBIE_DISMEMBER& b) {
+    a.Swap(&b);
+  }
+  inline void Swap(S_ZOMBIE_DISMEMBER* other) {
+    if (other == this) return;
+  #ifdef PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() != nullptr &&
+        GetOwningArena() == other->GetOwningArena()) {
+   #else  // PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() == other->GetOwningArena()) {
+  #endif  // !PROTOBUF_FORCE_COPY_IN_SWAP
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(S_ZOMBIE_DISMEMBER* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetOwningArena() == other->GetOwningArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  S_ZOMBIE_DISMEMBER* New(::PROTOBUF_NAMESPACE_ID::Arena* arena = nullptr) const final {
+    return CreateMaybeMessage<S_ZOMBIE_DISMEMBER>(arena);
+  }
+  using ::PROTOBUF_NAMESPACE_ID::Message::CopyFrom;
+  void CopyFrom(const S_ZOMBIE_DISMEMBER& from);
+  using ::PROTOBUF_NAMESPACE_ID::Message::MergeFrom;
+  void MergeFrom( const S_ZOMBIE_DISMEMBER& from) {
+    S_ZOMBIE_DISMEMBER::MergeImpl(*this, from);
+  }
+  private:
+  static void MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg);
+  public:
+  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
+  uint8_t* _InternalSerialize(
+      uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
+  int GetCachedSize() const final { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::PROTOBUF_NAMESPACE_ID::Arena* arena, bool is_message_owned);
+  void SharedDtor();
+  void SetCachedSize(int size) const final;
+  void InternalSwap(S_ZOMBIE_DISMEMBER* other);
+
+  private:
+  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
+  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
+    return "Protocol.S_ZOMBIE_DISMEMBER";
+  }
+  protected:
+  explicit S_ZOMBIE_DISMEMBER(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                       bool is_message_owned = false);
+  public:
+
+  static const ClassData _class_data_;
+  const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*GetClassData() const final;
+
+  ::PROTOBUF_NAMESPACE_ID::Metadata GetMetadata() const final;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  enum : int {
+    kBoneNameFieldNumber = 2,
+    kZombieIdFieldNumber = 1,
+    kHitXFieldNumber = 3,
+    kHitYFieldNumber = 4,
+    kHitZFieldNumber = 5,
+    kImpulseXFieldNumber = 6,
+    kImpulseYFieldNumber = 7,
+    kImpulseZFieldNumber = 8,
+  };
+  // string bone_name = 2;
+  void clear_bone_name();
+  const std::string& bone_name() const;
+  template <typename ArgT0 = const std::string&, typename... ArgT>
+  void set_bone_name(ArgT0&& arg0, ArgT... args);
+  std::string* mutable_bone_name();
+  PROTOBUF_NODISCARD std::string* release_bone_name();
+  void set_allocated_bone_name(std::string* bone_name);
+  private:
+  const std::string& _internal_bone_name() const;
+  inline PROTOBUF_ALWAYS_INLINE void _internal_set_bone_name(const std::string& value);
+  std::string* _internal_mutable_bone_name();
+  public:
+
+  // uint64 zombie_id = 1;
+  void clear_zombie_id();
+  uint64_t zombie_id() const;
+  void set_zombie_id(uint64_t value);
+  private:
+  uint64_t _internal_zombie_id() const;
+  void _internal_set_zombie_id(uint64_t value);
+  public:
+
+  // float hit_x = 3;
+  void clear_hit_x();
+  float hit_x() const;
+  void set_hit_x(float value);
+  private:
+  float _internal_hit_x() const;
+  void _internal_set_hit_x(float value);
+  public:
+
+  // float hit_y = 4;
+  void clear_hit_y();
+  float hit_y() const;
+  void set_hit_y(float value);
+  private:
+  float _internal_hit_y() const;
+  void _internal_set_hit_y(float value);
+  public:
+
+  // float hit_z = 5;
+  void clear_hit_z();
+  float hit_z() const;
+  void set_hit_z(float value);
+  private:
+  float _internal_hit_z() const;
+  void _internal_set_hit_z(float value);
+  public:
+
+  // float impulse_x = 6;
+  void clear_impulse_x();
+  float impulse_x() const;
+  void set_impulse_x(float value);
+  private:
+  float _internal_impulse_x() const;
+  void _internal_set_impulse_x(float value);
+  public:
+
+  // float impulse_y = 7;
+  void clear_impulse_y();
+  float impulse_y() const;
+  void set_impulse_y(float value);
+  private:
+  float _internal_impulse_y() const;
+  void _internal_set_impulse_y(float value);
+  public:
+
+  // float impulse_z = 8;
+  void clear_impulse_z();
+  float impulse_z() const;
+  void set_impulse_z(float value);
+  private:
+  float _internal_impulse_z() const;
+  void _internal_set_impulse_z(float value);
+  public:
+
+  // @@protoc_insertion_point(class_scope:Protocol.S_ZOMBIE_DISMEMBER)
+ private:
+  class _Internal;
+
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  struct Impl_ {
+    ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr bone_name_;
+    uint64_t zombie_id_;
+    float hit_x_;
+    float hit_y_;
+    float hit_z_;
+    float impulse_x_;
+    float impulse_y_;
+    float impulse_z_;
+    mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_Protocol_2eproto;
+};
 // ===================================================================
 
 
@@ -6860,6 +7143,116 @@ inline void C_HIT_ZOMBIE::_internal_set_hit_z(float value) {
 inline void C_HIT_ZOMBIE::set_hit_z(float value) {
   _internal_set_hit_z(value);
   // @@protoc_insertion_point(field_set:Protocol.C_HIT_ZOMBIE.hit_z)
+}
+
+// string hit_bone_name = 7;
+inline void C_HIT_ZOMBIE::clear_hit_bone_name() {
+  _impl_.hit_bone_name_.ClearToEmpty();
+}
+inline const std::string& C_HIT_ZOMBIE::hit_bone_name() const {
+  // @@protoc_insertion_point(field_get:Protocol.C_HIT_ZOMBIE.hit_bone_name)
+  return _internal_hit_bone_name();
+}
+template <typename ArgT0, typename... ArgT>
+inline PROTOBUF_ALWAYS_INLINE
+void C_HIT_ZOMBIE::set_hit_bone_name(ArgT0&& arg0, ArgT... args) {
+ 
+ _impl_.hit_bone_name_.Set(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
+  // @@protoc_insertion_point(field_set:Protocol.C_HIT_ZOMBIE.hit_bone_name)
+}
+inline std::string* C_HIT_ZOMBIE::mutable_hit_bone_name() {
+  std::string* _s = _internal_mutable_hit_bone_name();
+  // @@protoc_insertion_point(field_mutable:Protocol.C_HIT_ZOMBIE.hit_bone_name)
+  return _s;
+}
+inline const std::string& C_HIT_ZOMBIE::_internal_hit_bone_name() const {
+  return _impl_.hit_bone_name_.Get();
+}
+inline void C_HIT_ZOMBIE::_internal_set_hit_bone_name(const std::string& value) {
+  
+  _impl_.hit_bone_name_.Set(value, GetArenaForAllocation());
+}
+inline std::string* C_HIT_ZOMBIE::_internal_mutable_hit_bone_name() {
+  
+  return _impl_.hit_bone_name_.Mutable(GetArenaForAllocation());
+}
+inline std::string* C_HIT_ZOMBIE::release_hit_bone_name() {
+  // @@protoc_insertion_point(field_release:Protocol.C_HIT_ZOMBIE.hit_bone_name)
+  return _impl_.hit_bone_name_.Release();
+}
+inline void C_HIT_ZOMBIE::set_allocated_hit_bone_name(std::string* hit_bone_name) {
+  if (hit_bone_name != nullptr) {
+    
+  } else {
+    
+  }
+  _impl_.hit_bone_name_.SetAllocated(hit_bone_name, GetArenaForAllocation());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (_impl_.hit_bone_name_.IsDefault()) {
+    _impl_.hit_bone_name_.Set("", GetArenaForAllocation());
+  }
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  // @@protoc_insertion_point(field_set_allocated:Protocol.C_HIT_ZOMBIE.hit_bone_name)
+}
+
+// float hit_normal_x = 8;
+inline void C_HIT_ZOMBIE::clear_hit_normal_x() {
+  _impl_.hit_normal_x_ = 0;
+}
+inline float C_HIT_ZOMBIE::_internal_hit_normal_x() const {
+  return _impl_.hit_normal_x_;
+}
+inline float C_HIT_ZOMBIE::hit_normal_x() const {
+  // @@protoc_insertion_point(field_get:Protocol.C_HIT_ZOMBIE.hit_normal_x)
+  return _internal_hit_normal_x();
+}
+inline void C_HIT_ZOMBIE::_internal_set_hit_normal_x(float value) {
+  
+  _impl_.hit_normal_x_ = value;
+}
+inline void C_HIT_ZOMBIE::set_hit_normal_x(float value) {
+  _internal_set_hit_normal_x(value);
+  // @@protoc_insertion_point(field_set:Protocol.C_HIT_ZOMBIE.hit_normal_x)
+}
+
+// float hit_normal_y = 9;
+inline void C_HIT_ZOMBIE::clear_hit_normal_y() {
+  _impl_.hit_normal_y_ = 0;
+}
+inline float C_HIT_ZOMBIE::_internal_hit_normal_y() const {
+  return _impl_.hit_normal_y_;
+}
+inline float C_HIT_ZOMBIE::hit_normal_y() const {
+  // @@protoc_insertion_point(field_get:Protocol.C_HIT_ZOMBIE.hit_normal_y)
+  return _internal_hit_normal_y();
+}
+inline void C_HIT_ZOMBIE::_internal_set_hit_normal_y(float value) {
+  
+  _impl_.hit_normal_y_ = value;
+}
+inline void C_HIT_ZOMBIE::set_hit_normal_y(float value) {
+  _internal_set_hit_normal_y(value);
+  // @@protoc_insertion_point(field_set:Protocol.C_HIT_ZOMBIE.hit_normal_y)
+}
+
+// float hit_normal_z = 10;
+inline void C_HIT_ZOMBIE::clear_hit_normal_z() {
+  _impl_.hit_normal_z_ = 0;
+}
+inline float C_HIT_ZOMBIE::_internal_hit_normal_z() const {
+  return _impl_.hit_normal_z_;
+}
+inline float C_HIT_ZOMBIE::hit_normal_z() const {
+  // @@protoc_insertion_point(field_get:Protocol.C_HIT_ZOMBIE.hit_normal_z)
+  return _internal_hit_normal_z();
+}
+inline void C_HIT_ZOMBIE::_internal_set_hit_normal_z(float value) {
+  
+  _impl_.hit_normal_z_ = value;
+}
+inline void C_HIT_ZOMBIE::set_hit_normal_z(float value) {
+  _internal_set_hit_normal_z(value);
+  // @@protoc_insertion_point(field_set:Protocol.C_HIT_ZOMBIE.hit_normal_z)
 }
 
 // -------------------------------------------------------------------
@@ -8238,9 +8631,205 @@ inline void S_STAGE_TRANSITION::set_allocated_target_level(std::string* target_l
   // @@protoc_insertion_point(field_set_allocated:Protocol.S_STAGE_TRANSITION.target_level)
 }
 
+// -------------------------------------------------------------------
+
+// S_ZOMBIE_DISMEMBER
+
+// uint64 zombie_id = 1;
+inline void S_ZOMBIE_DISMEMBER::clear_zombie_id() {
+  _impl_.zombie_id_ = uint64_t{0u};
+}
+inline uint64_t S_ZOMBIE_DISMEMBER::_internal_zombie_id() const {
+  return _impl_.zombie_id_;
+}
+inline uint64_t S_ZOMBIE_DISMEMBER::zombie_id() const {
+  // @@protoc_insertion_point(field_get:Protocol.S_ZOMBIE_DISMEMBER.zombie_id)
+  return _internal_zombie_id();
+}
+inline void S_ZOMBIE_DISMEMBER::_internal_set_zombie_id(uint64_t value) {
+  
+  _impl_.zombie_id_ = value;
+}
+inline void S_ZOMBIE_DISMEMBER::set_zombie_id(uint64_t value) {
+  _internal_set_zombie_id(value);
+  // @@protoc_insertion_point(field_set:Protocol.S_ZOMBIE_DISMEMBER.zombie_id)
+}
+
+// string bone_name = 2;
+inline void S_ZOMBIE_DISMEMBER::clear_bone_name() {
+  _impl_.bone_name_.ClearToEmpty();
+}
+inline const std::string& S_ZOMBIE_DISMEMBER::bone_name() const {
+  // @@protoc_insertion_point(field_get:Protocol.S_ZOMBIE_DISMEMBER.bone_name)
+  return _internal_bone_name();
+}
+template <typename ArgT0, typename... ArgT>
+inline PROTOBUF_ALWAYS_INLINE
+void S_ZOMBIE_DISMEMBER::set_bone_name(ArgT0&& arg0, ArgT... args) {
+ 
+ _impl_.bone_name_.Set(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
+  // @@protoc_insertion_point(field_set:Protocol.S_ZOMBIE_DISMEMBER.bone_name)
+}
+inline std::string* S_ZOMBIE_DISMEMBER::mutable_bone_name() {
+  std::string* _s = _internal_mutable_bone_name();
+  // @@protoc_insertion_point(field_mutable:Protocol.S_ZOMBIE_DISMEMBER.bone_name)
+  return _s;
+}
+inline const std::string& S_ZOMBIE_DISMEMBER::_internal_bone_name() const {
+  return _impl_.bone_name_.Get();
+}
+inline void S_ZOMBIE_DISMEMBER::_internal_set_bone_name(const std::string& value) {
+  
+  _impl_.bone_name_.Set(value, GetArenaForAllocation());
+}
+inline std::string* S_ZOMBIE_DISMEMBER::_internal_mutable_bone_name() {
+  
+  return _impl_.bone_name_.Mutable(GetArenaForAllocation());
+}
+inline std::string* S_ZOMBIE_DISMEMBER::release_bone_name() {
+  // @@protoc_insertion_point(field_release:Protocol.S_ZOMBIE_DISMEMBER.bone_name)
+  return _impl_.bone_name_.Release();
+}
+inline void S_ZOMBIE_DISMEMBER::set_allocated_bone_name(std::string* bone_name) {
+  if (bone_name != nullptr) {
+    
+  } else {
+    
+  }
+  _impl_.bone_name_.SetAllocated(bone_name, GetArenaForAllocation());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (_impl_.bone_name_.IsDefault()) {
+    _impl_.bone_name_.Set("", GetArenaForAllocation());
+  }
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  // @@protoc_insertion_point(field_set_allocated:Protocol.S_ZOMBIE_DISMEMBER.bone_name)
+}
+
+// float hit_x = 3;
+inline void S_ZOMBIE_DISMEMBER::clear_hit_x() {
+  _impl_.hit_x_ = 0;
+}
+inline float S_ZOMBIE_DISMEMBER::_internal_hit_x() const {
+  return _impl_.hit_x_;
+}
+inline float S_ZOMBIE_DISMEMBER::hit_x() const {
+  // @@protoc_insertion_point(field_get:Protocol.S_ZOMBIE_DISMEMBER.hit_x)
+  return _internal_hit_x();
+}
+inline void S_ZOMBIE_DISMEMBER::_internal_set_hit_x(float value) {
+  
+  _impl_.hit_x_ = value;
+}
+inline void S_ZOMBIE_DISMEMBER::set_hit_x(float value) {
+  _internal_set_hit_x(value);
+  // @@protoc_insertion_point(field_set:Protocol.S_ZOMBIE_DISMEMBER.hit_x)
+}
+
+// float hit_y = 4;
+inline void S_ZOMBIE_DISMEMBER::clear_hit_y() {
+  _impl_.hit_y_ = 0;
+}
+inline float S_ZOMBIE_DISMEMBER::_internal_hit_y() const {
+  return _impl_.hit_y_;
+}
+inline float S_ZOMBIE_DISMEMBER::hit_y() const {
+  // @@protoc_insertion_point(field_get:Protocol.S_ZOMBIE_DISMEMBER.hit_y)
+  return _internal_hit_y();
+}
+inline void S_ZOMBIE_DISMEMBER::_internal_set_hit_y(float value) {
+  
+  _impl_.hit_y_ = value;
+}
+inline void S_ZOMBIE_DISMEMBER::set_hit_y(float value) {
+  _internal_set_hit_y(value);
+  // @@protoc_insertion_point(field_set:Protocol.S_ZOMBIE_DISMEMBER.hit_y)
+}
+
+// float hit_z = 5;
+inline void S_ZOMBIE_DISMEMBER::clear_hit_z() {
+  _impl_.hit_z_ = 0;
+}
+inline float S_ZOMBIE_DISMEMBER::_internal_hit_z() const {
+  return _impl_.hit_z_;
+}
+inline float S_ZOMBIE_DISMEMBER::hit_z() const {
+  // @@protoc_insertion_point(field_get:Protocol.S_ZOMBIE_DISMEMBER.hit_z)
+  return _internal_hit_z();
+}
+inline void S_ZOMBIE_DISMEMBER::_internal_set_hit_z(float value) {
+  
+  _impl_.hit_z_ = value;
+}
+inline void S_ZOMBIE_DISMEMBER::set_hit_z(float value) {
+  _internal_set_hit_z(value);
+  // @@protoc_insertion_point(field_set:Protocol.S_ZOMBIE_DISMEMBER.hit_z)
+}
+
+// float impulse_x = 6;
+inline void S_ZOMBIE_DISMEMBER::clear_impulse_x() {
+  _impl_.impulse_x_ = 0;
+}
+inline float S_ZOMBIE_DISMEMBER::_internal_impulse_x() const {
+  return _impl_.impulse_x_;
+}
+inline float S_ZOMBIE_DISMEMBER::impulse_x() const {
+  // @@protoc_insertion_point(field_get:Protocol.S_ZOMBIE_DISMEMBER.impulse_x)
+  return _internal_impulse_x();
+}
+inline void S_ZOMBIE_DISMEMBER::_internal_set_impulse_x(float value) {
+  
+  _impl_.impulse_x_ = value;
+}
+inline void S_ZOMBIE_DISMEMBER::set_impulse_x(float value) {
+  _internal_set_impulse_x(value);
+  // @@protoc_insertion_point(field_set:Protocol.S_ZOMBIE_DISMEMBER.impulse_x)
+}
+
+// float impulse_y = 7;
+inline void S_ZOMBIE_DISMEMBER::clear_impulse_y() {
+  _impl_.impulse_y_ = 0;
+}
+inline float S_ZOMBIE_DISMEMBER::_internal_impulse_y() const {
+  return _impl_.impulse_y_;
+}
+inline float S_ZOMBIE_DISMEMBER::impulse_y() const {
+  // @@protoc_insertion_point(field_get:Protocol.S_ZOMBIE_DISMEMBER.impulse_y)
+  return _internal_impulse_y();
+}
+inline void S_ZOMBIE_DISMEMBER::_internal_set_impulse_y(float value) {
+  
+  _impl_.impulse_y_ = value;
+}
+inline void S_ZOMBIE_DISMEMBER::set_impulse_y(float value) {
+  _internal_set_impulse_y(value);
+  // @@protoc_insertion_point(field_set:Protocol.S_ZOMBIE_DISMEMBER.impulse_y)
+}
+
+// float impulse_z = 8;
+inline void S_ZOMBIE_DISMEMBER::clear_impulse_z() {
+  _impl_.impulse_z_ = 0;
+}
+inline float S_ZOMBIE_DISMEMBER::_internal_impulse_z() const {
+  return _impl_.impulse_z_;
+}
+inline float S_ZOMBIE_DISMEMBER::impulse_z() const {
+  // @@protoc_insertion_point(field_get:Protocol.S_ZOMBIE_DISMEMBER.impulse_z)
+  return _internal_impulse_z();
+}
+inline void S_ZOMBIE_DISMEMBER::_internal_set_impulse_z(float value) {
+  
+  _impl_.impulse_z_ = value;
+}
+inline void S_ZOMBIE_DISMEMBER::set_impulse_z(float value) {
+  _internal_set_impulse_z(value);
+  // @@protoc_insertion_point(field_set:Protocol.S_ZOMBIE_DISMEMBER.impulse_z)
+}
+
 #ifdef __GNUC__
   #pragma GCC diagnostic pop
 #endif  // __GNUC__
+// -------------------------------------------------------------------
+
 // -------------------------------------------------------------------
 
 // -------------------------------------------------------------------

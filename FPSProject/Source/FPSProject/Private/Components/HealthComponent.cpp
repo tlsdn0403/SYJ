@@ -22,7 +22,10 @@ void UHealthComponent::BeginPlay()
 
 	// ...
 	
-	GetOwner()->OnTakePointDamage.AddDynamic(this, &UHealthComponent::PointDamageTaken);
+	if (AActor* Owner = GetOwner())
+	{
+		Owner->OnTakePointDamage.AddUniqueDynamic(this, &UHealthComponent::PointDamageTaken);
+	}
 }
 
 
@@ -34,12 +37,26 @@ void UHealthComponent::PointDamageTaken(AActor* DamagedActor, float Damage, ACon
 
 	FHitResult DummyHit;
 	DummyHit.ImpactPoint = HitLocation;
+	DummyHit.Location = HitLocation;
+	DummyHit.ImpactNormal = -ShotFromDirection.GetSafeNormal();
+	DummyHit.Normal = DummyHit.ImpactNormal;
 	DummyHit.BoneName = BoneName;
+	DummyHit.Component = FHitComponent;
 	OnDamaged.Broadcast(Health, Damage, DummyHit);
 }
 
 // HitResult 넘겨주지 않는 데미지 함수.
 void UHealthComponent::ApplyDamage(float Damage)
+{
+	ApplyDamageInternal(Damage, true);
+}
+
+void UHealthComponent::ApplyDamageSilently(float Damage)
+{
+	ApplyDamageInternal(Damage, false);
+}
+
+void UHealthComponent::ApplyDamageInternal(float Damage, bool bBroadcastHealthChanged)
 {
 	if (Damage <= 0.f) return;
 
@@ -48,7 +65,10 @@ void UHealthComponent::ApplyDamage(float Damage)
 
 	UE_LOG(LogTemp, Warning, TEXT("ApplyDamage: %f, Remaining Health: %f"), Damage, Health);
 
-	OnHealthChanged.Broadcast(Health, Damage);
+	if (bBroadcastHealthChanged)
+	{
+		OnHealthChanged.Broadcast(Health, Damage);
+	}
 }
 
 // Called every frame

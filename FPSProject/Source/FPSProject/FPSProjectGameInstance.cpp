@@ -60,7 +60,6 @@ void UFPSProjectGameInstance::ConnectToGameServer(const FString& IPAddress)
 	FIPv4Address Ip;
 	if (FIPv4Address::Parse(IPAddress, Ip) == false)
 	{
-		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("Connection Failed : 잘못된 IP 주소 형식입니다."));
 		return; // 이상한 IP면 여기서 함수를 바로 종료해서 크래시를 막습니다!
 	}
 
@@ -70,21 +69,16 @@ void UFPSProjectGameInstance::ConnectToGameServer(const FString& IPAddress)
 	InternetAddr->SetIp(Ip.Value);
 	InternetAddr->SetPort(Port);
 
-	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("Connecting To Server...")));
-
 	bool Connected = Socket->Connect(*InternetAddr);
 
 	if (Connected)
 	{
-		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("Connection Success")));
-
 		// Session
 		GameServerSession = MakeShared<PacketSession>(Socket);
 		GameServerSession->Run();
 	}
 	else
 	{
-		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("Connection Failed")));
 	}
 }
 
@@ -165,7 +159,7 @@ void UFPSProjectGameInstance::SendPacketStatic(SendBufferRef SendBuffer)
 	}
 }
 
-bool UFPSProjectGameInstance::SendZombieHitPacket(AFPSBaseCharacter* Attacker, ABaseZombie* Zombie, float Damage, const FVector& HitLocation)
+bool UFPSProjectGameInstance::SendZombieHitPacket(AFPSBaseCharacter* Attacker, ABaseZombie* Zombie, float Damage, const FVector& HitLocation, FName HitBoneName, const FVector& HitNormal)
 {
 	if (Attacker == nullptr || Zombie == nullptr || Damage <= 0.0f)
 	{
@@ -199,6 +193,13 @@ bool UFPSProjectGameInstance::SendZombieHitPacket(AFPSBaseCharacter* Attacker, A
 	hitPkt.set_hit_x(HitLocation.X);
 	hitPkt.set_hit_y(HitLocation.Y);
 	hitPkt.set_hit_z(HitLocation.Z);
+	if (HitBoneName != NAME_None)
+	{
+		hitPkt.set_hit_bone_name(TCHAR_TO_UTF8(*HitBoneName.ToString()));
+	}
+	hitPkt.set_hit_normal_x(HitNormal.X);
+	hitPkt.set_hit_normal_y(HitNormal.Y);
+	hitPkt.set_hit_normal_z(HitNormal.Z);
 	SEND_PACKET(hitPkt);
 
 	return true;
@@ -617,7 +618,10 @@ void UFPSProjectGameInstance::ProcessSpawnObject(const Protocol::ObjectInfo& Obj
 
 		FVector ZombieLocation(ObjectInfo.pos_info().x(), ObjectInfo.pos_info().y(), ObjectInfo.pos_info().z());
 		FRotator ZombieRotation(0.0f, ObjectInfo.pos_info().yaw(), 0.0f);
-		ABaseZombie* SpawnedZombie = World->SpawnActor<ABaseZombie>(NetworkZombieClass, ZombieLocation, ZombieRotation);
+		FActorSpawnParameters SpawnParams;
+		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+
+		ABaseZombie* SpawnedZombie = World->SpawnActor<ABaseZombie>(NetworkZombieClass, ZombieLocation, ZombieRotation, SpawnParams);
 		if (SpawnedZombie)
 		{
 			SpawnedZombie->SetNetworkObjectId(ObjectId);
@@ -1051,6 +1055,20 @@ void UFPSProjectGameInstance::HandleZombieDie(const Protocol::S_ZOMBIE_DIE& pkt)
 	}
 
 	Zombie->HandleNetworkDeath();
+}
+
+void UFPSProjectGameInstance::HandleZombieDismember(const Protocol::S_ZOMBIE_DISMEMBER& pkt)
+{
+	ABaseZombie* Zombie = Zombies.FindRef(pkt.zombie_id());
+	if (Zombie == nullptr)
+	{
+		return;
+	}
+
+	const FName BoneName(UTF8_TO_TCHAR(pkt.bone_name().c_str()));
+	const FVector HitLocation(pkt.hit_x(), pkt.hit_y(), pkt.hit_z());
+	const FVector Impulse(pkt.impulse_x(), pkt.impulse_y(), pkt.impulse_z());
+	Zombie->HandleNetworkDismember(BoneName, Impulse, HitLocation);
 }
 
 ATruck* UFPSProjectGameInstance::FindTruckById(uint64 TruckId)

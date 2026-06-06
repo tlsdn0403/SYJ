@@ -48,6 +48,9 @@ public:
 	bool IsAiming() const { return bIsAiming; }
 
 	UFUNCTION(BlueprintCallable, Category = "FPS|Weapon")
+	bool IsIronSightAiming() const { return bIsIronSightAiming; }
+
+	UFUNCTION(BlueprintCallable, Category = "FPS|Weapon")
 	void GetWeaponAimViewPoint(FVector& OutLocation, FRotator& OutRotation) const;
 
 	UFUNCTION(BlueprintCallable, Category = "FPS|Weapon")
@@ -187,6 +190,15 @@ private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FPS|Weapon", meta = (AllowPrivateAccess = "true"))
 	bool bIsAiming = false;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FPS|Aim", meta = (AllowPrivateAccess = "true"))
+	bool bIsHoldAiming = false;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FPS|Aim", meta = (AllowPrivateAccess = "true"))
+	bool bIsIronSightAiming = false;
+
+	bool bAimInputHeld = false;
+	float AimPressedTime = 0.0f;
+
 	// 기본 카메라 FOV
 	UPROPERTY(EditDefaultsOnly, Category = "FPS|Aim")
 	float DefaultThirdPersonFOV = 90.0f;
@@ -209,6 +221,15 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, Category = "FPS|Aim")
 	float AimInterpSpeed = 12.0f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "FPS|Aim")
+	float AimTapToggleThreshold = 0.22f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "FPS|Aim")
+	float IronSightFOV = 45.0f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "FPS|Aim")
+	float IronSightInterpSpeed = 18.0f;
 
 	UPROPERTY(EditDefaultsOnly, Category = "FPS|Aim")
 	float RecoilRecoverySpeed = 16.0f;

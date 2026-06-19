@@ -94,6 +94,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zombie|Attack")
 	UAnimMontage* AttackMontage;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zombie|Attack")
+	UAnimMontage* CrawlingAttackMontage;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Zombie|Animation", meta = (AllowPrivateAccess = "true"))
 	TSubclassOf<UAnimInstance> ZombieAnimClass;
 
@@ -154,9 +157,13 @@ private:
 	AActor* ResolveAttackDamageTarget() const;
 	void ScheduleAttackDamage(float MontageDuration);
 	void TriggerAttackDamage();
+	void FinishAttack();
 	void ApplyAttackDamage(AActor* TargetActor);
 	void ApplyAnimationDesync();
 	void ApplyMovementTuning();
+	void ApplyAvoidanceTuning();
+	UAnimMontage* GetAttackMontageForCurrentState() const;
+	void StartAttack(AActor* TargetActor, bool bAllowFallbackTarget);
 	void ProcessBoneDamage(FName BoneName, float Damage, FVector ImpactPoint, FVector ImpactDirection);
 	void DismemberLimb(FName BoneName, FVector Impulse, FVector HitLocation);
 	void SpawnDismemberChunk(FName BoneName, const FVector& Impulse, const FVector& HitLocation);
@@ -177,6 +184,9 @@ private:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zombie|Animation", meta = (AllowPrivateAccess = "true"))
 	float AttackMontagePlayRateVariance = 0.08f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zombie|Attack", meta = (AllowPrivateAccess = "true", ClampMin = "0.0"))
+	float FallbackAttackDuration = 0.6f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zombie|Movement", meta = (AllowPrivateAccess = "true"))
 	float TurnRateYaw = 540.0f;
 
@@ -190,10 +200,13 @@ private:
 	bool bUseRVOAvoidance = true;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zombie|Movement|Avoidance", meta = (AllowPrivateAccess = "true", ClampMin = "0.0"))
-	float AvoidanceConsiderationRadius = 280.0f;
+	float AvoidanceConsiderationRadius = 120.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zombie|Movement|Avoidance", meta = (AllowPrivateAccess = "true", ClampMin = "0.0"))
-	float AvoidanceWeight = 0.45f;
+	float CrawlingAvoidanceConsiderationRadius = 70.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zombie|Movement|Avoidance", meta = (AllowPrivateAccess = "true", ClampMin = "0.0"))
+	float AvoidanceWeight = 0.25f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zombie|Movement", meta = (AllowPrivateAccess = "true"))
 	float NetworkMoveInterpSpeed = 10.0f;
@@ -205,11 +218,14 @@ private:
 	float NetworkMoveSnapDistance = 200.0f;
 
 	float AnimationRateScale = 1.0f;
+	FVector StandingMeshRelativeLocation = FVector::ZeroVector;
+	bool bHasStandingMeshRelativeLocation = false;
 	bool bHasNetworkMoveTarget = false;
 	bool bNetworkTargetIsMoving = false;
 	FVector NetworkTargetLocation = FVector::ZeroVector;
 	FRotator NetworkTargetRotation = FRotator::ZeroRotator;
 	FTimerHandle AttackDamageTimerHandle;
+	FTimerHandle AttackFinishTimerHandle;
 	bool bAttackDamageApplied = false;
 
 	UFUNCTION()

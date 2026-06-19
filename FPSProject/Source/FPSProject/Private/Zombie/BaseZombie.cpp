@@ -100,6 +100,9 @@ void ABaseZombie::BeginPlay()
 
 	if (ZombieMesh)
 	{
+		StandingMeshRelativeLocation = ZombieMesh->GetRelativeLocation();
+		bHasStandingMeshRelativeLocation = true;
+
 		ZombieMesh->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
 		ZombieMesh->SetCollisionResponseToChannel(ECC_GameTraceChannel1, ECR_Block);
 
@@ -137,96 +140,12 @@ void ABaseZombie::Attack(AActor* TargetActor)
 		return;
 	}
 
-	if (!bIsAlive || bIsAttacking) return;
-
-	CurrentAttackTarget = TargetActor ? TargetActor : UGameplayStatics::GetPlayerPawn(GetWorld(), 0);
-	if (!CurrentAttackTarget)
-	{
-		return;
-	}
-
-	bIsAttacking = true;
-	bAttackDamageApplied = false;
-	GetWorldTimerManager().ClearTimer(AttackDamageTimerHandle);
-
-	UE_LOG(LogTemp, Warning, TEXT("Zombie %s Attack!"), *GetName());
-
-	// --- 1. 공격 애니메이션 재생 ---
-	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-	if (AnimInstance && AttackMontage)
-	{
-		// 1.0 배속으로 공격 몽타주 재생
-		const float AttackPlayRate = FMath::Max(
-			0.1f,
-			AnimationRateScale * FMath::FRandRange(1.0f - AttackMontagePlayRateVariance, 1.0f + AttackMontagePlayRateVariance));
-
-		// 
-		const float MontageDuration = AnimInstance->Montage_Play(AttackMontage, AttackPlayRate, EMontagePlayReturnType::Duration);
-		if (MontageDuration > 0.0f)
-		{
-			UE_LOG(LogTemp, Warning, TEXT("Zombie %s Montage!"), *GetName());
-			ScheduleAttackDamage(MontageDuration);
-
-			// 몽타주가 끝나면 OnAttackMontageEnded 호출
-			FOnMontageEnded EndDelegate;
-			EndDelegate.BindUObject(this, &ABaseZombie::OnAttackMontageEnded);
-			AnimInstance->Montage_SetEndDelegate(EndDelegate, AttackMontage);
-		}
-		else
-		{
-			TriggerAttackDamage();
-			CurrentAttackTarget = nullptr;
-			bIsAttacking = false;
-		}
-	}
-	else
-	{
-		// 몽타주가 없으면 바로 대미지를 준다.
-		ApplyAttackDamage(CurrentAttackTarget);
-		CurrentAttackTarget = nullptr;
-		bIsAttacking = false;
-	}
+	StartAttack(TargetActor, true);
 }
 
 void ABaseZombie::HandleNetworkAttack(AActor* TargetActor)
 {
-	if (!bIsAlive || bIsAttacking)
-	{
-		return;
-	}
-
-	CurrentAttackTarget = TargetActor;
-	bIsAttacking = true;
-	bAttackDamageApplied = false;
-	GetWorldTimerManager().ClearTimer(AttackDamageTimerHandle);
-
-	UAnimInstance* AnimInstance = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr;
-	if (AnimInstance && AttackMontage)
-	{
-		const float AttackPlayRate = FMath::Max(
-			0.1f,
-			AnimationRateScale * FMath::FRandRange(1.0f - AttackMontagePlayRateVariance, 1.0f + AttackMontagePlayRateVariance));
-		const float MontageDuration = AnimInstance->Montage_Play(AttackMontage, AttackPlayRate, EMontagePlayReturnType::Duration);
-		if (MontageDuration > 0.0f)
-		{
-			ScheduleAttackDamage(MontageDuration);
-
-			FOnMontageEnded EndDelegate;
-			EndDelegate.BindUObject(this, &ABaseZombie::OnAttackMontageEnded);
-			AnimInstance->Montage_SetEndDelegate(EndDelegate, AttackMontage);
-		}
-		else
-		{
-			TriggerAttackDamage();
-			bIsAttacking = false;
-			CurrentAttackTarget = nullptr;
-		}
-	}
-	else
-	{
-		bIsAttacking = false;
-		CurrentAttackTarget = nullptr;
-	}
+	StartAttack(TargetActor, false);
 }
 
 void ABaseZombie::HandleNetworkHit(float NewHealth, float MaxHealth)
@@ -265,6 +184,7 @@ void ABaseZombie::HandleNetworkDeath()
 	CurrentAttackTarget = nullptr;
 	MovementState = EZombieMovementState::Dead;
 	GetWorldTimerManager().ClearTimer(AttackDamageTimerHandle);
+	GetWorldTimerManager().ClearTimer(AttackFinishTimerHandle);
 
 	if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
 	{
@@ -472,8 +392,23 @@ void ABaseZombie::ApplyMovementTuning()
 	MoveComp->MaxAcceleration = MaxAcceleration;
 	MoveComp->BrakingDecelerationWalking = BrakingDecelerationWalking;
 	MoveComp->bRequestedMoveUseAcceleration = true;
+	ApplyAvoidanceTuning();
+}
+
+void ABaseZombie::ApplyAvoidanceTuning()
+{
+	UCharacterMovementComponent* MoveComp = GetCharacterMovement();
+	if (!MoveComp)
+	{
+		return;
+	}
+
 	MoveComp->bUseRVOAvoidance = bUseRVOAvoidance;
-	MoveComp->AvoidanceConsiderationRadius = AvoidanceConsiderationRadius;
+	const float DesiredAvoidanceRadius = MovementState == EZombieMovementState::Crawling
+		? CrawlingAvoidanceConsiderationRadius
+		: AvoidanceConsiderationRadius;
+	const float MaxUsefulAvoidanceRadius = MovementState == EZombieMovementState::Crawling ? 70.0f : 120.0f;
+	MoveComp->AvoidanceConsiderationRadius = FMath::Min(DesiredAvoidanceRadius, MaxUsefulAvoidanceRadius);
 	MoveComp->AvoidanceWeight = AvoidanceWeight;
 }
 
@@ -493,6 +428,89 @@ AActor* ABaseZombie::ResolveAttackDamageTarget() const
 	}
 
 	return TargetActor;
+}
+
+UAnimMontage* ABaseZombie::GetAttackMontageForCurrentState() const
+{
+	if (MovementState == EZombieMovementState::Crawling)
+	{
+		return CrawlingAttackMontage;
+	}
+
+	return AttackMontage;
+}
+
+void ABaseZombie::StartAttack(AActor* TargetActor, bool bAllowFallbackTarget)
+{
+	if (!bIsAlive || bIsAttacking)
+	{
+		return;
+	}
+
+	CurrentAttackTarget = TargetActor;
+	if (!CurrentAttackTarget && bAllowFallbackTarget)
+	{
+		CurrentAttackTarget = UGameplayStatics::GetPlayerPawn(GetWorld(), 0);
+	}
+
+	if (!CurrentAttackTarget)
+	{
+		return;
+	}
+
+	bIsAttacking = true;
+	bAttackDamageApplied = false;
+	GetWorldTimerManager().ClearTimer(AttackDamageTimerHandle);
+	GetWorldTimerManager().ClearTimer(AttackFinishTimerHandle);
+
+	if (AAIController* AIController = Cast<AAIController>(GetController()))
+	{
+		AIController->StopMovement();
+	}
+
+	if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
+	{
+		MoveComp->StopMovementImmediately();
+		MoveComp->bUseRVOAvoidance = false;
+	}
+
+	UE_LOG(LogTemp, Warning, TEXT("Zombie %s Attack! State=%d"), *GetName(), static_cast<int32>(MovementState));
+
+	UAnimInstance* AnimInstance = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr;
+	UAnimMontage* SelectedAttackMontage = GetAttackMontageForCurrentState();
+	if (AnimInstance && SelectedAttackMontage)
+	{
+		const float AttackPlayRate = FMath::Max(
+			0.1f,
+			AnimationRateScale * FMath::FRandRange(1.0f - AttackMontagePlayRateVariance, 1.0f + AttackMontagePlayRateVariance));
+
+		const float MontageDuration = AnimInstance->Montage_Play(SelectedAttackMontage, AttackPlayRate, EMontagePlayReturnType::Duration);
+		if (MontageDuration > 0.0f)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Zombie %s Attack Montage: %s"), *GetName(), *GetNameSafe(SelectedAttackMontage));
+			ScheduleAttackDamage(MontageDuration);
+
+			FOnMontageEnded EndDelegate;
+			EndDelegate.BindUObject(this, &ABaseZombie::OnAttackMontageEnded);
+			AnimInstance->Montage_SetEndDelegate(EndDelegate, SelectedAttackMontage);
+			return;
+		}
+	}
+
+	const float FallbackDuration = FMath::Max(0.0f, FallbackAttackDuration);
+	ScheduleAttackDamage(FallbackDuration);
+	if (FallbackDuration <= KINDA_SMALL_NUMBER)
+	{
+		FinishAttack();
+		return;
+	}
+
+	GetWorldTimerManager().SetTimer(
+		AttackFinishTimerHandle,
+		this,
+		&ABaseZombie::FinishAttack,
+		FallbackDuration,
+		false);
 }
 
 void ABaseZombie::ScheduleAttackDamage(float MontageDuration)
@@ -525,6 +543,17 @@ void ABaseZombie::TriggerAttackDamage()
 
 	bAttackDamageApplied = true;
 	ApplyAttackDamage(ResolveAttackDamageTarget());
+}
+
+void ABaseZombie::FinishAttack()
+{
+	GetWorldTimerManager().ClearTimer(AttackDamageTimerHandle);
+	GetWorldTimerManager().ClearTimer(AttackFinishTimerHandle);
+	CurrentAttackTarget = nullptr;
+	bIsAttacking = false;
+	bAttackDamageApplied = false;
+	ApplyAvoidanceTuning();
+	UE_LOG(LogTemp, Log, TEXT("Attack Finished"));
 }
 
 void ABaseZombie::ApplyAttackDamage(AActor* TargetActor)
@@ -569,11 +598,7 @@ void ABaseZombie::ApplyAttackDamage(AActor* TargetActor)
 
 void ABaseZombie::OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 {
-	GetWorldTimerManager().ClearTimer(AttackDamageTimerHandle);
-	CurrentAttackTarget = nullptr;
-	bIsAttacking = false;
-	bAttackDamageApplied = false;
-	UE_LOG(LogTemp, Log, TEXT("Attack Montage Ended"));
+	FinishAttack();
 }
 
 
@@ -866,15 +891,18 @@ void ABaseZombie::StartCrawling()
 
 		// NavMesh 기반 이동이면 높이 오프셋 조정
 		MoveComp->bOrientRotationToMovement = true;
+		ApplyAvoidanceTuning();
 	}
 
-	// 캡슐을 줄였으니 메시를 아래로 내림
+	// Preserve the blueprint-authored mesh offset. Forcing this to the new capsule half height
+	// lifts the zombie mesh after leg dismemberment, especially in crawling animations.
 	USkeletalMeshComponent* MeshComp = GetMesh();
 	if (MeshComp)
 	{
-		// 기존 메시 위치에서 아래로 내리기
-		FVector CurrentOffset = MeshComp->GetRelativeLocation();
-		MeshComp->SetRelativeLocation(FVector(CurrentOffset.X, CurrentOffset.Y, -CrawlingCapsuleHalfHeight));
+		if (bHasStandingMeshRelativeLocation)
+		{
+			MeshComp->SetRelativeLocation(StandingMeshRelativeLocation);
+		}
 	}
 }
 
@@ -903,6 +931,7 @@ void ABaseZombie::Die()
 	MovementState = EZombieMovementState::Dead;
 	CurrentAttackTarget = nullptr;
 	GetWorldTimerManager().ClearTimer(AttackDamageTimerHandle);
+	GetWorldTimerManager().ClearTimer(AttackFinishTimerHandle);
 
 	UE_LOG(LogTemp, Warning, TEXT("Zombie %s Died!"), *GetName());
 

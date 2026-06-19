@@ -38,11 +38,11 @@ void AStage2TileMarker::OnConstruction(const FTransform& Transform)
 	Super::OnConstruction(Transform);
 
 	// 시작 화살표 설정
-	if (EntryArrow)
+	/*if (EntryArrow)
 	{
 		EntryArrow->SetRelativeLocation(FVector::ZeroVector);
 		EntryArrow->SetRelativeRotation(FRotator::ZeroRotator);
-	}
+	}*/
 }
 
 void AStage2TileMarker::BeginPlay()

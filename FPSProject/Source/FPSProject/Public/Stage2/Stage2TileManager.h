@@ -111,6 +111,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stage2|Pool", meta = (ClampMin = "1000.0"))
 	float PoolParkingSpacing = 20000.0f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stage2|Pool")
+	bool bHidePooledTiles = true;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stage2|Rules", meta = (ClampMin = "1"))
 	int32 GoalAfterPlayableTileCount = 8;
 
@@ -194,6 +197,7 @@ private:
 	bool IsPoolTileAvailable(EStage2TileType TileType) const;
 	bool TryActivatePooledTile(EStage2TileType TileType, const FTransform& EntryTransform);
 	bool TryMoveTileTolocation(FStage2LoadedTile& LoadedTile, const FTransform& NewLevelTransform) const;
+	void SetTileRenderingEnabled(const FStage2LoadedTile& LoadedTile, bool bEnabled) const;
 	FTransform MakePoolParkingTransform();
 	void FinalizeLoadedTile(int32 TileIndex);
 	void UpdateNextSpawnTransformFromTile(const AStage2TileMarker* TileMarker);

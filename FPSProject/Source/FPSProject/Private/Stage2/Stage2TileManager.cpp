@@ -1,5 +1,4 @@
 #include "Stage2/Stage2TileManager.h"
-
 #include "Engine/Level.h"
 #include "Engine/LevelStreamingDynamic.h"
 #include "Engine/World.h"
@@ -113,6 +112,7 @@ void AStage2TileManager::ClearGeneratedTiles()
 	}
 
 	TilePool.Empty();
+
 	ResetGenerationState();
 }
 
@@ -308,6 +308,8 @@ void AStage2TileManager::FinalizePooledTile(int32 PoolIndex)
 	PooledTile.TileMarker->ResetNextTileTrigger();
 	PooledTile.TileMarker->SetNextTileTriggerEnabled(false);
 	PooledTile.bInitialized = true;
+
+	SetTileRenderingEnabled(PooledTile, false);
 }
 
 bool AStage2TileManager::IsTilePoolReady() const
@@ -364,6 +366,8 @@ bool AStage2TileManager::TryActivatePooledTile(EStage2TileType TileType, const F
 		TilePool.Add(ActivatedTile);
 		return false;
 	}
+
+	SetTileRenderingEnabled(ActivatedTile, true);
 
 	ActivatedTile.RequestedEntryTransform = EntryTransform;
 	ActivatedTile.TileType = TileType;
@@ -430,6 +434,37 @@ bool AStage2TileManager::TryMoveTileTolocation(FStage2LoadedTile& LoadedTile, co
 	LoadedTile.StreamingLevel->LevelTransform = NewLevelTransform;
 	LoadedTile.AppliedLevelTransform = NewLevelTransform;
 	return true;
+}
+
+void AStage2TileManager::SetTileRenderingEnabled(const FStage2LoadedTile& LoadedTile, bool bEnabled) const
+{
+	if (!bHidePooledTiles || !LoadedTile.StreamingLevel)
+	{
+		return;
+	}
+
+	ULevel* LoadedLevel = LoadedTile.StreamingLevel->GetLoadedLevel();
+	if (!LoadedLevel)
+	{
+		return;
+	}
+
+	// 모델 컴포넌트 숨기거나 안숨겨지게 함
+	for (UModelComponent* ModelComponent : LoadedLevel->ModelComponents)
+	{
+		if (ModelComponent)
+		{
+			ModelComponent->SetHiddenInGame(!bEnabled);
+		}
+	}
+	// 엑터 컴포넌트 숨기거나 안숨겨지게 함
+	for (AActor* LevelActor : LoadedLevel->Actors)
+	{
+		if (IsValid(LevelActor))
+		{
+			LevelActor->SetActorHiddenInGame(!bEnabled);
+		}
+	}
 }
 
 FTransform AStage2TileManager::MakePoolParkingTransform()
@@ -562,6 +597,7 @@ void AStage2TileManager::RecycleActiveTileAt(int32 TileIndex)
 		RecycledTile.TileMarker->SetNextTileTriggerEnabled(false);
 	}
 
+	SetTileRenderingEnabled(RecycledTile, false);
 	TryMoveTileTolocation(RecycledTile, MakePoolParkingTransform());
 	RecycledTile.RequestedEntryTransform = RecycledTile.AppliedLevelTransform;
 	RecycledTile.bInitialized = true;

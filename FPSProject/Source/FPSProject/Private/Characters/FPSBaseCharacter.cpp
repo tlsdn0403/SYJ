@@ -147,6 +147,8 @@ void AFPSBaseCharacter::Tick(float DeltaTime)
 		!bIsOnTruckCargo &&
 		CurrentWeapon != nullptr;
 
+	UpdateIronSightFirstPersonView(bUseIronSightCamera && bUseFirstPersonWeaponIronSight);
+
 	if (bUseIronSightCamera && FPSCameraComponent)
 	{
 		if (!FPSCameraComponent->IsActive() && ThirdPersonCameraComponent)
@@ -876,6 +878,7 @@ void AFPSBaseCharacter::PlayDrivingAnimation()
 
 void AFPSBaseCharacter::ClearCurrentWeapon()
 {
+	UpdateIronSightFirstPersonView(false);
 	SetCurrentWeapon(nullptr);
 	bIsAiming = false;
 	bIsHoldAiming = false;
@@ -1164,6 +1167,11 @@ void AFPSBaseCharacter::SetTruckMeshMovementIgnored(ATruck* Truck, bool bShouldI
 
 void AFPSBaseCharacter::SetHeldWeaponVehicleVisibility(bool bShouldHide)
 {
+	if (bShouldHide)
+	{
+		UpdateIronSightFirstPersonView(false);
+	}
+
 	if (!IsValid(CurrentWeapon))
 	{
 		return;
@@ -1173,6 +1181,34 @@ void AFPSBaseCharacter::SetHeldWeaponVehicleVisibility(bool bShouldHide)
 	CurrentWeapon->SetWeaponHidden(bShouldHide);
 }
 
+void AFPSBaseCharacter::UpdateIronSightFirstPersonView(bool bEnable)
+{
+	const bool bShouldEnable =
+		bEnable &&
+		IsLocallyControlled() &&
+		!bIsDrivingTruck &&
+		!bIsUsingMountedWeapon &&
+		!bIsOnTruckCargo &&
+		IsValid(CurrentWeapon) &&
+		IsValid(FPSCameraComponent);
+
+	if (bFirstPersonIronSightViewActive == bShouldEnable)
+	{
+		return;
+	}
+
+	bFirstPersonIronSightViewActive = bShouldEnable;
+
+	if (USkeletalMeshComponent* CharacterMesh = GetMesh())
+	{
+		CharacterMesh->SetOwnerNoSee(bShouldEnable);
+	}
+
+	if (IsValid(CurrentWeapon))
+	{
+		CurrentWeapon->SetFirstPersonViewEnabled(bShouldEnable, bShouldEnable ? FPSCameraComponent : nullptr);
+	}
+}
 void AFPSBaseCharacter::ClearTruckInteractionState()
 {
 	CurrentInteractableActor = nullptr;
@@ -1275,8 +1311,8 @@ void AFPSBaseCharacter::EquipWeapon(AWeaponBase* Weapon)
 	const FName SocketName = TEXT("Gun_socket");
 	Weapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, SocketName);
 
-	Weapon->SetActorRelativeLocation(FVector(-7.640821f, 4.648937f, -1.158742f));
-	Weapon->SetActorRelativeRotation(FRotator(-6.316770f, -264.543091f, 2.009403f));
+	Weapon->SetActorRelativeLocation(FVector(-8.883712f, 5.298776f, -0.142411f));
+	Weapon->SetActorRelativeRotation(FRotator(-0.023171f, 82.465882f, 13.423545f));
 	Weapon->SetActorRelativeScale3D(FVector(1.0f, 1.0f, 1.0f));
 
 	SetCurrentWeapon(Weapon);

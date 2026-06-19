@@ -17,8 +17,8 @@ void AAR4::AttachWeapon(AFPSBaseCharacter* TargetCharacter)
     AttachToComponent(AttachMesh, AttachmentRules, AttachSocketName);
 
     // 부착 후 무기  위치, 회전 조정
-    WeaponMesh->SetRelativeLocation(FVector(-7.640821f, 4.648937f, -1.158742f));
-    WeaponMesh->SetRelativeRotation(FRotator(-6.316770f, -264.543091f, 2.009403f));
+    WeaponMesh->SetRelativeLocation(FVector(-8.883712f, 5.298776f, -0.142411f));
+    WeaponMesh->SetRelativeRotation(FRotator(-0.023171f, 82.465882f, 13.423545f));
 
     // 캐릭터의 CurrentWeapon 업데이트
     Character->SetCurrentWeapon(this);

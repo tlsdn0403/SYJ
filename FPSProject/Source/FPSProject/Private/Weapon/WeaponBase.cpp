@@ -5,6 +5,7 @@
 #include "Characters/FPSBaseCharacter.h"
 #include "Kismet/GameplayStatics.h"
 #include "Camera/CameraComponent.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "Animation/AnimInstance.h"
 #include "Sound/SoundBase.h"
 #include "Particles/ParticleSystem.h"
@@ -23,14 +24,106 @@ AWeaponBase::AWeaponBase()
 	WeaponMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("WeaponMesh"));
 	WeaponMesh->SetupAttachment(RootComponent);
 
+	FirstPersonWeaponMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("FirstPersonWeaponMesh"));
+	FirstPersonWeaponMesh->SetupAttachment(RootComponent);
+	FirstPersonWeaponMesh->SetOnlyOwnerSee(true);
+	FirstPersonWeaponMesh->SetOwnerNoSee(false);
+	FirstPersonWeaponMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	FirstPersonWeaponMesh->bCastDynamicShadow = false;
+	FirstPersonWeaponMesh->CastShadow = false;
+	FirstPersonWeaponMesh->SetHiddenInGame(true);
+	FirstPersonWeaponMesh->SetVisibility(false, true);
+
 	AttachSocketName = TEXT("Gun_socket");
 }
 
 void AWeaponBase::BeginPlay()
 {
 	Super::BeginPlay();
+	SyncFirstPersonWeaponMesh();
 }
 
+void AWeaponBase::SyncFirstPersonWeaponMesh()
+{
+	if (!IsValid(WeaponMesh) || !IsValid(FirstPersonWeaponMesh))
+	{
+		return;
+	}
+
+	if (USkeletalMesh* SourceMesh = WeaponMesh->GetSkeletalMeshAsset())
+	{
+		FirstPersonWeaponMesh->SetSkeletalMesh(SourceMesh);
+	}
+
+	const int32 MaterialCount = WeaponMesh->GetNumMaterials();
+	for (int32 MaterialIndex = 0; MaterialIndex < MaterialCount; ++MaterialIndex)
+	{
+		FirstPersonWeaponMesh->SetMaterial(MaterialIndex, WeaponMesh->GetMaterial(MaterialIndex));
+	}
+
+	FirstPersonWeaponMesh->HideBoneByName(TEXT("Bone_002"), PBO_Term);
+}
+
+void AWeaponBase::AlignFirstPersonAimPoint(UCameraComponent* AttachCamera)
+{
+	if (!bAutoAlignFirstPersonAimPoint || !IsValid(AttachCamera) ||
+		!IsValid(FirstPersonWeaponMesh) || FirstPersonAimPointSocketName.IsNone() ||
+		!FirstPersonWeaponMesh->DoesSocketExist(FirstPersonAimPointSocketName))
+	{
+		return;
+	}
+
+	FirstPersonWeaponMesh->UpdateComponentToWorld();
+
+	const FVector AimPointWorldLocation =
+		FirstPersonWeaponMesh->GetSocketLocation(FirstPersonAimPointSocketName);
+	const FVector AimPointCameraLocation =
+		AttachCamera->GetComponentTransform().InverseTransformPosition(AimPointWorldLocation);
+
+	FVector AlignedLocation = FirstPersonWeaponMesh->GetRelativeLocation();
+	AlignedLocation.Y += FirstPersonAimPointCameraOffset.X - AimPointCameraLocation.Y;
+	AlignedLocation.Z += FirstPersonAimPointCameraOffset.Y - AimPointCameraLocation.Z;
+	FirstPersonWeaponMesh->SetRelativeLocation(AlignedLocation);
+}
+
+void AWeaponBase::SetFirstPersonViewEnabled(bool bEnabled, UCameraComponent* AttachCamera)
+{
+	const bool bShouldEnable = bEnabled && IsValid(AttachCamera);
+	bFirstPersonViewEnabled = bShouldEnable;
+
+	if (Character)
+	{
+		SetOwner(Character);
+	}
+
+	if (IsValid(WeaponMesh))
+	{
+		WeaponMesh->SetOwnerNoSee(bShouldEnable);
+	}
+
+	if (!IsValid(FirstPersonWeaponMesh))
+	{
+		return;
+	}
+
+	if (bShouldEnable)
+	{
+		SyncFirstPersonWeaponMesh();
+		FirstPersonWeaponMesh->AttachToComponent(AttachCamera, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+		FirstPersonWeaponMesh->SetRelativeLocation(FirstPersonWeaponRelativeLocation);
+		FirstPersonWeaponMesh->SetRelativeRotation(FirstPersonWeaponRelativeRotation);
+		FirstPersonWeaponMesh->SetRelativeScale3D(FirstPersonWeaponRelativeScale);
+		AlignFirstPersonAimPoint(AttachCamera);
+		FirstPersonWeaponMesh->SetHiddenInGame(false);
+		FirstPersonWeaponMesh->SetVisibility(true, true);
+	}
+	else
+	{
+		FirstPersonWeaponMesh->SetHiddenInGame(true);
+		FirstPersonWeaponMesh->SetVisibility(false, true);
+		FirstPersonWeaponMesh->AttachToComponent(RootComponent, FAttachmentTransformRules::KeepRelativeTransform);
+	}
+}
 void AWeaponBase::AttachWeapon(AFPSBaseCharacter* TargetCharacter)
 {
 	Character = TargetCharacter;
@@ -46,8 +139,8 @@ void AWeaponBase::AttachWeapon(AFPSBaseCharacter* TargetCharacter)
 	WeaponMesh->SetRelativeRotation(FRotator(1.090108f, -88.966904f, -4.015320f));*/
 
 	// 부착 후 무기  위치, 회전 조정
-	WeaponMesh->SetRelativeLocation(FVector(-7.40821f, 4.648937f, 1.158742f));
-	WeaponMesh->SetRelativeRotation(FRotator(-6.316770f, -264.543091f, 2.009403f));
+	WeaponMesh->SetRelativeLocation(FVector(-8.883712f, 5.298776f, -0.142411f));
+	WeaponMesh->SetRelativeRotation(FRotator(-0.023171f, 82.465882f, 13.423545f));
 
 	Character->SetCurrentWeapon(this);
 
@@ -66,6 +159,10 @@ void AWeaponBase::DetachWeapon()
 void AWeaponBase::SetWeaponUser(AFPSBaseCharacter* NewCharacter)
 {
 	Character = NewCharacter;
+	if (NewCharacter)
+	{
+		SetOwner(NewCharacter);
+	}
 }
 
 void AWeaponBase::SetWeaponCollisionEnabled(bool bEnabled)
@@ -161,11 +258,12 @@ void AWeaponBase::Fire()
 				FireLocation = WeaponMesh->GetSocketLocation(MuzzleSocketName);
 			}
 
-			FVector CameraLocation;
-			FRotator CameraRotation;
+			FVector CameraLocation = FVector::ZeroVector;
+			FRotator CameraRotation = FRotator::ZeroRotator;
 			const bool bUseAimSocketTrace =
 				bUseAimSocketForIronSightTrace &&
 				Character->IsIronSightAiming() &&
+				!bFirstPersonViewEnabled &&
 				GetAimSocketViewPoint(CameraLocation, CameraRotation);
 			if (!bUseAimSocketTrace)
 			{

@@ -10,6 +10,7 @@ class USoundBase;
 class UAnimMontage;
 class UParticleSystem;
 class USkeletalMeshComponent;
+class UCameraComponent;
 
 UCLASS()
 class FPSPROJECT_API AWeaponBase : public AActor
@@ -33,6 +34,11 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Weapon|Aim")
 	bool GetAimCameraViewPoint(FVector& OutLocation, FRotator& OutRotation) const;
+	UFUNCTION(BlueprintCallable, Category = "Weapon|FirstPerson")
+	void SetFirstPersonViewEnabled(bool bEnabled, UCameraComponent* AttachCamera);
+
+	UFUNCTION(BlueprintPure, Category = "Weapon|FirstPerson")
+	bool IsFirstPersonViewEnabled() const { return bFirstPersonViewEnabled; }
 
 protected:
 	virtual void BeginPlay() override;
@@ -42,6 +48,9 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon")
 	USkeletalMeshComponent* WeaponMesh;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon|FirstPerson")
+	USkeletalMeshComponent* FirstPersonWeaponMesh;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
 	USoundBase* FireSound;
@@ -60,6 +69,24 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Aim")
 	float AimTraceDistance = 30000.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|FirstPerson")
+	FVector FirstPersonWeaponRelativeLocation = FVector(0.0f, 0.0f, -15.0f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|FirstPerson")
+	FRotator FirstPersonWeaponRelativeRotation = FRotator(0.0f, -90.0f, 0.0f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|FirstPerson")
+	FVector FirstPersonWeaponRelativeScale = FVector(1.0f, 1.0f, 1.0f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|FirstPerson|Alignment")
+	bool bAutoAlignFirstPersonAimPoint = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|FirstPerson|Alignment")
+	FName FirstPersonAimPointSocketName = TEXT("ADS_Socket");
+
+	// Camera-local fine tuning in centimeters: X moves right, Y moves up.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|FirstPerson|Alignment")
+	FVector2D FirstPersonAimPointCameraOffset = FVector2D::ZeroVector;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Aim")
 	FName AimCameraSocketName = TEXT("ADS_Socket");
@@ -110,6 +137,11 @@ protected:
 	float GetCurrentSpreadAngleDegrees() const;
 	void ApplyFireRecoil() const;
 	void PlayMuzzleFlash() const;
+
+	void SyncFirstPersonWeaponMesh();
+	void AlignFirstPersonAimPoint(UCameraComponent* AttachCamera);
+
+	bool bFirstPersonViewEnabled = false;
 
 	AFPSBaseCharacter* Character;
 };

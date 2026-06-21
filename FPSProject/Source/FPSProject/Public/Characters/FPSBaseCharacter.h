@@ -234,6 +234,9 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "FPS|Aim")
 	float RecoilRecoverySpeed = 16.0f;
 
+	UPROPERTY(EditDefaultsOnly, Category = "FPS|Aim")
+	bool bUseFirstPersonWeaponIronSight = true;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FPS|Aim", meta = (AllowPrivateAccess = "true"))
 	FRotator RecoilRecoveryRemaining = FRotator::ZeroRotator;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FPS|Inventory", meta = (AllowPrivateAccess = "true"))
@@ -271,6 +274,7 @@ protected:
 	void ConstrainToTruckCargoBounds();
 	void SetTruckMeshMovementIgnored(ATruck* Truck, bool bShouldIgnore);
 	void SetHeldWeaponVehicleVisibility(bool bShouldHide);
+	void UpdateIronSightFirstPersonView(bool bEnable);
 	void ClearTruckInteractionState();
 	void RefreshTruckInteractionState(ATruck* Truck);
 
@@ -301,4 +305,7 @@ protected:
 
 	UPROPERTY(Transient)
 	bool bEnterGamePacketSent = false;
+
+	UPROPERTY(Transient)
+	bool bFirstPersonIronSightViewActive = false;
 };

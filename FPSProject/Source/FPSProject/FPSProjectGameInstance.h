@@ -122,7 +122,8 @@ public:
 	TSubclassOf<class ABaseZombie> NetworkZombieClass;
 	class AFPSBaseCharacter* MyPlayer;
 	TMap<uint64, class AFPSBaseCharacter*> Players;
-	TMap<uint64, class ABaseZombie*> Zombies;
+	UPROPERTY()
+	TMap<uint64, TObjectPtr<class ABaseZombie>> Zombies;
 	TMap<uint64, class ATruck*> Trucks;
 	TMap<int32, class AADoor*> Doors;
 
@@ -173,6 +174,8 @@ private:
 	void ProcessPendingStage2Spawns();
 	void ApplyStage2StartupActorHold(bool bHold);
 	bool bShouldShowEntryLoadingWidget = false;
+	bool bWaitingForStage2MapLoad = false;
+	FString PendingStageTransitionLevelName;
 	int32 CachedEntryLoadingReadyCount = 0;
 	int32 CachedStageTimerRemainingSeconds = INDEX_NONE;
 	uint32 CachedStage1ItemSpawnSeed = 0;

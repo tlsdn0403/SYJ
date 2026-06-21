@@ -438,9 +438,16 @@ void ATruck::SetLocallyDriven(bool bLocallyDriven)
 
 			TruckMesh->WakeAllRigidBodies();
 		}
-		else if (TruckMesh->IsSimulatingPhysics())
+		else
 		{
-			TruckMesh->SetSimulatePhysics(false);
+			// Chaos vehicles are physics-driven. Turning simulation off during stage travel
+			// can leave the vehicle movement component with a stale physics body.
+			if (TruckMesh->IsSimulatingPhysics())
+			{
+				TruckMesh->SetPhysicsLinearVelocity(FVector::ZeroVector);
+				TruckMesh->SetPhysicsAngularVelocityInDegrees(FVector::ZeroVector);
+				TruckMesh->PutAllRigidBodiesToSleep();
+			}
 		}
 	}
 }

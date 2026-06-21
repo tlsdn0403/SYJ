@@ -223,6 +223,11 @@ void ABaseZombie::HandleNetworkDismember(FName BoneName, const FVector& Impulse,
 
 void ABaseZombie::SetNetworkMoveTarget(const FVector& TargetLocation, const FRotator& TargetRotation, bool bInIsMoving)
 {
+	if (!bIsAlive || IsActorBeingDestroyed() || TargetLocation.ContainsNaN() || TargetRotation.ContainsNaN())
+	{
+		return;
+	}
+
 	const FVector PreviousLocation = GetActorLocation();
 
 	NetworkTargetLocation = TargetLocation;
@@ -230,41 +235,56 @@ void ABaseZombie::SetNetworkMoveTarget(const FVector& TargetLocation, const FRot
 	bNetworkTargetIsMoving = bInIsMoving;
 	bHasNetworkMoveTarget = false;
 
-	SetActorLocationAndRotation(TargetLocation, TargetRotation, false, nullptr, ETeleportType::TeleportPhysics);
-
-	if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
+	if (!SetActorLocationAndRotation(TargetLocation, TargetRotation, false, nullptr, ETeleportType::TeleportPhysics))
 	{
-		float AnimSpeed = 0.0f;
-
-		if (!bInIsMoving)
-		{
-			MoveComp->Velocity = FVector::ZeroVector;
-		}
-		else
-		{
-			constexpr float ZombieServerTickSeconds = 0.1f;
-			constexpr float NetworkZombieFallbackMaxSpeed = 180.0f;
-			FVector PacketVelocity = (TargetLocation - PreviousLocation) / ZombieServerTickSeconds;
-			const float MaxAnimSpeed = MoveComp->GetMaxSpeed() > 0.0f
-				? MoveComp->GetMaxSpeed()
-				: NetworkZombieFallbackMaxSpeed;
-			PacketVelocity = PacketVelocity.GetClampedToMaxSize(MaxAnimSpeed);
-			MoveComp->Velocity = PacketVelocity;
-			AnimSpeed = PacketVelocity.Size2D();
-		}
-
-		MoveComp->UpdateComponentVelocity();
-
-		if (UAnimInstance* AnimInstance = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr)
-		{
-			SetAnimFloatIfPresent(AnimInstance, TEXT("Speed"), AnimSpeed);
-			SetAnimFloatIfPresent(AnimInstance, TEXT("GroundSpeed"), AnimSpeed);
-			SetAnimBoolIfPresent(AnimInstance, TEXT("IsMoving"), bInIsMoving);
-			SetAnimBoolIfPresent(AnimInstance, TEXT("bIsMoving"), bInIsMoving);
-			SetAnimBoolIfPresent(AnimInstance, TEXT("HasAcceleration"), bInIsMoving);
-			SetAnimBoolIfPresent(AnimInstance, TEXT("bHasAcceleration"), bInIsMoving);
-		}
+		return;
 	}
+
+	UCharacterMovementComponent* MoveComp = GetCharacterMovement();
+	if (!IsValid(MoveComp))
+	{
+		return;
+	}
+
+	float AnimSpeed = 0.0f;
+
+	if (!bInIsMoving)
+	{
+		MoveComp->Velocity = FVector::ZeroVector;
+	}
+	else
+	{
+		constexpr float ZombieServerTickSeconds = 0.1f;
+		constexpr float NetworkZombieFallbackMaxSpeed = 180.0f;
+		FVector PacketVelocity = (TargetLocation - PreviousLocation) / ZombieServerTickSeconds;
+		const float MaxAnimSpeed = MoveComp->GetMaxSpeed() > 0.0f
+			? MoveComp->GetMaxSpeed()
+			: NetworkZombieFallbackMaxSpeed;
+		PacketVelocity = PacketVelocity.GetClampedToMaxSize(MaxAnimSpeed);
+		MoveComp->Velocity = PacketVelocity;
+		AnimSpeed = PacketVelocity.Size2D();
+	}
+
+	MoveComp->UpdateComponentVelocity();
+
+	USkeletalMeshComponent* MeshComp = GetMesh();
+	if (!IsValid(MeshComp) || MeshComp->IsSimulatingPhysics())
+	{
+		return;
+	}
+
+	UAnimInstance* AnimInstance = MeshComp->GetAnimInstance();
+	if (!IsValid(AnimInstance))
+	{
+		return;
+	}
+
+	SetAnimFloatIfPresent(AnimInstance, TEXT("Speed"), AnimSpeed);
+	SetAnimFloatIfPresent(AnimInstance, TEXT("GroundSpeed"), AnimSpeed);
+	SetAnimBoolIfPresent(AnimInstance, TEXT("IsMoving"), bInIsMoving);
+	SetAnimBoolIfPresent(AnimInstance, TEXT("bIsMoving"), bInIsMoving);
+	SetAnimBoolIfPresent(AnimInstance, TEXT("HasAcceleration"), bInIsMoving);
+	SetAnimBoolIfPresent(AnimInstance, TEXT("bHasAcceleration"), bInIsMoving);
 }
 
 FVector ABaseZombie::GetAttackPointForTarget(AActor* TargetActor) const

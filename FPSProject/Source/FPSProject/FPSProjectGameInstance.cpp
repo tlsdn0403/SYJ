@@ -33,6 +33,18 @@
 
 namespace
 {
+	bool IsStage2LevelName(const FString& LevelName)
+	{
+		return LevelName.Contains(TEXT("map_level2"), ESearchCase::IgnoreCase) ||
+			LevelName.Contains(TEXT("level2"), ESearchCase::IgnoreCase) ||
+			LevelName.Contains(TEXT("stage2"), ESearchCase::IgnoreCase);
+	}
+
+	bool IsStage2World(const UWorld* World)
+	{
+		return World && IsStage2LevelName(World->GetMapName());
+	}
+
 	AStage2TileManager* FindStage2TileManager(UWorld* World)
 	{
 		if (!World)
@@ -46,6 +58,47 @@ namespace
 		}
 
 		return nullptr;
+	}
+
+	bool TryGetStage2PlayerSpawnTransform(UWorld* World, uint64 ObjectId, FTransform& OutTransform)
+	{
+		if (!IsStage2World(World))
+		{
+			return false;
+		}
+
+		const AStage2TileManager* Stage2TileManager = FindStage2TileManager(World);
+		if (!Stage2TileManager || !Stage2TileManager->AreInitialTilesReady())
+		{
+			return false;
+		}
+
+		FTransform InitialSpawnTransform;
+		if (!Stage2TileManager->TryGetInitialPlayerSpawnTransform(InitialSpawnTransform))
+		{
+			return false;
+		}
+
+		static constexpr float PlayerSpawnSpacing = 180.0f;
+		const int32 SpawnSlot = static_cast<int32>(ObjectId % 3);
+		const float LateralOffset = SpawnSlot == 0 ? 0.0f : (SpawnSlot == 1 ? -PlayerSpawnSpacing : PlayerSpawnSpacing);
+
+		FVector SpawnLocation =
+			InitialSpawnTransform.GetLocation() +
+			InitialSpawnTransform.GetRotation().GetRightVector() * LateralOffset +
+			FVector(0.0f, 0.0f, 180.0f);
+
+		FHitResult GroundHit;
+		const FVector TraceStart = SpawnLocation + FVector(0.0f, 0.0f, 500.0f);
+		const FVector TraceEnd = SpawnLocation - FVector(0.0f, 0.0f, 2500.0f);
+		if (World->LineTraceSingleByChannel(GroundHit, TraceStart, TraceEnd, ECC_Visibility))
+		{
+			SpawnLocation = GroundHit.ImpactPoint + FVector(0.0f, 0.0f, 120.0f);
+		}
+
+		OutTransform = InitialSpawnTransform;
+		OutTransform.SetLocation(SpawnLocation);
+		return true;
 	}
 }
 
@@ -222,6 +275,16 @@ bool UFPSProjectGameInstance::ShouldDelayEnterGameRequest() const
 		return !Stage2TileManager->AreInitialTilesReady();
 	}
 
+	if (bWaitingForStage2MapLoad && IsStage2LevelName(PendingStageTransitionLevelName))
+	{
+		return true;
+	}
+
+	if (IsStage2World(GetWorld()))
+	{
+		return true;
+	}
+
 	return false;
 }
 
@@ -328,8 +391,6 @@ void UFPSProjectGameInstance::RemoveEntryLoadingWidget()
 
 void UFPSProjectGameInstance::HandlePostLoadMap(UWorld* LoadedWorld)
 {
-	(void)LoadedWorld;
-
 	MyPlayer = nullptr;
 	Players.Empty();
 	Zombies.Empty();
@@ -355,6 +416,12 @@ void UFPSProjectGameInstance::HandlePostLoadMap(UWorld* LoadedWorld)
 
 	bHasAppliedStage1ItemSpawns = false;
 	ApplyStage1ItemSpawnSeed();
+
+	if (bWaitingForStage2MapLoad && !IsStage2World(LoadedWorld))
+	{
+		bWaitingForStage2MapLoad = false;
+		PendingStageTransitionLevelName.Empty();
+	}
 }
 
 void UFPSProjectGameInstance::ApplyEntryLoadingReadyCount(int32 ReadyCount)
@@ -645,6 +712,24 @@ void UFPSProjectGameInstance::ProcessSpawnObject(const Protocol::ObjectInfo& Obj
 		return;
 
 	FVector SpawnLocation(ObjectInfo.pos_info().x(), ObjectInfo.pos_info().y(), ObjectInfo.pos_info().z());
+	FRotator SpawnRotation(0.0f, ObjectInfo.pos_info().yaw(), 0.0f);
+	Protocol::PosInfo SpawnPosInfo;
+	SpawnPosInfo.CopyFrom(ObjectInfo.pos_info());
+
+	FTransform Stage2SpawnTransform;
+	const bool bUsedStage2SpawnTransform = TryGetStage2PlayerSpawnTransform(World, ObjectId, Stage2SpawnTransform);
+	if (bUsedStage2SpawnTransform)
+	{
+		SpawnLocation = Stage2SpawnTransform.GetLocation();
+		SpawnRotation = Stage2SpawnTransform.Rotator();
+		SpawnPosInfo.set_x(SpawnLocation.X);
+		SpawnPosInfo.set_y(SpawnLocation.Y);
+		SpawnPosInfo.set_z(SpawnLocation.Z);
+		SpawnPosInfo.set_yaw(SpawnRotation.Yaw);
+		UE_LOG(LogTemp, Warning, TEXT("[Stage2Spawn] Override player spawn. ObjectId=%llu Location=%s"),
+			ObjectId,
+			*SpawnLocation.ToString());
+	}
 
 	// 1. 내 캐릭터인 경우
 	if (IsMine)
@@ -656,17 +741,22 @@ void UFPSProjectGameInstance::ProcessSpawnObject(const Protocol::ObjectInfo& Obj
 			MyPlayer = Cast<AFPSBaseCharacter>(PC->GetPawn());
 			if (MyPlayer)
 			{
-				MyPlayer->SetPlayerInfo(ObjectInfo.pos_info());
-				MyPlayer->SetActorLocation(SpawnLocation, false, nullptr, ETeleportType::TeleportPhysics);
+				MyPlayer->SetPlayerInfo(SpawnPosInfo);
+				MyPlayer->SetActorLocationAndRotation(SpawnLocation, SpawnRotation, false, nullptr, ETeleportType::TeleportPhysics);
 				MyPlayer->SetActorHiddenInGame(false);
 				MyPlayer->SetActorEnableCollision(true);
 				if (UCharacterMovementComponent* MoveComp = MyPlayer->GetCharacterMovement())
 				{
+					MoveComp->StopMovementImmediately();
 					MoveComp->SetMovementMode(MOVE_Walking);
 				}
 				Players.Add(ObjectId, MyPlayer);
 				RetryPendingWeapon(ObjectId);
 				ApplyStageTimerToLocalUI();
+				if (bUsedStage2SpawnTransform)
+				{
+					MyPlayer->SyncMovementToServer();
+				}
 
 				UE_LOG(LogTemp, Warning,
 					TEXT("[TruckDebug] SpawnMine ObjectId=%llu MyPlayer=%s Local=%d Pawn=%s"),
@@ -683,10 +773,10 @@ void UFPSProjectGameInstance::ProcessSpawnObject(const Protocol::ObjectInfo& Obj
 	{
 		if (OtherPlayerClass == nullptr) return;
 
-		AFPSBaseCharacter* OtherPlayer = World->SpawnActor<AFPSBaseCharacter>(OtherPlayerClass, SpawnLocation, FRotator::ZeroRotator);
+		AFPSBaseCharacter* OtherPlayer = World->SpawnActor<AFPSBaseCharacter>(OtherPlayerClass, SpawnLocation, SpawnRotation);
 		if (OtherPlayer)
 		{
-			OtherPlayer->SetPlayerInfo(ObjectInfo.pos_info()); // 타겟 유저의 ID와 위치 정보 세팅
+			OtherPlayer->SetPlayerInfo(SpawnPosInfo); // 타겟 유저의 ID와 위치 정보 세팅
 			Players.Add(ObjectId, OtherPlayer);               // 맵에 등록
 			UE_LOG(LogTemp, Warning,
 				TEXT("[TruckDebug] SpawnOther ObjectId=%llu OtherPlayer=%s Local=%d"),
@@ -707,6 +797,8 @@ void UFPSProjectGameInstance::HandleSpawn(const Protocol::S_ENTER_GAME& EnterGam
 	}
 
 	RemoveEntryLoadingWidget();
+	bWaitingForStage2MapLoad = false;
+	PendingStageTransitionLevelName.Empty();
 	HandleSpawn(EnterGamePkt.player(), true);
 }
 
@@ -723,6 +815,16 @@ bool UFPSProjectGameInstance::ShouldDelayStage2ActorSpawn() const
 	if (const AStage2TileManager* Stage2TileManager = FindStage2TileManager(GetWorld()))
 	{
 		return !Stage2TileManager->AreInitialTilesReady();
+	}
+
+	if (bWaitingForStage2MapLoad && IsStage2LevelName(PendingStageTransitionLevelName))
+	{
+		return true;
+	}
+
+	if (IsStage2World(GetWorld()))
+	{
+		return true;
 	}
 
 	return false;
@@ -762,6 +864,8 @@ void UFPSProjectGameInstance::ProcessPendingStage2Spawns()
 		if (PendingSpawn.bIsMine)
 		{
 			RemoveEntryLoadingWidget();
+			bWaitingForStage2MapLoad = false;
+			PendingStageTransitionLevelName.Empty();
 		}
 
 		ProcessSpawnObject(PendingSpawn.ObjectInfo, PendingSpawn.bIsMine);
@@ -842,6 +946,11 @@ void UFPSProjectGameInstance::ApplyStage2StartupActorHold(bool bHold)
 
 		if (USkeletalMeshComponent* TruckMesh = Truck->GetMesh())
 		{
+			if (!IsValid(TruckMesh) || !TruckMesh->IsRegistered())
+			{
+				continue;
+			}
+
 			TruckMesh->SetEnableGravity(!bHold);
 			if (bHold)
 			{
@@ -870,7 +979,10 @@ void UFPSProjectGameInstance::HandleDespawn(uint64 ObjectId)
 
 	if (ABaseZombie* Zombie = Zombies.FindRef(ObjectId))
 	{
-		World->DestroyActor(Zombie);
+		if (IsValid(Zombie))
+		{
+			World->DestroyActor(Zombie);
+		}
 		Zombies.Remove(ObjectId);
 		return;
 	}
@@ -954,7 +1066,10 @@ void UFPSProjectGameInstance::HandleDespawn(const Protocol::S_DESPAWN& DespawnPk
 		case Protocol::OBJECT_TYPE_CREATURE:
 			if (ABaseZombie* Zombie = Zombies.FindRef(ObjectId))
 			{
-				World->DestroyActor(Zombie);
+				if (IsValid(Zombie))
+				{
+					World->DestroyActor(Zombie);
+				}
 				Zombies.Remove(ObjectId);
 				continue;
 			}
@@ -992,8 +1107,9 @@ void UFPSProjectGameInstance::HandleMove(const Protocol::S_MOVE& MovePkt)
 	if (ObjectId >= 1000000)
 	{
 		ABaseZombie* Zombie = Zombies.FindRef(ObjectId);
-		if (Zombie == nullptr)
+		if (!IsValid(Zombie))
 		{
+			Zombies.Remove(ObjectId);
 			return;
 		}
 
@@ -1026,8 +1142,9 @@ void UFPSProjectGameInstance::HandleMove(const Protocol::S_MOVE& MovePkt)
 void UFPSProjectGameInstance::HandleZombieAttack(const Protocol::S_ZOMBIE_ATTACK& pkt)
 {
 	ABaseZombie* Zombie = Zombies.FindRef(pkt.zombie_id());
-	if (Zombie == nullptr)
+	if (!IsValid(Zombie))
 	{
+		Zombies.Remove(pkt.zombie_id());
 		return;
 	}
 
@@ -1038,8 +1155,9 @@ void UFPSProjectGameInstance::HandleZombieAttack(const Protocol::S_ZOMBIE_ATTACK
 void UFPSProjectGameInstance::HandleZombieHp(const Protocol::S_ZOMBIE_HP& pkt)
 {
 	ABaseZombie* Zombie = Zombies.FindRef(pkt.zombie_id());
-	if (Zombie == nullptr)
+	if (!IsValid(Zombie))
 	{
+		Zombies.Remove(pkt.zombie_id());
 		return;
 	}
 
@@ -1049,8 +1167,9 @@ void UFPSProjectGameInstance::HandleZombieHp(const Protocol::S_ZOMBIE_HP& pkt)
 void UFPSProjectGameInstance::HandleZombieDie(const Protocol::S_ZOMBIE_DIE& pkt)
 {
 	ABaseZombie* Zombie = Zombies.FindRef(pkt.zombie_id());
-	if (Zombie == nullptr)
+	if (!IsValid(Zombie))
 	{
+		Zombies.Remove(pkt.zombie_id());
 		return;
 	}
 
@@ -1060,8 +1179,9 @@ void UFPSProjectGameInstance::HandleZombieDie(const Protocol::S_ZOMBIE_DIE& pkt)
 void UFPSProjectGameInstance::HandleZombieDismember(const Protocol::S_ZOMBIE_DISMEMBER& pkt)
 {
 	ABaseZombie* Zombie = Zombies.FindRef(pkt.zombie_id());
-	if (Zombie == nullptr)
+	if (!IsValid(Zombie))
 	{
+		Zombies.Remove(pkt.zombie_id());
 		return;
 	}
 
@@ -1427,6 +1547,8 @@ void UFPSProjectGameInstance::HandleStageTransition(const Protocol::S_STAGE_TRAN
 		return;
 	}
 
+	PendingStageTransitionLevelName = TargetLevelName;
+	bWaitingForStage2MapLoad = IsStage2LevelName(TargetLevelName);
 	UGameplayStatics::OpenLevel(this, FName(*TargetLevelName));
 }
 

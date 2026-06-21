@@ -57,7 +57,6 @@ int main()
 	// Main Thread
 	//DoWorkerJob(service);
 
-	GRoom->SpawnStage2Zombies();
 	GRoom->DoAsync(&Room::UpdateTick);
 
 	while (true)

@@ -1493,7 +1493,7 @@ void UFPSProjectGameInstance::HandleTruckMove(const Protocol::S_TRUCK_MOVE& pkt)
 		return;
 	}
 
-	if (Truck->IsLocallyDriven())
+	if (Truck->IsLocallyDriven() && !IsConnectedToGameServer())
 	{
 		UE_LOG(LogTemp, Warning,
 			TEXT("[TruckDebug] IgnoreRemoteTruckMove Truck=%s TruckId=%llu"),
@@ -1504,10 +1504,11 @@ void UFPSProjectGameInstance::HandleTruckMove(const Protocol::S_TRUCK_MOVE& pkt)
 
 	const FVector TargetLocation(pkt.info().x(), pkt.info().y(), pkt.info().z());
 	const FRotator TargetRotation(0.0f, pkt.info().yaw(), 0.0f);
-	Truck->SetLocallyDriven(false);
+	Truck->SetLocallyDriven(Truck->IsLocallyDriven());
 	Truck->SetActorLocationAndRotation(TargetLocation, TargetRotation, false, nullptr, ETeleportType::TeleportPhysics);
 	if (USkeletalMeshComponent* TruckMesh = Truck->GetMesh())
 	{
+		TruckMesh->SetSimulatePhysics(false);
 		TruckMesh->SetWorldLocationAndRotation(TargetLocation, TargetRotation, false, nullptr, ETeleportType::TeleportPhysics);
 	}
 }

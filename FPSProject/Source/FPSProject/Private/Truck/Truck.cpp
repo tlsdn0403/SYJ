@@ -433,13 +433,14 @@ void ATruck::SendTruckMovePacket()
 	}
 
 	Protocol::C_TRUCK_MOVE MovePkt;
-	Protocol::PosInfo* Info = MovePkt.mutable_info();
-	Info->set_object_id(NetworkTruckId);
-	Info->set_x(GetActorLocation().X);
-	Info->set_y(GetActorLocation().Y);
-	Info->set_z(GetActorLocation().Z);
-	Info->set_yaw(GetActorRotation().Yaw);
-	Info->set_state(GetVelocity().SizeSquared() > KINDA_SMALL_NUMBER ? Protocol::MOVE_STATE_RUN : Protocol::MOVE_STATE_IDLE);
+	MovePkt.set_truck_id(NetworkTruckId);
+	MovePkt.set_throttle(CachedThrottleInput);
+	MovePkt.set_steering(CachedSteeringInput);
+	MovePkt.set_brake(CachedBrakeInput);
+	MovePkt.set_client_x(GetActorLocation().X);
+	MovePkt.set_client_y(GetActorLocation().Y);
+	MovePkt.set_client_z(GetActorLocation().Z);
+	MovePkt.set_client_yaw(GetActorRotation().Yaw);
 
 	SEND_PACKET(MovePkt);
 }
@@ -447,19 +448,22 @@ void ATruck::SendTruckMovePacket()
 void ATruck::SetLocallyDriven(bool bLocallyDriven)
 {
 	bIsLocallyDriven = bLocallyDriven;
+	const UFPSProjectGameInstance* GameInstance = Cast<UFPSProjectGameInstance>(GetGameInstance());
+	const bool bUseServerAuthoritativeMovement = GameInstance && GameInstance->IsConnectedToGameServer();
 
 	UE_LOG(LogTemp, Warning,
-		TEXT("[TruckDebug] SetLocallyDriven Truck=%s bLocallyDriven=%d Controller=%s IsPlayerControlled=%d"),
+		TEXT("[TruckDebug] SetLocallyDriven Truck=%s bLocallyDriven=%d ServerAuth=%d Controller=%s IsPlayerControlled=%d"),
 		*GetNameSafe(this),
 		bLocallyDriven ? 1 : 0,
+		bUseServerAuthoritativeMovement ? 1 : 0,
 		*GetNameSafe(GetController()),
 		IsPlayerControlled() ? 1 : 0);
 
 	if (auto* MoveComp = Cast<UChaosWheeledVehicleMovementComponent>(GetVehicleMovement()))
 	{
-		MoveComp->SetComponentTickEnabled(bLocallyDriven);
+		MoveComp->SetComponentTickEnabled(bLocallyDriven && !bUseServerAuthoritativeMovement);
 
-		if (bLocallyDriven)
+		if (bLocallyDriven && !bUseServerAuthoritativeMovement)
 		{
 			MoveComp->SetThrottleInput(0.0f);
 			MoveComp->SetSteeringInput(0.0f);
@@ -475,7 +479,14 @@ void ATruck::SetLocallyDriven(bool bLocallyDriven)
 
 	if (USkeletalMeshComponent* TruckMesh = GetMesh())
 	{
-		if (bLocallyDriven)
+		if (bUseServerAuthoritativeMovement)
+		{
+			TruckMesh->SetPhysicsLinearVelocity(FVector::ZeroVector);
+			TruckMesh->SetPhysicsAngularVelocityInDegrees(FVector::ZeroVector);
+			TruckMesh->SetSimulatePhysics(false);
+			TruckMesh->PutAllRigidBodiesToSleep();
+		}
+		else if (bLocallyDriven)
 		{
 			if (!TruckMesh->IsSimulatingPhysics())
 			{
@@ -632,28 +643,31 @@ void ATruck::HandleTruckHealthChanged(float NewHealth, float Damage)
 void ATruck::MoveForward(float Value)
 {
 	/*UE_LOG(LogTemp, Warning, TEXT("Throttle Input: %f"), Value);*/
+	CachedThrottleInput = bTruckDestroyed ? 0.0f : FMath::Clamp(Value, -1.0f, 1.0f);
 	if (auto* MoveComp = Cast<UChaosWheeledVehicleMovementComponent>(GetVehicleMovement()))
 	{
-		MoveComp->SetThrottleInput(bTruckDestroyed ? 0.0f : Value);
+		MoveComp->SetThrottleInput(CachedThrottleInput);
 	}
 }
 
 void ATruck::MoveRight(float Value)
 {
+	CachedSteeringInput = bTruckDestroyed ? 0.0f : FMath::Clamp(Value, -1.0f, 1.0f);
 	if (auto* MoveComp = Cast<UChaosWheeledVehicleMovementComponent>(GetVehicleMovement()))
 	{
-		MoveComp->SetSteeringInput(bTruckDestroyed ? 0.0f : Value);
+		MoveComp->SetSteeringInput(CachedSteeringInput);
 	}
 }
 
 void ATruck::Brake(float Value)
 {
+	CachedBrakeInput = bTruckDestroyed ? 1.0f : FMath::Clamp(Value, 0.0f, 1.0f);
 	if (auto* MoveComp = Cast<UChaosWheeledVehicleMovementComponent>(GetVehicleMovement()))
 	{
-		MoveComp->SetBrakeInput(bTruckDestroyed ? 1.0f : Value);
+		MoveComp->SetBrakeInput(CachedBrakeInput);
 
 		const float Speed = GetVelocity().Size();
-		const bool bBrakePressed = Value > 0.5f;
+		const bool bBrakePressed = CachedBrakeInput > 0.5f;
 		if (bBrakePressed && !bBrakePressedLastFrame && Speed > BrakeSoundMinSpeed)
 		{
 			if (BrakeSound)

@@ -159,7 +159,14 @@ message S_EXIT_TRUCK
 
 message C_TRUCK_MOVE
 {
-	PosInfo info = 1;
+	uint64 truck_id = 1;
+	float throttle = 2;
+	float steering = 3;
+	float brake = 4;
+	float client_x = 5;
+	float client_y = 6;
+	float client_z = 7;
+	float client_yaw = 8;
 }
 
 message S_TRUCK_MOVE

@@ -490,6 +490,15 @@ namespace
 	constexpr float ZOMBIE_DESPAWN_DELAY_SECONDS = 3.0f;
 	constexpr float ZOMBIE_SEPARATION_RADIUS = 180.0f;
 	constexpr float ZOMBIE_SEPARATION_WEIGHT = 1.35f;
+	constexpr float TRUCK_SERVER_TICK_SECONDS = 0.1f;
+	constexpr float TRUCK_MAX_FORWARD_SPEED = 1600.0f;
+	constexpr float TRUCK_MAX_REVERSE_SPEED = 500.0f;
+	constexpr float TRUCK_ACCELERATION = 950.0f;
+	constexpr float TRUCK_REVERSE_ACCELERATION = 550.0f;
+	constexpr float TRUCK_BRAKE_DECELERATION = 2200.0f;
+	constexpr float TRUCK_DRAG_DECELERATION = 260.0f;
+	constexpr float TRUCK_MAX_TURN_RATE_DEGREES = 90.0f;
+	constexpr float TRUCK_IDLE_SPEED_EPSILON = 10.0f;
 
 	struct ZombieSpawnInfo
 	{
@@ -568,6 +577,71 @@ void Room::BroadcastZombieMove(const MonsterRef& monster)
 
 	SendBufferRef sendBuffer = ServerPacketHandler::MakeSendBuffer(movePkt);
 	Broadcast(sendBuffer);
+}
+
+void Room::BroadcastTruckMove(const TruckState& truckState)
+{
+	Protocol::S_TRUCK_MOVE movePkt;
+	movePkt.mutable_info()->CopyFrom(truckState.posInfo);
+
+	SendBufferRef sendBuffer = ServerPacketHandler::MakeSendBuffer(movePkt);
+	Broadcast(sendBuffer);
+}
+
+void Room::UpdateTrucks()
+{
+	for (auto& item : _trucks)
+	{
+		TruckState& truckState = item.second;
+		if (truckState.driverPlayerId == 0 || truckState.hasAuthoritativeState == false)
+			continue;
+
+		const float throttle = max(-1.0f, min(1.0f, truckState.throttleInput));
+		const float steering = max(-1.0f, min(1.0f, truckState.steeringInput));
+		const float brake = max(0.0f, min(1.0f, truckState.brakeInput));
+
+		float acceleration = 0.0f;
+		if (throttle >= 0.0f)
+			acceleration += throttle * TRUCK_ACCELERATION;
+		else
+			acceleration += throttle * TRUCK_REVERSE_ACCELERATION;
+
+		if (brake > 0.0f)
+		{
+			const float brakeDelta = TRUCK_BRAKE_DECELERATION * brake * TRUCK_SERVER_TICK_SECONDS;
+			if (truckState.forwardSpeed > 0.0f)
+				truckState.forwardSpeed = max(0.0f, truckState.forwardSpeed - brakeDelta);
+			else if (truckState.forwardSpeed < 0.0f)
+				truckState.forwardSpeed = min(0.0f, truckState.forwardSpeed + brakeDelta);
+		}
+
+		truckState.forwardSpeed += acceleration * TRUCK_SERVER_TICK_SECONDS;
+
+		if (fabsf(throttle) < 0.05f && brake <= 0.0f)
+		{
+			const float dragDelta = TRUCK_DRAG_DECELERATION * TRUCK_SERVER_TICK_SECONDS;
+			if (truckState.forwardSpeed > 0.0f)
+				truckState.forwardSpeed = max(0.0f, truckState.forwardSpeed - dragDelta);
+			else if (truckState.forwardSpeed < 0.0f)
+				truckState.forwardSpeed = min(0.0f, truckState.forwardSpeed + dragDelta);
+		}
+
+		truckState.forwardSpeed = max(-TRUCK_MAX_REVERSE_SPEED, min(TRUCK_MAX_FORWARD_SPEED, truckState.forwardSpeed));
+
+		const float speedRatio = min(1.0f, fabsf(truckState.forwardSpeed) / TRUCK_MAX_FORWARD_SPEED);
+		const float reverseSign = truckState.forwardSpeed >= 0.0f ? 1.0f : -1.0f;
+		const float yawDelta = steering * TRUCK_MAX_TURN_RATE_DEGREES * speedRatio * reverseSign * TRUCK_SERVER_TICK_SECONDS;
+		const float yaw = truckState.posInfo.yaw() + yawDelta;
+		truckState.posInfo.set_yaw(yaw);
+
+		const float yawRadians = yaw * (3.1415926535f / 180.0f);
+		const float moveDistance = truckState.forwardSpeed * TRUCK_SERVER_TICK_SECONDS;
+		truckState.posInfo.set_x(truckState.posInfo.x() + cosf(yawRadians) * moveDistance);
+		truckState.posInfo.set_y(truckState.posInfo.y() + sinf(yawRadians) * moveDistance);
+		truckState.posInfo.set_state(fabsf(truckState.forwardSpeed) > TRUCK_IDLE_SPEED_EPSILON ? Protocol::MOVE_STATE_RUN : Protocol::MOVE_STATE_IDLE);
+
+		BroadcastTruckMove(truckState);
+	}
 }
 
 void Room::UpdateZombies()
@@ -997,6 +1071,9 @@ void Room::HandleTruckMove(PlayerRef player, Protocol::C_TRUCK_MOVE pkt)
 		return;
 
 	const uint64 truckId = player->currentTruckId;
+	if (pkt.truck_id() != truckId)
+		return;
+
 	TruckState* truckState = FindTruckState(truckId);
 	if (truckState == nullptr)
 		return;
@@ -1004,14 +1081,22 @@ void Room::HandleTruckMove(PlayerRef player, Protocol::C_TRUCK_MOVE pkt)
 	if (truckState->driverPlayerId != player->objectInfo->object_id())
 		return;
 
-	truckState->posInfo.CopyFrom(pkt.info());
-	truckState->posInfo.set_object_id(truckId);
+	truckState->throttleInput = max(-1.0f, min(1.0f, pkt.throttle()));
+	truckState->steeringInput = max(-1.0f, min(1.0f, pkt.steering()));
+	truckState->brakeInput = max(0.0f, min(1.0f, pkt.brake()));
 
-	Protocol::S_TRUCK_MOVE movePkt;
-	movePkt.mutable_info()->CopyFrom(truckState->posInfo);
-
-	SendBufferRef sendBuffer = ServerPacketHandler::MakeSendBuffer(movePkt);
-	Broadcast(sendBuffer);
+	if (truckState->hasAuthoritativeState == false)
+	{
+		truckState->posInfo.set_object_id(truckId);
+		truckState->posInfo.set_x(pkt.client_x());
+		truckState->posInfo.set_y(pkt.client_y());
+		truckState->posInfo.set_z(pkt.client_z());
+		truckState->posInfo.set_yaw(pkt.client_yaw());
+		truckState->posInfo.set_state(Protocol::MOVE_STATE_IDLE);
+		truckState->forwardSpeed = 0.0f;
+		truckState->hasAuthoritativeState = true;
+		BroadcastTruckMove(*truckState);
+	}
 }
 
 void Room::HandleLoadTruckItem(PlayerRef player, Protocol::C_LOAD_TRUCK_ITEM pkt)
@@ -1091,6 +1176,7 @@ void Room::HandleStageTransitionRequest(PlayerRef player, Protocol::C_STAGE_TRAN
 
 void Room::UpdateTick()
 {
+	UpdateTrucks();
 	UpdateZombies();
 	BroadcastStageTimer();
 

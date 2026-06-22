@@ -35,7 +35,7 @@ bool Handle_S_LOGIN(PacketSessionRef& session, Protocol::S_LOGIN& pkt)
 			UWorld* World = GetGameWorld();
 			if (World)
 			{
-				UGameplayStatics::OpenLevel(World, TEXT("sinwoo_test"));
+				UGameplayStatics::OpenLevel(World, TEXT("Map_RL"));
 			}
 		});
 

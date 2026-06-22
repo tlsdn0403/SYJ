@@ -394,6 +394,7 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORIT
 PROTOBUF_CONSTEXPR S_TRUCK_MOVE::S_TRUCK_MOVE(
     ::_pbi::ConstantInitialized): _impl_{
     /*decltype(_impl_.info_)*/nullptr
+  , /*decltype(_impl_.is_correction_)*/false
   , /*decltype(_impl_._cached_size_)*/{}} {}
 struct S_TRUCK_MOVEDefaultTypeInternal {
   PROTOBUF_CONSTEXPR S_TRUCK_MOVEDefaultTypeInternal()
@@ -788,6 +789,7 @@ const uint32_t TableStruct_Protocol_2eproto::offsets[] PROTOBUF_SECTION_VARIABLE
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
   PROTOBUF_FIELD_OFFSET(::Protocol::S_TRUCK_MOVE, _impl_.info_),
+  PROTOBUF_FIELD_OFFSET(::Protocol::S_TRUCK_MOVE, _impl_.is_correction_),
   ~0u,  // no _has_bits_
   PROTOBUF_FIELD_OFFSET(::Protocol::C_LOAD_TRUCK_ITEM, _internal_metadata_),
   ~0u,  // no _extensions_
@@ -909,17 +911,17 @@ static const ::_pbi::MigrationSchema schemas[] PROTOBUF_SECTION_VARIABLE(protode
   { 195, -1, -1, sizeof(::Protocol::S_EXIT_TRUCK)},
   { 204, -1, -1, sizeof(::Protocol::C_TRUCK_MOVE)},
   { 211, -1, -1, sizeof(::Protocol::S_TRUCK_MOVE)},
-  { 218, -1, -1, sizeof(::Protocol::C_LOAD_TRUCK_ITEM)},
-  { 226, -1, -1, sizeof(::Protocol::S_LOAD_TRUCK_ITEM)},
-  { 235, -1, -1, sizeof(::Protocol::C_TOGGLE_DOOR)},
-  { 242, -1, -1, sizeof(::Protocol::S_TOGGLE_DOOR)},
-  { 250, -1, -1, sizeof(::Protocol::S_ENTER_GAME_READY_COUNT)},
-  { 258, -1, -1, sizeof(::Protocol::S_STAGE_TIMER)},
-  { 266, -1, -1, sizeof(::Protocol::S_STAGE1_ITEM_SEED)},
-  { 273, -1, -1, sizeof(::Protocol::S_RESPAWN_LOOT_ITEM)},
-  { 280, -1, -1, sizeof(::Protocol::C_STAGE_TRANSITION_REQUEST)},
-  { 288, -1, -1, sizeof(::Protocol::S_STAGE_TRANSITION)},
-  { 295, -1, -1, sizeof(::Protocol::S_ZOMBIE_DISMEMBER)},
+  { 219, -1, -1, sizeof(::Protocol::C_LOAD_TRUCK_ITEM)},
+  { 227, -1, -1, sizeof(::Protocol::S_LOAD_TRUCK_ITEM)},
+  { 236, -1, -1, sizeof(::Protocol::C_TOGGLE_DOOR)},
+  { 243, -1, -1, sizeof(::Protocol::S_TOGGLE_DOOR)},
+  { 251, -1, -1, sizeof(::Protocol::S_ENTER_GAME_READY_COUNT)},
+  { 259, -1, -1, sizeof(::Protocol::S_STAGE_TIMER)},
+  { 267, -1, -1, sizeof(::Protocol::S_STAGE1_ITEM_SEED)},
+  { 274, -1, -1, sizeof(::Protocol::S_RESPAWN_LOOT_ITEM)},
+  { 281, -1, -1, sizeof(::Protocol::C_STAGE_TRANSITION_REQUEST)},
+  { 289, -1, -1, sizeof(::Protocol::S_STAGE_TRANSITION)},
+  { 296, -1, -1, sizeof(::Protocol::S_ZOMBIE_DISMEMBER)},
 };
 
 static const ::_pb::Message* const file_default_instances[] = {
@@ -1004,27 +1006,28 @@ const char descriptor_table_protodef_Protocol_2eproto[] PROTOBUF_SECTION_VARIABL
   "XIT_TRUCK\"_\n\014S_EXIT_TRUCK\022\021\n\tplayer_id\030\001"
   " \001(\004\022\020\n\010truck_id\030\002 \001(\004\022*\n\tseat_type\030\003 \001("
   "\0162\027.Protocol.TruckSeatType\"/\n\014C_TRUCK_MO"
-  "VE\022\037\n\004info\030\001 \001(\0132\021.Protocol.PosInfo\"/\n\014S"
+  "VE\022\037\n\004info\030\001 \001(\0132\021.Protocol.PosInfo\"F\n\014S"
   "_TRUCK_MOVE\022\037\n\004info\030\001 \001(\0132\021.Protocol.Pos"
-  "Info\"9\n\021C_LOAD_TRUCK_ITEM\022\020\n\010truck_id\030\001 "
-  "\001(\004\022\022\n\nitem_types\030\002 \003(\005\"L\n\021S_LOAD_TRUCK_"
-  "ITEM\022\021\n\tplayer_id\030\001 \001(\004\022\020\n\010truck_id\030\002 \001("
-  "\004\022\022\n\nitem_types\030\003 \003(\005\" \n\rC_TOGGLE_DOOR\022\017"
-  "\n\007door_id\030\001 \001(\004\"1\n\rS_TOGGLE_DOOR\022\017\n\007door"
-  "_id\030\001 \001(\004\022\017\n\007is_open\030\002 \001(\010\"G\n\030S_ENTER_GA"
-  "ME_READY_COUNT\022\023\n\013ready_count\030\001 \001(\005\022\026\n\016r"
-  "equired_count\030\002 \001(\005\"D\n\rS_STAGE_TIMER\022\031\n\021"
-  "remaining_seconds\030\001 \001(\005\022\030\n\020is_loading_ph"
-  "ase\030\002 \001(\010\"\"\n\022S_STAGE1_ITEM_SEED\022\014\n\004seed\030"
-  "\001 \001(\r\".\n\023S_RESPAWN_LOOT_ITEM\022\027\n\017item_obj"
-  "ect_ids\030\001 \003(\004\"D\n\032C_STAGE_TRANSITION_REQU"
-  "EST\022\020\n\010truck_id\030\001 \001(\004\022\024\n\014target_level\030\002 "
-  "\001(\t\"*\n\022S_STAGE_TRANSITION\022\024\n\014target_leve"
-  "l\030\001 \001(\t\"\240\001\n\022S_ZOMBIE_DISMEMBER\022\021\n\tzombie"
-  "_id\030\001 \001(\004\022\021\n\tbone_name\030\002 \001(\t\022\r\n\005hit_x\030\003 "
-  "\001(\002\022\r\n\005hit_y\030\004 \001(\002\022\r\n\005hit_z\030\005 \001(\002\022\021\n\timp"
-  "ulse_x\030\006 \001(\002\022\021\n\timpulse_y\030\007 \001(\002\022\021\n\timpul"
-  "se_z\030\010 \001(\002b\006proto3"
+  "Info\022\025\n\ris_correction\030\002 \001(\010\"9\n\021C_LOAD_TR"
+  "UCK_ITEM\022\020\n\010truck_id\030\001 \001(\004\022\022\n\nitem_types"
+  "\030\002 \003(\005\"L\n\021S_LOAD_TRUCK_ITEM\022\021\n\tplayer_id"
+  "\030\001 \001(\004\022\020\n\010truck_id\030\002 \001(\004\022\022\n\nitem_types\030\003"
+  " \003(\005\" \n\rC_TOGGLE_DOOR\022\017\n\007door_id\030\001 \001(\004\"1"
+  "\n\rS_TOGGLE_DOOR\022\017\n\007door_id\030\001 \001(\004\022\017\n\007is_o"
+  "pen\030\002 \001(\010\"G\n\030S_ENTER_GAME_READY_COUNT\022\023\n"
+  "\013ready_count\030\001 \001(\005\022\026\n\016required_count\030\002 \001"
+  "(\005\"D\n\rS_STAGE_TIMER\022\031\n\021remaining_seconds"
+  "\030\001 \001(\005\022\030\n\020is_loading_phase\030\002 \001(\010\"\"\n\022S_ST"
+  "AGE1_ITEM_SEED\022\014\n\004seed\030\001 \001(\r\".\n\023S_RESPAW"
+  "N_LOOT_ITEM\022\027\n\017item_object_ids\030\001 \003(\004\"D\n\032"
+  "C_STAGE_TRANSITION_REQUEST\022\020\n\010truck_id\030\001"
+  " \001(\004\022\024\n\014target_level\030\002 \001(\t\"*\n\022S_STAGE_TR"
+  "ANSITION\022\024\n\014target_level\030\001 \001(\t\"\240\001\n\022S_ZOM"
+  "BIE_DISMEMBER\022\021\n\tzombie_id\030\001 \001(\004\022\021\n\tbone"
+  "_name\030\002 \001(\t\022\r\n\005hit_x\030\003 \001(\002\022\r\n\005hit_y\030\004 \001("
+  "\002\022\r\n\005hit_z\030\005 \001(\002\022\021\n\timpulse_x\030\006 \001(\002\022\021\n\ti"
+  "mpulse_y\030\007 \001(\002\022\021\n\timpulse_z\030\010 \001(\002b\006proto"
+  "3"
   ;
 static const ::_pbi::DescriptorTable* const descriptor_table_Protocol_2eproto_deps[2] = {
   &::descriptor_table_Enum_2eproto,
@@ -1032,7 +1035,7 @@ static const ::_pbi::DescriptorTable* const descriptor_table_Protocol_2eproto_de
 };
 static ::_pbi::once_flag descriptor_table_Protocol_2eproto_once;
 const ::_pbi::DescriptorTable descriptor_table_Protocol_2eproto = {
-    false, false, 2378, descriptor_table_protodef_Protocol_2eproto,
+    false, false, 2401, descriptor_table_protodef_Protocol_2eproto,
     "Protocol.proto",
     &descriptor_table_Protocol_2eproto_once, descriptor_table_Protocol_2eproto_deps, 2, 39,
     schemas, file_default_instances, TableStruct_Protocol_2eproto::offsets,
@@ -6517,12 +6520,14 @@ S_TRUCK_MOVE::S_TRUCK_MOVE(const S_TRUCK_MOVE& from)
   S_TRUCK_MOVE* const _this = this; (void)_this;
   new (&_impl_) Impl_{
       decltype(_impl_.info_){nullptr}
+    , decltype(_impl_.is_correction_){}
     , /*decltype(_impl_._cached_size_)*/{}};
 
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
   if (from._internal_has_info()) {
     _this->_impl_.info_ = new ::Protocol::PosInfo(*from._impl_.info_);
   }
+  _this->_impl_.is_correction_ = from._impl_.is_correction_;
   // @@protoc_insertion_point(copy_constructor:Protocol.S_TRUCK_MOVE)
 }
 
@@ -6532,6 +6537,7 @@ inline void S_TRUCK_MOVE::SharedCtor(
   (void)is_message_owned;
   new (&_impl_) Impl_{
       decltype(_impl_.info_){nullptr}
+    , decltype(_impl_.is_correction_){false}
     , /*decltype(_impl_._cached_size_)*/{}
   };
 }
@@ -6564,6 +6570,7 @@ void S_TRUCK_MOVE::Clear() {
     delete _impl_.info_;
   }
   _impl_.info_ = nullptr;
+  _impl_.is_correction_ = false;
   _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
 }
 
@@ -6577,6 +6584,14 @@ const char* S_TRUCK_MOVE::_InternalParse(const char* ptr, ::_pbi::ParseContext* 
       case 1:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
           ptr = ctx->ParseMessage(_internal_mutable_info(), ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // bool is_correction = 2;
+      case 2:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 16)) {
+          _impl_.is_correction_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
           CHK_(ptr);
         } else
           goto handle_unusual;
@@ -6617,6 +6632,12 @@ uint8_t* S_TRUCK_MOVE::_InternalSerialize(
         _Internal::info(this).GetCachedSize(), target, stream);
   }
 
+  // bool is_correction = 2;
+  if (this->_internal_is_correction() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteBoolToArray(2, this->_internal_is_correction(), target);
+  }
+
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
@@ -6638,6 +6659,11 @@ size_t S_TRUCK_MOVE::ByteSizeLong() const {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
         *_impl_.info_);
+  }
+
+  // bool is_correction = 2;
+  if (this->_internal_is_correction() != 0) {
+    total_size += 1 + 1;
   }
 
   return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
@@ -6662,6 +6688,9 @@ void S_TRUCK_MOVE::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::P
     _this->_internal_mutable_info()->::Protocol::PosInfo::MergeFrom(
         from._internal_info());
   }
+  if (from._internal_is_correction() != 0) {
+    _this->_internal_set_is_correction(from._internal_is_correction());
+  }
   _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
 }
 
@@ -6679,7 +6708,12 @@ bool S_TRUCK_MOVE::IsInitialized() const {
 void S_TRUCK_MOVE::InternalSwap(S_TRUCK_MOVE* other) {
   using std::swap;
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
-  swap(_impl_.info_, other->_impl_.info_);
+  ::PROTOBUF_NAMESPACE_ID::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(S_TRUCK_MOVE, _impl_.is_correction_)
+      + sizeof(S_TRUCK_MOVE::_impl_.is_correction_)
+      - PROTOBUF_FIELD_OFFSET(S_TRUCK_MOVE, _impl_.info_)>(
+          reinterpret_cast<char*>(&_impl_.info_),
+          reinterpret_cast<char*>(&other->_impl_.info_));
 }
 
 ::PROTOBUF_NAMESPACE_ID::Metadata S_TRUCK_MOVE::GetMetadata() const {

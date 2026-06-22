@@ -256,10 +256,18 @@ void ATruck::BeginPlay()
 
 	if (USkeletalMeshComponent* TruckMesh = GetMesh())
 	{
+		// Characters are network-controlled pawns. Letting them block a simulated
+		// Chaos vehicle makes every client produce a different contact impulse.
+		// Zombie impacts are handled by CheckZombieImpactSweep instead.
+		TruckMesh->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
 		TruckMesh->SetGenerateOverlapEvents(true);
 		TruckMesh->SetNotifyRigidBodyCollision(true);
 		TruckMesh->OnComponentHit.AddDynamic(this, &ATruck::OnTruckMeshHit);
 	}
+
+	// The driver's client is the only physics authority for the truck.
+	// Until a local driver is assigned, keep the vehicle kinematic on every client.
+	SetLocallyDriven(false);
 
 	if (EngineSoundCue)
 	{
@@ -335,8 +343,11 @@ void ATruck::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	CheckZombieImpactSweep();
-	ReportZombieAwarenessNoise(DeltaTime);
+	if (bIsLocallyDriven || NetworkTruckId == 0)
+	{
+		CheckZombieImpactSweep();
+		ReportZombieAwarenessNoise(DeltaTime);
+	}
 
 	if (bIsLocallyDriven)
 	{
@@ -438,7 +449,10 @@ void ATruck::SendTruckMovePacket()
 	Info->set_x(GetActorLocation().X);
 	Info->set_y(GetActorLocation().Y);
 	Info->set_z(GetActorLocation().Z);
-	Info->set_yaw(GetActorRotation().Yaw);
+	const FRotator TruckRotation = GetActorRotation();
+	Info->set_yaw(TruckRotation.Yaw);
+	Info->set_pitch(TruckRotation.Pitch);
+	Info->set_roll(TruckRotation.Roll);
 	Info->set_state(GetVelocity().SizeSquared() > KINDA_SMALL_NUMBER ? Protocol::MOVE_STATE_RUN : Protocol::MOVE_STATE_IDLE);
 
 	SEND_PACKET(MovePkt);
@@ -486,16 +500,59 @@ void ATruck::SetLocallyDriven(bool bLocallyDriven)
 		}
 		else
 		{
-			// Chaos vehicles are physics-driven. Turning simulation off during stage travel
-			// can leave the vehicle movement component with a stale physics body.
 			if (TruckMesh->IsSimulatingPhysics())
 			{
 				TruckMesh->SetPhysicsLinearVelocity(FVector::ZeroVector);
 				TruckMesh->SetPhysicsAngularVelocityInDegrees(FVector::ZeroVector);
 				TruckMesh->PutAllRigidBodiesToSleep();
+				TruckMesh->SetSimulatePhysics(false);
 			}
 		}
 	}
+}
+
+void ATruck::ApplyNetworkTransform(const FVector& TargetLocation, const FRotator& TargetRotation, bool bForceCorrection)
+{
+	if (bIsLocallyDriven)
+	{
+		// Accepted packets are echoed to everyone, including the driver. Only an
+		// explicit server correction is allowed to override local physics authority.
+		if (!bForceCorrection)
+		{
+			return;
+		}
+
+		if (USkeletalMeshComponent* TruckMesh = GetMesh())
+		{
+			TruckMesh->SetPhysicsLinearVelocity(FVector::ZeroVector);
+			TruckMesh->SetPhysicsAngularVelocityInDegrees(FVector::ZeroVector);
+		}
+
+		SetActorLocationAndRotation(
+			TargetLocation,
+			TargetRotation,
+			false,
+			nullptr,
+			ETeleportType::TeleportPhysics);
+		return;
+	}
+
+	if (USkeletalMeshComponent* TruckMesh = GetMesh())
+	{
+		if (TruckMesh->IsSimulatingPhysics())
+		{
+			TruckMesh->SetPhysicsLinearVelocity(FVector::ZeroVector);
+			TruckMesh->SetPhysicsAngularVelocityInDegrees(FVector::ZeroVector);
+			TruckMesh->SetSimulatePhysics(false);
+		}
+	}
+
+	SetActorLocationAndRotation(
+		TargetLocation,
+		TargetRotation,
+		false,
+		nullptr,
+		ETeleportType::TeleportPhysics);
 }
 
 void ATruck::SetLoadingPhase(bool bLoadingPhase)
@@ -533,12 +590,29 @@ FRotator ATruck::GetDriverSeatRotation() const
 
 FVector ATruck::GetDriverExitLocation() const
 {
-	return DriverExitPoint ? DriverExitPoint->GetComponentLocation() : GetActorLocation() - GetActorRightVector() * 200.f;
+	if (DriverExitPoint)
+	{
+		const FTransform UprightTruckTransform(GetUprightExitRotation(), GetActorLocation());
+		return UprightTruckTransform.TransformPosition(DriverExitPoint->GetRelativeLocation());
+	}
+
+	return GetActorLocation() - GetUprightExitRotation().RotateVector(FVector::RightVector) * 200.0f;
+}
+
+FRotator ATruck::GetUprightExitRotation() const
+{
+	return FRotator(0.0f, GetActorRotation().Yaw, 0.0f);
 }
 
 FVector ATruck::GetCargoExitLocation() const
 {
-	return CargoExitPoint ? CargoExitPoint->GetComponentLocation() : GetActorLocation() + GetActorRightVector() * 200.f;
+	if (CargoExitPoint)
+	{
+		const FTransform UprightTruckTransform(GetUprightExitRotation(), GetActorLocation());
+		return UprightTruckTransform.TransformPosition(CargoExitPoint->GetRelativeLocation());
+	}
+
+	return GetActorLocation() + GetUprightExitRotation().RotateVector(FVector::RightVector) * 200.0f;
 }
 
 FVector ATruck::GetTurretSeatLocation() const
@@ -1043,6 +1117,10 @@ void ATruck::ExitDriverSeat()
 
 	if (bShouldHandleLocalExit)
 	{
+		// TCP preserves packet order, so the server receives this final transform
+		// before the following exit request and freezes every client at the same pose.
+		SendTruckMovePacket();
+
 		if (UFPSProjectGameInstance* GameInstance = Cast<UFPSProjectGameInstance>(CharacterToRestore->GetGameInstance()))
 		{
 			if (GameInstance->TryExitTruckLocally(CharacterToRestore))

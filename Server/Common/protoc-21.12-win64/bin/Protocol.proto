@@ -165,6 +165,7 @@ message C_TRUCK_MOVE
 message S_TRUCK_MOVE
 {
 	PosInfo info = 1;
+	bool is_correction = 2;
 }
 
 message C_LOAD_TRUCK_ITEM

@@ -11,6 +11,8 @@ message PosInfo
 	float z = 4;
 	float yaw = 5;
 	MoveState state = 6;
+	float pitch = 7;
+	float roll = 8;
 }
 
 message ObjectInfo

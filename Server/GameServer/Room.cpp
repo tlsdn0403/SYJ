@@ -4,6 +4,7 @@
 #include "GameSession.h"
 #include "Monster.h"
 #include "ObjectUtils.h"
+#include <cmath>
 #include <limits>
 
 RoomRef GRoom = make_shared<Room>();
@@ -134,6 +135,18 @@ void Room::ForceExitTruck(PlayerRef player)
 	exitPkt.set_seat_type(seatType);
 
 	SendBufferRef sendBuffer = ServerPacketHandler::MakeSendBuffer(exitPkt);
+	Broadcast(sendBuffer);
+}
+
+void Room::BroadcastTruckState(const TruckState& truckState, bool isCorrection)
+{
+	if (truckState.hasTransform == false)
+		return;
+
+	Protocol::S_TRUCK_MOVE movePkt;
+	movePkt.mutable_info()->CopyFrom(truckState.posInfo);
+	movePkt.set_is_correction(isCorrection);
+	SendBufferRef sendBuffer = ServerPacketHandler::MakeSendBuffer(movePkt);
 	Broadcast(sendBuffer);
 }
 
@@ -946,14 +959,10 @@ void Room::HandleEnterTruck(PlayerRef player, Protocol::C_ENTER_TRUCK pkt)
 	player->currentTruckId = truckId;
 	player->currentTruckSeatType = seatType;
 
-	if (seatType == Protocol::TRUCK_SEAT_DRIVER)
-	{
-		truckState.posInfo.set_x(player->posInfo->x());
-		truckState.posInfo.set_y(player->posInfo->y());
-		truckState.posInfo.set_z(player->posInfo->z());
-		truckState.posInfo.set_yaw(player->posInfo->yaw());
-		truckState.posInfo.set_state(player->posInfo->state());
-	}
+	// A new driver must start from the last server-approved truck pose, not from
+	// the player's standing position beside the truck.
+	if (seatType == Protocol::TRUCK_SEAT_DRIVER && truckState.hasTransform)
+		BroadcastTruckState(truckState, true);
 
 	BroadcastSeatChange(seatType);
 }
@@ -1004,14 +1013,59 @@ void Room::HandleTruckMove(PlayerRef player, Protocol::C_TRUCK_MOVE pkt)
 	if (truckState->driverPlayerId != player->objectInfo->object_id())
 		return;
 
-	truckState->posInfo.CopyFrom(pkt.info());
+	const Protocol::PosInfo& incoming = pkt.info();
+	if (incoming.object_id() != 0 && incoming.object_id() != truckId)
+		return;
+
+	const bool bFiniteTransform =
+		std::isfinite(incoming.x()) &&
+		std::isfinite(incoming.y()) &&
+		std::isfinite(incoming.z()) &&
+		std::isfinite(incoming.yaw()) &&
+		std::isfinite(incoming.pitch()) &&
+		std::isfinite(incoming.roll());
+	if (bFiniteTransform == false)
+	{
+		BroadcastTruckState(*truckState, true);
+		return;
+	}
+
+	constexpr float MAX_WORLD_COORDINATE = 5000000.0f;
+	if (std::abs(incoming.x()) > MAX_WORLD_COORDINATE ||
+		std::abs(incoming.y()) > MAX_WORLD_COORDINATE ||
+		std::abs(incoming.z()) > MAX_WORLD_COORDINATE)
+	{
+		BroadcastTruckState(*truckState, true);
+		return;
+	}
+
+	if (truckState->hasTransform)
+	{
+		const float dx = incoming.x() - truckState->posInfo.x();
+		const float dy = incoming.y() - truckState->posInfo.y();
+		const float dz = incoming.z() - truckState->posInfo.z();
+		constexpr float MAX_TRUCK_DELTA_PER_PACKET = 5000.0f;
+		if ((dx * dx + dy * dy + dz * dz) >
+			MAX_TRUCK_DELTA_PER_PACKET * MAX_TRUCK_DELTA_PER_PACKET)
+		{
+			BroadcastTruckState(*truckState, true);
+			return;
+		}
+	}
+
+	truckState->posInfo.CopyFrom(incoming);
 	truckState->posInfo.set_object_id(truckId);
+	truckState->hasTransform = true;
 
-	Protocol::S_TRUCK_MOVE movePkt;
-	movePkt.mutable_info()->CopyFrom(truckState->posInfo);
+	// The driver character is unpossessed while driving, so C_MOVE stops.
+	// Keep the server-side player position on the truck for zombie targeting.
+	player->posInfo->set_x(incoming.x());
+	player->posInfo->set_y(incoming.y());
+	player->posInfo->set_z(incoming.z());
+	player->posInfo->set_yaw(incoming.yaw());
+	player->posInfo->set_state(incoming.state());
 
-	SendBufferRef sendBuffer = ServerPacketHandler::MakeSendBuffer(movePkt);
-	Broadcast(sendBuffer);
+	BroadcastTruckState(*truckState);
 }
 
 void Room::HandleLoadTruckItem(PlayerRef player, Protocol::C_LOAD_TRUCK_ITEM pkt)

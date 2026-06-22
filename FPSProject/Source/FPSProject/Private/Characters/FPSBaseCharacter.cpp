@@ -450,7 +450,10 @@ void AFPSBaseCharacter::ExitTruckDriverSeat()
 	DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 	SetActorLocationAndRotation(
 		Truck->GetDriverExitLocation(),
-		Truck->GetActorRotation()
+		Truck->GetUprightExitRotation(),
+		false,
+		nullptr,
+		ETeleportType::TeleportPhysics
 	);
 
 	if (GetCharacterMovement())
@@ -528,7 +531,7 @@ void AFPSBaseCharacter::ExitTruckCargo()
 	EndTruckCargoWalk();
 	SetActorLocationAndRotation(
 		Truck->GetCargoExitLocation(),
-		Truck->GetActorRotation(),
+		Truck->GetUprightExitRotation(),
 		false,
 		nullptr,
 		ETeleportType::TeleportPhysics);
@@ -720,7 +723,7 @@ void AFPSBaseCharacter::ExitMountedWeapon(bool bReturnToCargo)
 
 		SetActorLocationAndRotation(
 			Truck->GetCargoExitLocation(),
-			Truck->GetActorRotation(),
+			Truck->GetUprightExitRotation(),
 			false,
 			nullptr,
 			ETeleportType::TeleportPhysics);

@@ -192,6 +192,8 @@ class PosInfo final :
     kZFieldNumber = 4,
     kYawFieldNumber = 5,
     kStateFieldNumber = 6,
+    kPitchFieldNumber = 7,
+    kRollFieldNumber = 8,
   };
   // uint64 object_id = 1;
   void clear_object_id();
@@ -247,6 +249,24 @@ class PosInfo final :
   void _internal_set_state(::Protocol::MoveState value);
   public:
 
+  // float pitch = 7;
+  void clear_pitch();
+  float pitch() const;
+  void set_pitch(float value);
+  private:
+  float _internal_pitch() const;
+  void _internal_set_pitch(float value);
+  public:
+
+  // float roll = 8;
+  void clear_roll();
+  float roll() const;
+  void set_roll(float value);
+  private:
+  float _internal_roll() const;
+  void _internal_set_roll(float value);
+  public:
+
   // @@protoc_insertion_point(class_scope:Protocol.PosInfo)
  private:
   class _Internal;
@@ -261,6 +281,8 @@ class PosInfo final :
     float z_;
     float yaw_;
     int state_;
+    float pitch_;
+    float roll_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   };
   union { Impl_ _impl_; };
@@ -744,6 +766,46 @@ inline void PosInfo::_internal_set_state(::Protocol::MoveState value) {
 inline void PosInfo::set_state(::Protocol::MoveState value) {
   _internal_set_state(value);
   // @@protoc_insertion_point(field_set:Protocol.PosInfo.state)
+}
+
+// float pitch = 7;
+inline void PosInfo::clear_pitch() {
+  _impl_.pitch_ = 0;
+}
+inline float PosInfo::_internal_pitch() const {
+  return _impl_.pitch_;
+}
+inline float PosInfo::pitch() const {
+  // @@protoc_insertion_point(field_get:Protocol.PosInfo.pitch)
+  return _internal_pitch();
+}
+inline void PosInfo::_internal_set_pitch(float value) {
+
+  _impl_.pitch_ = value;
+}
+inline void PosInfo::set_pitch(float value) {
+  _internal_set_pitch(value);
+  // @@protoc_insertion_point(field_set:Protocol.PosInfo.pitch)
+}
+
+// float roll = 8;
+inline void PosInfo::clear_roll() {
+  _impl_.roll_ = 0;
+}
+inline float PosInfo::_internal_roll() const {
+  return _impl_.roll_;
+}
+inline float PosInfo::roll() const {
+  // @@protoc_insertion_point(field_get:Protocol.PosInfo.roll)
+  return _internal_roll();
+}
+inline void PosInfo::_internal_set_roll(float value) {
+
+  _impl_.roll_ = value;
+}
+inline void PosInfo::set_roll(float value) {
+  _internal_set_roll(value);
+  // @@protoc_insertion_point(field_set:Protocol.PosInfo.roll)
 }
 
 // -------------------------------------------------------------------

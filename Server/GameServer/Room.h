@@ -57,6 +57,7 @@ private:
 	struct TruckState
 	{
 		Protocol::PosInfo posInfo;
+		bool hasTransform = false;
 		uint64 driverPlayerId = 0;
 		//[신우] cargo 좌석은 1인 좌석이 아니라 여러 명이 동시에 탈 수 있어서 set으로 관리한다.
 		unordered_set<uint64> cargoPlayerIds;
@@ -83,6 +84,7 @@ private:
 	void ClearTruckSeatOccupant(TruckState& truckState, Protocol::TruckSeatType seatType, uint64 playerId);
 	void ClearPlayerTruckState(PlayerRef player);
 	void ForceExitTruck(PlayerRef player);
+	void BroadcastTruckState(const TruckState& truckState, bool isCorrection = false);
 
 private:
 	//[신우] 현재 2스테이지 트럭 적재함은 최대 4명까지 타는 구조로 서버에서 제한한다.

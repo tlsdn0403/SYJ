@@ -145,6 +145,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Driver")
 	FVector GetDriverExitLocation() const;
 
+	UFUNCTION(BlueprintCallable, Category = "Driver")
+	FRotator GetUprightExitRotation() const;
+
 	UFUNCTION(BlueprintCallable, Category = "Cargo|Ride")
 	FVector GetCargoExitLocation() const;
 
@@ -178,6 +181,7 @@ public:
 	AFPSBaseCharacter* GetMountedWeaponUser() const { return MountedWeaponUser; }
 	void SetLocallyDriven(bool bLocallyDriven);
 	bool IsLocallyDriven() const { return bIsLocallyDriven; }
+	void ApplyNetworkTransform(const FVector& TargetLocation, const FRotator& TargetRotation, bool bForceCorrection = false);
 
 	UFUNCTION(BlueprintCallable, Category = "GameLogic")
 	void SetLoadingPhase(bool bLoadingPhase);

@@ -4606,6 +4606,7 @@ class S_TRUCK_MOVE final :
 
   enum : int {
     kInfoFieldNumber = 1,
+    kIsCorrectionFieldNumber = 2,
   };
   // .Protocol.PosInfo info = 1;
   bool has_info() const;
@@ -4625,6 +4626,15 @@ class S_TRUCK_MOVE final :
       ::Protocol::PosInfo* info);
   ::Protocol::PosInfo* unsafe_arena_release_info();
 
+  // bool is_correction = 2;
+  void clear_is_correction();
+  bool is_correction() const;
+  void set_is_correction(bool value);
+  private:
+  bool _internal_is_correction() const;
+  void _internal_set_is_correction(bool value);
+  public:
+
   // @@protoc_insertion_point(class_scope:Protocol.S_TRUCK_MOVE)
  private:
   class _Internal;
@@ -4634,6 +4644,7 @@ class S_TRUCK_MOVE final :
   typedef void DestructorSkippable_;
   struct Impl_ {
     ::Protocol::PosInfo* info_;
+    bool is_correction_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   };
   union { Impl_ _impl_; };
@@ -8108,6 +8119,26 @@ inline void S_TRUCK_MOVE::set_allocated_info(::Protocol::PosInfo* info) {
   }
   _impl_.info_ = info;
   // @@protoc_insertion_point(field_set_allocated:Protocol.S_TRUCK_MOVE.info)
+}
+
+// bool is_correction = 2;
+inline void S_TRUCK_MOVE::clear_is_correction() {
+  _impl_.is_correction_ = false;
+}
+inline bool S_TRUCK_MOVE::_internal_is_correction() const {
+  return _impl_.is_correction_;
+}
+inline bool S_TRUCK_MOVE::is_correction() const {
+  // @@protoc_insertion_point(field_get:Protocol.S_TRUCK_MOVE.is_correction)
+  return _internal_is_correction();
+}
+inline void S_TRUCK_MOVE::_internal_set_is_correction(bool value) {
+
+  _impl_.is_correction_ = value;
+}
+inline void S_TRUCK_MOVE::set_is_correction(bool value) {
+  _internal_set_is_correction(value);
+  // @@protoc_insertion_point(field_set:Protocol.S_TRUCK_MOVE.is_correction)
 }
 
 // -------------------------------------------------------------------

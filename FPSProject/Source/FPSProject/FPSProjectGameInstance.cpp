@@ -447,6 +447,28 @@ void UFPSProjectGameInstance::RecordStage1CargoItems(const TArray<EItemType>& It
 	}
 }
 
+bool UFPSProjectGameInstance::ConsumeRecordedStage1CargoItem(EItemType ItemType, int32 Amount)
+{
+	if (Amount <= 0)
+	{
+		return false;
+	}
+
+	int32* ItemCount = RecordedStage1CargoItems.Find(ItemType);
+	if (ItemCount == nullptr || *ItemCount < Amount)
+	{
+		return false;
+	}
+
+	*ItemCount -= Amount;
+	if (*ItemCount <= 0)
+	{
+		RecordedStage1CargoItems.Remove(ItemType);
+	}
+
+	return true;
+}
+
 void UFPSProjectGameInstance::ClearRecordedStage1CargoItems()
 {
 	RecordedStage1CargoItems.Empty();
@@ -460,6 +482,11 @@ int32 UFPSProjectGameInstance::GetRecordedStage1CargoItemCount(EItemType ItemTyp
 	}
 
 	return 0;
+}
+
+bool UFPSProjectGameInstance::IsInStage2World() const
+{
+	return IsStage2World(GetWorld());
 }
 
 void UFPSProjectGameInstance::RegisterNetworkLootItem(ALootItemBase* LootItem)
@@ -1148,8 +1175,19 @@ void UFPSProjectGameInstance::HandleZombieAttack(const Protocol::S_ZOMBIE_ATTACK
 		return;
 	}
 
-	AActor* TargetActor = ResolvePlayerById(pkt.target_player_id());
-	Zombie->HandleNetworkAttack(TargetActor);
+	AFPSBaseCharacter* TargetPlayer = ResolvePlayerById(pkt.target_player_id());
+	AActor* TargetActor = TargetPlayer;
+	if (TargetPlayer &&
+		IsValid(TargetPlayer->CurrentTruck) &&
+		(TargetPlayer->IsDrivingTruck() || TargetPlayer->IsOnTruckCargo() || TargetPlayer->IsUsingMountedWeapon()))
+	{
+		TargetActor = TargetPlayer->CurrentTruck;
+	}
+
+	const bool bTargetIsLocalPlayer =
+		TargetPlayer && (TargetPlayer == MyPlayer || TargetPlayer->IsLocallyControlled());
+	const bool bShouldApplyDamage = TargetActor && (TargetActor->IsA<ATruck>() || bTargetIsLocalPlayer);
+	Zombie->HandleNetworkAttack(TargetActor, bShouldApplyDamage);
 }
 
 void UFPSProjectGameInstance::HandleZombieHp(const Protocol::S_ZOMBIE_HP& pkt)

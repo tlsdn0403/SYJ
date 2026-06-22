@@ -14,6 +14,7 @@
 #include "Net/UnrealNetwork.h"
 #include "NiagaraSystem.h"
 #include "Kismet/GameplayStatics.h"
+#include "Truck/Truck.h"
 #include "Zombie/ZombieFallZone.h"
 #include "Animation/AnimInstance.h"
 #include "UObject/ConstructorHelpers.h"
@@ -143,8 +144,14 @@ void ABaseZombie::Attack(AActor* TargetActor)
 	StartAttack(TargetActor, true);
 }
 
-void ABaseZombie::HandleNetworkAttack(AActor* TargetActor)
+void ABaseZombie::HandleNetworkAttack(AActor* TargetActor, bool bShouldApplyDamage)
 {
+	if (bIsAttacking)
+	{
+		return;
+	}
+
+	bShouldApplyCurrentNetworkAttackDamage = bShouldApplyDamage;
 	StartAttack(TargetActor, false);
 }
 
@@ -181,6 +188,7 @@ void ABaseZombie::HandleNetworkDeath()
 	bIsAlive = false;
 	bIsAttacking = false;
 	bAttackDamageApplied = false;
+	bShouldApplyCurrentNetworkAttackDamage = true;
 	CurrentAttackTarget = nullptr;
 	MovementState = EZombieMovementState::Dead;
 	GetWorldTimerManager().ClearTimer(AttackDamageTimerHandle);
@@ -440,6 +448,16 @@ AActor* ABaseZombie::ResolveAttackDamageTarget() const
 
 	if (NetworkObjectId != 0)
 	{
+		if (!bShouldApplyCurrentNetworkAttackDamage)
+		{
+			return nullptr;
+		}
+
+		if (TargetActor && TargetActor->IsA<ATruck>())
+		{
+			return TargetActor;
+		}
+
 		AFPSBaseCharacter* TargetPlayer = Cast<AFPSBaseCharacter>(TargetActor);
 		if (TargetPlayer == nullptr || !TargetPlayer->IsLocallyControlled())
 		{
@@ -572,6 +590,7 @@ void ABaseZombie::FinishAttack()
 	CurrentAttackTarget = nullptr;
 	bIsAttacking = false;
 	bAttackDamageApplied = false;
+	bShouldApplyCurrentNetworkAttackDamage = true;
 	ApplyAvoidanceTuning();
 	UE_LOG(LogTemp, Log, TEXT("Attack Finished"));
 }
@@ -585,7 +604,8 @@ void ABaseZombie::ApplyAttackDamage(AActor* TargetActor)
 
 	const FVector AttackPoint = GetAttackPointForTarget(TargetActor);
 	const float Distance = FVector::Dist(GetActorLocation(), AttackPoint);
-	if (Distance > AttackRange)
+	const bool bServerConfirmedTruckAttack = NetworkObjectId != 0 && TargetActor->IsA<ATruck>();
+	if (Distance > AttackRange && !bServerConfirmedTruckAttack)
 	{
 		UE_LOG(LogTemp, Log, TEXT("Attack missed - target moved away"));
 		return;

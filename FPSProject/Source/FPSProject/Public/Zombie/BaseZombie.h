@@ -56,7 +56,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Zombie")
 	void Die();
 
-	void HandleNetworkAttack(AActor* TargetActor);
+	void HandleNetworkAttack(AActor* TargetActor, bool bShouldApplyDamage);
 	void HandleNetworkHit(float NewHealth, float MaxHealth);
 	void HandleNetworkDeath();
 	void HandleNetworkDismember(FName BoneName, const FVector& Impulse, const FVector& HitLocation);
@@ -227,6 +227,7 @@ private:
 	FTimerHandle AttackDamageTimerHandle;
 	FTimerHandle AttackFinishTimerHandle;
 	bool bAttackDamageApplied = false;
+	bool bShouldApplyCurrentNetworkAttackDamage = true;
 
 	UFUNCTION()
 	void OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);

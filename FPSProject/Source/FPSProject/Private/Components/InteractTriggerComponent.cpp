@@ -4,6 +4,22 @@
 #include "Components/InteractTriggerComponent.h"
 #include "Characters/FPSBaseCharacter.h"
 #include "GameFramework/Actor.h"
+#include "Truck/Truck.h"
+
+bool UInteractTriggerComponent::IsAvailableForCharacter(const AFPSBaseCharacter* Character) const
+{
+	if (Character == nullptr)
+	{
+		return false;
+	}
+
+	if (!bRequiresTruckCargo)
+	{
+		return true;
+	}
+
+	return Character->IsOnTruckCargo() && Character->CurrentTruck == Cast<ATruck>(GetOwner());
+}
 
 void UInteractTriggerComponent::BeginPlay()
 {
@@ -16,7 +32,7 @@ void UInteractTriggerComponent::BeginPlay()
 void UInteractTriggerComponent::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
 	AFPSBaseCharacter* Character = Cast<AFPSBaseCharacter>(OtherActor);
-	if (Character && Character->IsPlayerControlled())
+	if (Character && Character->IsPlayerControlled() && IsAvailableForCharacter(Character))
 	{
 		Character->SetInteractableActor(GetOwner());
 		Character->SetCurrentTruckInteractType(InteractType);
@@ -54,7 +70,7 @@ void UInteractTriggerComponent::OnOverlapEnd(UPrimitiveComponent* OverlappedComp
 					continue;
 				}
 
-				if (SiblingTrigger->IsOverlappingActor(Character))
+				if (SiblingTrigger->IsOverlappingActor(Character) && SiblingTrigger->IsAvailableForCharacter(Character))
 				{
 					Character->SetInteractableActor(GetOwner());
 					Character->SetCurrentTruckInteractType(SiblingTrigger->InteractType);

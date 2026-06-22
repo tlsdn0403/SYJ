@@ -92,6 +92,7 @@ public:
 	bool TryEnterTruckLocally(class AFPSBaseCharacter* Character, class ATruck* Truck, Protocol::TruckSeatType SeatType);
 	bool TryExitTruckLocally(class AFPSBaseCharacter* Character);
 	void RecordStage1CargoItems(const TArray<EItemType>& Items);
+	bool ConsumeRecordedStage1CargoItem(EItemType ItemType, int32 Amount = 1);
 	void RegisterNetworkLootItem(ALootItemBase* LootItem);
 	void UnregisterNetworkLootItem(uint64 LootItemId);
 
@@ -100,6 +101,9 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Stage1|Cargo")
 	int32 GetRecordedStage1CargoItemCount(EItemType ItemType) const;
+
+	UFUNCTION(BlueprintPure, Category = "Stage")
+	bool IsInStage2World() const;
 
 public:
 	virtual void Init() override;

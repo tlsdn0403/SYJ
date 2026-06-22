@@ -63,6 +63,9 @@ public:
 	bool AddItem(EItemType NewItemType);
 
 	UFUNCTION(BlueprintCallable, Category = "FPS|Inventory")
+	bool UseHealPack();
+
+	UFUNCTION(BlueprintCallable, Category = "FPS|Inventory")
 	TArray<EItemType> OffloadItems();
 
 	UFUNCTION(BlueprintPure, Category = "FPS|Inventory")
@@ -137,6 +140,7 @@ protected:
 	void StopFire();
 	void StartAim();
 	void StopAim();
+	void HandleUseHealPackInput();
 	void LeaveGame();
 	void SendEnterGamePacket();
 
@@ -247,6 +251,11 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "FPS|Inventory", meta = (AllowPrivateAccess = "true"))
 	int32 MaxItemCount = 5;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "FPS|Inventory", meta = (AllowPrivateAccess = "true", ClampMin = "0.0"))
+	float HealPackHealAmount = 50.0f;
+
+	void RefreshStage2ItemUI();
 
 public:
 	void SetPlayerInfo(const Protocol::PosInfo& Info);

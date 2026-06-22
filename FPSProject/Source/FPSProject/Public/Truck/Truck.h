@@ -22,6 +22,9 @@ class USoundBase;
 class UWidgetComponent;
 class AStage2TileManager;
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnTruckHealthChanged, float, CurrentHealth, float, MaxHealth);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnTruckDestroyed);
+
 USTRUCT(BlueprintType)
 struct FLoadedItemVisual
 {
@@ -56,8 +59,26 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Interaction")
 	UInteractTriggerComponent* TurretSeatInteractTrigger;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Interaction")
+	UWidgetComponent* CargoSeatInteractWidget;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
 	UHealthComponent* HealthComponent;
+
+	UPROPERTY(BlueprintAssignable, Category = "Combat")
+	FOnTruckHealthChanged OnTruckHealthChanged;
+
+	UPROPERTY(BlueprintAssignable, Category = "Combat")
+	FOnTruckDestroyed OnTruckDestroyed;
+
+	UFUNCTION(BlueprintPure, Category = "Combat")
+	float GetTruckHealth() const;
+
+	UFUNCTION(BlueprintPure, Category = "Combat")
+	float GetTruckMaxHealth() const;
+
+	UFUNCTION(BlueprintPure, Category = "Combat")
+	bool IsTruckDestroyed() const { return bTruckDestroyed; }
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Driver")
 	USceneComponent* DriverSeatPoint;
@@ -167,6 +188,13 @@ public:
 	bool TryEnterMountedWeapon(AFPSBaseCharacter* Character);
 
 	void EndMountedWeaponUse(AFPSBaseCharacter* Character);
+	void RefreshInteractionWidgetsForCharacter(AFPSBaseCharacter* Character);
+
+	UFUNCTION()
+	void OnCargoInteractEnter(AActor* OtherActor);
+
+	UFUNCTION()
+	void OnCargoInteractExit(AActor* OtherActor);
 
 	UFUNCTION()
 	void OnTurretInteractEnter(AActor* OtherActor);
@@ -187,6 +215,7 @@ protected:
 	void MoveForward(float Value);
 	void MoveRight(float Value);
 	void Brake(float Value);
+	void UseDriverHealPack();
 	void SendTruckMovePacket();
 	void CheckZombieImpactSweep();
 	void ProcessZombieImpact(ABaseZombie* Zombie, const FVector& ImpactPoint, const FVector& ImpactDirection, float ImpactSpeed);
@@ -273,6 +302,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Zombie")
 	float ZombieImpactContactTolerance = 35.0f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat", meta = (ClampMin = "1.0"))
+	float TruckMaxHealth = 1000.0f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
 	float BrakeSoundMinSpeed = 300.0f;
 
@@ -291,12 +323,17 @@ private:
 	bool bIsLocallyDriven = false;
 	bool bIsBrakingSoundPlaying = false;
 	bool bBrakePressedLastFrame = false;
+	bool bTruckDestroyed = false;
 	float TruckMovePacketSendTimer = 0.0f;
 	float DebugTransformLogTimer = 0.0f;
 	float ZombieNoiseTimer = 0.0f;
 	static constexpr float TRUCK_MOVE_PACKET_SEND_DELAY = 0.05f;
 
 	void ReportZombieAwarenessNoise(float DeltaTime);
+	bool IsLocalInteractionCharacter(const AFPSBaseCharacter* Character) const;
+
+	UFUNCTION()
+	void HandleTruckHealthChanged(float NewHealth, float Damage);
 
 	UPROPERTY()
 	AMountedMachineGun* MountedWeapon = nullptr;

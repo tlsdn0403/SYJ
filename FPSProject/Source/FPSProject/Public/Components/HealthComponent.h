@@ -26,6 +26,12 @@ public:
 	void ApplyDamage(float Damage);
 
 	void ApplyDamageSilently(float Damage);
+
+	UFUNCTION(BlueprintCallable, Category = "Health")
+	void SetMaxHealth(float NewMaxHealth, bool bFillHealth = true);
+
+	UFUNCTION(BlueprintCallable, Category = "Health")
+	void SetCurrentHealth(float NewHealth);
 	
 	// 체력 Getter
 	UFUNCTION(BlueprintPure, Category = "Health")
@@ -34,15 +40,22 @@ public:
 
 	float MaxGetHealth() const { return MaxHealth; }
 
+	UFUNCTION(BlueprintPure, Category = "Health")
+	bool IsAtFullHealth() const { return Health >= MaxHealth - KINDA_SMALL_NUMBER; }
+
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
 
 private:
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Health", meta = (AllowPrivateAccess = "true", ClampMin = "1.0"))
 	float MaxHealth = 100.f;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Health", meta = (AllowPrivateAccess = "true"))
 	float Health = 0.f;
+
+	bool bHealthInitialized = false;
 
 	void ApplyDamageInternal(float Damage, bool bBroadcastHealthChanged);
 

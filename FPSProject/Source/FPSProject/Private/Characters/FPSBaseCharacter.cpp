@@ -120,7 +120,7 @@ void AFPSBaseCharacter::BeginPlay()
 			PC->BasicW->AddToViewport();
 			PC->EffectW->AddToViewport();
 			PC->L2BaseW->AddToViewport();
-			PC->L2BaseW->ItemSetting(3, 5, 3);
+			RefreshStage2ItemUI();
 			SetHealth(100,100); //이건 처음값 임의 세팅 
 		}
 	}
@@ -374,6 +374,12 @@ void AFPSBaseCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 	PlayerInputComponent->BindAction("Interact", IE_Pressed, this, &AFPSBaseCharacter::Interact);
 	PlayerInputComponent->BindAction("LeaveGame", IE_Pressed, this, &AFPSBaseCharacter::LeaveGame);
 	PlayerInputComponent->BindAction("TravelToStage2Map", IE_Pressed, this, &AFPSBaseCharacter::TravelToStage2Map);
+	PlayerInputComponent->BindAction("UseHealPack", IE_Pressed, this, &AFPSBaseCharacter::HandleUseHealPackInput);
+}
+
+void AFPSBaseCharacter::HandleUseHealPackInput()
+{
+	UseHealPack();
 }
 // 2스테이지 맵으로 이동
 void AFPSBaseCharacter::TravelToStage2Map()
@@ -429,6 +435,7 @@ void AFPSBaseCharacter::EnterTruckDriverSeat(ATruck* Truck)
 	GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
 	PlayDrivingAnimation();
+	Truck->RefreshInteractionWidgetsForCharacter(this);
 }
 
 void AFPSBaseCharacter::ExitTruckDriverSeat()
@@ -459,6 +466,7 @@ void AFPSBaseCharacter::ExitTruckDriverSeat()
 	CurrentTruck = nullptr;
 	SetHeldWeaponVehicleVisibility(false);
 	RefreshTruckInteractionState(Truck);
+	Truck->RefreshInteractionWidgetsForCharacter(this);
 
 	ApplyDefaultAnimationClass();
 }
@@ -503,6 +511,8 @@ void AFPSBaseCharacter::EnterTruckCargo(ATruck* Truck)
 		GetCharacterMovement()->SetMovementMode(MOVE_Walking);
 	}
 	BeginTruckCargoWalk(Truck);
+	RefreshTruckInteractionState(Truck);
+	Truck->RefreshInteractionWidgetsForCharacter(this);
 }
 
 void AFPSBaseCharacter::ExitTruckCargo()
@@ -537,6 +547,7 @@ void AFPSBaseCharacter::ExitTruckCargo()
 	bHasReplicatedTruckCargoLocalLocation = false;
 	bHasLastTruckCargoLocalLocationForMoveState = false;
 	RefreshTruckInteractionState(Truck);
+	Truck->RefreshInteractionWidgetsForCharacter(this);
 
 	if (IsLocallyControlled())
 	{
@@ -546,7 +557,8 @@ void AFPSBaseCharacter::ExitTruckCargo()
 
 void AFPSBaseCharacter::EnterMountedWeapon(ATruck* Truck, AMountedMachineGun* MountedWeapon)
 {
-	if (!Truck || !MountedWeapon || bIsUsingMountedWeapon || bIsDrivingTruck)
+	if (!Truck || !MountedWeapon || bIsUsingMountedWeapon || bIsDrivingTruck ||
+		!bIsOnTruckCargo || CurrentTruck != Truck)
 	{
 		return;
 	}
@@ -619,6 +631,8 @@ void AFPSBaseCharacter::EnterMountedWeapon(ATruck* Truck, AMountedMachineGun* Mo
 	{
 		Controller->SetControlRotation(MountedWeapon->GetCameraRotation());
 	}
+
+	Truck->RefreshInteractionWidgetsForCharacter(this);
 }
 
 void AFPSBaseCharacter::ExitMountedWeapon(bool bReturnToCargo)
@@ -713,6 +727,7 @@ void AFPSBaseCharacter::ExitMountedWeapon(bool bReturnToCargo)
 	}
 
 	RefreshTruckInteractionState(Truck);
+	Truck->RefreshInteractionWidgetsForCharacter(this);
 	bHasSavedTruckCargoLocalLocation = false;
 
 	ApplyDefaultAnimationClass();
@@ -733,8 +748,10 @@ void AFPSBaseCharacter::SyncMovementToServer()
 
 bool AFPSBaseCharacter::CanInteractWithMountedWeapon() const
 {
-	return CurrentInteractableActor != nullptr
-		&& CurrentTruckInteractType == ETruckInteractType::TurretSeat;
+	return bIsOnTruckCargo &&
+		CurrentTruck != nullptr &&
+		CurrentInteractableActor == CurrentTruck &&
+		CurrentTruckInteractType == ETruckInteractType::TurretSeat;
 }
 
 void AFPSBaseCharacter::MoveForward(float Value)
@@ -1224,7 +1241,9 @@ void AFPSBaseCharacter::RefreshTruckInteractionState(ATruck* Truck)
 		return;
 	}
 
-	if (Truck->TurretSeatInteractTrigger && Truck->TurretSeatInteractTrigger->IsOverlappingActor(this))
+	if (bIsOnTruckCargo && CurrentTruck == Truck &&
+		Truck->TurretSeatInteractTrigger &&
+		Truck->TurretSeatInteractTrigger->IsOverlappingActor(this))
 	{
 		CurrentInteractableActor = Truck;
 		CurrentTruckInteractType = ETruckInteractType::TurretSeat;
@@ -1490,6 +1509,64 @@ bool AFPSBaseCharacter::AddItem(EItemType NewItemType)
 	return true;
 }
 
+bool AFPSBaseCharacter::UseHealPack()
+{
+	UFPSProjectGameInstance* GameInstance = Cast<UFPSProjectGameInstance>(GetGameInstance());
+	if (GameInstance == nullptr || !GameInstance->IsInStage2World() || HealthComponent == nullptr)
+	{
+		return false;
+	}
+
+	const APlayerController* LocalPlayerController = UGameplayStatics::GetPlayerController(this, 0);
+	const bool bIsLocalPlayerCharacter =
+		IsLocallyControlled() ||
+		GameInstance->MyPlayer == this ||
+		(CurrentTruck && CurrentTruck->GetDriverCharacter() == this && CurrentTruck->GetController() == LocalPlayerController);
+	if (!bIsLocalPlayerCharacter || HealthComponent->IsAtFullHealth())
+	{
+		return false;
+	}
+
+	const bool bConsumedHealPack =
+		GameInstance->ConsumeRecordedStage1CargoItem(EItemType::HealPack) ||
+		GameInstance->ConsumeRecordedStage1CargoItem(EItemType::MedicalKit);
+	if (!bConsumedHealPack)
+	{
+		RefreshStage2ItemUI();
+		UE_LOG(LogTemp, Warning, TEXT("Cannot use Heal Pack: no Stage 1 Heal Packs remain."));
+		return false;
+	}
+
+	Heal(HealPackHealAmount);
+	RefreshStage2ItemUI();
+	UE_LOG(LogTemp, Log, TEXT("Heal Pack used. Healed %.1f, remaining=%d"),
+		HealPackHealAmount,
+		GameInstance->GetRecordedStage1CargoItemCount(EItemType::HealPack) +
+		GameInstance->GetRecordedStage1CargoItemCount(EItemType::MedicalKit));
+	return true;
+}
+
+void AFPSBaseCharacter::RefreshStage2ItemUI()
+{
+	UFPSProjectGameInstance* GameInstance = Cast<UFPSProjectGameInstance>(GetGameInstance());
+	AFPSPlayerController* PlayerController = Cast<AFPSPlayerController>(GetController());
+	if (PlayerController == nullptr && GameInstance && GameInstance->MyPlayer == this)
+	{
+		PlayerController = Cast<AFPSPlayerController>(UGameplayStatics::GetPlayerController(this, 0));
+	}
+
+	if (GameInstance == nullptr || PlayerController == nullptr || PlayerController->L2BaseW == nullptr)
+	{
+		return;
+	}
+
+	PlayerController->L2BaseW->ItemSetting(
+		GameInstance->GetRecordedStage1CargoItemCount(EItemType::Fuel),
+		GameInstance->GetRecordedStage1CargoItemCount(EItemType::HealPack) +
+			GameInstance->GetRecordedStage1CargoItemCount(EItemType::MedicalKit),
+		GameInstance->GetRecordedStage1CargoItemCount(EItemType::TruckRepairKit));
+}
+
 TArray<EItemType> AFPSBaseCharacter::OffloadItems()
 {
 	TArray<EItemType> ItemsToGive = Inventory;
@@ -1505,7 +1582,28 @@ TArray<EItemType> AFPSBaseCharacter::OffloadItems()
 
 void AFPSBaseCharacter::SetHealth(float currentHp,float maxHp) {
 
-	if (AFPSPlayerController* PC = Cast<AFPSPlayerController>(GetController()))
+	AFPSPlayerController* PC = Cast<AFPSPlayerController>(GetController());
+	if (PC == nullptr)
+	{
+		if (UFPSProjectGameInstance* GameInstance = Cast<UFPSProjectGameInstance>(GetGameInstance()))
+		{
+			if (GameInstance->MyPlayer == this)
+			{
+				PC = Cast<AFPSPlayerController>(UGameplayStatics::GetPlayerController(this, 0));
+			}
+		}
+
+		if (PC == nullptr && CurrentTruck && CurrentTruck->GetDriverCharacter() == this)
+		{
+			APlayerController* LocalPlayerController = UGameplayStatics::GetPlayerController(this, 0);
+			if (CurrentTruck->GetController() == LocalPlayerController)
+			{
+				PC = Cast<AFPSPlayerController>(LocalPlayerController);
+			}
+		}
+	}
+
+	if (PC)
 	{
 		if (PC->BasicW)
 		{

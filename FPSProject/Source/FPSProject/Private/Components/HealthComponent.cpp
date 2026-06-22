@@ -20,6 +20,12 @@ void UHealthComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
+	if (!bHealthInitialized)
+	{
+		Health = MaxHealth;
+		bHealthInitialized = true;
+	}
+
 	// ...
 	
 	if (AActor* Owner = GetOwner())
@@ -32,7 +38,7 @@ void UHealthComponent::BeginPlay()
 void UHealthComponent::PointDamageTaken(AActor* DamagedActor, float Damage, AController* InstigatedBy, FVector HitLocation, UPrimitiveComponent* FHitComponent, FName BoneName, FVector ShotFromDirection, const UDamageType* DamageType, AActor* DamageCauser)
 {
 	if (Damage <= 0.f) return;
-	Health -= Damage;
+	ApplyDamageInternal(Damage, true);
 
 
 	FHitResult DummyHit;
@@ -54,6 +60,22 @@ void UHealthComponent::ApplyDamage(float Damage)
 void UHealthComponent::ApplyDamageSilently(float Damage)
 {
 	ApplyDamageInternal(Damage, false);
+}
+
+void UHealthComponent::SetMaxHealth(float NewMaxHealth, bool bFillHealth)
+{
+	MaxHealth = FMath::Max(NewMaxHealth, 1.0f);
+	Health = bFillHealth ? MaxHealth : FMath::Clamp(Health, 0.0f, MaxHealth);
+	bHealthInitialized = true;
+	OnHealthChanged.Broadcast(Health, 0.0f);
+}
+
+void UHealthComponent::SetCurrentHealth(float NewHealth)
+{
+	const float OldHealth = Health;
+	Health = FMath::Clamp(NewHealth, 0.0f, MaxHealth);
+	bHealthInitialized = true;
+	OnHealthChanged.Broadcast(Health, OldHealth - Health);
 }
 
 void UHealthComponent::ApplyDamageInternal(float Damage, bool bBroadcastHealthChanged)
@@ -89,5 +111,8 @@ void UHealthComponent::Heal(float Amount)
 
     float HealAmount = Health - OldHealth;
 
-    OnHealthChanged.Broadcast(Health, -HealAmount);
+	if (HealAmount > 0.0f)
+	{
+		OnHealthChanged.Broadcast(Health, -HealAmount);
+	}
 }

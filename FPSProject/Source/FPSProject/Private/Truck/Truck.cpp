@@ -67,6 +67,11 @@ ATruck::ATruck()
 	CargoSeatInteractTrigger->InitSphereRadius(200.0f);
 	CargoSeatInteractTrigger->InteractType = ETruckInteractType::CargoSeat;
 
+	CargoSeatInteractWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("CargoSeatInteractWidget"));
+	CargoSeatInteractWidget->SetupAttachment(CargoSeatInteractTrigger);
+	CargoSeatInteractWidget->SetTwoSided(true);
+	CargoSeatInteractWidget->SetWidgetSpace(EWidgetSpace::Screen);
+
 	DriverSeatPoint = CreateDefaultSubobject<USceneComponent>(TEXT("DriverSeatPoint"));
 	DriverSeatPoint->SetupAttachment(RootComponent);
 	DriverSeatPoint->SetRelativeLocation(FVector(110.0f, -10.0f, 120.0f));
@@ -80,6 +85,7 @@ ATruck::ATruck()
 	TurretSeatInteractTrigger->SetupAttachment(RootComponent);
 	TurretSeatInteractTrigger->InitSphereRadius(200.0f);
 	TurretSeatInteractTrigger->InteractType = ETruckInteractType::TurretSeat;
+	TurretSeatInteractTrigger->bRequiresTruckCargo = true;
 	TurretSeatInteractTrigger->SetRelativeLocation(FVector(-80.0f, 0.0f, 140.0f));
 
 	HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComponent"));
@@ -209,15 +215,28 @@ ATruck::ATruck()
 	}
 
 	static ConstructorHelpers::FClassFinder<UUserWidget> TurretWidgetBP(TEXT("/Game/Item/WBP_Interact"));
-	if (TurretInteractWidget && TurretWidgetBP.Succeeded())
+	if (TurretWidgetBP.Succeeded())
 	{
-		TurretInteractWidget->SetWidgetClass(TurretWidgetBP.Class);
+		if (CargoSeatInteractWidget)
+		{
+			CargoSeatInteractWidget->SetWidgetClass(TurretWidgetBP.Class);
+		}
+		if (TurretInteractWidget)
+		{
+			TurretInteractWidget->SetWidgetClass(TurretWidgetBP.Class);
+		}
 	}
 }
 
 void ATruck::BeginPlay()
 {
 	Super::BeginPlay();
+
+	if (HealthComponent)
+	{
+		HealthComponent->OnHealthChanged.AddDynamic(this, &ATruck::HandleTruckHealthChanged);
+		HealthComponent->SetMaxHealth(TruckMaxHealth, true);
+	}
 
 	if (ZombieStimuliSource)
 	{
@@ -242,6 +261,10 @@ void ATruck::BeginPlay()
 	{
 		TurretInteractWidget->InitWidget();
 	}
+	if (CargoSeatInteractWidget)
+	{
+		CargoSeatInteractWidget->InitWidget();
+	}
 
 	if (UFPSProjectGameInstance* GameInstance = Cast<UFPSProjectGameInstance>(GetGameInstance()))
 	{
@@ -252,6 +275,11 @@ void ATruck::BeginPlay()
 	{
 		TurretSeatInteractTrigger->OnEnter.AddDynamic(this, &ATruck::OnTurretInteractEnter);
 		TurretSeatInteractTrigger->OnExit.AddDynamic(this, &ATruck::OnTurretInteractExit);
+	}
+	if (CargoSeatInteractTrigger)
+	{
+		CargoSeatInteractTrigger->OnEnter.AddDynamic(this, &ATruck::OnCargoInteractEnter);
+		CargoSeatInteractTrigger->OnExit.AddDynamic(this, &ATruck::OnCargoInteractExit);
 	}
 
 	for (UStaticMeshComponent* Slot : AmmoSlots) { SetCargoSlotShown(Slot, false); }
@@ -541,6 +569,46 @@ void ATruck::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 	PlayerInputComponent->BindAxis("Steer", this, &ATruck::MoveRight);
 	PlayerInputComponent->BindAxis("Brake", this, &ATruck::Brake);
 	PlayerInputComponent->BindAction("Interact", IE_Pressed, this, &ATruck::ExitDriverSeat);
+	PlayerInputComponent->BindAction("UseHealPack", IE_Pressed, this, &ATruck::UseDriverHealPack);
+}
+
+float ATruck::GetTruckHealth() const
+{
+	return HealthComponent ? HealthComponent->GetHealth() : 0.0f;
+}
+
+float ATruck::GetTruckMaxHealth() const
+{
+	return HealthComponent ? HealthComponent->MaxGetHealth() : TruckMaxHealth;
+}
+
+void ATruck::UseDriverHealPack()
+{
+	if (DriverCharacter)
+	{
+		DriverCharacter->UseHealPack();
+	}
+}
+
+void ATruck::HandleTruckHealthChanged(float NewHealth, float Damage)
+{
+	OnTruckHealthChanged.Broadcast(NewHealth, GetTruckMaxHealth());
+
+	if (NewHealth > 0.0f || bTruckDestroyed)
+	{
+		return;
+	}
+
+	bTruckDestroyed = true;
+	if (UChaosWheeledVehicleMovementComponent* MoveComp = Cast<UChaosWheeledVehicleMovementComponent>(GetVehicleMovement()))
+	{
+		MoveComp->SetThrottleInput(0.0f);
+		MoveComp->SetSteeringInput(0.0f);
+		MoveComp->SetBrakeInput(1.0f);
+	}
+
+	OnTruckDestroyed.Broadcast();
+	UE_LOG(LogTemp, Warning, TEXT("Truck %s was destroyed."), *GetName());
 }
 
 void ATruck::MoveForward(float Value)
@@ -548,7 +616,7 @@ void ATruck::MoveForward(float Value)
 	/*UE_LOG(LogTemp, Warning, TEXT("Throttle Input: %f"), Value);*/
 	if (auto* MoveComp = Cast<UChaosWheeledVehicleMovementComponent>(GetVehicleMovement()))
 	{
-		MoveComp->SetThrottleInput(Value);
+		MoveComp->SetThrottleInput(bTruckDestroyed ? 0.0f : Value);
 	}
 }
 
@@ -556,7 +624,7 @@ void ATruck::MoveRight(float Value)
 {
 	if (auto* MoveComp = Cast<UChaosWheeledVehicleMovementComponent>(GetVehicleMovement()))
 	{
-		MoveComp->SetSteeringInput(Value);
+		MoveComp->SetSteeringInput(bTruckDestroyed ? 0.0f : Value);
 	}
 }
 
@@ -564,7 +632,7 @@ void ATruck::Brake(float Value)
 {
 	if (auto* MoveComp = Cast<UChaosWheeledVehicleMovementComponent>(GetVehicleMovement()))
 	{
-		MoveComp->SetBrakeInput(Value);
+		MoveComp->SetBrakeInput(bTruckDestroyed ? 1.0f : Value);
 
 		const float Speed = GetVelocity().Size();
 		const bool bBrakePressed = Value > 0.5f;
@@ -882,7 +950,8 @@ void ATruck::Interact_Implementation(AFPSBaseCharacter* Character)
 
 bool ATruck::TryEnterMountedWeapon(AFPSBaseCharacter* Character)
 {
-	if (!Character || !MountedWeapon || bIsLoadingPhase)
+	if (!Character || !MountedWeapon || bIsLoadingPhase ||
+		!Character->IsOnTruckCargo() || Character->CurrentTruck != this)
 	{
 		return false;
 	}
@@ -893,10 +962,8 @@ bool ATruck::TryEnterMountedWeapon(AFPSBaseCharacter* Character)
 	const bool bRequestedTurretSeat =
 		Character->GetCurrentTruckInteractType() == ETruckInteractType::TurretSeat;
 	const bool bSwitchingFromCargo =
-		Character->CurrentTruck == this &&
-		Character->IsOnTruckCargo() &&
-		(bOverlappingTurretSeat ||
-			FVector::Dist(Character->GetActorLocation(), GetTurretSeatLocation()) <= MountedWeaponUseDistance);
+		bOverlappingTurretSeat ||
+		FVector::Dist(Character->GetActorLocation(), GetTurretSeatLocation()) <= MountedWeaponUseDistance;
 
 	if (!bRequestedTurretSeat && !bSwitchingFromCargo)
 	{
@@ -1107,32 +1174,85 @@ void ATruck::EndMountedWeaponUse(AFPSBaseCharacter* Character)
 	}
 }
 
+void ATruck::RefreshInteractionWidgetsForCharacter(AFPSBaseCharacter* Character)
+{
+	if (!IsLocalInteractionCharacter(Character))
+	{
+		return;
+	}
+
+	if (UInteractUIClass* CargoUI = Cast<UInteractUIClass>(
+		CargoSeatInteractWidget ? CargoSeatInteractWidget->GetUserWidgetObject() : nullptr))
+	{
+		const bool bShowCargoPrompt =
+			CargoSeatInteractTrigger &&
+			CargoSeatInteractTrigger->IsOverlappingActor(Character) &&
+			!Character->IsOnTruckCargo() &&
+			!Character->IsDrivingTruck() &&
+			!Character->IsUsingMountedWeapon();
+
+		if (bShowCargoPrompt)
+		{
+			CargoUI->SetInteractText(FText::FromString(
+				bIsLoadingPhase ? TEXT("아이템 적재하기") : TEXT("트럭에 탑승하기")));
+			CargoUI->PlayAni_PopUp(false);
+		}
+		else
+		{
+			CargoUI->RePlayAni_PopUp();
+		}
+	}
+
+	if (UInteractUIClass* TurretUI = Cast<UInteractUIClass>(
+		TurretInteractWidget ? TurretInteractWidget->GetUserWidgetObject() : nullptr))
+	{
+		const bool bShowTurretPrompt =
+			!bIsLoadingPhase &&
+			Character->CurrentTruck == this &&
+			Character->IsOnTruckCargo() &&
+			TurretSeatInteractTrigger &&
+			TurretSeatInteractTrigger->IsOverlappingActor(Character);
+
+		if (bShowTurretPrompt)
+		{
+			TurretUI->SetInteractText(FText::FromString(TEXT("기관총 사용하기")));
+			TurretUI->PlayAni_PopUp(false);
+		}
+		else
+		{
+			TurretUI->RePlayAni_PopUp();
+		}
+	}
+}
+
+void ATruck::OnCargoInteractEnter(AActor* OtherActor)
+{
+	RefreshInteractionWidgetsForCharacter(Cast<AFPSBaseCharacter>(OtherActor));
+}
+
+void ATruck::OnCargoInteractExit(AActor* OtherActor)
+{
+	AFPSBaseCharacter* Character = Cast<AFPSBaseCharacter>(OtherActor);
+	if (!IsLocalInteractionCharacter(Character) || !CargoSeatInteractWidget)
+	{
+		return;
+	}
+
+	if (UInteractUIClass* UI = Cast<UInteractUIClass>(CargoSeatInteractWidget->GetUserWidgetObject()))
+	{
+		UI->RePlayAni_PopUp();
+	}
+}
+
 void ATruck::OnTurretInteractEnter(AActor* OtherActor)
 {
-	if (!Cast<AFPSBaseCharacter>(OtherActor) || !TurretInteractWidget)
-	{
-		return;
-	}
-
-	if (bIsLoadingPhase)
-	{
-		if (UInteractUIClass* UI = Cast<UInteractUIClass>(TurretInteractWidget->GetUserWidgetObject()))
-		{
-			UI->RePlayAni_PopUp();
-		}
-		return;
-	}
-
-	if (UInteractUIClass* UI = Cast<UInteractUIClass>(TurretInteractWidget->GetUserWidgetObject()))
-	{
-		UI->SetInteractText(FText::FromString(TEXT("Use Machine Gun")));
-		UI->PlayAni_PopUp(false);
-	}
+	RefreshInteractionWidgetsForCharacter(Cast<AFPSBaseCharacter>(OtherActor));
 }
 
 void ATruck::OnTurretInteractExit(AActor* OtherActor)
 {
-	if (!Cast<AFPSBaseCharacter>(OtherActor) || !TurretInteractWidget)
+	AFPSBaseCharacter* Character = Cast<AFPSBaseCharacter>(OtherActor);
+	if (!IsLocalInteractionCharacter(Character) || !TurretInteractWidget)
 	{
 		return;
 	}
@@ -1141,6 +1261,29 @@ void ATruck::OnTurretInteractExit(AActor* OtherActor)
 	{
 		UI->RePlayAni_PopUp();
 	}
+}
+
+bool ATruck::IsLocalInteractionCharacter(const AFPSBaseCharacter* Character) const
+{
+	if (!Character)
+	{
+		return false;
+	}
+
+	if (Character->IsLocallyControlled())
+	{
+		return true;
+	}
+
+	if (const UFPSProjectGameInstance* GameInstance = Cast<UFPSProjectGameInstance>(GetGameInstance()))
+	{
+		if (GameInstance->MyPlayer == Character)
+		{
+			return true;
+		}
+	}
+
+	return DriverCharacter == Character && GetController() && GetController()->IsLocalController();
 }
 
 void ATruck::UpdateEngineSound()

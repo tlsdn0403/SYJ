@@ -34,6 +34,8 @@ protected:
 	void OnOverlapEnd(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 
 public:
+	bool IsAvailableForCharacter(const class AFPSBaseCharacter* Character) const;
+
 	UPROPERTY(BlueprintAssignable)
 	FOnInteractEnter OnEnter;
 
@@ -42,4 +44,7 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interaction")
 	ETruckInteractType InteractType = ETruckInteractType::None;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interaction")
+	bool bRequiresTruckCargo = false;
 };

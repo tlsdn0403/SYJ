@@ -146,4 +146,3 @@ void AStage2TileMarker::HandleNextTileTriggerBeginOverlap(
 	bHasTriggeredNextTile = true;
 	OnNextTileTriggerEntered.Broadcast(this, TriggerTruck);
 }
-

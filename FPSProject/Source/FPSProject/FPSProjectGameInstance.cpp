@@ -24,6 +24,7 @@
 #include "Components/CapsuleComponent.h"
 #include "Components/BoxComponent.h"
 #include "Components/PrimitiveComponent.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "Blueprint/UserWidget.h"
 #include "UObject/UObjectGlobals.h"
 #include "HUD/BaseUI.h"
@@ -33,6 +34,32 @@
 
 namespace
 {
+	void RestoreNetworkCharacterVisibility(AFPSBaseCharacter* Character)
+	{
+		if (!IsValid(Character))
+		{
+			return;
+		}
+
+		Character->SetActorHiddenInGame(false);
+		Character->SetActorEnableCollision(true);
+
+		TArray<USkeletalMeshComponent*> SkeletalMeshComponents;
+		Character->GetComponents<USkeletalMeshComponent>(SkeletalMeshComponents);
+		for (USkeletalMeshComponent* SkeletalMeshComponent : SkeletalMeshComponents)
+		{
+			if (!IsValid(SkeletalMeshComponent))
+			{
+				continue;
+			}
+
+			SkeletalMeshComponent->SetHiddenInGame(false, true);
+			SkeletalMeshComponent->SetVisibility(true, true);
+			SkeletalMeshComponent->SetOwnerNoSee(false);
+			SkeletalMeshComponent->SetOnlyOwnerSee(false);
+		}
+	}
+
 	bool IsStage2LevelName(const FString& LevelName)
 	{
 		return LevelName.Contains(TEXT("map_level2"), ESearchCase::IgnoreCase) ||
@@ -798,19 +825,43 @@ void UFPSProjectGameInstance::ProcessSpawnObject(const Protocol::ObjectInfo& Obj
 	// 2. 다른 유저의 캐릭터인 경우
 	else
 	{
-		if (OtherPlayerClass == nullptr) return;
+		if (OtherPlayerClass == nullptr)
+		{
+			UE_LOG(LogTemp, Error, TEXT("[Stage2Spawn] OtherPlayerClass is null. ObjectId=%llu"), ObjectId);
+			return;
+		}
 
-		AFPSBaseCharacter* OtherPlayer = World->SpawnActor<AFPSBaseCharacter>(OtherPlayerClass, SpawnLocation, SpawnRotation);
+		FActorSpawnParameters SpawnParams;
+		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+
+		AFPSBaseCharacter* OtherPlayer = World->SpawnActor<AFPSBaseCharacter>(OtherPlayerClass, SpawnLocation, SpawnRotation, SpawnParams);
 		if (OtherPlayer)
 		{
 			OtherPlayer->SetPlayerInfo(SpawnPosInfo); // 타겟 유저의 ID와 위치 정보 세팅
+			OtherPlayer->SetActorLocationAndRotation(SpawnLocation, SpawnRotation, false, nullptr, ETeleportType::TeleportPhysics);
+			RestoreNetworkCharacterVisibility(OtherPlayer);
+			if (UCharacterMovementComponent* MoveComp = OtherPlayer->GetCharacterMovement())
+			{
+				MoveComp->StopMovementImmediately();
+				MoveComp->SetMovementMode(MOVE_Walking);
+			}
 			Players.Add(ObjectId, OtherPlayer);               // 맵에 등록
 			UE_LOG(LogTemp, Warning,
-				TEXT("[TruckDebug] SpawnOther ObjectId=%llu OtherPlayer=%s Local=%d"),
+				TEXT("[TruckDebug] SpawnOther ObjectId=%llu OtherPlayer=%s Local=%d Location=%s Hidden=%d"),
 				ObjectId,
 				*GetNameSafe(OtherPlayer),
-				OtherPlayer->IsLocallyControlled() ? 1 : 0);
+				OtherPlayer->IsLocallyControlled() ? 1 : 0,
+				*OtherPlayer->GetActorLocation().ToString(),
+				OtherPlayer->IsHidden() ? 1 : 0);
 			RetryPendingWeapon(ObjectId);
+		}
+		else
+		{
+			UE_LOG(LogTemp, Error,
+				TEXT("[Stage2Spawn] Failed to spawn other player. ObjectId=%llu Class=%s Location=%s"),
+				ObjectId,
+				*GetNameSafe(OtherPlayerClass.Get()),
+				*SpawnLocation.ToString());
 		}
 	}
 }
@@ -959,6 +1010,18 @@ void UFPSProjectGameInstance::ApplyStage2StartupActorHold(bool bHold)
 		bHold ||
 		(IsConnectedToGameServer() && LocalCharacter != nullptr && !bLocalCharacterRegistered);
 	ApplyCharacterHold(LocalCharacter, bHoldLocalCharacter);
+
+	if (!bHold)
+	{
+		for (const TPair<uint64, AFPSBaseCharacter*>& PlayerEntry : Players)
+		{
+			AFPSBaseCharacter* RegisteredPlayer = PlayerEntry.Value;
+			if (RegisteredPlayer && RegisteredPlayer != LocalCharacter)
+			{
+				RestoreNetworkCharacterVisibility(RegisteredPlayer);
+			}
+		}
+	}
 
 	for (TActorIterator<ATruck> It(World); It; ++It)
 	{

@@ -1285,9 +1285,7 @@ void AFPSBaseCharacter::SetDestInfo(const Protocol::PosInfo& Info)
 	{
 		if (UBoxComponent* CargoBounds = CurrentTruck->GetCargoMoveBoundsComponent())
 		{
-			const FVector ReplicatedWorldLocation(Info.x(), Info.y(), Info.z());
-			const FVector IncomingCargoLocalLocation =
-				CargoBounds->GetComponentTransform().InverseTransformPosition(ReplicatedWorldLocation);
+			const FVector IncomingCargoLocalLocation(Info.x(), Info.y(), Info.z());
 			const bool bWasCargoMoving =
 				PreviousDestState == Protocol::MOVE_STATE_RUN ||
 				PreviousDestState == Protocol::MOVE_STATE_JUMP;
@@ -1316,7 +1314,6 @@ void AFPSBaseCharacter::SetDestInfo(const Protocol::PosInfo& Info)
 		bHasReplicatedTruckCargoLocalLocation = false;
 	}
 }
-
 
 void AFPSBaseCharacter::EquipWeapon(AWeaponBase* Weapon)
 {
@@ -1372,7 +1369,6 @@ void AFPSBaseCharacter::SendMovePacket()
 {
 	Protocol::C_MOVE MovePkt;
 	Protocol::PosInfo* Info = MovePkt.mutable_info();
-
 	Info->set_object_id(PlayerInfo->object_id());
 	Info->set_x(GetActorLocation().X);
 	Info->set_y(GetActorLocation().Y);
@@ -1390,6 +1386,10 @@ void AFPSBaseCharacter::SendMovePacket()
 		{
 			const FVector CargoLocalLocation =
 				CargoBounds->GetComponentTransform().InverseTransformPosition(GetActorLocation());
+			Info->set_x(CargoLocalLocation.X);
+			Info->set_y(CargoLocalLocation.Y);
+			Info->set_z(CargoLocalLocation.Z);
+
 			const bool bHasMeaningfulCargoMovement =
 				!bHasLastTruckCargoLocalLocationForMoveState ||
 				FVector::DistSquaredXY(CargoLocalLocation, LastTruckCargoLocalLocationForMoveState) >

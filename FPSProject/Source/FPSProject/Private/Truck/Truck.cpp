@@ -62,6 +62,11 @@ ATruck::ATruck()
 	DriverSeatInteractTrigger->InitSphereRadius(200.0f);
 	DriverSeatInteractTrigger->InteractType = ETruckInteractType::DriverSeat;
 
+	DriverSeatInteractWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("DriverSeatInteractWidget"));
+	DriverSeatInteractWidget->SetupAttachment(DriverSeatInteractTrigger);
+	DriverSeatInteractWidget->SetTwoSided(true);
+	DriverSeatInteractWidget->SetWidgetSpace(EWidgetSpace::Screen);
+
 	CargoSeatInteractTrigger = CreateDefaultSubobject<UInteractTriggerComponent>(TEXT("CargoSeatInteractTrigger"));
 	CargoSeatInteractTrigger->SetupAttachment(RootComponent);
 	CargoSeatInteractTrigger->InitSphereRadius(200.0f);
@@ -217,6 +222,10 @@ ATruck::ATruck()
 	static ConstructorHelpers::FClassFinder<UUserWidget> TurretWidgetBP(TEXT("/Game/Item/WBP_Interact"));
 	if (TurretWidgetBP.Succeeded())
 	{
+		if (DriverSeatInteractWidget)
+		{
+			DriverSeatInteractWidget->SetWidgetClass(TurretWidgetBP.Class);
+		}
 		if (CargoSeatInteractWidget)
 		{
 			CargoSeatInteractWidget->SetWidgetClass(TurretWidgetBP.Class);
@@ -265,6 +274,10 @@ void ATruck::BeginPlay()
 	{
 		CargoSeatInteractWidget->InitWidget();
 	}
+	if (DriverSeatInteractWidget)
+	{
+		DriverSeatInteractWidget->InitWidget();
+	}
 
 	if (UFPSProjectGameInstance* GameInstance = Cast<UFPSProjectGameInstance>(GetGameInstance()))
 	{
@@ -280,6 +293,11 @@ void ATruck::BeginPlay()
 	{
 		CargoSeatInteractTrigger->OnEnter.AddDynamic(this, &ATruck::OnCargoInteractEnter);
 		CargoSeatInteractTrigger->OnExit.AddDynamic(this, &ATruck::OnCargoInteractExit);
+	}
+	if (DriverSeatInteractTrigger)
+	{
+		DriverSeatInteractTrigger->OnEnter.AddDynamic(this, &ATruck::OnDriverInteractEnter);
+		DriverSeatInteractTrigger->OnExit.AddDynamic(this, &ATruck::OnDriverInteractExit);
 	}
 
 	for (UStaticMeshComponent* Slot : AmmoSlots) { SetCargoSlotShown(Slot, false); }
@@ -1181,6 +1199,29 @@ void ATruck::RefreshInteractionWidgetsForCharacter(AFPSBaseCharacter* Character)
 		return;
 	}
 
+	if (UInteractUIClass* DriverUI = Cast<UInteractUIClass>(
+		DriverSeatInteractWidget ? DriverSeatInteractWidget->GetUserWidgetObject() : nullptr))
+	{
+		const bool bShowDriverPrompt =
+			!bIsLoadingPhase &&
+			DriverSeatInteractTrigger &&
+			DriverSeatInteractTrigger->IsOverlappingActor(Character) &&
+			!Character->IsOnTruckCargo() &&
+			!Character->IsDrivingTruck() &&
+			!Character->IsUsingMountedWeapon() &&
+			(DriverCharacter == nullptr || DriverCharacter == Character);
+
+		if (bShowDriverPrompt)
+		{
+			DriverUI->SetInteractText(FText::FromString(TEXT("트럭 운전하기")));
+			DriverUI->PlayAni_PopUp(false);
+		}
+		else
+		{
+			DriverUI->RePlayAni_PopUp();
+		}
+	}
+
 	if (UInteractUIClass* CargoUI = Cast<UInteractUIClass>(
 		CargoSeatInteractWidget ? CargoSeatInteractWidget->GetUserWidgetObject() : nullptr))
 	{
@@ -1194,7 +1235,7 @@ void ATruck::RefreshInteractionWidgetsForCharacter(AFPSBaseCharacter* Character)
 		if (bShowCargoPrompt)
 		{
 			CargoUI->SetInteractText(FText::FromString(
-				bIsLoadingPhase ? TEXT("아이템 적재하기") : TEXT("트럭에 탑승하기")));
+				bIsLoadingPhase ? TEXT("트럭에 아이템 적재하기") : TEXT("트럭 트렁크 탑승")));
 			CargoUI->PlayAni_PopUp(false);
 		}
 		else
@@ -1222,6 +1263,25 @@ void ATruck::RefreshInteractionWidgetsForCharacter(AFPSBaseCharacter* Character)
 		{
 			TurretUI->RePlayAni_PopUp();
 		}
+	}
+}
+
+void ATruck::OnDriverInteractEnter(AActor* OtherActor)
+{
+	RefreshInteractionWidgetsForCharacter(Cast<AFPSBaseCharacter>(OtherActor));
+}
+
+void ATruck::OnDriverInteractExit(AActor* OtherActor)
+{
+	AFPSBaseCharacter* Character = Cast<AFPSBaseCharacter>(OtherActor);
+	if (!IsLocalInteractionCharacter(Character) || !DriverSeatInteractWidget)
+	{
+		return;
+	}
+
+	if (UInteractUIClass* UI = Cast<UInteractUIClass>(DriverSeatInteractWidget->GetUserWidgetObject()))
+	{
+		UI->RePlayAni_PopUp();
 	}
 }
 

@@ -60,6 +60,9 @@ public:
 	UInteractTriggerComponent* TurretSeatInteractTrigger;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Interaction")
+	UWidgetComponent* DriverSeatInteractWidget;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Interaction")
 	UWidgetComponent* CargoSeatInteractWidget;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
@@ -189,6 +192,12 @@ public:
 
 	void EndMountedWeaponUse(AFPSBaseCharacter* Character);
 	void RefreshInteractionWidgetsForCharacter(AFPSBaseCharacter* Character);
+
+	UFUNCTION()
+	void OnDriverInteractEnter(AActor* OtherActor);
+
+	UFUNCTION()
+	void OnDriverInteractExit(AActor* OtherActor);
 
 	UFUNCTION()
 	void OnCargoInteractEnter(AActor* OtherActor);

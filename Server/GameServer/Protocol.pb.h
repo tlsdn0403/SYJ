@@ -4448,86 +4448,25 @@ class C_TRUCK_MOVE final :
   // accessors -------------------------------------------------------
 
   enum : int {
-    kTruckIdFieldNumber = 1,
-    kThrottleFieldNumber = 2,
-    kSteeringFieldNumber = 3,
-    kBrakeFieldNumber = 4,
-    kClientXFieldNumber = 5,
-    kClientYFieldNumber = 6,
-    kClientZFieldNumber = 7,
-    kClientYawFieldNumber = 8,
+    kInfoFieldNumber = 1,
   };
-  // uint64 truck_id = 1;
-  void clear_truck_id();
-  uint64_t truck_id() const;
-  void set_truck_id(uint64_t value);
+  // .Protocol.PosInfo info = 1;
+  bool has_info() const;
   private:
-  uint64_t _internal_truck_id() const;
-  void _internal_set_truck_id(uint64_t value);
+  bool _internal_has_info() const;
   public:
-
-  // float throttle = 2;
-  void clear_throttle();
-  float throttle() const;
-  void set_throttle(float value);
+  void clear_info();
+  const ::Protocol::PosInfo& info() const;
+  PROTOBUF_NODISCARD ::Protocol::PosInfo* release_info();
+  ::Protocol::PosInfo* mutable_info();
+  void set_allocated_info(::Protocol::PosInfo* info);
   private:
-  float _internal_throttle() const;
-  void _internal_set_throttle(float value);
+  const ::Protocol::PosInfo& _internal_info() const;
+  ::Protocol::PosInfo* _internal_mutable_info();
   public:
-
-  // float steering = 3;
-  void clear_steering();
-  float steering() const;
-  void set_steering(float value);
-  private:
-  float _internal_steering() const;
-  void _internal_set_steering(float value);
-  public:
-
-  // float brake = 4;
-  void clear_brake();
-  float brake() const;
-  void set_brake(float value);
-  private:
-  float _internal_brake() const;
-  void _internal_set_brake(float value);
-  public:
-
-  // float client_x = 5;
-  void clear_client_x();
-  float client_x() const;
-  void set_client_x(float value);
-  private:
-  float _internal_client_x() const;
-  void _internal_set_client_x(float value);
-  public:
-
-  // float client_y = 6;
-  void clear_client_y();
-  float client_y() const;
-  void set_client_y(float value);
-  private:
-  float _internal_client_y() const;
-  void _internal_set_client_y(float value);
-  public:
-
-  // float client_z = 7;
-  void clear_client_z();
-  float client_z() const;
-  void set_client_z(float value);
-  private:
-  float _internal_client_z() const;
-  void _internal_set_client_z(float value);
-  public:
-
-  // float client_yaw = 8;
-  void clear_client_yaw();
-  float client_yaw() const;
-  void set_client_yaw(float value);
-  private:
-  float _internal_client_yaw() const;
-  void _internal_set_client_yaw(float value);
-  public:
+  void unsafe_arena_set_allocated_info(
+      ::Protocol::PosInfo* info);
+  ::Protocol::PosInfo* unsafe_arena_release_info();
 
   // @@protoc_insertion_point(class_scope:Protocol.C_TRUCK_MOVE)
  private:
@@ -4537,14 +4476,7 @@ class C_TRUCK_MOVE final :
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
   struct Impl_ {
-    uint64_t truck_id_;
-    float throttle_;
-    float steering_;
-    float brake_;
-    float client_x_;
-    float client_y_;
-    float client_z_;
-    float client_yaw_;
+    ::Protocol::PosInfo* info_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   };
   union { Impl_ _impl_; };
@@ -8004,164 +7936,89 @@ inline void S_EXIT_TRUCK::set_seat_type(::Protocol::TruckSeatType value) {
 
 // C_TRUCK_MOVE
 
-// uint64 truck_id = 1;
-inline void C_TRUCK_MOVE::clear_truck_id() {
-  _impl_.truck_id_ = uint64_t{0u};
+// .Protocol.PosInfo info = 1;
+inline bool C_TRUCK_MOVE::_internal_has_info() const {
+  return this != internal_default_instance() && _impl_.info_ != nullptr;
 }
-inline uint64_t C_TRUCK_MOVE::_internal_truck_id() const {
-  return _impl_.truck_id_;
+inline bool C_TRUCK_MOVE::has_info() const {
+  return _internal_has_info();
 }
-inline uint64_t C_TRUCK_MOVE::truck_id() const {
-  // @@protoc_insertion_point(field_get:Protocol.C_TRUCK_MOVE.truck_id)
-  return _internal_truck_id();
+inline const ::Protocol::PosInfo& C_TRUCK_MOVE::_internal_info() const {
+  const ::Protocol::PosInfo* p = _impl_.info_;
+  return p != nullptr ? *p : reinterpret_cast<const ::Protocol::PosInfo&>(
+      ::Protocol::_PosInfo_default_instance_);
 }
-inline void C_TRUCK_MOVE::_internal_set_truck_id(uint64_t value) {
+inline const ::Protocol::PosInfo& C_TRUCK_MOVE::info() const {
+  // @@protoc_insertion_point(field_get:Protocol.C_TRUCK_MOVE.info)
+  return _internal_info();
+}
+inline void C_TRUCK_MOVE::unsafe_arena_set_allocated_info(
+    ::Protocol::PosInfo* info) {
+  if (GetArenaForAllocation() == nullptr) {
+    delete reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(_impl_.info_);
+  }
+  _impl_.info_ = info;
+  if (info) {
+    
+  } else {
+    
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:Protocol.C_TRUCK_MOVE.info)
+}
+inline ::Protocol::PosInfo* C_TRUCK_MOVE::release_info() {
   
-  _impl_.truck_id_ = value;
+  ::Protocol::PosInfo* temp = _impl_.info_;
+  _impl_.info_ = nullptr;
+#ifdef PROTOBUF_FORCE_COPY_IN_RELEASE
+  auto* old =  reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(temp);
+  temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  if (GetArenaForAllocation() == nullptr) { delete old; }
+#else  // PROTOBUF_FORCE_COPY_IN_RELEASE
+  if (GetArenaForAllocation() != nullptr) {
+    temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  }
+#endif  // !PROTOBUF_FORCE_COPY_IN_RELEASE
+  return temp;
 }
-inline void C_TRUCK_MOVE::set_truck_id(uint64_t value) {
-  _internal_set_truck_id(value);
-  // @@protoc_insertion_point(field_set:Protocol.C_TRUCK_MOVE.truck_id)
-}
-
-// float throttle = 2;
-inline void C_TRUCK_MOVE::clear_throttle() {
-  _impl_.throttle_ = 0;
-}
-inline float C_TRUCK_MOVE::_internal_throttle() const {
-  return _impl_.throttle_;
-}
-inline float C_TRUCK_MOVE::throttle() const {
-  // @@protoc_insertion_point(field_get:Protocol.C_TRUCK_MOVE.throttle)
-  return _internal_throttle();
-}
-inline void C_TRUCK_MOVE::_internal_set_throttle(float value) {
+inline ::Protocol::PosInfo* C_TRUCK_MOVE::unsafe_arena_release_info() {
+  // @@protoc_insertion_point(field_release:Protocol.C_TRUCK_MOVE.info)
   
-  _impl_.throttle_ = value;
+  ::Protocol::PosInfo* temp = _impl_.info_;
+  _impl_.info_ = nullptr;
+  return temp;
 }
-inline void C_TRUCK_MOVE::set_throttle(float value) {
-  _internal_set_throttle(value);
-  // @@protoc_insertion_point(field_set:Protocol.C_TRUCK_MOVE.throttle)
-}
-
-// float steering = 3;
-inline void C_TRUCK_MOVE::clear_steering() {
-  _impl_.steering_ = 0;
-}
-inline float C_TRUCK_MOVE::_internal_steering() const {
-  return _impl_.steering_;
-}
-inline float C_TRUCK_MOVE::steering() const {
-  // @@protoc_insertion_point(field_get:Protocol.C_TRUCK_MOVE.steering)
-  return _internal_steering();
-}
-inline void C_TRUCK_MOVE::_internal_set_steering(float value) {
+inline ::Protocol::PosInfo* C_TRUCK_MOVE::_internal_mutable_info() {
   
-  _impl_.steering_ = value;
+  if (_impl_.info_ == nullptr) {
+    auto* p = CreateMaybeMessage<::Protocol::PosInfo>(GetArenaForAllocation());
+    _impl_.info_ = p;
+  }
+  return _impl_.info_;
 }
-inline void C_TRUCK_MOVE::set_steering(float value) {
-  _internal_set_steering(value);
-  // @@protoc_insertion_point(field_set:Protocol.C_TRUCK_MOVE.steering)
+inline ::Protocol::PosInfo* C_TRUCK_MOVE::mutable_info() {
+  ::Protocol::PosInfo* _msg = _internal_mutable_info();
+  // @@protoc_insertion_point(field_mutable:Protocol.C_TRUCK_MOVE.info)
+  return _msg;
 }
-
-// float brake = 4;
-inline void C_TRUCK_MOVE::clear_brake() {
-  _impl_.brake_ = 0;
-}
-inline float C_TRUCK_MOVE::_internal_brake() const {
-  return _impl_.brake_;
-}
-inline float C_TRUCK_MOVE::brake() const {
-  // @@protoc_insertion_point(field_get:Protocol.C_TRUCK_MOVE.brake)
-  return _internal_brake();
-}
-inline void C_TRUCK_MOVE::_internal_set_brake(float value) {
-  
-  _impl_.brake_ = value;
-}
-inline void C_TRUCK_MOVE::set_brake(float value) {
-  _internal_set_brake(value);
-  // @@protoc_insertion_point(field_set:Protocol.C_TRUCK_MOVE.brake)
-}
-
-// float client_x = 5;
-inline void C_TRUCK_MOVE::clear_client_x() {
-  _impl_.client_x_ = 0;
-}
-inline float C_TRUCK_MOVE::_internal_client_x() const {
-  return _impl_.client_x_;
-}
-inline float C_TRUCK_MOVE::client_x() const {
-  // @@protoc_insertion_point(field_get:Protocol.C_TRUCK_MOVE.client_x)
-  return _internal_client_x();
-}
-inline void C_TRUCK_MOVE::_internal_set_client_x(float value) {
-  
-  _impl_.client_x_ = value;
-}
-inline void C_TRUCK_MOVE::set_client_x(float value) {
-  _internal_set_client_x(value);
-  // @@protoc_insertion_point(field_set:Protocol.C_TRUCK_MOVE.client_x)
-}
-
-// float client_y = 6;
-inline void C_TRUCK_MOVE::clear_client_y() {
-  _impl_.client_y_ = 0;
-}
-inline float C_TRUCK_MOVE::_internal_client_y() const {
-  return _impl_.client_y_;
-}
-inline float C_TRUCK_MOVE::client_y() const {
-  // @@protoc_insertion_point(field_get:Protocol.C_TRUCK_MOVE.client_y)
-  return _internal_client_y();
-}
-inline void C_TRUCK_MOVE::_internal_set_client_y(float value) {
-  
-  _impl_.client_y_ = value;
-}
-inline void C_TRUCK_MOVE::set_client_y(float value) {
-  _internal_set_client_y(value);
-  // @@protoc_insertion_point(field_set:Protocol.C_TRUCK_MOVE.client_y)
-}
-
-// float client_z = 7;
-inline void C_TRUCK_MOVE::clear_client_z() {
-  _impl_.client_z_ = 0;
-}
-inline float C_TRUCK_MOVE::_internal_client_z() const {
-  return _impl_.client_z_;
-}
-inline float C_TRUCK_MOVE::client_z() const {
-  // @@protoc_insertion_point(field_get:Protocol.C_TRUCK_MOVE.client_z)
-  return _internal_client_z();
-}
-inline void C_TRUCK_MOVE::_internal_set_client_z(float value) {
-  
-  _impl_.client_z_ = value;
-}
-inline void C_TRUCK_MOVE::set_client_z(float value) {
-  _internal_set_client_z(value);
-  // @@protoc_insertion_point(field_set:Protocol.C_TRUCK_MOVE.client_z)
-}
-
-// float client_yaw = 8;
-inline void C_TRUCK_MOVE::clear_client_yaw() {
-  _impl_.client_yaw_ = 0;
-}
-inline float C_TRUCK_MOVE::_internal_client_yaw() const {
-  return _impl_.client_yaw_;
-}
-inline float C_TRUCK_MOVE::client_yaw() const {
-  // @@protoc_insertion_point(field_get:Protocol.C_TRUCK_MOVE.client_yaw)
-  return _internal_client_yaw();
-}
-inline void C_TRUCK_MOVE::_internal_set_client_yaw(float value) {
-  
-  _impl_.client_yaw_ = value;
-}
-inline void C_TRUCK_MOVE::set_client_yaw(float value) {
-  _internal_set_client_yaw(value);
-  // @@protoc_insertion_point(field_set:Protocol.C_TRUCK_MOVE.client_yaw)
+inline void C_TRUCK_MOVE::set_allocated_info(::Protocol::PosInfo* info) {
+  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
+  if (message_arena == nullptr) {
+    delete reinterpret_cast< ::PROTOBUF_NAMESPACE_ID::MessageLite*>(_impl_.info_);
+  }
+  if (info) {
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+        ::PROTOBUF_NAMESPACE_ID::Arena::InternalGetOwningArena(
+                reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(info));
+    if (message_arena != submessage_arena) {
+      info = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, info, submessage_arena);
+    }
+    
+  } else {
+    
+  }
+  _impl_.info_ = info;
+  // @@protoc_insertion_point(field_set_allocated:Protocol.C_TRUCK_MOVE.info)
 }
 
 // -------------------------------------------------------------------

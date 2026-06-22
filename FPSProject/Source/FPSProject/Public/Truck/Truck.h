@@ -333,9 +333,6 @@ private:
 	bool bIsBrakingSoundPlaying = false;
 	bool bBrakePressedLastFrame = false;
 	bool bTruckDestroyed = false;
-	float CachedThrottleInput = 0.0f;
-	float CachedSteeringInput = 0.0f;
-	float CachedBrakeInput = 0.0f;
 	float TruckMovePacketSendTimer = 0.0f;
 	float DebugTransformLogTimer = 0.0f;
 	float ZombieNoiseTimer = 0.0f;

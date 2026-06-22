@@ -380,14 +380,7 @@ struct S_EXIT_TRUCKDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 S_EXIT_TRUCKDefaultTypeInternal _S_EXIT_TRUCK_default_instance_;
 PROTOBUF_CONSTEXPR C_TRUCK_MOVE::C_TRUCK_MOVE(
     ::_pbi::ConstantInitialized): _impl_{
-    /*decltype(_impl_.truck_id_)*/uint64_t{0u}
-  , /*decltype(_impl_.throttle_)*/0
-  , /*decltype(_impl_.steering_)*/0
-  , /*decltype(_impl_.brake_)*/0
-  , /*decltype(_impl_.client_x_)*/0
-  , /*decltype(_impl_.client_y_)*/0
-  , /*decltype(_impl_.client_z_)*/0
-  , /*decltype(_impl_.client_yaw_)*/0
+    /*decltype(_impl_.info_)*/nullptr
   , /*decltype(_impl_._cached_size_)*/{}} {}
 struct C_TRUCK_MOVEDefaultTypeInternal {
   PROTOBUF_CONSTEXPR C_TRUCK_MOVEDefaultTypeInternal()
@@ -787,14 +780,7 @@ const uint32_t TableStruct_Protocol_2eproto::offsets[] PROTOBUF_SECTION_VARIABLE
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::Protocol::C_TRUCK_MOVE, _impl_.truck_id_),
-  PROTOBUF_FIELD_OFFSET(::Protocol::C_TRUCK_MOVE, _impl_.throttle_),
-  PROTOBUF_FIELD_OFFSET(::Protocol::C_TRUCK_MOVE, _impl_.steering_),
-  PROTOBUF_FIELD_OFFSET(::Protocol::C_TRUCK_MOVE, _impl_.brake_),
-  PROTOBUF_FIELD_OFFSET(::Protocol::C_TRUCK_MOVE, _impl_.client_x_),
-  PROTOBUF_FIELD_OFFSET(::Protocol::C_TRUCK_MOVE, _impl_.client_y_),
-  PROTOBUF_FIELD_OFFSET(::Protocol::C_TRUCK_MOVE, _impl_.client_z_),
-  PROTOBUF_FIELD_OFFSET(::Protocol::C_TRUCK_MOVE, _impl_.client_yaw_),
+  PROTOBUF_FIELD_OFFSET(::Protocol::C_TRUCK_MOVE, _impl_.info_),
   ~0u,  // no _has_bits_
   PROTOBUF_FIELD_OFFSET(::Protocol::S_TRUCK_MOVE, _internal_metadata_),
   ~0u,  // no _extensions_
@@ -922,18 +908,18 @@ static const ::_pbi::MigrationSchema schemas[] PROTOBUF_SECTION_VARIABLE(protode
   { 189, -1, -1, sizeof(::Protocol::C_EXIT_TRUCK)},
   { 195, -1, -1, sizeof(::Protocol::S_EXIT_TRUCK)},
   { 204, -1, -1, sizeof(::Protocol::C_TRUCK_MOVE)},
-  { 218, -1, -1, sizeof(::Protocol::S_TRUCK_MOVE)},
-  { 225, -1, -1, sizeof(::Protocol::C_LOAD_TRUCK_ITEM)},
-  { 233, -1, -1, sizeof(::Protocol::S_LOAD_TRUCK_ITEM)},
-  { 242, -1, -1, sizeof(::Protocol::C_TOGGLE_DOOR)},
-  { 249, -1, -1, sizeof(::Protocol::S_TOGGLE_DOOR)},
-  { 257, -1, -1, sizeof(::Protocol::S_ENTER_GAME_READY_COUNT)},
-  { 265, -1, -1, sizeof(::Protocol::S_STAGE_TIMER)},
-  { 273, -1, -1, sizeof(::Protocol::S_STAGE1_ITEM_SEED)},
-  { 280, -1, -1, sizeof(::Protocol::S_RESPAWN_LOOT_ITEM)},
-  { 287, -1, -1, sizeof(::Protocol::C_STAGE_TRANSITION_REQUEST)},
-  { 295, -1, -1, sizeof(::Protocol::S_STAGE_TRANSITION)},
-  { 302, -1, -1, sizeof(::Protocol::S_ZOMBIE_DISMEMBER)},
+  { 211, -1, -1, sizeof(::Protocol::S_TRUCK_MOVE)},
+  { 218, -1, -1, sizeof(::Protocol::C_LOAD_TRUCK_ITEM)},
+  { 226, -1, -1, sizeof(::Protocol::S_LOAD_TRUCK_ITEM)},
+  { 235, -1, -1, sizeof(::Protocol::C_TOGGLE_DOOR)},
+  { 242, -1, -1, sizeof(::Protocol::S_TOGGLE_DOOR)},
+  { 250, -1, -1, sizeof(::Protocol::S_ENTER_GAME_READY_COUNT)},
+  { 258, -1, -1, sizeof(::Protocol::S_STAGE_TIMER)},
+  { 266, -1, -1, sizeof(::Protocol::S_STAGE1_ITEM_SEED)},
+  { 273, -1, -1, sizeof(::Protocol::S_RESPAWN_LOOT_ITEM)},
+  { 280, -1, -1, sizeof(::Protocol::C_STAGE_TRANSITION_REQUEST)},
+  { 288, -1, -1, sizeof(::Protocol::S_STAGE_TRANSITION)},
+  { 295, -1, -1, sizeof(::Protocol::S_ZOMBIE_DISMEMBER)},
 };
 
 static const ::_pb::Message* const file_default_instances[] = {
@@ -1017,31 +1003,28 @@ const char descriptor_table_protodef_Protocol_2eproto[] PROTOBUF_SECTION_VARIABL
   "pe\030\003 \001(\0162\027.Protocol.TruckSeatType\"\016\n\014C_E"
   "XIT_TRUCK\"_\n\014S_EXIT_TRUCK\022\021\n\tplayer_id\030\001"
   " \001(\004\022\020\n\010truck_id\030\002 \001(\004\022*\n\tseat_type\030\003 \001("
-  "\0162\027.Protocol.TruckSeatType\"\235\001\n\014C_TRUCK_M"
-  "OVE\022\020\n\010truck_id\030\001 \001(\004\022\020\n\010throttle\030\002 \001(\002\022"
-  "\020\n\010steering\030\003 \001(\002\022\r\n\005brake\030\004 \001(\002\022\020\n\010clie"
-  "nt_x\030\005 \001(\002\022\020\n\010client_y\030\006 \001(\002\022\020\n\010client_z"
-  "\030\007 \001(\002\022\022\n\nclient_yaw\030\010 \001(\002\"/\n\014S_TRUCK_MO"
-  "VE\022\037\n\004info\030\001 \001(\0132\021.Protocol.PosInfo\"9\n\021C"
-  "_LOAD_TRUCK_ITEM\022\020\n\010truck_id\030\001 \001(\004\022\022\n\nit"
-  "em_types\030\002 \003(\005\"L\n\021S_LOAD_TRUCK_ITEM\022\021\n\tp"
-  "layer_id\030\001 \001(\004\022\020\n\010truck_id\030\002 \001(\004\022\022\n\nitem"
-  "_types\030\003 \003(\005\" \n\rC_TOGGLE_DOOR\022\017\n\007door_id"
-  "\030\001 \001(\004\"1\n\rS_TOGGLE_DOOR\022\017\n\007door_id\030\001 \001(\004"
-  "\022\017\n\007is_open\030\002 \001(\010\"G\n\030S_ENTER_GAME_READY_"
-  "COUNT\022\023\n\013ready_count\030\001 \001(\005\022\026\n\016required_c"
-  "ount\030\002 \001(\005\"D\n\rS_STAGE_TIMER\022\031\n\021remaining"
-  "_seconds\030\001 \001(\005\022\030\n\020is_loading_phase\030\002 \001(\010"
-  "\"\"\n\022S_STAGE1_ITEM_SEED\022\014\n\004seed\030\001 \001(\r\".\n\023"
-  "S_RESPAWN_LOOT_ITEM\022\027\n\017item_object_ids\030\001"
-  " \003(\004\"D\n\032C_STAGE_TRANSITION_REQUEST\022\020\n\010tr"
-  "uck_id\030\001 \001(\004\022\024\n\014target_level\030\002 \001(\t\"*\n\022S_"
-  "STAGE_TRANSITION\022\024\n\014target_level\030\001 \001(\t\"\240"
-  "\001\n\022S_ZOMBIE_DISMEMBER\022\021\n\tzombie_id\030\001 \001(\004"
-  "\022\021\n\tbone_name\030\002 \001(\t\022\r\n\005hit_x\030\003 \001(\002\022\r\n\005hi"
-  "t_y\030\004 \001(\002\022\r\n\005hit_z\030\005 \001(\002\022\021\n\timpulse_x\030\006 "
-  "\001(\002\022\021\n\timpulse_y\030\007 \001(\002\022\021\n\timpulse_z\030\010 \001("
-  "\002b\006proto3"
+  "\0162\027.Protocol.TruckSeatType\"/\n\014C_TRUCK_MO"
+  "VE\022\037\n\004info\030\001 \001(\0132\021.Protocol.PosInfo\"/\n\014S"
+  "_TRUCK_MOVE\022\037\n\004info\030\001 \001(\0132\021.Protocol.Pos"
+  "Info\"9\n\021C_LOAD_TRUCK_ITEM\022\020\n\010truck_id\030\001 "
+  "\001(\004\022\022\n\nitem_types\030\002 \003(\005\"L\n\021S_LOAD_TRUCK_"
+  "ITEM\022\021\n\tplayer_id\030\001 \001(\004\022\020\n\010truck_id\030\002 \001("
+  "\004\022\022\n\nitem_types\030\003 \003(\005\" \n\rC_TOGGLE_DOOR\022\017"
+  "\n\007door_id\030\001 \001(\004\"1\n\rS_TOGGLE_DOOR\022\017\n\007door"
+  "_id\030\001 \001(\004\022\017\n\007is_open\030\002 \001(\010\"G\n\030S_ENTER_GA"
+  "ME_READY_COUNT\022\023\n\013ready_count\030\001 \001(\005\022\026\n\016r"
+  "equired_count\030\002 \001(\005\"D\n\rS_STAGE_TIMER\022\031\n\021"
+  "remaining_seconds\030\001 \001(\005\022\030\n\020is_loading_ph"
+  "ase\030\002 \001(\010\"\"\n\022S_STAGE1_ITEM_SEED\022\014\n\004seed\030"
+  "\001 \001(\r\".\n\023S_RESPAWN_LOOT_ITEM\022\027\n\017item_obj"
+  "ect_ids\030\001 \003(\004\"D\n\032C_STAGE_TRANSITION_REQU"
+  "EST\022\020\n\010truck_id\030\001 \001(\004\022\024\n\014target_level\030\002 "
+  "\001(\t\"*\n\022S_STAGE_TRANSITION\022\024\n\014target_leve"
+  "l\030\001 \001(\t\"\240\001\n\022S_ZOMBIE_DISMEMBER\022\021\n\tzombie"
+  "_id\030\001 \001(\004\022\021\n\tbone_name\030\002 \001(\t\022\r\n\005hit_x\030\003 "
+  "\001(\002\022\r\n\005hit_y\030\004 \001(\002\022\r\n\005hit_z\030\005 \001(\002\022\021\n\timp"
+  "ulse_x\030\006 \001(\002\022\021\n\timpulse_y\030\007 \001(\002\022\021\n\timpul"
+  "se_z\030\010 \001(\002b\006proto3"
   ;
 static const ::_pbi::DescriptorTable* const descriptor_table_Protocol_2eproto_deps[2] = {
   &::descriptor_table_Enum_2eproto,
@@ -1049,7 +1032,7 @@ static const ::_pbi::DescriptorTable* const descriptor_table_Protocol_2eproto_de
 };
 static ::_pbi::once_flag descriptor_table_Protocol_2eproto_once;
 const ::_pbi::DescriptorTable descriptor_table_Protocol_2eproto = {
-    false, false, 2489, descriptor_table_protodef_Protocol_2eproto,
+    false, false, 2378, descriptor_table_protodef_Protocol_2eproto,
     "Protocol.proto",
     &descriptor_table_Protocol_2eproto_once, descriptor_table_Protocol_2eproto_deps, 2, 39,
     schemas, file_default_instances, TableStruct_Protocol_2eproto::offsets,
@@ -6311,8 +6294,19 @@ void S_EXIT_TRUCK::InternalSwap(S_EXIT_TRUCK* other) {
 
 class C_TRUCK_MOVE::_Internal {
  public:
+  static const ::Protocol::PosInfo& info(const C_TRUCK_MOVE* msg);
 };
 
+const ::Protocol::PosInfo&
+C_TRUCK_MOVE::_Internal::info(const C_TRUCK_MOVE* msg) {
+  return *msg->_impl_.info_;
+}
+void C_TRUCK_MOVE::clear_info() {
+  if (GetArenaForAllocation() == nullptr && _impl_.info_ != nullptr) {
+    delete _impl_.info_;
+  }
+  _impl_.info_ = nullptr;
+}
 C_TRUCK_MOVE::C_TRUCK_MOVE(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
@@ -6323,20 +6317,13 @@ C_TRUCK_MOVE::C_TRUCK_MOVE(const C_TRUCK_MOVE& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
   C_TRUCK_MOVE* const _this = this; (void)_this;
   new (&_impl_) Impl_{
-      decltype(_impl_.truck_id_){}
-    , decltype(_impl_.throttle_){}
-    , decltype(_impl_.steering_){}
-    , decltype(_impl_.brake_){}
-    , decltype(_impl_.client_x_){}
-    , decltype(_impl_.client_y_){}
-    , decltype(_impl_.client_z_){}
-    , decltype(_impl_.client_yaw_){}
+      decltype(_impl_.info_){nullptr}
     , /*decltype(_impl_._cached_size_)*/{}};
 
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
-  ::memcpy(&_impl_.truck_id_, &from._impl_.truck_id_,
-    static_cast<size_t>(reinterpret_cast<char*>(&_impl_.client_yaw_) -
-    reinterpret_cast<char*>(&_impl_.truck_id_)) + sizeof(_impl_.client_yaw_));
+  if (from._internal_has_info()) {
+    _this->_impl_.info_ = new ::Protocol::PosInfo(*from._impl_.info_);
+  }
   // @@protoc_insertion_point(copy_constructor:Protocol.C_TRUCK_MOVE)
 }
 
@@ -6345,14 +6332,7 @@ inline void C_TRUCK_MOVE::SharedCtor(
   (void)arena;
   (void)is_message_owned;
   new (&_impl_) Impl_{
-      decltype(_impl_.truck_id_){uint64_t{0u}}
-    , decltype(_impl_.throttle_){0}
-    , decltype(_impl_.steering_){0}
-    , decltype(_impl_.brake_){0}
-    , decltype(_impl_.client_x_){0}
-    , decltype(_impl_.client_y_){0}
-    , decltype(_impl_.client_z_){0}
-    , decltype(_impl_.client_yaw_){0}
+      decltype(_impl_.info_){nullptr}
     , /*decltype(_impl_._cached_size_)*/{}
   };
 }
@@ -6368,6 +6348,7 @@ C_TRUCK_MOVE::~C_TRUCK_MOVE() {
 
 inline void C_TRUCK_MOVE::SharedDtor() {
   GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+  if (this != internal_default_instance()) delete _impl_.info_;
 }
 
 void C_TRUCK_MOVE::SetCachedSize(int size) const {
@@ -6380,9 +6361,10 @@ void C_TRUCK_MOVE::Clear() {
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  ::memset(&_impl_.truck_id_, 0, static_cast<size_t>(
-      reinterpret_cast<char*>(&_impl_.client_yaw_) -
-      reinterpret_cast<char*>(&_impl_.truck_id_)) + sizeof(_impl_.client_yaw_));
+  if (GetArenaForAllocation() == nullptr && _impl_.info_ != nullptr) {
+    delete _impl_.info_;
+  }
+  _impl_.info_ = nullptr;
   _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
 }
 
@@ -6392,67 +6374,11 @@ const char* C_TRUCK_MOVE::_InternalParse(const char* ptr, ::_pbi::ParseContext* 
     uint32_t tag;
     ptr = ::_pbi::ReadTag(ptr, &tag);
     switch (tag >> 3) {
-      // uint64 truck_id = 1;
+      // .Protocol.PosInfo info = 1;
       case 1:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 8)) {
-          _impl_.truck_id_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
+          ptr = ctx->ParseMessage(_internal_mutable_info(), ptr);
           CHK_(ptr);
-        } else
-          goto handle_unusual;
-        continue;
-      // float throttle = 2;
-      case 2:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 21)) {
-          _impl_.throttle_ = ::PROTOBUF_NAMESPACE_ID::internal::UnalignedLoad<float>(ptr);
-          ptr += sizeof(float);
-        } else
-          goto handle_unusual;
-        continue;
-      // float steering = 3;
-      case 3:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 29)) {
-          _impl_.steering_ = ::PROTOBUF_NAMESPACE_ID::internal::UnalignedLoad<float>(ptr);
-          ptr += sizeof(float);
-        } else
-          goto handle_unusual;
-        continue;
-      // float brake = 4;
-      case 4:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 37)) {
-          _impl_.brake_ = ::PROTOBUF_NAMESPACE_ID::internal::UnalignedLoad<float>(ptr);
-          ptr += sizeof(float);
-        } else
-          goto handle_unusual;
-        continue;
-      // float client_x = 5;
-      case 5:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 45)) {
-          _impl_.client_x_ = ::PROTOBUF_NAMESPACE_ID::internal::UnalignedLoad<float>(ptr);
-          ptr += sizeof(float);
-        } else
-          goto handle_unusual;
-        continue;
-      // float client_y = 6;
-      case 6:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 53)) {
-          _impl_.client_y_ = ::PROTOBUF_NAMESPACE_ID::internal::UnalignedLoad<float>(ptr);
-          ptr += sizeof(float);
-        } else
-          goto handle_unusual;
-        continue;
-      // float client_z = 7;
-      case 7:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 61)) {
-          _impl_.client_z_ = ::PROTOBUF_NAMESPACE_ID::internal::UnalignedLoad<float>(ptr);
-          ptr += sizeof(float);
-        } else
-          goto handle_unusual;
-        continue;
-      // float client_yaw = 8;
-      case 8:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 69)) {
-          _impl_.client_yaw_ = ::PROTOBUF_NAMESPACE_ID::internal::UnalignedLoad<float>(ptr);
-          ptr += sizeof(float);
         } else
           goto handle_unusual;
         continue;
@@ -6485,80 +6411,11 @@ uint8_t* C_TRUCK_MOVE::_InternalSerialize(
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  // uint64 truck_id = 1;
-  if (this->_internal_truck_id() != 0) {
-    target = stream->EnsureSpace(target);
-    target = ::_pbi::WireFormatLite::WriteUInt64ToArray(1, this->_internal_truck_id(), target);
-  }
-
-  // float throttle = 2;
-  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
-  float tmp_throttle = this->_internal_throttle();
-  uint32_t raw_throttle;
-  memcpy(&raw_throttle, &tmp_throttle, sizeof(tmp_throttle));
-  if (raw_throttle != 0) {
-    target = stream->EnsureSpace(target);
-    target = ::_pbi::WireFormatLite::WriteFloatToArray(2, this->_internal_throttle(), target);
-  }
-
-  // float steering = 3;
-  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
-  float tmp_steering = this->_internal_steering();
-  uint32_t raw_steering;
-  memcpy(&raw_steering, &tmp_steering, sizeof(tmp_steering));
-  if (raw_steering != 0) {
-    target = stream->EnsureSpace(target);
-    target = ::_pbi::WireFormatLite::WriteFloatToArray(3, this->_internal_steering(), target);
-  }
-
-  // float brake = 4;
-  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
-  float tmp_brake = this->_internal_brake();
-  uint32_t raw_brake;
-  memcpy(&raw_brake, &tmp_brake, sizeof(tmp_brake));
-  if (raw_brake != 0) {
-    target = stream->EnsureSpace(target);
-    target = ::_pbi::WireFormatLite::WriteFloatToArray(4, this->_internal_brake(), target);
-  }
-
-  // float client_x = 5;
-  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
-  float tmp_client_x = this->_internal_client_x();
-  uint32_t raw_client_x;
-  memcpy(&raw_client_x, &tmp_client_x, sizeof(tmp_client_x));
-  if (raw_client_x != 0) {
-    target = stream->EnsureSpace(target);
-    target = ::_pbi::WireFormatLite::WriteFloatToArray(5, this->_internal_client_x(), target);
-  }
-
-  // float client_y = 6;
-  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
-  float tmp_client_y = this->_internal_client_y();
-  uint32_t raw_client_y;
-  memcpy(&raw_client_y, &tmp_client_y, sizeof(tmp_client_y));
-  if (raw_client_y != 0) {
-    target = stream->EnsureSpace(target);
-    target = ::_pbi::WireFormatLite::WriteFloatToArray(6, this->_internal_client_y(), target);
-  }
-
-  // float client_z = 7;
-  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
-  float tmp_client_z = this->_internal_client_z();
-  uint32_t raw_client_z;
-  memcpy(&raw_client_z, &tmp_client_z, sizeof(tmp_client_z));
-  if (raw_client_z != 0) {
-    target = stream->EnsureSpace(target);
-    target = ::_pbi::WireFormatLite::WriteFloatToArray(7, this->_internal_client_z(), target);
-  }
-
-  // float client_yaw = 8;
-  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
-  float tmp_client_yaw = this->_internal_client_yaw();
-  uint32_t raw_client_yaw;
-  memcpy(&raw_client_yaw, &tmp_client_yaw, sizeof(tmp_client_yaw));
-  if (raw_client_yaw != 0) {
-    target = stream->EnsureSpace(target);
-    target = ::_pbi::WireFormatLite::WriteFloatToArray(8, this->_internal_client_yaw(), target);
+  // .Protocol.PosInfo info = 1;
+  if (this->_internal_has_info()) {
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(1, _Internal::info(this),
+        _Internal::info(this).GetCachedSize(), target, stream);
   }
 
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
@@ -6577,72 +6434,11 @@ size_t C_TRUCK_MOVE::ByteSizeLong() const {
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  // uint64 truck_id = 1;
-  if (this->_internal_truck_id() != 0) {
-    total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(this->_internal_truck_id());
-  }
-
-  // float throttle = 2;
-  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
-  float tmp_throttle = this->_internal_throttle();
-  uint32_t raw_throttle;
-  memcpy(&raw_throttle, &tmp_throttle, sizeof(tmp_throttle));
-  if (raw_throttle != 0) {
-    total_size += 1 + 4;
-  }
-
-  // float steering = 3;
-  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
-  float tmp_steering = this->_internal_steering();
-  uint32_t raw_steering;
-  memcpy(&raw_steering, &tmp_steering, sizeof(tmp_steering));
-  if (raw_steering != 0) {
-    total_size += 1 + 4;
-  }
-
-  // float brake = 4;
-  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
-  float tmp_brake = this->_internal_brake();
-  uint32_t raw_brake;
-  memcpy(&raw_brake, &tmp_brake, sizeof(tmp_brake));
-  if (raw_brake != 0) {
-    total_size += 1 + 4;
-  }
-
-  // float client_x = 5;
-  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
-  float tmp_client_x = this->_internal_client_x();
-  uint32_t raw_client_x;
-  memcpy(&raw_client_x, &tmp_client_x, sizeof(tmp_client_x));
-  if (raw_client_x != 0) {
-    total_size += 1 + 4;
-  }
-
-  // float client_y = 6;
-  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
-  float tmp_client_y = this->_internal_client_y();
-  uint32_t raw_client_y;
-  memcpy(&raw_client_y, &tmp_client_y, sizeof(tmp_client_y));
-  if (raw_client_y != 0) {
-    total_size += 1 + 4;
-  }
-
-  // float client_z = 7;
-  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
-  float tmp_client_z = this->_internal_client_z();
-  uint32_t raw_client_z;
-  memcpy(&raw_client_z, &tmp_client_z, sizeof(tmp_client_z));
-  if (raw_client_z != 0) {
-    total_size += 1 + 4;
-  }
-
-  // float client_yaw = 8;
-  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
-  float tmp_client_yaw = this->_internal_client_yaw();
-  uint32_t raw_client_yaw;
-  memcpy(&raw_client_yaw, &tmp_client_yaw, sizeof(tmp_client_yaw));
-  if (raw_client_yaw != 0) {
-    total_size += 1 + 4;
+  // .Protocol.PosInfo info = 1;
+  if (this->_internal_has_info()) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+        *_impl_.info_);
   }
 
   return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
@@ -6663,57 +6459,9 @@ void C_TRUCK_MOVE::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::P
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  if (from._internal_truck_id() != 0) {
-    _this->_internal_set_truck_id(from._internal_truck_id());
-  }
-  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
-  float tmp_throttle = from._internal_throttle();
-  uint32_t raw_throttle;
-  memcpy(&raw_throttle, &tmp_throttle, sizeof(tmp_throttle));
-  if (raw_throttle != 0) {
-    _this->_internal_set_throttle(from._internal_throttle());
-  }
-  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
-  float tmp_steering = from._internal_steering();
-  uint32_t raw_steering;
-  memcpy(&raw_steering, &tmp_steering, sizeof(tmp_steering));
-  if (raw_steering != 0) {
-    _this->_internal_set_steering(from._internal_steering());
-  }
-  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
-  float tmp_brake = from._internal_brake();
-  uint32_t raw_brake;
-  memcpy(&raw_brake, &tmp_brake, sizeof(tmp_brake));
-  if (raw_brake != 0) {
-    _this->_internal_set_brake(from._internal_brake());
-  }
-  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
-  float tmp_client_x = from._internal_client_x();
-  uint32_t raw_client_x;
-  memcpy(&raw_client_x, &tmp_client_x, sizeof(tmp_client_x));
-  if (raw_client_x != 0) {
-    _this->_internal_set_client_x(from._internal_client_x());
-  }
-  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
-  float tmp_client_y = from._internal_client_y();
-  uint32_t raw_client_y;
-  memcpy(&raw_client_y, &tmp_client_y, sizeof(tmp_client_y));
-  if (raw_client_y != 0) {
-    _this->_internal_set_client_y(from._internal_client_y());
-  }
-  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
-  float tmp_client_z = from._internal_client_z();
-  uint32_t raw_client_z;
-  memcpy(&raw_client_z, &tmp_client_z, sizeof(tmp_client_z));
-  if (raw_client_z != 0) {
-    _this->_internal_set_client_z(from._internal_client_z());
-  }
-  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
-  float tmp_client_yaw = from._internal_client_yaw();
-  uint32_t raw_client_yaw;
-  memcpy(&raw_client_yaw, &tmp_client_yaw, sizeof(tmp_client_yaw));
-  if (raw_client_yaw != 0) {
-    _this->_internal_set_client_yaw(from._internal_client_yaw());
+  if (from._internal_has_info()) {
+    _this->_internal_mutable_info()->::Protocol::PosInfo::MergeFrom(
+        from._internal_info());
   }
   _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
 }
@@ -6732,12 +6480,7 @@ bool C_TRUCK_MOVE::IsInitialized() const {
 void C_TRUCK_MOVE::InternalSwap(C_TRUCK_MOVE* other) {
   using std::swap;
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
-  ::PROTOBUF_NAMESPACE_ID::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(C_TRUCK_MOVE, _impl_.client_yaw_)
-      + sizeof(C_TRUCK_MOVE::_impl_.client_yaw_)
-      - PROTOBUF_FIELD_OFFSET(C_TRUCK_MOVE, _impl_.truck_id_)>(
-          reinterpret_cast<char*>(&_impl_.truck_id_),
-          reinterpret_cast<char*>(&other->_impl_.truck_id_));
+  swap(_impl_.info_, other->_impl_.info_);
 }
 
 ::PROTOBUF_NAMESPACE_ID::Metadata C_TRUCK_MOVE::GetMetadata() const {

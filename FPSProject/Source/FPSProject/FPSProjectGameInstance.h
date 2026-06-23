@@ -75,6 +75,7 @@ public:
 	class ATruck* FindTruckById(uint64 TruckId);
 	class AADoor* FindDoorById(int32 DoorId);
 	class AFPSBaseCharacter* ResolvePlayerById(uint64 PlayerId) const;
+	class AFPSBaseCharacter* GetSpectateTargetBySlot(int32 SlotIndex) const;
 	class ALootItemBase* FindNetworkLootItemById(uint64 LootItemId);
 	void CacheTruckActors();
 	void CacheDoorActors();
@@ -178,6 +179,7 @@ private:
 	void ProcessPendingStage2Spawns();
 	void ApplyStage2StartupActorHold(bool bHold);
 	void TryDistributeStage1CargoItemsToPlayers();
+	bool RemovePlayerById(uint64 PlayerId);
 	bool bShouldShowEntryLoadingWidget = false;
 	bool bWaitingForStage2MapLoad = false;
 	FString PendingStageTransitionLevelName;

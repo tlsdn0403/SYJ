@@ -632,6 +632,10 @@ void ABaseZombie::ApplyAttackDamage(AActor* TargetActor)
 	if (PlayerPawn)
 	{
 		PlayerPawn->SetHealth(TargetHealth->GetHealth(), TargetHealth->MaxGetHealth());
+		if (TargetHealth->GetHealth() <= 0.0f)
+		{
+			PlayerPawn->Die();
+		}
 	}
 }
 

@@ -8,6 +8,7 @@
 #include "HUD/BasicUI.h"
 #include "HUD/EffectUI.h"
 #include "HUD/L2BaseUI.h"
+#include "FPSProjectGameInstance.h"
 #include<algorithm>
 #include "EnhancedInputSubsystems.h"
 #include "EnhancedInputComponent.h"
@@ -56,6 +57,18 @@ void AFPSPlayerController::Pressed1(const FInputActionValue& Value)		//2라운�
 {
 	UE_LOG(LogTemp, Warning, TEXT("1 Key Pressed"));
 
+	if (TrySpectatePlayerSlot(0))
+	{
+		return;
+	}
+	if (AFPSBaseCharacter* ControlledCharacter = Cast<AFPSBaseCharacter>(GetPawn()))
+	{
+		if (ControlledCharacter->IsDead())
+		{
+			return;
+		}
+	}
+
 	// 여기서 인벤토리 / 무기 변경 / 슬롯 선택 처리
 	InventoryW->SelectSlot(0); // 예시로 슬롯 1 선택
 }
@@ -63,6 +76,19 @@ void AFPSPlayerController::Pressed1(const FInputActionValue& Value)		//2라운�
 void AFPSPlayerController::Pressed2(const FInputActionValue& Value)		//2라운드 힐팩 사용
 {
 	UE_LOG(LogTemp, Warning, TEXT("2 Key Pressed"));
+
+	if (TrySpectatePlayerSlot(1))
+	{
+		return;
+	}
+	if (AFPSBaseCharacter* ControlledCharacter = Cast<AFPSBaseCharacter>(GetPawn()))
+	{
+		if (ControlledCharacter->IsDead())
+		{
+			return;
+		}
+	}
+
 	bool success = L2BaseW->UsingItem(2);
 	if (success) {
 		AFPSBaseCharacter* player = Cast<AFPSBaseCharacter>(GetPawn());
@@ -108,6 +134,29 @@ void AFPSPlayerController::PressedTAB(const FInputActionValue& Value)	//2라운�
 	else {
 		L2BaseW->PlayAnimationReverse(L2BaseW->Ani_ItemOpen);
 	}
+}
+
+bool AFPSPlayerController::TrySpectatePlayerSlot(int32 SlotIndex)
+{
+	AFPSBaseCharacter* ControlledCharacter = Cast<AFPSBaseCharacter>(GetPawn());
+	if (ControlledCharacter == nullptr || !ControlledCharacter->IsDead())
+	{
+		return false;
+	}
+
+	UFPSProjectGameInstance* GameInstance = Cast<UFPSProjectGameInstance>(GetGameInstance());
+	if (GameInstance == nullptr)
+	{
+		return false;
+	}
+
+	if (AFPSBaseCharacter* SpectateTarget = GameInstance->GetSpectateTargetBySlot(SlotIndex))
+	{
+		SetViewTargetWithBlend(SpectateTarget, 0.2f);
+		return true;
+	}
+
+	return false;
 }
 
 bool AFPSPlayerController::PickUp_Item(UTexture2D* image, int32 handw)

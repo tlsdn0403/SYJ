@@ -70,6 +70,13 @@ AFPSBaseCharacter::AFPSBaseCharacter()
 	{
 		DrivingAnimationAsset = DrivingAnimationRef.Object;
 	}
+
+	static ConstructorHelpers::FObjectFinder<UAnimationAsset> DeathAnimationRef(
+		TEXT("/Game/Characters/Animations/Death_1.Death_1"));
+	if (DeathAnimationRef.Succeeded())
+	{
+		DeathAnimationAsset = DeathAnimationRef.Object;
+	}
 }
 
 AFPSBaseCharacter::~AFPSBaseCharacter()
@@ -87,6 +94,11 @@ void AFPSBaseCharacter::BeginPlay()
 		ZombieStimuliSource->RegisterForSense(UAISense_Sight::StaticClass());
 		ZombieStimuliSource->RegisterForSense(UAISense_Hearing::StaticClass());
 		ZombieStimuliSource->RegisterWithPerceptionSystem();
+	}
+
+	if (HealthComponent)
+	{
+		HealthComponent->OnHealthChanged.AddDynamic(this, &AFPSBaseCharacter::HandleHealthChanged);
 	}
 
 	check(GEngine != nullptr);
@@ -380,6 +392,99 @@ void AFPSBaseCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 void AFPSBaseCharacter::HandleUseHealPackInput()
 {
 	UseHealPack();
+}
+
+void AFPSBaseCharacter::HandleHealthChanged(float NewHealth, float Damage)
+{
+	if (NewHealth <= 0.0f)
+	{
+		Die();
+	}
+}
+
+void AFPSBaseCharacter::Die(bool bBroadcastDeath)
+{
+	if (bIsDead)
+	{
+		return;
+	}
+
+	bIsDead = true;
+	StopFire();
+	UpdateIronSightFirstPersonView(false);
+
+	if (bBroadcastDeath && IsLocallyControlled())
+	{
+		SendDeathPacket();
+	}
+
+	if (CurrentWeapon)
+	{
+		CurrentWeapon->SetWeaponHidden(true);
+	}
+
+	if (CurrentTruck)
+	{
+		if (bIsDrivingTruck)
+		{
+			ExitTruckDriverSeat();
+		}
+		else if (bIsUsingMountedWeapon)
+		{
+			ExitMountedWeapon(false);
+		}
+		else if (bIsOnTruckCargo)
+		{
+			ExitTruckCargo();
+		}
+	}
+
+	if (GetCharacterMovement())
+	{
+		GetCharacterMovement()->StopMovementImmediately();
+		GetCharacterMovement()->DisableMovement();
+	}
+
+	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+	if (DeathAnimationAsset && GetMesh())
+	{
+		GetMesh()->PlayAnimation(DeathAnimationAsset, false);
+	}
+
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(DeathCleanupTimerHandle);
+		World->GetTimerManager().SetTimer(
+			DeathCleanupTimerHandle,
+			this,
+			&AFPSBaseCharacter::RemoveDeadBody,
+			DeathCleanupDelay,
+			false);
+	}
+
+	if (IsLocallyControlled())
+	{
+		if (AFPSPlayerController* FPSPlayerController = Cast<AFPSPlayerController>(GetController()))
+		{
+			if (FPSPlayerController->EffectW)
+			{
+				FPSPlayerController->EffectW->PlayAni_Effect(false);
+			}
+		}
+
+		if (APlayerController* PlayerController = Cast<APlayerController>(GetController()))
+		{
+			if (UFPSProjectGameInstance* GameInstance = Cast<UFPSProjectGameInstance>(GetGameInstance()))
+			{
+				if (AFPSBaseCharacter* SpectateTarget = GameInstance->GetSpectateTargetBySlot(0))
+				{
+					PlayerController->SetViewTargetWithBlend(SpectateTarget, 0.25f);
+				}
+			}
+		}
+	}
 }
 // 2스테이지 맵으로 이동
 void AFPSBaseCharacter::TravelToStage2Map()
@@ -782,7 +887,7 @@ bool AFPSBaseCharacter::CanInteractWithMountedWeapon() const
 
 void AFPSBaseCharacter::MoveForward(float Value)
 {
-	if (bIsUsingMountedWeapon)
+	if (bIsDead || bIsUsingMountedWeapon)
 	{
 		return;
 	}
@@ -796,7 +901,7 @@ void AFPSBaseCharacter::MoveForward(float Value)
 
 void AFPSBaseCharacter::MoveRight(float Value)
 {
-	if (bIsUsingMountedWeapon)
+	if (bIsDead || bIsUsingMountedWeapon)
 	{
 		return;
 	}
@@ -1403,8 +1508,38 @@ void AFPSBaseCharacter::DestroyEquippedWeapon()
 	WeaponToDestroy->Destroy();
 }
 
+void AFPSBaseCharacter::SendDeathPacket()
+{
+	Protocol::C_MOVE MovePkt;
+	Protocol::PosInfo* Info = MovePkt.mutable_info();
+	Info->set_object_id(PlayerInfo ? PlayerInfo->object_id() : 0);
+	Info->set_x(GetActorLocation().X);
+	Info->set_y(GetActorLocation().Y);
+	Info->set_z(GetActorLocation().Z);
+	Info->set_yaw(GetControlRotation().Yaw);
+	Info->set_state(Protocol::MOVE_STATE_DEAD);
+
+	SEND_PACKET(MovePkt);
+}
+
+void AFPSBaseCharacter::RemoveDeadBody()
+{
+	SetActorEnableCollision(false);
+	SetActorHiddenInGame(true);
+
+	if (!IsLocallyControlled())
+	{
+		Destroy();
+	}
+}
+
 void AFPSBaseCharacter::SendMovePacket()
 {
+	if (bIsDead)
+	{
+		return;
+	}
+
 	Protocol::C_MOVE MovePkt;
 	Protocol::PosInfo* Info = MovePkt.mutable_info();
 	Info->set_object_id(PlayerInfo->object_id());
@@ -1702,6 +1837,11 @@ void AFPSBaseCharacter::SetHealth(float currentHp,float maxHp) {
 			else
 				PC->EffectW->PlayAni_Effect(false);
 		}
+	}
+
+	if (currentHp <= 0.0f)
+	{
+		Die();
 	}
 }
 

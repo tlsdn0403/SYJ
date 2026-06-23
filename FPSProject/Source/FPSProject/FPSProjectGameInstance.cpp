@@ -223,58 +223,6 @@ namespace
 			ETeleportType::TeleportPhysics);
 	}
 
-	bool SnapTruckToStage2Ground(ATruck* Truck, float AdditionalGroundOffset = -400.0f)
-	{
-		if (!IsValid(Truck))
-		{
-			return false;
-		}
-
-		UWorld* World = Truck->GetWorld();
-		if (!IsStage2World(World))
-		{
-			return false;
-		}
-
-		FHitResult GroundHit;
-		const FVector ActorLocation = Truck->GetActorLocation();
-		const FVector TraceStart = ActorLocation + FVector(0.0f, 0.0f, 3000.0f);
-		const FVector TraceEnd = ActorLocation - FVector(0.0f, 0.0f, 8000.0f);
-		FCollisionQueryParams QueryParams;
-		QueryParams.bTraceComplex = false;
-		QueryParams.AddIgnoredActor(Truck);
-		TArray<AActor*> AttachedActors;
-		Truck->GetAttachedActors(AttachedActors);
-		for (AActor* AttachedActor : AttachedActors)
-		{
-			QueryParams.AddIgnoredActor(AttachedActor);
-		}
-
-		if (!World->LineTraceSingleByChannel(GroundHit, TraceStart, TraceEnd, ECC_WorldStatic, QueryParams) &&
-			!World->LineTraceSingleByChannel(GroundHit, TraceStart, TraceEnd, ECC_Visibility, QueryParams))
-		{
-			return false;
-		}
-
-		FVector BoundsOrigin = FVector::ZeroVector;
-		FVector BoundsExtent = FVector::ZeroVector;
-		Truck->GetActorBounds(false, BoundsOrigin, BoundsExtent);
-
-		const float CurrentBottomZ = BoundsOrigin.Z - BoundsExtent.Z;
-		const float DeltaZ = GroundHit.ImpactPoint.Z + AdditionalGroundOffset - CurrentBottomZ;
-		if (FMath::Abs(DeltaZ) <= KINDA_SMALL_NUMBER)
-		{
-			return true;
-		}
-
-		Truck->SetActorLocation(
-			ActorLocation + FVector(0.0f, 0.0f, DeltaZ),
-			false,
-			nullptr,
-			ETeleportType::TeleportPhysics);
-		return true;
-	}
-
 	void ApplyStage2InitialTruckPlacement(ATruck* Truck)
 	{
 		if (!IsValid(Truck))
@@ -319,7 +267,6 @@ namespace
 			Truck->Tags.Add(Stage2InitialTruckPlacementTag);
 		}
 
-		SnapTruckToStage2Ground(Truck);
 	}
 }
 
@@ -2010,10 +1957,6 @@ void UFPSProjectGameInstance::HandleTruckMove(const Protocol::S_TRUCK_MOVE& pkt)
 	FVector TargetLocation(pkt.info().x(), pkt.info().y(), pkt.info().z());
 	const FRotator TargetRotation(pkt.info().pitch(), pkt.info().yaw(), pkt.info().roll());
 	Truck->ApplyNetworkTransform(TargetLocation, TargetRotation, pkt.is_correction());
-	if (!Truck->IsLocallyDriven() || pkt.is_correction())
-	{
-		SnapTruckToStage2Ground(Truck);
-	}
 }
 
 void UFPSProjectGameInstance::HandleLoadTruckItem(const Protocol::S_LOAD_TRUCK_ITEM& pkt)

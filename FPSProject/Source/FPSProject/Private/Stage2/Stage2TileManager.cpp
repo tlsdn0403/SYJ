@@ -773,75 +773,12 @@ EStage2TileType AStage2TileManager::ChooseNextTileType()
 		return EStage2TileType::Goal;
 	}
 
-	struct FWeightedTileType
-	{
-		EStage2TileType TileType;
-		float Weight;
-	};
-
-	TArray<FWeightedTileType> WeightedCandidates;
-
-	if (StraightTileLevels.Num() > 0 && StraightWeight > 0.0f)
-	{
-		if (IsPoolTileAvailable(EStage2TileType::Straight))
-		{
-			WeightedCandidates.Add({ EStage2TileType::Straight, StraightWeight });
-		}
-	}
-
-	if (LeftTileLevels.Num() > 0 &&
-		LeftWeight > 0.0f &&
-		ConsecutiveLeftTurns < MaxSameTurnStreak &&
-		IsPoolTileAvailable(EStage2TileType::Left))
-	{
-		WeightedCandidates.Add({ EStage2TileType::Left, LeftWeight });
-	}
-
-	if (RightTileLevels.Num() > 0 &&
-		RightWeight > 0.0f &&
-		ConsecutiveRightTurns < MaxSameTurnStreak &&
-		IsPoolTileAvailable(EStage2TileType::Right))
-	{
-		WeightedCandidates.Add({ EStage2TileType::Right, RightWeight });
-	}
-
-	if (WeightedCandidates.Num() == 0)
-	{
-		if (IsPoolTileAvailable(EStage2TileType::Straight))
-		{
-			return EStage2TileType::Straight;
-		}
-
-		if (IsPoolTileAvailable(EStage2TileType::Left))
-		{
-			return EStage2TileType::Left;
-		}
-
-		if (IsPoolTileAvailable(EStage2TileType::Right))
-		{
-			return EStage2TileType::Right;
-		}
-
-		return EStage2TileType::Goal;
-	}
-
-	float TotalWeight = 0.0f;
-	for (const FWeightedTileType& Candidate : WeightedCandidates)
-	{
-		TotalWeight += Candidate.Weight;
-	}
-
-	float PickedWeight = RandomStream.FRandRange(0.0f, TotalWeight);
-	for (const FWeightedTileType& Candidate : WeightedCandidates)
-	{
-		PickedWeight -= Candidate.Weight;
-		if (PickedWeight <= 0.0f)
-		{
-			return Candidate.TileType;
-		}
-	}
-
-	return WeightedCandidates.Last().TileType;
+	// The playable path always alternates straight and right-turn tiles.
+	// The count advances only after a tile is activated, so a temporary pool
+	// failure cannot skip an item in the sequence.
+	return SpawnedPlayableTileCount % 2 == 0
+		? EStage2TileType::Straight
+		: EStage2TileType::Right;
 }
 
 AStage2TileMarker* AStage2TileManager::FindTileMarkerFromStreamingLevel(ULevelStreamingDynamic* StreamingLevel) const

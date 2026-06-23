@@ -45,6 +45,7 @@ class FPSPROJECT_API ATruck : public AWheeledVehiclePawn, public IInteractInterf
 public:
 	ATruck();
 
+	virtual void OnConstruction(const FTransform& Transform) override;
 	virtual void BeginPlay() override;
 
 	UPROPERTY(EditInstanceOnly, Category = "Network")
@@ -124,6 +125,14 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Cargo|Collision")
 	UBoxComponent* CargoBackWallCollision;
+
+	// Query-only blocker used instead of the simulated vehicle mesh for characters and zombies.
+	// It prevents pawn contacts from feeding non-deterministic impulses back into Chaos physics.
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Collision")
+	UBoxComponent* VehiclePawnCollision;
+
+	UFUNCTION(BlueprintPure, Category = "Collision")
+	UBoxComponent* GetVehiclePawnCollision() const { return VehiclePawnCollision; }
 
 	virtual void Interact_Implementation(class AFPSBaseCharacter* Character) override;
 
@@ -318,6 +327,12 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Zombie")
 	float ZombieImpactContactTolerance = 35.0f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Collision")
+	bool bAutoFitVehiclePawnCollision = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Collision", meta = (EditCondition = "bAutoFitVehiclePawnCollision"))
+	FVector VehiclePawnCollisionPadding = FVector(8.0f, 8.0f, 4.0f);
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat", meta = (ClampMin = "1.0"))
 	float TruckMaxHealth = 1000.0f;
 
@@ -346,6 +361,7 @@ private:
 	static constexpr float TRUCK_MOVE_PACKET_SEND_DELAY = 0.05f;
 
 	void ReportZombieAwarenessNoise(float DeltaTime);
+	void ConfigureVehiclePawnCollision();
 	bool IsLocalInteractionCharacter(const AFPSBaseCharacter* Character) const;
 	void RefreshLocalInteractionWidgets();
 

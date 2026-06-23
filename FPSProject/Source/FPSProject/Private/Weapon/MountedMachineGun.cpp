@@ -33,6 +33,9 @@ AMountedMachineGun::AMountedMachineGun()
 	PitchPivot = CreateDefaultSubobject<USceneComponent>(TEXT("PitchPivot"));
 	PitchPivot->SetupAttachment(YawPivot);
 
+	OperatorSeatPoint = CreateDefaultSubobject<USceneComponent>(TEXT("OperatorSeatPoint"));
+	OperatorSeatPoint->SetupAttachment(YawPivot);
+
 	GunMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("GunMesh"));
 	GunMesh->SetupAttachment(PitchPivot);
 	GunMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
@@ -53,11 +56,12 @@ AMountedMachineGun::AMountedMachineGun()
 	MagazineActorComponent->SetRelativeLocation(FVector::ZeroVector);
 
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
-	CameraBoom->SetupAttachment(PitchPivot);
+	CameraBoom->SetupAttachment(OperatorSeatPoint);
 	CameraBoom->TargetArmLength = 0.0f;
 	CameraBoom->bDoCollisionTest = false;
 	CameraBoom->bUsePawnControlRotation = false;
-	CameraBoom->SocketOffset = CameraSocketOffset;
+	CameraBoom->SetRelativeLocation(OperatorCameraOffset);
+	CameraBoom->SocketOffset = FVector::ZeroVector;
 
 	CameraPoint = CreateDefaultSubobject<USceneComponent>(TEXT("CameraPoint"));
 	CameraPoint->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
@@ -140,6 +144,35 @@ void AMountedMachineGun::Tick(float DeltaTime)
 void AMountedMachineGun::SetWeaponUser(AFPSBaseCharacter* NewUser)
 {
 	CurrentUser = NewUser;
+}
+
+void AMountedMachineGun::ConfigureOperatorSeat(const FTransform& SeatWorldTransform)
+{
+	if (!OperatorSeatPoint)
+	{
+		return;
+	}
+
+	// The truck blueprint remains the source of truth for the authored chair position.
+	// Re-express that transform below YawPivot so it follows the rotating chair/base.
+	OperatorSeatPoint->SetWorldTransform(SeatWorldTransform);
+
+	if (CameraBoom)
+	{
+		CameraBoom->SetRelativeLocation(OperatorCameraOffset);
+		CameraBoom->SetWorldRotation(SeatWorldTransform.Rotator());
+		CameraBoom->SocketOffset = FVector::ZeroVector;
+	}
+}
+
+void AMountedMachineGun::AttachUserToOperatorSeat(AFPSBaseCharacter* User)
+{
+	if (!User || !OperatorSeatPoint || User->GetAttachParentActor() == this)
+	{
+		return;
+	}
+
+	User->AttachToComponent(OperatorSeatPoint, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
 }
 
 FVector AMountedMachineGun::GetCameraLocation() const
@@ -271,7 +304,11 @@ void AMountedMachineGun::UpdateAim(const FRotator& ControlRotation)
 
 	if (CameraBoom)
 	{
-		CameraBoom->SocketOffset = CameraSocketOffset;
+		// Position follows the yawing seat; only the view direction follows pitch.
+		// This avoids orbiting the camera through the gun/platform while aiming up/down.
+		CameraBoom->SetRelativeLocation(OperatorCameraOffset);
+		CameraBoom->SetWorldRotation(ClampedRotation);
+		CameraBoom->SocketOffset = FVector::ZeroVector;
 	}
 }
 

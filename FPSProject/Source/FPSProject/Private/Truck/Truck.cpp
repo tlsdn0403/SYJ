@@ -192,6 +192,16 @@ ATruck::ATruck()
 	CargoBackWallCollision = CreateDefaultSubobject<UBoxComponent>(TEXT("CargoBackWallCollision"));
 	CargoBackWallCollision->SetupAttachment(RootComponent);
 
+	VehiclePawnCollision = CreateDefaultSubobject<UBoxComponent>(TEXT("VehiclePawnCollision"));
+	VehiclePawnCollision->SetupAttachment(GetMesh());
+	VehiclePawnCollision->SetBoxExtent(FVector(260.0f, 120.0f, 100.0f));
+	VehiclePawnCollision->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	VehiclePawnCollision->SetCollisionObjectType(ECC_Vehicle);
+	VehiclePawnCollision->SetCollisionResponseToAllChannels(ECR_Ignore);
+	VehiclePawnCollision->SetCollisionResponseToChannel(ECC_Pawn, ECR_Block);
+	VehiclePawnCollision->SetGenerateOverlapEvents(false);
+	VehiclePawnCollision->SetNotifyRigidBodyCollision(true);
+
 	auto SetupCargoCollision = [](UBoxComponent* Box)
 		{
 			// Cargo bounds should constrain character movement, but must not feed impulses back into the vehicle body.
@@ -244,9 +254,37 @@ ATruck::ATruck()
 	}
 }
 
+void ATruck::OnConstruction(const FTransform& Transform)
+{
+	Super::OnConstruction(Transform);
+	ConfigureVehiclePawnCollision();
+}
+
+void ATruck::ConfigureVehiclePawnCollision()
+{
+	USkeletalMeshComponent* TruckMesh = GetMesh();
+	if (!bAutoFitVehiclePawnCollision || !VehiclePawnCollision || !TruckMesh || !TruckMesh->GetSkeletalMeshAsset())
+	{
+		return;
+	}
+
+	// CalcBounds with an identity transform gives mesh-local bounds. The blocker is
+	// attached directly to the mesh, so it stays aligned even while Chaos moves it.
+	const FBoxSphereBounds LocalBounds = TruckMesh->CalcBounds(FTransform::Identity);
+	const FVector SafePadding(
+		FMath::Max(0.0f, VehiclePawnCollisionPadding.X),
+		FMath::Max(0.0f, VehiclePawnCollisionPadding.Y),
+		FMath::Max(0.0f, VehiclePawnCollisionPadding.Z));
+
+	VehiclePawnCollision->SetRelativeLocation(LocalBounds.Origin);
+	VehiclePawnCollision->SetRelativeRotation(FRotator::ZeroRotator);
+	VehiclePawnCollision->SetBoxExtent(LocalBounds.BoxExtent + SafePadding);
+}
+
 void ATruck::BeginPlay()
 {
 	Super::BeginPlay();
+	ConfigureVehiclePawnCollision();
 
 	if (HealthComponent)
 	{
@@ -266,10 +304,14 @@ void ATruck::BeginPlay()
 		// Characters are network-controlled pawns. Letting them block a simulated
 		// Chaos vehicle makes every client produce a different contact impulse.
 		// Zombie impacts are handled by CheckZombieImpactSweep instead.
-		TruckMesh->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
-		TruckMesh->SetGenerateOverlapEvents(true);
+		TruckMesh->SetCollisionResponseToChannel(ECC_Pawn, ECR_Ignore);
 		TruckMesh->SetNotifyRigidBodyCollision(true);
 		TruckMesh->OnComponentHit.AddDynamic(this, &ATruck::OnTruckMeshHit);
+	}
+
+	if (VehiclePawnCollision)
+	{
+		VehiclePawnCollision->OnComponentHit.AddDynamic(this, &ATruck::OnTruckMeshHit);
 	}
 
 	// The driver's client is the only physics authority for the truck.
@@ -342,6 +384,7 @@ void ATruck::BeginPlay()
 			MountedWeapon->SetActorRelativeLocation(MountedWeaponRelativeTransform.GetLocation());
 			MountedWeapon->SetActorRelativeRotation(MountedWeaponRelativeTransform.Rotator());
 			MountedWeapon->SetActorRelativeScale3D(MountedWeaponRelativeTransform.GetScale3D());
+			MountedWeapon->ConfigureOperatorSeat(TurretSeatPoint->GetComponentTransform());
 		}
 	}
 }
@@ -762,8 +805,8 @@ void ATruck::Brake(float Value)
 
 void ATruck::CheckZombieImpactSweep()
 {
-	USkeletalMeshComponent* TruckMesh = GetMesh();
-	if (!TruckMesh)
+	UBoxComponent* ImpactCollision = VehiclePawnCollision;
+	if (!ImpactCollision)
 	{
 		return;
 	}
@@ -781,12 +824,8 @@ void ATruck::CheckZombieImpactSweep()
 		return;
 	}
 
-	const FBoxSphereBounds Bounds = TruckMesh->Bounds;
-	const FVector SweepCenter = Bounds.Origin;
-	const FVector SweepExtent(
-		Bounds.BoxExtent.X * 1.12f,
-		Bounds.BoxExtent.Y * 1.35f,
-		Bounds.BoxExtent.Z * 1.18f);
+	const FVector SweepCenter = ImpactCollision->GetComponentLocation();
+	const FVector SweepExtent = ImpactCollision->GetScaledBoxExtent() + FVector(ZombieImpactContactTolerance);
 
 	TArray<FOverlapResult> Overlaps;
 	FCollisionObjectQueryParams ObjectQueryParams;
@@ -797,7 +836,7 @@ void ATruck::CheckZombieImpactSweep()
 	if (!GetWorld()->OverlapMultiByObjectType(
 		Overlaps,
 		SweepCenter,
-		GetActorQuat(),
+		ImpactCollision->GetComponentQuat(),
 		ObjectQueryParams,
 		FCollisionShape::MakeBox(SweepExtent),
 		QueryParams))
@@ -812,7 +851,7 @@ void ATruck::CheckZombieImpactSweep()
 			FVector ImpactPoint = Zombie->GetActorLocation();
 			FVector ClosestPoint;
 			float DistanceToTruck = TNumericLimits<float>::Max();
-			if (TruckMesh->GetClosestPointOnCollision(Zombie->GetActorLocation(), ClosestPoint) >= 0.0f)
+			if (ImpactCollision->GetClosestPointOnCollision(Zombie->GetActorLocation(), ClosestPoint) >= 0.0f)
 			{
 				ImpactPoint = ClosestPoint;
 				DistanceToTruck = FVector::Dist(Zombie->GetActorLocation(), ClosestPoint);
@@ -1217,10 +1256,14 @@ void ATruck::ProcessZombieImpact(ABaseZombie* Zombie, const FVector& ImpactPoint
 		ImpactSpeed);
 
 
-	// 좀비의 위치를 트럭의 로컬 좌표로 변경
-	const FVector LocalZombieLocation = GetActorTransform().InverseTransformPosition(Zombie->GetActorLocation());
-	// 트럭 메쉬 크기를 가져옴
-	const FVector MeshExtent = GetMesh() ? GetMesh()->Bounds.BoxExtent : FVector(150.0f, 100.0f, 100.0f);
+	// Dedicated pawn blocker is also the single source of truth for zombie body contact.
+	const FTransform CollisionTransform = VehiclePawnCollision
+		? VehiclePawnCollision->GetComponentTransform()
+		: GetActorTransform();
+	const FVector LocalZombieLocation = CollisionTransform.InverseTransformPosition(Zombie->GetActorLocation());
+	const FVector MeshExtent = VehiclePawnCollision
+		? VehiclePawnCollision->GetUnscaledBoxExtent()
+		: FVector(150.0f, 100.0f, 100.0f);
 	// 좀비가 트럭 몸체 범위 안에 있는지 검사
 	const bool bWithinTruckLength =
 		LocalZombieLocation.X > -MeshExtent.X * 1.15f &&
@@ -1234,7 +1277,7 @@ void ATruck::ProcessZombieImpact(ABaseZombie* Zombie, const FVector& ImpactPoint
 	// 월드 좌표계로 트럭 중심에서 좀비가 있는 방향을 변환
 	const FVector WorldOutwardDirection = LocalOutwardDirection.IsNearlyZero()
 		? SafeImpactDirection
-		: GetActorTransform().TransformVectorNoScale(LocalOutwardDirection).GetSafeNormal();
+		: CollisionTransform.TransformVectorNoScale(LocalOutwardDirection).GetSafeNormal();
 	// 좀비를 날려버릴 방향 결정
 	const FVector FinalImpactDirection = (SafeImpactDirection * 0.7f + WorldOutwardDirection * 0.9f).GetSafeNormal();
 	const FVector ImpactFlingDirection = FinalImpactDirection.IsNearlyZero() ? SafeImpactDirection : FinalImpactDirection;
@@ -1296,6 +1339,26 @@ void ATruck::EndMountedWeaponUse(AFPSBaseCharacter* Character)
 
 void ATruck::RefreshInteractionWidgetsForCharacter(AFPSBaseCharacter* Character)
 {
+	if (Character && VehiclePawnCollision)
+	{
+		// Seat state is applied only after the server broadcasts S_ENTER_TRUCK / S_EXIT_TRUCK.
+		// Mirror that authoritative state into the local movement-query ignore lists so
+		// cargo riders can walk inside the blocker while every outside pawn is blocked.
+		const bool bIsOccupant =
+			Character->CurrentTruck == this &&
+			(Character->IsDrivingTruck() || Character->IsOnTruckCargo() || Character->IsUsingMountedWeapon());
+		if (UCapsuleComponent* Capsule = Character->GetCapsuleComponent())
+		{
+			Capsule->IgnoreComponentWhenMoving(VehiclePawnCollision, bIsOccupant);
+			VehiclePawnCollision->IgnoreComponentWhenMoving(Capsule, bIsOccupant);
+		}
+	}
+
+	if (Character && MountedWeapon && Character->CurrentTruck == this && Character->IsUsingMountedWeapon())
+	{
+		MountedWeapon->AttachUserToOperatorSeat(Character);
+	}
+
 	if (!IsLocalInteractionCharacter(Character))
 	{
 		return;

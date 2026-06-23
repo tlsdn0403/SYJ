@@ -33,6 +33,8 @@ public:
 	FRotator ClampAimRotation(const FRotator& DesiredRotation) const;
 	FVector GetCameraLocation() const;
 	FRotator GetCameraRotation() const;
+	void ConfigureOperatorSeat(const FTransform& SeatWorldTransform);
+	void AttachUserToOperatorSeat(AFPSBaseCharacter* User);
 	float GetFireInterval() const { return FireInterval; }
 
 protected:
@@ -46,6 +48,10 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Mounted Gun")
 	USceneComponent* PitchPivot;
+
+	// Follows yaw (chair/base rotation) but not gun pitch.
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Mounted Gun")
+	USceneComponent* OperatorSeatPoint;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Mounted Gun")
 	USkeletalMeshComponent* GunMesh;
@@ -70,6 +76,11 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mounted Gun")
 	FVector CameraSocketOffset = FVector(-20.0f, 0.0f, 6.0f);
+
+	// Camera origin relative to the operator seat. Keeping the position outside the
+	// gun assembly prevents the view from clipping through the modified turret mesh.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mounted Gun|Camera")
+	FVector OperatorCameraOffset = FVector(25.0f, 0.0f, 70.0f);
 
 	UPROPERTY(EditDefaultsOnly, Category = "Mounted Gun")
 	TSubclassOf<AFPSProjectile> ProjectileClass;

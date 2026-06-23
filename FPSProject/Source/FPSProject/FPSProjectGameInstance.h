@@ -27,6 +27,8 @@ class FPSPROJECT_API UFPSProjectGameInstance : public UGameInstance, public FTic
 	};
 
 public:
+	UFPSProjectGameInstance();
+
 	UFUNCTION(BlueprintCallable, Category = "Network")
 	void ConnectToGameServer(const FString& IPAddress);
 
@@ -123,6 +125,10 @@ public:
 public:
 	UPROPERTY(EditAnywhere, Category = "Network")
 	TSubclassOf<class AFPSBaseCharacter> OtherPlayerClass;
+
+	// Server player IDs are issued in join order: classes 1, 2 and 3 are selected in sequence.
+	UPROPERTY(EditAnywhere, Category = "Network|Player")
+	TArray<TSubclassOf<class AFPSBaseCharacter>> PlayerCharacterClasses;
 	UPROPERTY(EditAnywhere, Category = "Network")
 	TSubclassOf<class ABaseZombie> NetworkZombieClass;
 	class AFPSBaseCharacter* MyPlayer;
@@ -169,6 +175,7 @@ public:
 	TSubclassOf<UUserWidget> EntryLoadingWidgetClass;
 
 private:
+	TSubclassOf<class AFPSBaseCharacter> ResolvePlayerCharacterClass(uint64 ObjectId) const;
 	void HandlePostLoadMap(UWorld* LoadedWorld);
 	void ApplyEntryLoadingReadyCount(int32 ReadyCount);
 	void ApplyStageTimerToLocalUI();

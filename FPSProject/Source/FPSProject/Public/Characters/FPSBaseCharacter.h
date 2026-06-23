@@ -135,6 +135,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Truck")
 	bool IsUsingMountedWeapon() const { return bIsUsingMountedWeapon; }
 
+	/** Hide only the locally controlled character body while using the turret camera. */
+	void SetMountedFirstPersonBodyHidden(bool bShouldHide);
+
 	void SyncMovementToServer();
 
 	void SetHealth(float currentHp, float maxHp);   //체력 수정 함수

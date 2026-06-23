@@ -144,7 +144,17 @@ void AMountedMachineGun::Tick(float DeltaTime)
 
 void AMountedMachineGun::SetWeaponUser(AFPSBaseCharacter* NewUser)
 {
+	if (CurrentUser && CurrentUser != NewUser)
+	{
+		CurrentUser->SetMountedFirstPersonBodyHidden(false);
+	}
+
 	CurrentUser = NewUser;
+
+	if (CurrentUser)
+	{
+		CurrentUser->SetMountedFirstPersonBodyHidden(true);
+	}
 }
 
 void AMountedMachineGun::ConfigureOperatorSeat(const FTransform& SeatWorldTransform)

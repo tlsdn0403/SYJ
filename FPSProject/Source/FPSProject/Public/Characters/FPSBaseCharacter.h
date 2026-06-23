@@ -70,6 +70,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "FPS|Inventory")
 	bool UseHealPack();
 
+	UFUNCTION(BlueprintPure, Category = "FPS|State")
+	bool IsDead() const { return bIsDead; }
+
+	void Die(bool bBroadcastDeath = true);
+
 	UFUNCTION(BlueprintCallable, Category = "FPS|Inventory")
 	TArray<EItemType> OffloadItems();
 
@@ -147,6 +152,8 @@ protected:
 	void StartAim();
 	void StopAim();
 	void HandleUseHealPackInput();
+	UFUNCTION()
+	void HandleHealthChanged(float NewHealth, float Damage);
 	void LeaveGame();
 	void SendEnterGamePacket();
 
@@ -196,6 +203,12 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, Category = "FPS|Animation")
 	UAnimationAsset* DrivingAnimationAsset = nullptr;
+
+	UPROPERTY(EditDefaultsOnly, Category = "FPS|Animation")
+	UAnimationAsset* DeathAnimationAsset = nullptr;
+
+	UPROPERTY(EditDefaultsOnly, Category = "FPS|Animation", meta = (ClampMin = "0.0"))
+	float DeathCleanupDelay = 3.0f;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FPS|Weapon", meta = (AllowPrivateAccess = "true"))
 	bool bIsAiming = false;
@@ -261,6 +274,9 @@ private:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "FPS|Inventory", meta = (AllowPrivateAccess = "true", ClampMin = "0.0"))
 	float HealPackHealAmount = 50.0f;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FPS|State", meta = (AllowPrivateAccess = "true"))
+	bool bIsDead = false;
+
 public:
 	void SetPlayerInfo(const Protocol::PosInfo& Info);
 	void SetDestInfo(const Protocol::PosInfo& Info);
@@ -292,8 +308,11 @@ protected:
 	void RefreshTruckInteractionState(ATruck* Truck);
 
 	void SendMovePacket();
+	void SendDeathPacket();
+	void RemoveDeadBody();
 
 	FTimerHandle MountedWeaponAutoFireTimerHandle;
+	FTimerHandle DeathCleanupTimerHandle;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Truck")
 	float TruckCargoBoundsPadding = 20.0f;

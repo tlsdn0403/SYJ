@@ -60,22 +60,9 @@ void UInteractTriggerComponent::OnOverlapEnd(UPrimitiveComponent* OverlappedComp
 			Character->SetInteractableActor(nullptr);
 			Character->SetCurrentTruckInteractType(ETruckInteractType::None);
 
-			TArray<UInteractTriggerComponent*> SiblingTriggers;
-			GetOwner()->GetComponents<UInteractTriggerComponent>(SiblingTriggers);
-
-			for (UInteractTriggerComponent* SiblingTrigger : SiblingTriggers)
+			if (ATruck* Truck = Cast<ATruck>(GetOwner()))
 			{
-				if (!SiblingTrigger || SiblingTrigger == this)
-				{
-					continue;
-				}
-
-				if (SiblingTrigger->IsOverlappingActor(Character) && SiblingTrigger->IsAvailableForCharacter(Character))
-				{
-					Character->SetInteractableActor(GetOwner());
-					Character->SetCurrentTruckInteractType(SiblingTrigger->InteractType);
-					break;
-				}
+				Truck->RefreshInteractionWidgetsForCharacter(Character);
 			}
 		}
 	}

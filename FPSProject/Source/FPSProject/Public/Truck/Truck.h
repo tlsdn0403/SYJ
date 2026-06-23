@@ -175,9 +175,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Turret")
 	AMountedMachineGun* GetMountedWeapon() const { return MountedWeapon; }
 
-	void SetDriverCharacter(AFPSBaseCharacter* Character) { DriverCharacter = Character; }
+	void SetDriverCharacter(AFPSBaseCharacter* Character);
 	AFPSBaseCharacter* GetDriverCharacter() const { return DriverCharacter; }
-	void SetMountedWeaponUser(AFPSBaseCharacter* Character) { MountedWeaponUser = Character; }
+	void SetMountedWeaponUser(AFPSBaseCharacter* Character);
 	AFPSBaseCharacter* GetMountedWeaponUser() const { return MountedWeaponUser; }
 	void SetLocallyDriven(bool bLocallyDriven);
 	bool IsLocallyDriven() const { return bIsLocallyDriven; }
@@ -344,6 +344,7 @@ private:
 
 	void ReportZombieAwarenessNoise(float DeltaTime);
 	bool IsLocalInteractionCharacter(const AFPSBaseCharacter* Character) const;
+	void RefreshLocalInteractionWidgets();
 
 	UFUNCTION()
 	void HandleTruckHealthChanged(float NewHealth, float Damage);

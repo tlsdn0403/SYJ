@@ -511,6 +511,18 @@ void ATruck::SetLocallyDriven(bool bLocallyDriven)
 	}
 }
 
+void ATruck::SetDriverCharacter(AFPSBaseCharacter* Character)
+{
+	DriverCharacter = Character;
+	RefreshLocalInteractionWidgets();
+}
+
+void ATruck::SetMountedWeaponUser(AFPSBaseCharacter* Character)
+{
+	MountedWeaponUser = Character;
+	RefreshLocalInteractionWidgets();
+}
+
 void ATruck::ApplyNetworkTransform(const FVector& TargetLocation, const FRotator& TargetRotation, bool bForceCorrection)
 {
 	if (bIsLocallyDriven)
@@ -566,6 +578,7 @@ void ATruck::SetLoadingPhase(bool bLoadingPhase)
 	UE_LOG(LogTemp, Log, TEXT("[Truck] Loading phase changed. Truck=%s bIsLoadingPhase=%d"),
 		*GetNameSafe(this),
 		bIsLoadingPhase ? 1 : 0);
+	RefreshLocalInteractionWidgets();
 }
 
 FVector ATruck::GetCargoRideLocation() const
@@ -1266,7 +1279,7 @@ void ATruck::EndMountedWeaponUse(AFPSBaseCharacter* Character)
 			MountedWeapon->SetWeaponUser(nullptr);
 		}
 
-		MountedWeaponUser = nullptr;
+		SetMountedWeaponUser(nullptr);
 	}
 }
 
@@ -1277,71 +1290,105 @@ void ATruck::RefreshInteractionWidgetsForCharacter(AFPSBaseCharacter* Character)
 		return;
 	}
 
-	if (UInteractUIClass* DriverUI = Cast<UInteractUIClass>(
-		DriverSeatInteractWidget ? DriverSeatInteractWidget->GetUserWidgetObject() : nullptr))
-	{
-		const bool bShowDriverPrompt =
-			!bIsLoadingPhase &&
-			DriverSeatInteractTrigger &&
-			DriverSeatInteractTrigger->IsOverlappingActor(Character) &&
-			!Character->IsOnTruckCargo() &&
-			!Character->IsDrivingTruck() &&
-			!Character->IsUsingMountedWeapon() &&
-			(DriverCharacter == nullptr || DriverCharacter == Character);
+	const bool bCharacterIsFree =
+		!Character->IsOnTruckCargo() &&
+		!Character->IsDrivingTruck() &&
+		!Character->IsUsingMountedWeapon();
 
-		if (bShowDriverPrompt)
+	const bool bCanUseDriverSeat =
+		!bIsLoadingPhase &&
+		bCharacterIsFree &&
+		!IsValid(DriverCharacter) &&
+		DriverSeatInteractTrigger &&
+		DriverSeatInteractTrigger->IsOverlappingActor(Character);
+
+	const bool bCanUseCargoSeat =
+		bCharacterIsFree &&
+		CargoSeatInteractTrigger &&
+		CargoSeatInteractTrigger->IsOverlappingActor(Character);
+
+	const bool bCanUseTurret =
+		!bIsLoadingPhase &&
+		Character->CurrentTruck == this &&
+		Character->IsOnTruckCargo() &&
+		!Character->IsUsingMountedWeapon() &&
+		!IsValid(MountedWeaponUser) &&
+		TurretSeatInteractTrigger &&
+		TurretSeatInteractTrigger->IsOverlappingActor(Character);
+
+	// Driver and cargo trigger volumes can overlap. Pick the nearest valid one so
+	// the prompt and the interaction performed by the character always agree.
+	ETruckInteractType SelectedType = ETruckInteractType::None;
+	float BestDistanceSquared = TNumericLimits<float>::Max();
+	auto ConsiderPrompt = [&](bool bCanUse, ETruckInteractType Type, const USceneComponent* PromptComponent)
 		{
-			DriverUI->SetInteractText(FText::FromString(TEXT("트럭 운전하기")));
-			DriverUI->PlayAni_PopUp(false);
-		}
-		else
-		{
-			DriverUI->RePlayAni_PopUp();
-		}
+			if (!bCanUse || !PromptComponent)
+			{
+				return;
+			}
+
+			const float DistanceSquared = FVector::DistSquared(
+				Character->GetActorLocation(),
+				PromptComponent->GetComponentLocation());
+			if (DistanceSquared < BestDistanceSquared)
+			{
+				BestDistanceSquared = DistanceSquared;
+				SelectedType = Type;
+			}
+		};
+
+	ConsiderPrompt(bCanUseDriverSeat, ETruckInteractType::DriverSeat, DriverSeatInteractTrigger);
+	ConsiderPrompt(bCanUseCargoSeat, ETruckInteractType::CargoSeat, CargoSeatInteractTrigger);
+	ConsiderPrompt(bCanUseTurret, ETruckInteractType::TurretSeat, TurretSeatInteractTrigger);
+
+	if (SelectedType != ETruckInteractType::None)
+	{
+		Character->SetInteractableActor(this);
+		Character->SetCurrentTruckInteractType(SelectedType);
+	}
+	else if (Character->GetCurrentInteractableActor() == this)
+	{
+		Character->SetInteractableActor(nullptr);
+		Character->SetCurrentTruckInteractType(ETruckInteractType::None);
 	}
 
-	if (UInteractUIClass* CargoUI = Cast<UInteractUIClass>(
-		CargoSeatInteractWidget ? CargoSeatInteractWidget->GetUserWidgetObject() : nullptr))
-	{
-		const bool bShowCargoPrompt =
-			CargoSeatInteractTrigger &&
-			CargoSeatInteractTrigger->IsOverlappingActor(Character) &&
-			!Character->IsOnTruckCargo() &&
-			!Character->IsDrivingTruck() &&
-			!Character->IsUsingMountedWeapon();
+	auto UpdatePrompt = [SelectedType](
+		UWidgetComponent* WidgetComponent,
+		ETruckInteractType PromptType,
+		const FText& PromptText)
+		{
+			UInteractUIClass* UI = Cast<UInteractUIClass>(
+				WidgetComponent ? WidgetComponent->GetUserWidgetObject() : nullptr);
+			if (!UI)
+			{
+				return;
+			}
 
-		if (bShowCargoPrompt)
-		{
-			CargoUI->SetInteractText(FText::FromString(
-				bIsLoadingPhase ? TEXT("트럭에 아이템 적재하기") : TEXT("트럭 트렁크 탑승")));
-			CargoUI->PlayAni_PopUp(false);
-		}
-		else
-		{
-			CargoUI->RePlayAni_PopUp();
-		}
-	}
+			if (SelectedType == PromptType)
+			{
+				UI->SetInteractText(PromptText);
+				UI->PlayAni_PopUp(false);
+			}
+			else
+			{
+				UI->RePlayAni_PopUp();
+			}
+		};
 
-	if (UInteractUIClass* TurretUI = Cast<UInteractUIClass>(
-		TurretInteractWidget ? TurretInteractWidget->GetUserWidgetObject() : nullptr))
-	{
-		const bool bShowTurretPrompt =
-			!bIsLoadingPhase &&
-			Character->CurrentTruck == this &&
-			Character->IsOnTruckCargo() &&
-			TurretSeatInteractTrigger &&
-			TurretSeatInteractTrigger->IsOverlappingActor(Character);
-
-		if (bShowTurretPrompt)
-		{
-			TurretUI->SetInteractText(FText::FromString(TEXT("기관총 사용하기")));
-			TurretUI->PlayAni_PopUp(false);
-		}
-		else
-		{
-			TurretUI->RePlayAni_PopUp();
-		}
-	}
+	UpdatePrompt(
+		DriverSeatInteractWidget,
+		ETruckInteractType::DriverSeat,
+		FText::FromString(TEXT("트럭 운전하기")));
+	UpdatePrompt(
+		CargoSeatInteractWidget,
+		ETruckInteractType::CargoSeat,
+		FText::FromString(bIsLoadingPhase
+			? TEXT("트럭에 아이템 적재하기")
+			: TEXT("트럭 트렁크 탑승")));
+	UpdatePrompt(
+		TurretInteractWidget,
+		ETruckInteractType::TurretSeat,
+		FText::FromString(TEXT("기관총 사용하기")));
 }
 
 void ATruck::OnDriverInteractEnter(AActor* OtherActor)
@@ -1351,16 +1398,7 @@ void ATruck::OnDriverInteractEnter(AActor* OtherActor)
 
 void ATruck::OnDriverInteractExit(AActor* OtherActor)
 {
-	AFPSBaseCharacter* Character = Cast<AFPSBaseCharacter>(OtherActor);
-	if (!IsLocalInteractionCharacter(Character) || !DriverSeatInteractWidget)
-	{
-		return;
-	}
-
-	if (UInteractUIClass* UI = Cast<UInteractUIClass>(DriverSeatInteractWidget->GetUserWidgetObject()))
-	{
-		UI->RePlayAni_PopUp();
-	}
+	RefreshInteractionWidgetsForCharacter(Cast<AFPSBaseCharacter>(OtherActor));
 }
 
 void ATruck::OnCargoInteractEnter(AActor* OtherActor)
@@ -1370,16 +1408,7 @@ void ATruck::OnCargoInteractEnter(AActor* OtherActor)
 
 void ATruck::OnCargoInteractExit(AActor* OtherActor)
 {
-	AFPSBaseCharacter* Character = Cast<AFPSBaseCharacter>(OtherActor);
-	if (!IsLocalInteractionCharacter(Character) || !CargoSeatInteractWidget)
-	{
-		return;
-	}
-
-	if (UInteractUIClass* UI = Cast<UInteractUIClass>(CargoSeatInteractWidget->GetUserWidgetObject()))
-	{
-		UI->RePlayAni_PopUp();
-	}
+	RefreshInteractionWidgetsForCharacter(Cast<AFPSBaseCharacter>(OtherActor));
 }
 
 void ATruck::OnTurretInteractEnter(AActor* OtherActor)
@@ -1389,15 +1418,25 @@ void ATruck::OnTurretInteractEnter(AActor* OtherActor)
 
 void ATruck::OnTurretInteractExit(AActor* OtherActor)
 {
-	AFPSBaseCharacter* Character = Cast<AFPSBaseCharacter>(OtherActor);
-	if (!IsLocalInteractionCharacter(Character) || !TurretInteractWidget)
+	RefreshInteractionWidgetsForCharacter(Cast<AFPSBaseCharacter>(OtherActor));
+}
+
+void ATruck::RefreshLocalInteractionWidgets()
+{
+	AFPSBaseCharacter* LocalCharacter = nullptr;
+	if (const UFPSProjectGameInstance* GameInstance = Cast<UFPSProjectGameInstance>(GetGameInstance()))
 	{
-		return;
+		LocalCharacter = GameInstance->MyPlayer;
 	}
 
-	if (UInteractUIClass* UI = Cast<UInteractUIClass>(TurretInteractWidget->GetUserWidgetObject()))
+	if (!IsValid(LocalCharacter))
 	{
-		UI->RePlayAni_PopUp();
+		LocalCharacter = Cast<AFPSBaseCharacter>(UGameplayStatics::GetPlayerCharacter(this, 0));
+	}
+
+	if (IsValid(LocalCharacter))
+	{
+		RefreshInteractionWidgetsForCharacter(LocalCharacter);
 	}
 }
 

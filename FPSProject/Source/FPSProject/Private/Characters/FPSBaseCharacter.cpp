@@ -567,6 +567,7 @@ void AFPSBaseCharacter::EnterMountedWeapon(ATruck* Truck, AMountedMachineGun* Mo
 	}
 
 	StopFire();
+	RecoilRecoveryRemaining = FRotator::ZeroRotator;
 	ClearTruckInteractionState();
 	const bool bWasOnTruckCargo = bIsOnTruckCargo;
 	bIsUsingMountedWeapon = true;
@@ -646,6 +647,17 @@ void AFPSBaseCharacter::ExitMountedWeapon(bool bReturnToCargo)
 	}
 
 	ATruck* Truck = CurrentTruck;
+	FRotator ExitViewRotation = Controller
+		? Controller->GetControlRotation()
+		: GetActorRotation();
+	if (const APlayerController* PlayerController = Cast<APlayerController>(Controller))
+	{
+		FVector ViewLocation = FVector::ZeroVector;
+		PlayerController->GetPlayerViewPoint(ViewLocation, ExitViewRotation);
+	}
+	ExitViewRotation.Roll = 0.0f;
+	ExitViewRotation.Normalize();
+
 	FVector RestoreCargoWorldLocation = Truck->GetCargoRideLocation();
 	if (bHasSavedTruckCargoLocalLocation)
 	{
@@ -662,6 +674,7 @@ void AFPSBaseCharacter::ExitMountedWeapon(bool bReturnToCargo)
 	}
 
 	StopFire();
+	RecoilRecoveryRemaining = FRotator::ZeroRotator;
 	DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 
 	if (GetCharacterMovement())
@@ -729,6 +742,16 @@ void AFPSBaseCharacter::ExitMountedWeapon(bool bReturnToCargo)
 			ETeleportType::TeleportPhysics);
 	}
 
+	// Keep the regular controller and character aligned with the actual mounted
+	// camera before movement resumes. Otherwise W can use a stale gun rotation.
+	if (IsLocallyControlled() && Controller)
+	{
+		Controller->SetControlRotation(ExitViewRotation);
+		SetActorRotation(
+			FRotator(0.0f, ExitViewRotation.Yaw, 0.0f),
+			ETeleportType::TeleportPhysics);
+	}
+
 	RefreshTruckInteractionState(Truck);
 	Truck->RefreshInteractionWidgetsForCharacter(this);
 	bHasSavedTruckCargoLocalLocation = false;
@@ -766,10 +789,7 @@ void AFPSBaseCharacter::MoveForward(float Value)
 
 	if (Controller != nullptr && Value != 0.0f)
 	{
-		const FRotator ControlRot = Controller->GetControlRotation();
-		const FRotator YawRot(0.0f, ControlRot.Yaw, 0.0f);
-
-		const FVector Direction = FRotationMatrix(YawRot).GetUnitAxis(EAxis::X);
+		const FVector Direction = FRotationMatrix(GetMovementViewRotation()).GetUnitAxis(EAxis::X);
 		AddMovementInput(Direction, Value);
 	}
 }
@@ -783,12 +803,24 @@ void AFPSBaseCharacter::MoveRight(float Value)
 
 	if (Controller != nullptr && Value != 0.0f)
 	{
-		const FRotator ControlRot = Controller->GetControlRotation();
-		const FRotator YawRot(0.0f, ControlRot.Yaw, 0.0f);
-
-		const FVector Direction = FRotationMatrix(YawRot).GetUnitAxis(EAxis::Y);
+		const FVector Direction = FRotationMatrix(GetMovementViewRotation()).GetUnitAxis(EAxis::Y);
 		AddMovementInput(Direction, Value);
 	}
+}
+
+FRotator AFPSBaseCharacter::GetMovementViewRotation() const
+{
+	FRotator ViewRotation = Controller
+		? Controller->GetControlRotation()
+		: GetActorRotation();
+
+	if (const APlayerController* PlayerController = Cast<APlayerController>(Controller))
+	{
+		FVector ViewLocation = FVector::ZeroVector;
+		PlayerController->GetPlayerViewPoint(ViewLocation, ViewRotation);
+	}
+
+	return FRotator(0.0f, ViewRotation.Yaw, 0.0f);
 }
 
 void AFPSBaseCharacter::StartJump()
@@ -1197,7 +1229,10 @@ void AFPSBaseCharacter::SetHeldWeaponVehicleVisibility(bool bShouldHide)
 		return;
 	}
 
-	CurrentWeapon->SetWeaponCollisionEnabled(!bShouldHide);
+	// An equipped weapon is attached to the character and must never participate
+	// in world collision. Re-enabling it on vehicle exit pushes or blocks the
+	// owning character differently depending on the weapon's socket orientation.
+	CurrentWeapon->SetWeaponCollisionEnabled(false);
 	CurrentWeapon->SetWeaponHidden(bShouldHide);
 }
 

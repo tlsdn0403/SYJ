@@ -106,14 +106,18 @@ namespace
 			return false;
 		}
 
-		static constexpr float PlayerSpawnSpacing = 180.0f;
+		static constexpr float PlayerSpawnSpacing = 90.0f;
+		static constexpr float PlayerSpawnForwardOffset = 100.0f;
 		const int32 SpawnSlot = static_cast<int32>(ObjectId % 3);
 		const float LateralOffset = SpawnSlot == 0 ? 0.0f : (SpawnSlot == 1 ? -PlayerSpawnSpacing : PlayerSpawnSpacing);
+		const FVector SpawnForwardVector = -InitialSpawnTransform.GetRotation().GetRightVector();
+		const FVector SpawnRightVector = InitialSpawnTransform.GetRotation().GetForwardVector();
 
 		FVector SpawnLocation =
 			InitialSpawnTransform.GetLocation() +
-			InitialSpawnTransform.GetRotation().GetRightVector() * LateralOffset +
-			FVector(0.0f, 0.0f, 180.0f);
+			SpawnRightVector * LateralOffset +
+			SpawnForwardVector * PlayerSpawnForwardOffset +
+			FVector(0.0f, 0.0f, 100.0f);
 
 		FHitResult GroundHit;
 		const FVector TraceStart = SpawnLocation + FVector(0.0f, 0.0f, 500.0f);
@@ -122,10 +126,199 @@ namespace
 		{
 			SpawnLocation = GroundHit.ImpactPoint + FVector(0.0f, 0.0f, 120.0f);
 		}
+		else
+		{
+			const FVector CenterSpawnLocation =
+				InitialSpawnTransform.GetLocation() +
+				SpawnForwardVector * PlayerSpawnForwardOffset +
+				FVector(0.0f, 0.0f, 100.0f);
+			const FVector CenterTraceStart = CenterSpawnLocation + FVector(0.0f, 0.0f, 500.0f);
+			const FVector CenterTraceEnd = CenterSpawnLocation - FVector(0.0f, 0.0f, 2500.0f);
+			if (World->LineTraceSingleByChannel(GroundHit, CenterTraceStart, CenterTraceEnd, ECC_Visibility))
+			{
+				SpawnLocation = GroundHit.ImpactPoint + FVector(0.0f, 0.0f, 120.0f);
+			}
+			else
+			{
+				SpawnLocation = InitialSpawnTransform.GetLocation() + FVector(0.0f, 0.0f, 120.0f);
+			}
+		}
 
 		OutTransform = InitialSpawnTransform;
 		OutTransform.SetLocation(SpawnLocation);
 		return true;
+	}
+
+	bool TryProjectLocationToStage2Ground(
+		UWorld* World,
+		const FVector& InLocation,
+		float GroundOffset,
+		FVector& OutLocation,
+		const AActor* IgnoredActor = nullptr)
+	{
+		if (!IsStage2World(World))
+		{
+			return false;
+		}
+
+		FHitResult GroundHit;
+		const FVector TraceStart = InLocation + FVector(0.0f, 0.0f, 2000.0f);
+		const FVector TraceEnd = InLocation - FVector(0.0f, 0.0f, 5000.0f);
+		FCollisionQueryParams QueryParams;
+		QueryParams.bTraceComplex = false;
+		if (IgnoredActor)
+		{
+			QueryParams.AddIgnoredActor(IgnoredActor);
+		}
+		if (!World->LineTraceSingleByChannel(GroundHit, TraceStart, TraceEnd, ECC_Visibility, QueryParams))
+		{
+			return false;
+		}
+
+		OutLocation = FVector(InLocation.X, InLocation.Y, GroundHit.ImpactPoint.Z + GroundOffset);
+		return true;
+	}
+
+	void SnapActorToStage2Ground(AActor* Actor, float AdditionalGroundOffset = 2.0f)
+	{
+		if (!IsValid(Actor))
+		{
+			return;
+		}
+
+		UWorld* World = Actor->GetWorld();
+		if (!IsStage2World(World))
+		{
+			return;
+		}
+
+		FHitResult GroundHit;
+		const FVector ActorLocation = Actor->GetActorLocation();
+		const FVector TraceStart = ActorLocation + FVector(0.0f, 0.0f, 2000.0f);
+		const FVector TraceEnd = ActorLocation - FVector(0.0f, 0.0f, 5000.0f);
+		FCollisionQueryParams QueryParams;
+		QueryParams.bTraceComplex = false;
+		QueryParams.AddIgnoredActor(Actor);
+		if (!World->LineTraceSingleByChannel(GroundHit, TraceStart, TraceEnd, ECC_Visibility, QueryParams))
+		{
+			return;
+		}
+
+		FVector BoundsOrigin = FVector::ZeroVector;
+		FVector BoundsExtent = FVector::ZeroVector;
+		Actor->GetActorBounds(false, BoundsOrigin, BoundsExtent);
+
+		const float CurrentBottomZ = BoundsOrigin.Z - BoundsExtent.Z;
+		const float DeltaZ = GroundHit.ImpactPoint.Z + AdditionalGroundOffset - CurrentBottomZ;
+		if (FMath::Abs(DeltaZ) <= KINDA_SMALL_NUMBER)
+		{
+			return;
+		}
+
+		Actor->SetActorLocation(
+			ActorLocation + FVector(0.0f, 0.0f, DeltaZ),
+			false,
+			nullptr,
+			ETeleportType::TeleportPhysics);
+	}
+
+	bool SnapTruckToStage2Ground(ATruck* Truck, float AdditionalGroundOffset = -400.0f)
+	{
+		if (!IsValid(Truck))
+		{
+			return false;
+		}
+
+		UWorld* World = Truck->GetWorld();
+		if (!IsStage2World(World))
+		{
+			return false;
+		}
+
+		FHitResult GroundHit;
+		const FVector ActorLocation = Truck->GetActorLocation();
+		const FVector TraceStart = ActorLocation + FVector(0.0f, 0.0f, 3000.0f);
+		const FVector TraceEnd = ActorLocation - FVector(0.0f, 0.0f, 8000.0f);
+		FCollisionQueryParams QueryParams;
+		QueryParams.bTraceComplex = false;
+		QueryParams.AddIgnoredActor(Truck);
+		TArray<AActor*> AttachedActors;
+		Truck->GetAttachedActors(AttachedActors);
+		for (AActor* AttachedActor : AttachedActors)
+		{
+			QueryParams.AddIgnoredActor(AttachedActor);
+		}
+
+		if (!World->LineTraceSingleByChannel(GroundHit, TraceStart, TraceEnd, ECC_WorldStatic, QueryParams) &&
+			!World->LineTraceSingleByChannel(GroundHit, TraceStart, TraceEnd, ECC_Visibility, QueryParams))
+		{
+			return false;
+		}
+
+		FVector BoundsOrigin = FVector::ZeroVector;
+		FVector BoundsExtent = FVector::ZeroVector;
+		Truck->GetActorBounds(false, BoundsOrigin, BoundsExtent);
+
+		const float CurrentBottomZ = BoundsOrigin.Z - BoundsExtent.Z;
+		const float DeltaZ = GroundHit.ImpactPoint.Z + AdditionalGroundOffset - CurrentBottomZ;
+		if (FMath::Abs(DeltaZ) <= KINDA_SMALL_NUMBER)
+		{
+			return true;
+		}
+
+		Truck->SetActorLocation(
+			ActorLocation + FVector(0.0f, 0.0f, DeltaZ),
+			false,
+			nullptr,
+			ETeleportType::TeleportPhysics);
+		return true;
+	}
+
+	void ApplyStage2InitialTruckPlacement(ATruck* Truck)
+	{
+		if (!IsValid(Truck))
+		{
+			return;
+		}
+
+		UWorld* World = Truck->GetWorld();
+		if (!IsStage2World(World))
+		{
+			return;
+		}
+
+		static const FName Stage2InitialTruckPlacementTag(TEXT("Stage2InitialTruckPlacementApplied"));
+		if (!Truck->Tags.Contains(Stage2InitialTruckPlacementTag))
+		{
+			static constexpr float TruckSpawnForwardOffset = 700.0f;
+			static constexpr float TruckSpawnHeightOffset = -400.0f;
+
+			FTransform InitialSpawnTransform;
+			const AStage2TileManager* Stage2TileManager = FindStage2TileManager(World);
+			if (!Stage2TileManager ||
+				!Stage2TileManager->AreInitialTilesReady() ||
+				!Stage2TileManager->TryGetInitialPlayerSpawnTransform(InitialSpawnTransform))
+			{
+				return;
+			}
+
+			const FVector TruckForwardVector = -InitialSpawnTransform.GetRotation().GetRightVector();
+			const FVector TruckSpawnLocation =
+				InitialSpawnTransform.GetLocation() +
+				TruckForwardVector * TruckSpawnForwardOffset +
+				FVector(0.0f, 0.0f, TruckSpawnHeightOffset);
+			FRotator TruckRotation = TruckForwardVector.Rotation();
+			TruckRotation.Yaw += 90.0f;
+			Truck->SetActorLocationAndRotation(
+				TruckSpawnLocation,
+				TruckRotation,
+				false,
+				nullptr,
+				ETeleportType::TeleportPhysics);
+			Truck->Tags.Add(Stage2InitialTruckPlacementTag);
+		}
+
+		SnapTruckToStage2Ground(Truck);
 	}
 }
 
@@ -785,6 +978,7 @@ void UFPSProjectGameInstance::ProcessSpawnObject(const Protocol::ObjectInfo& Obj
 		}
 
 		FVector ZombieLocation(ObjectInfo.pos_info().x(), ObjectInfo.pos_info().y(), ObjectInfo.pos_info().z());
+		TryProjectLocationToStage2Ground(World, ZombieLocation, 120.0f, ZombieLocation);
 		FRotator ZombieRotation(0.0f, ObjectInfo.pos_info().yaw(), 0.0f);
 		FActorSpawnParameters SpawnParams;
 		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
@@ -792,6 +986,7 @@ void UFPSProjectGameInstance::ProcessSpawnObject(const Protocol::ObjectInfo& Obj
 		ABaseZombie* SpawnedZombie = World->SpawnActor<ABaseZombie>(NetworkZombieClass, ZombieLocation, ZombieRotation, SpawnParams);
 		if (SpawnedZombie)
 		{
+			SnapActorToStage2Ground(SpawnedZombie);
 			SpawnedZombie->SetNetworkObjectId(ObjectId);
 			SpawnedZombie->SetActorTickEnabled(false);
 			if (UCharacterMovementComponent* MoveComp = SpawnedZombie->GetCharacterMovement())
@@ -831,6 +1026,13 @@ void UFPSProjectGameInstance::ProcessSpawnObject(const Protocol::ObjectInfo& Obj
 			ObjectId,
 			*SpawnLocation.ToString());
 	}
+	else
+	{
+		TryProjectLocationToStage2Ground(World, SpawnLocation, 120.0f, SpawnLocation);
+		SpawnPosInfo.set_x(SpawnLocation.X);
+		SpawnPosInfo.set_y(SpawnLocation.Y);
+		SpawnPosInfo.set_z(SpawnLocation.Z);
+	}
 
 	// 1. 내 캐릭터인 경우
 	if (IsMine)
@@ -844,6 +1046,12 @@ void UFPSProjectGameInstance::ProcessSpawnObject(const Protocol::ObjectInfo& Obj
 			{
 				MyPlayer->SetPlayerInfo(SpawnPosInfo);
 				MyPlayer->SetActorLocationAndRotation(SpawnLocation, SpawnRotation, false, nullptr, ETeleportType::TeleportPhysics);
+				SnapActorToStage2Ground(MyPlayer);
+				const FVector MySnappedLocation = MyPlayer->GetActorLocation();
+				SpawnPosInfo.set_x(MySnappedLocation.X);
+				SpawnPosInfo.set_y(MySnappedLocation.Y);
+				SpawnPosInfo.set_z(MySnappedLocation.Z);
+				MyPlayer->SetPlayerInfo(SpawnPosInfo);
 				MyPlayer->SetActorHiddenInGame(false);
 				MyPlayer->SetActorEnableCollision(true);
 				if (UCharacterMovementComponent* MoveComp = MyPlayer->GetCharacterMovement())
@@ -886,6 +1094,12 @@ void UFPSProjectGameInstance::ProcessSpawnObject(const Protocol::ObjectInfo& Obj
 		{
 			OtherPlayer->SetPlayerInfo(SpawnPosInfo); // 타겟 유저의 ID와 위치 정보 세팅
 			OtherPlayer->SetActorLocationAndRotation(SpawnLocation, SpawnRotation, false, nullptr, ETeleportType::TeleportPhysics);
+			SnapActorToStage2Ground(OtherPlayer);
+			const FVector OtherSnappedLocation = OtherPlayer->GetActorLocation();
+			SpawnPosInfo.set_x(OtherSnappedLocation.X);
+			SpawnPosInfo.set_y(OtherSnappedLocation.Y);
+			SpawnPosInfo.set_z(OtherSnappedLocation.Z);
+			OtherPlayer->SetPlayerInfo(SpawnPosInfo);
 			RestoreNetworkCharacterVisibility(OtherPlayer);
 			if (UCharacterMovementComponent* MoveComp = OtherPlayer->GetCharacterMovement())
 			{
@@ -1334,7 +1548,8 @@ void UFPSProjectGameInstance::HandleMove(const Protocol::S_MOVE& MovePkt)
 			return;
 		}
 
-		const FVector ZombieLocation(MovePkt.info().x(), MovePkt.info().y(), MovePkt.info().z());
+		FVector ZombieLocation(MovePkt.info().x(), MovePkt.info().y(), MovePkt.info().z());
+		TryProjectLocationToStage2Ground(World, ZombieLocation, 120.0f, ZombieLocation, Zombie);
 		const FRotator ZombieRotation(0.0f, MovePkt.info().yaw(), 0.0f);
 		const bool bZombieIsMoving = MovePkt.info().state() != Protocol::MOVE_STATE_IDLE;
 		Zombie->SetNetworkMoveTarget(ZombieLocation, ZombieRotation, bZombieIsMoving);
@@ -1552,6 +1767,11 @@ void UFPSProjectGameInstance::CacheTruckActors()
 		ATruck* Truck = *It;
 		if (IsValid(Truck) && Truck->NetworkTruckId != 0)
 		{
+			if (!Truck->IsLocallyDriven())
+			{
+				ApplyStage2InitialTruckPlacement(Truck);
+			}
+
 			Trucks.Add(Truck->NetworkTruckId, Truck);
 		}
 	}
@@ -1723,9 +1943,13 @@ void UFPSProjectGameInstance::HandleTruckMove(const Protocol::S_TRUCK_MOVE& pkt)
 		return;
 	}
 
-	const FVector TargetLocation(pkt.info().x(), pkt.info().y(), pkt.info().z());
+	FVector TargetLocation(pkt.info().x(), pkt.info().y(), pkt.info().z());
 	const FRotator TargetRotation(pkt.info().pitch(), pkt.info().yaw(), pkt.info().roll());
 	Truck->ApplyNetworkTransform(TargetLocation, TargetRotation, pkt.is_correction());
+	if (!Truck->IsLocallyDriven() || pkt.is_correction())
+	{
+		SnapTruckToStage2Ground(Truck);
+	}
 }
 
 void UFPSProjectGameInstance::HandleLoadTruckItem(const Protocol::S_LOAD_TRUCK_ITEM& pkt)

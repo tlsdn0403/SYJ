@@ -354,7 +354,9 @@ void AMountedMachineGun::UpdateAim(const FRotator& ControlRotation)
 FVector AMountedMachineGun::GetIronSightAimTarget(const FVector& MuzzleLocation) const
 {
 	const FVector ViewLocation = GetCameraLocation();
-	const FVector ViewDirection = GetCameraRotation().Vector().GetSafeNormal();
+	FRotator AimRotation = GetCameraRotation();
+	AimRotation.Pitch += IronSightAimPitchOffset;
+	const FVector ViewDirection = AimRotation.Vector().GetSafeNormal();
 	if (!GetWorld() || ViewDirection.IsNearlyZero())
 	{
 		return MuzzleLocation + GetActorForwardVector() * IronSightAimDistance;

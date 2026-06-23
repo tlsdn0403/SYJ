@@ -85,6 +85,11 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mounted Gun|Camera", meta = (ClampMin = "1000.0"))
 	float IronSightAimDistance = 100000.0f;
 
+	// Negative values move the impact point below the exact screen center so the
+	// physical front-sight tip can be used as the point of aim.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mounted Gun|Camera", meta = (ClampMin = "-5.0", ClampMax = "5.0"))
+	float IronSightAimPitchOffset = -0.35f;
+
 	// Blueprint-added chair/platform meshes that should follow yaw, never pitch.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mounted Gun|Assembly")
 	TArray<FName> YawOnlyComponentNames = {

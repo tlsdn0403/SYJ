@@ -21,21 +21,21 @@ void UStartScreenClass::NativeConstruct()
 	// ---------------------------------------------------------
 	// [디버그용 자동 세팅] IP와 랜덤 닉네임을 알아서 타이핑해줌
 	////[디버그용 자동 세팅] IP와 랜덤 닉네임을 알아서 타이핑해줌
-	//if (IPT)
-	//{
-	//	IPT->SetText(FText::FromString(TEXT("127.0.0.1")));
-	//}
+	if (IPT)
+	{
+		IPT->SetText(FText::FromString(TEXT("127.0.0.1")));
+	}
 
-	//if (NicknameT)
-	//{
-	//	// 겹치지 않게 "Player_숫자" 형태로 랜덤 닉네임 생성
-	//	FString RandomNick = FString::Printf(TEXT("Player_%d"), FMath::RandRange(1, 9999));
-	//	NicknameT->SetText(FText::FromString(RandomNick));
-	//}
+	if (NicknameT)
+	{
+		// 겹치지 않게 "Player_숫자" 형태로 랜덤 닉네임 생성
+		FString RandomNick = FString::Printf(TEXT("Player_%d"), FMath::RandRange(1, 9999));
+		NicknameT->SetText(FText::FromString(RandomNick));
+	}
 
-	//// [완전 자동화] 0.5초 뒤에 알아서 로그인 버튼을 클릭해버림! (클릭조차 하기 싫을 때)
-	//FTimerHandle AutoLoginTimer;
-	//GetWorld()->GetTimerManager().SetTimer(AutoLoginTimer, this, &UStartScreenClass::OnClickLogin, 0.5f, false);
+	// [완전 자동화] 0.5초 뒤에 알아서 로그인 버튼을 클릭해버림! (클릭조차 하기 싫을 때)
+	FTimerHandle AutoLoginTimer;
+	GetWorld()->GetTimerManager().SetTimer(AutoLoginTimer, this, &UStartScreenClass::OnClickLogin, 0.5f, false);
 	// ---------------------------------------------------------
 }
 

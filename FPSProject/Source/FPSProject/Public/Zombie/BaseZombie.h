@@ -64,6 +64,8 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
+	virtual float GetDirectAttackAnimationDuration();
+	virtual float PlayDeathAnimationBeforeRagdoll();
 
 	/** 좀비 대미지 처리 내부 로직 */
 	UFUNCTION()
@@ -162,12 +164,15 @@ private:
 	void ApplyAnimationDesync();
 	void ApplyMovementTuning();
 	void ApplyAvoidanceTuning();
+	void FaceAttackTarget(AActor* TargetActor);
 	UAnimMontage* GetAttackMontageForCurrentState() const;
 	void StartAttack(AActor* TargetActor, bool bAllowFallbackTarget);
 	void ProcessBoneDamage(FName BoneName, float Damage, FVector ImpactPoint, FVector ImpactDirection);
 	void DismemberLimb(FName BoneName, FVector Impulse, FVector HitLocation);
 	void SpawnDismemberChunk(FName BoneName, const FVector& Impulse, const FVector& HitLocation);
 	void StartCrawling();
+	void StartDeathVisual();
+	void EnableDeathRagdoll();
 
 	UPROPERTY()
 	AActor* CurrentAttackTarget = nullptr;
@@ -226,6 +231,7 @@ private:
 	FRotator NetworkTargetRotation = FRotator::ZeroRotator;
 	FTimerHandle AttackDamageTimerHandle;
 	FTimerHandle AttackFinishTimerHandle;
+	FTimerHandle DeathRagdollTimerHandle;
 	bool bAttackDamageApplied = false;
 	bool bShouldApplyCurrentNetworkAttackDamage = true;
 

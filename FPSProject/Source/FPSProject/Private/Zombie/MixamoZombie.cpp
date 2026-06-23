@@ -1,0 +1,285 @@
+#include "Zombie/MixamoZombie.h"
+
+#include "Animation/AnimSequenceBase.h"
+#include "Animation/AnimSingleNodeInstance.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Engine/SkeletalMesh.h"
+#include "AIController.h"
+#include "UObject/ConstructorHelpers.h"
+
+AMixamoZombie::AMixamoZombie()
+{
+	static ConstructorHelpers::FObjectFinder<USkeletalMesh> DefaultMesh(
+		TEXT("/Script/Engine.SkeletalMesh'/Game/Zombie/mixamo/ch/zom_ch10/Ch10_nonPBR.Ch10_nonPBR'"));
+	static ConstructorHelpers::FObjectFinder<UAnimSequenceBase> DefaultIdle(
+		TEXT("/Script/Engine.AnimSequence'/Game/Zombie/mixamo/ch/zom_ch10/Ch10_nonPBR_Anim.Ch10_nonPBR_Anim'"));
+	static ConstructorHelpers::FObjectFinder<UAnimSequenceBase> DefaultWalk(
+		TEXT("/Script/Engine.AnimSequence'/Game/Zombie/mixamo/Ani/Walking__3_.Walking__3_'"));
+	static ConstructorHelpers::FObjectFinder<UAnimSequenceBase> DefaultCrawl(
+		TEXT("/Script/Engine.AnimSequence'/Game/Zombie/mixamo/Ani/Zombie_Crawl.Zombie_Crawl'"));
+	static ConstructorHelpers::FObjectFinder<UAnimSequenceBase> DefaultAttack(
+		TEXT("/Script/Engine.AnimSequence'/Game/Zombie/mixamo/Ani/Zombie_Attack.Zombie_Attack'"));
+	static ConstructorHelpers::FObjectFinder<UAnimSequenceBase> DefaultHeadbutt(
+		TEXT("/Script/Engine.AnimSequence'/Game/Zombie/mixamo/Ani/Zombie_Headbutt.Zombie_Headbutt'"));
+	static ConstructorHelpers::FObjectFinder<UAnimSequenceBase> DefaultDeath(
+		TEXT("/Script/Engine.AnimSequence'/Game/Zombie/mixamo/Ani/Zombie_Death.Zombie_Death'"));
+	static ConstructorHelpers::FClassFinder<AAIController> DefaultAIController(
+		TEXT("/Game/Zombie/AI/BP_AIZombieController"));
+
+	if (DefaultMesh.Succeeded() && GetMesh())
+	{
+		GetMesh()->SetSkeletalMesh(DefaultMesh.Object);
+	}
+	IdleAnimation = DefaultIdle.Object;
+	WalkAnimation = DefaultWalk.Object;
+	CrawlAnimation = DefaultCrawl.Object;
+	CrawlingAttackAnimation = DefaultAttack.Object;
+	DeathAnimation = DefaultDeath.Object;
+	if (DefaultAttack.Succeeded())
+	{
+		AttackAnimations.Add(DefaultAttack.Object);
+	}
+	if (DefaultHeadbutt.Succeeded())
+	{
+		AttackAnimations.Add(DefaultHeadbutt.Object);
+	}
+	if (DefaultAIController.Succeeded())
+	{
+		AIControllerClass = DefaultAIController.Class;
+	}
+	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
+}
+
+void AMixamoZombie::BeginPlay()
+{
+	Super::BeginPlay();
+
+	USkeletalMeshComponent* MeshComp = GetMesh();
+	if (!bUseDirectAnimation || !MeshComp)
+	{
+		return;
+	}
+
+	MeshComp->SetAnimationMode(EAnimationMode::AnimationSingleNode);
+	CurrentDirectState = EDirectAnimationState::None;
+	UpdateDirectAnimation();
+}
+
+void AMixamoZombie::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+	UpdateDirectAnimation();
+}
+
+void AMixamoZombie::UpdateDirectAnimation()
+{
+	USkeletalMeshComponent* MeshComp = GetMesh();
+	if (!bUseDirectAnimation || !MeshComp || MeshComp->IsSimulatingPhysics())
+	{
+		return;
+	}
+
+	EDirectAnimationState DesiredState = EDirectAnimationState::Idle;
+	if (!IsAlive())
+	{
+		DesiredState = EDirectAnimationState::Dead;
+	}
+	else if (IsAttacking())
+	{
+		DesiredState = IsCrawling()
+			? EDirectAnimationState::CrawlingAttacking
+			: EDirectAnimationState::Attacking;
+	}
+	else if (IsCrawling())
+	{
+		DesiredState = EDirectAnimationState::Crawling;
+	}
+	else if (GetVelocity().SizeSquared2D() > FMath::Square(MovingSpeedThreshold))
+	{
+		DesiredState = EDirectAnimationState::Walking;
+	}
+
+	if (DesiredState != CurrentDirectState)
+	{
+		PlayDirectAnimation(DesiredState);
+	}
+}
+
+void AMixamoZombie::PlayDirectAnimation(EDirectAnimationState NewState)
+{
+	USkeletalMeshComponent* MeshComp = GetMesh();
+	if (!MeshComp)
+	{
+		return;
+	}
+
+	if (NewState == EDirectAnimationState::Attacking && !CurrentAttackAnimation)
+	{
+		ChooseAttackAnimation();
+	}
+
+	UAnimSequenceBase* Animation = GetAnimationForState(NewState);
+	bool bFreezeFallbackPose = false;
+	if (!Animation && NewState == EDirectAnimationState::Idle)
+	{
+		Animation = WalkAnimation;
+		bFreezeFallbackPose = true;
+	}
+
+	if (!Animation || !IsAnimationCompatible(Animation))
+	{
+		UE_LOG(LogTemp, Warning,
+			TEXT("MixamoZombie %s cannot play animation %s. Check that mesh and animation use the same Skeleton."),
+			*GetName(), *GetNameSafe(Animation));
+		CurrentDirectState = NewState;
+		return;
+	}
+
+	const bool bLoop = NewState == EDirectAnimationState::Idle ||
+		NewState == EDirectAnimationState::Walking ||
+		NewState == EDirectAnimationState::Crawling;
+	MeshComp->PlayAnimation(Animation, bLoop);
+
+	if (bFreezeFallbackPose)
+	{
+		if (UAnimSingleNodeInstance* SingleNode = MeshComp->GetSingleNodeInstance())
+		{
+			SingleNode->SetPosition(0.0f, false);
+			SingleNode->SetPlaying(false);
+		}
+	}
+
+	CurrentDirectState = NewState;
+	if (NewState != EDirectAnimationState::Attacking &&
+		NewState != EDirectAnimationState::CrawlingAttacking)
+	{
+		CurrentAttackAnimation = nullptr;
+	}
+}
+
+UAnimSequenceBase* AMixamoZombie::GetAnimationForState(EDirectAnimationState State) const
+{
+	switch (State)
+	{
+	case EDirectAnimationState::Idle:
+		return IdleAnimation;
+	case EDirectAnimationState::Walking:
+		return WalkAnimation;
+	case EDirectAnimationState::Crawling:
+		return CrawlAnimation ? CrawlAnimation.Get() : WalkAnimation.Get();
+	case EDirectAnimationState::Attacking:
+		return CurrentAttackAnimation;
+	case EDirectAnimationState::CrawlingAttacking:
+		return CrawlingAttackAnimation ? CrawlingAttackAnimation.Get() : CurrentAttackAnimation.Get();
+	case EDirectAnimationState::Dead:
+		return DeathAnimation;
+	default:
+		return nullptr;
+	}
+}
+
+UAnimSequenceBase* AMixamoZombie::ChooseAttackAnimation()
+{
+	TArray<UAnimSequenceBase*> CompatibleAnimations;
+	for (UAnimSequenceBase* Animation : AttackAnimations)
+	{
+		if (Animation && IsAnimationCompatible(Animation))
+		{
+			CompatibleAnimations.Add(Animation);
+		}
+	}
+
+	if (CompatibleAnimations.IsEmpty())
+	{
+		CurrentAttackAnimation = nullptr;
+		return nullptr;
+	}
+
+	CurrentAttackAnimation = CompatibleAnimations[FMath::RandRange(0, CompatibleAnimations.Num() - 1)];
+	return CurrentAttackAnimation;
+}
+
+bool AMixamoZombie::IsAnimationCompatible(const UAnimSequenceBase* Animation) const
+{
+	const USkeletalMeshComponent* MeshComp = GetMesh();
+	const USkeletalMesh* MeshAsset = MeshComp ? MeshComp->GetSkeletalMeshAsset() : nullptr;
+	return Animation && MeshAsset && Animation->GetSkeleton() == MeshAsset->GetSkeleton();
+}
+
+float AMixamoZombie::GetAnimationDuration(const UAnimSequenceBase* Animation) const
+{
+	if (!Animation)
+	{
+		return 0.0f;
+	}
+
+	const USkeletalMeshComponent* MeshComp = GetMesh();
+	const float RateScale = MeshComp ? FMath::Max(KINDA_SMALL_NUMBER, MeshComp->GlobalAnimRateScale) : 1.0f;
+	return Animation->GetPlayLength() / RateScale;
+}
+
+float AMixamoZombie::GetDirectAttackAnimationDuration()
+{
+	UAnimSequenceBase* Animation = IsCrawling() && CrawlingAttackAnimation
+		? CrawlingAttackAnimation.Get()
+		: ChooseAttackAnimation();
+	return IsAnimationCompatible(Animation) ? GetAnimationDuration(Animation) : 0.0f;
+}
+
+float AMixamoZombie::PlayDeathAnimationBeforeRagdoll()
+{
+	if (!bUseDirectAnimation || !IsAnimationCompatible(DeathAnimation))
+	{
+		return 0.0f;
+	}
+
+	PlayDirectAnimation(EDirectAnimationState::Dead);
+	return GetAnimationDuration(DeathAnimation);
+}
+
+void AMixamoZombie::InitializeBoneDurability()
+{
+	ResetDismemberBones();
+	RegisterDismemberBone(TEXT("Head"), 10.0f);
+	RegisterDismemberBone(TEXT("LeftArm"), 15.0f);
+	RegisterDismemberBone(TEXT("LeftForeArm"), 10.0f);
+	RegisterDismemberBone(TEXT("RightArm"), 15.0f);
+	RegisterDismemberBone(TEXT("RightForeArm"), 10.0f);
+	RegisterDismemberBone(TEXT("LeftUpLeg"), 20.0f);
+	RegisterDismemberBone(TEXT("LeftLeg"), 15.0f);
+	RegisterDismemberBone(TEXT("RightUpLeg"), 20.0f);
+	RegisterDismemberBone(TEXT("RightLeg"), 15.0f);
+	RegisterDismemberBone(TEXT("Spine"), 50.0f);
+}
+
+FName AMixamoZombie::GetParentBoneForDamage(FName HitBoneName) const
+{
+	const FString Bone = HitBoneName.ToString();
+	if (Bone.Contains(TEXT("Head")) || Bone.Contains(TEXT("Neck"))) return TEXT("Head");
+	if (Bone.Contains(TEXT("LeftUpLeg"))) return TEXT("LeftUpLeg");
+	if (Bone.Contains(TEXT("RightUpLeg"))) return TEXT("RightUpLeg");
+	if (Bone.Contains(TEXT("LeftLeg")) || Bone.Contains(TEXT("LeftFoot")) || Bone.Contains(TEXT("LeftToe"))) return TEXT("LeftLeg");
+	if (Bone.Contains(TEXT("RightLeg")) || Bone.Contains(TEXT("RightFoot")) || Bone.Contains(TEXT("RightToe"))) return TEXT("RightLeg");
+	if (Bone.Contains(TEXT("LeftForeArm")) || Bone.Contains(TEXT("LeftHand"))) return TEXT("LeftForeArm");
+	if (Bone.Contains(TEXT("RightForeArm")) || Bone.Contains(TEXT("RightHand"))) return TEXT("RightForeArm");
+	if (Bone.Contains(TEXT("LeftArm")) || Bone.Contains(TEXT("LeftShoulder"))) return TEXT("LeftArm");
+	if (Bone.Contains(TEXT("RightArm")) || Bone.Contains(TEXT("RightShoulder"))) return TEXT("RightArm");
+	if (Bone.Contains(TEXT("Spine")) || Bone.Contains(TEXT("Hips"))) return TEXT("Spine");
+	return HitBoneName;
+}
+
+FName AMixamoZombie::GetPhysicsRootBoneName() const
+{
+	return TEXT("Hips");
+}
+
+bool AMixamoZombie::IsFatalDismemberBone(FName BoneName) const
+{
+	return BoneName == TEXT("Head") || BoneName == TEXT("Spine");
+}
+
+bool AMixamoZombie::IsLegBone(FName BoneName) const
+{
+	return BoneName == TEXT("LeftUpLeg") || BoneName == TEXT("LeftLeg") ||
+		BoneName == TEXT("RightUpLeg") || BoneName == TEXT("RightLeg");
+}

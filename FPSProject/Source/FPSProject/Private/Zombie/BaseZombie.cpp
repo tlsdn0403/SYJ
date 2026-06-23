@@ -129,6 +129,16 @@ void ABaseZombie::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 }
 
+float ABaseZombie::GetDirectAttackAnimationDuration()
+{
+	return 0.0f;
+}
+
+float ABaseZombie::PlayDeathAnimationBeforeRagdoll()
+{
+	return 0.0f;
+}
+
 void ABaseZombie::Attack()
 {
 	Attack(UGameplayStatics::GetPlayerPawn(GetWorld(), 0));
@@ -206,13 +216,7 @@ void ABaseZombie::HandleNetworkDeath()
 		Capsule->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	}
 
-	if (USkeletalMeshComponent* MeshComp = GetMesh())
-	{
-		MeshComp->SetSimulatePhysics(true);
-		MeshComp->SetAllBodiesBelowSimulatePhysics(GetPhysicsRootBoneName(), true, true);
-	}
-
-	SetLifeSpan(5.0f);
+	StartDeathVisual();
 }
 
 void ABaseZombie::HandleNetworkDismember(FName BoneName, const FVector& Impulse, const FVector& HitLocation)
@@ -323,6 +327,29 @@ bool ABaseZombie::IsTargetInAttackRange(AActor* TargetActor) const
 
 	const FVector AttackPoint = GetAttackPointForTarget(TargetActor);
 	return FVector::Dist(GetActorLocation(), AttackPoint) <= AttackRange;
+}
+
+void ABaseZombie::FaceAttackTarget(AActor* TargetActor)
+{
+	if (!IsValid(TargetActor))
+	{
+		return;
+	}
+
+	FVector Direction = GetAttackPointForTarget(TargetActor) - GetActorLocation();
+	Direction.Z = 0.0f;
+	if (Direction.IsNearlyZero())
+	{
+		return;
+	}
+
+	const FRotator FacingRotation(0.0f, Direction.Rotation().Yaw, 0.0f);
+	SetActorRotation(FacingRotation, ETeleportType::None);
+
+	if (AController* ZombieController = GetController())
+	{
+		ZombieController->SetControlRotation(FacingRotation);
+	}
 }
 
 void ABaseZombie::ApplyDirectPursuitInput(const FVector& TargetLocation)
@@ -510,7 +537,10 @@ void ABaseZombie::StartAttack(AActor* TargetActor, bool bAllowFallbackTarget)
 	{
 		MoveComp->StopMovementImmediately();
 		MoveComp->bUseRVOAvoidance = false;
+		MoveComp->bOrientRotationToMovement = false;
 	}
+
+	FaceAttackTarget(CurrentAttackTarget);
 
 	UE_LOG(LogTemp, Warning, TEXT("Zombie %s Attack! State=%d"), *GetName(), static_cast<int32>(MovementState));
 
@@ -535,7 +565,10 @@ void ABaseZombie::StartAttack(AActor* TargetActor, bool bAllowFallbackTarget)
 		}
 	}
 
-	const float FallbackDuration = FMath::Max(0.0f, FallbackAttackDuration);
+	const float DirectAnimationDuration = GetDirectAttackAnimationDuration();
+	const float FallbackDuration = DirectAnimationDuration > KINDA_SMALL_NUMBER
+		? DirectAnimationDuration
+		: FMath::Max(0.0f, FallbackAttackDuration);
 	ScheduleAttackDamage(FallbackDuration);
 	if (FallbackDuration <= KINDA_SMALL_NUMBER)
 	{
@@ -999,11 +1032,35 @@ void ABaseZombie::Die()
 
 	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
+	StartDeathVisual();
+}
+
+void ABaseZombie::StartDeathVisual()
+{
+	GetWorldTimerManager().ClearTimer(DeathRagdollTimerHandle);
+	const float DeathAnimationDuration = FMath::Max(0.0f, PlayDeathAnimationBeforeRagdoll());
+	if (DeathAnimationDuration > KINDA_SMALL_NUMBER)
+	{
+		GetWorldTimerManager().SetTimer(
+			DeathRagdollTimerHandle,
+			this,
+			&ABaseZombie::EnableDeathRagdoll,
+			DeathAnimationDuration,
+			false);
+	}
+	else
+	{
+		EnableDeathRagdoll();
+	}
+
+	SetLifeSpan(DeathAnimationDuration + 5.0f);
+}
+
+void ABaseZombie::EnableDeathRagdoll()
+{
 	if (USkeletalMeshComponent* MeshComp = GetMesh())
 	{
 		MeshComp->SetSimulatePhysics(true);
 		MeshComp->SetAllBodiesBelowSimulatePhysics(GetPhysicsRootBoneName(), true, true);
 	}
-
-	SetLifeSpan(5.f);
 }

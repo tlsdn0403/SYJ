@@ -11,7 +11,11 @@
 #include "Particles/ParticleSystem.h"
 #include "Subsystems/ObjectPoolSubSystem.h"
 #include "Engine/Engine.h"
+#include "Engine/SkeletalMesh.h"
+#include "Engine/SkeletalMeshSocket.h"
+#include "Animation/Skeleton.h"
 #include "Math/UnrealMathUtility.h"
+#include "UObject/ConstructorHelpers.h"
 
 bool bDebug = false;
 AWeaponBase::AWeaponBase()
@@ -35,6 +39,13 @@ AWeaponBase::AWeaponBase()
 	FirstPersonWeaponMesh->SetVisibility(false, true);
 
 	AttachSocketName = TEXT("Gun_socket");
+
+	static ConstructorHelpers::FObjectFinder<USkeletalMesh> ReferenceCharacterMesh(
+		TEXT("/Game/Man/Mesh/Full/SK_Man_Full_04.SK_Man_Full_04"));
+	if (ReferenceCharacterMesh.Succeeded())
+	{
+		ThirdPersonAlignmentReferenceMesh = ReferenceCharacterMesh.Object;
+	}
 }
 
 void AWeaponBase::BeginPlay()
@@ -162,7 +173,52 @@ void AWeaponBase::SetWeaponUser(AFPSBaseCharacter* NewCharacter)
 	if (NewCharacter)
 	{
 		SetOwner(NewCharacter);
+		AlignThirdPersonWeaponToReference(NewCharacter);
 	}
+}
+
+void AWeaponBase::AlignThirdPersonWeaponToReference(AFPSBaseCharacter* TargetCharacter)
+{
+	if (!TargetCharacter || !ThirdPersonAlignmentReferenceMesh)
+	{
+		return;
+	}
+
+	USkeletalMeshComponent* TargetMesh = TargetCharacter->GetMesh();
+	USkeleton* ReferenceSkeleton = ThirdPersonAlignmentReferenceMesh->GetSkeleton();
+	const USkeletalMeshSocket* ReferenceSocket = ReferenceSkeleton
+		? ReferenceSkeleton->FindSocket(AttachSocketName)
+		: nullptr;
+	if (!TargetMesh || !ReferenceSocket)
+	{
+		return;
+	}
+
+	const FName AttachBoneName = ReferenceSocket->BoneName;
+	if (AttachBoneName.IsNone() || TargetMesh->GetBoneIndex(AttachBoneName) == INDEX_NONE)
+	{
+		UE_LOG(LogTemp, Warning,
+			TEXT("[WeaponAlignment] Character %s has no reference hand bone '%s'."),
+			*GetNameSafe(TargetCharacter),
+			*AttachBoneName.ToString());
+		return;
+	}
+
+	// Rebuild the original FPSBaseCharacter socket transform on the target mesh's
+	// matching hand bone. This also works when the target skeleton has no Gun_socket
+	// (Sarah) or has a differently-authored Gun_socket (Quantum character).
+	const FTransform ReferenceSocketTransform = ReferenceSocket->GetSocketLocalTransform();
+	const FTransform WeaponFineTune(
+		ThirdPersonWeaponRelativeRotation,
+		ThirdPersonWeaponRelativeLocation,
+		ThirdPersonWeaponRelativeScale);
+	const FTransform CombinedRelativeTransform = WeaponFineTune * ReferenceSocketTransform;
+
+	AttachToComponent(
+		TargetMesh,
+		FAttachmentTransformRules::SnapToTargetNotIncludingScale,
+		AttachBoneName);
+	SetActorRelativeTransform(CombinedRelativeTransform);
 }
 
 void AWeaponBase::SetWeaponCollisionEnabled(bool bEnabled)

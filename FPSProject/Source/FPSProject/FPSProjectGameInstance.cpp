@@ -26,6 +26,7 @@
 #include "Components/PrimitiveComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Blueprint/UserWidget.h"
+#include "UObject/ConstructorHelpers.h"
 #include "UObject/UObjectGlobals.h"
 #include "HUD/BaseUI.h"
 #include "HUD/LoadingUI.h"
@@ -320,6 +321,44 @@ namespace
 
 		SnapTruckToStage2Ground(Truck);
 	}
+}
+
+UFPSProjectGameInstance::UFPSProjectGameInstance()
+{
+	static ConstructorHelpers::FClassFinder<AFPSBaseCharacter> Character1Class(
+		TEXT("/Game/Characters/Blueprint/BP_FPSBaseCharacter"));
+	static ConstructorHelpers::FClassFinder<AFPSBaseCharacter> Character2Class(
+		TEXT("/Game/Characters/Blueprint/BP_FPSBaseCharacter2"));
+	static ConstructorHelpers::FClassFinder<AFPSBaseCharacter> Character3Class(
+		TEXT("/Game/Characters/Blueprint/BP_FPSBaseCharacter3"));
+
+	if (Character1Class.Succeeded())
+	{
+		PlayerCharacterClasses.Add(Character1Class.Class);
+		OtherPlayerClass = Character1Class.Class;
+	}
+	if (Character2Class.Succeeded())
+	{
+		PlayerCharacterClasses.Add(Character2Class.Class);
+	}
+	if (Character3Class.Succeeded())
+	{
+		PlayerCharacterClasses.Add(Character3Class.Class);
+	}
+}
+
+TSubclassOf<AFPSBaseCharacter> UFPSProjectGameInstance::ResolvePlayerCharacterClass(uint64 ObjectId) const
+{
+	if (ObjectId > 0 && PlayerCharacterClasses.Num() > 0)
+	{
+		const int32 CharacterIndex = static_cast<int32>((ObjectId - 1) % PlayerCharacterClasses.Num());
+		if (PlayerCharacterClasses.IsValidIndex(CharacterIndex) && PlayerCharacterClasses[CharacterIndex])
+		{
+			return PlayerCharacterClasses[CharacterIndex];
+		}
+	}
+
+	return OtherPlayerClass;
 }
 
 void UFPSProjectGameInstance::Init()
@@ -1040,8 +1079,32 @@ void UFPSProjectGameInstance::ProcessSpawnObject(const Protocol::ObjectInfo& Obj
 		auto* PC = UGameplayStatics::GetPlayerController(this, 0);
 		if (PC)
 		{
+			const TSubclassOf<AFPSBaseCharacter> DesiredPlayerClass = ResolvePlayerCharacterClass(ObjectId);
+			AFPSBaseCharacter* CurrentPlayerPawn = Cast<AFPSBaseCharacter>(PC->GetPawn());
+			if (DesiredPlayerClass &&
+				(!CurrentPlayerPawn || CurrentPlayerPawn->GetClass() != DesiredPlayerClass.Get()))
+			{
+				FActorSpawnParameters SpawnParams;
+				SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+				AFPSBaseCharacter* ReplacementPawn = World->SpawnActor<AFPSBaseCharacter>(
+					DesiredPlayerClass,
+					SpawnLocation,
+					SpawnRotation,
+					SpawnParams);
+				if (ReplacementPawn)
+				{
+					APawn* PreviousPawn = PC->GetPawn();
+					PC->Possess(ReplacementPawn);
+					if (IsValid(PreviousPawn) && PreviousPawn != ReplacementPawn)
+					{
+						PreviousPawn->Destroy();
+					}
+					CurrentPlayerPawn = ReplacementPawn;
+				}
+			}
+
 			// AFPSBaseCharacter로 캐스팅!
-			MyPlayer = Cast<AFPSBaseCharacter>(PC->GetPawn());
+			MyPlayer = CurrentPlayerPawn ? CurrentPlayerPawn : Cast<AFPSBaseCharacter>(PC->GetPawn());
 			if (MyPlayer)
 			{
 				MyPlayer->SetPlayerInfo(SpawnPosInfo);
@@ -1080,16 +1143,17 @@ void UFPSProjectGameInstance::ProcessSpawnObject(const Protocol::ObjectInfo& Obj
 	// 2. 다른 유저의 캐릭터인 경우
 	else
 	{
-		if (OtherPlayerClass == nullptr)
+		const TSubclassOf<AFPSBaseCharacter> SpawnPlayerClass = ResolvePlayerCharacterClass(ObjectId);
+		if (SpawnPlayerClass == nullptr)
 		{
-			UE_LOG(LogTemp, Error, TEXT("[Stage2Spawn] OtherPlayerClass is null. ObjectId=%llu"), ObjectId);
+			UE_LOG(LogTemp, Error, TEXT("[Stage2Spawn] Player class is null. ObjectId=%llu"), ObjectId);
 			return;
 		}
 
 		FActorSpawnParameters SpawnParams;
 		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
 
-		AFPSBaseCharacter* OtherPlayer = World->SpawnActor<AFPSBaseCharacter>(OtherPlayerClass, SpawnLocation, SpawnRotation, SpawnParams);
+		AFPSBaseCharacter* OtherPlayer = World->SpawnActor<AFPSBaseCharacter>(SpawnPlayerClass, SpawnLocation, SpawnRotation, SpawnParams);
 		if (OtherPlayer)
 		{
 			OtherPlayer->SetPlayerInfo(SpawnPosInfo); // 타겟 유저의 ID와 위치 정보 세팅
@@ -1121,7 +1185,7 @@ void UFPSProjectGameInstance::ProcessSpawnObject(const Protocol::ObjectInfo& Obj
 			UE_LOG(LogTemp, Error,
 				TEXT("[Stage2Spawn] Failed to spawn other player. ObjectId=%llu Class=%s Location=%s"),
 				ObjectId,
-				*GetNameSafe(OtherPlayerClass.Get()),
+				*GetNameSafe(SpawnPlayerClass.Get()),
 				*SpawnLocation.ToString());
 		}
 	}

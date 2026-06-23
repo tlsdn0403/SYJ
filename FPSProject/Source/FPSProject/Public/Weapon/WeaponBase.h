@@ -10,6 +10,7 @@ class USoundBase;
 class UAnimMontage;
 class UParticleSystem;
 class USkeletalMeshComponent;
+class USkeletalMesh;
 class UCameraComponent;
 
 UCLASS()
@@ -66,6 +67,19 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
 	FName AttachSocketName = TEXT("GripPoint");
+
+	// Original FPSBaseCharacter mesh used as the canonical hand/socket alignment.
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon|ThirdPerson|Alignment")
+	TObjectPtr<USkeletalMesh> ThirdPersonAlignmentReferenceMesh;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|ThirdPerson|Alignment")
+	FVector ThirdPersonWeaponRelativeLocation = FVector(-8.883712f, 5.298776f, -0.142411f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|ThirdPerson|Alignment")
+	FRotator ThirdPersonWeaponRelativeRotation = FRotator(-0.023171f, 82.465882f, 13.423545f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|ThirdPerson|Alignment")
+	FVector ThirdPersonWeaponRelativeScale = FVector(1.0f);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Aim")
 	float AimTraceDistance = 30000.0f;
@@ -140,6 +154,7 @@ protected:
 
 	void SyncFirstPersonWeaponMesh();
 	void AlignFirstPersonAimPoint(UCameraComponent* AttachCamera);
+	void AlignThirdPersonWeaponToReference(AFPSBaseCharacter* TargetCharacter);
 
 	bool bFirstPersonViewEnabled = false;
 

@@ -33,6 +33,8 @@ public:
 	FRotator ClampAimRotation(const FRotator& DesiredRotation) const;
 	FVector GetCameraLocation() const;
 	FRotator GetCameraRotation() const;
+	void ConfigureOperatorSeat(const FTransform& SeatWorldTransform);
+	void AttachUserToOperatorSeat(AFPSBaseCharacter* User);
 	float GetFireInterval() const { return FireInterval; }
 
 protected:
@@ -46,6 +48,10 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Mounted Gun")
 	USceneComponent* PitchPivot;
+
+	// Follows yaw (chair/base rotation) but not gun pitch.
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Mounted Gun")
+	USceneComponent* OperatorSeatPoint;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Mounted Gun")
 	USkeletalMeshComponent* GunMesh;
@@ -70,6 +76,26 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mounted Gun")
 	FVector CameraSocketOffset = FVector(-20.0f, 0.0f, 6.0f);
+
+	// Camera origin relative to the operator seat. Keeping the position outside the
+	// gun assembly prevents the view from clipping through the modified turret mesh.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mounted Gun|Camera")
+	FVector OperatorCameraOffset = FVector(25.0f, 0.0f, 70.0f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mounted Gun|Camera", meta = (ClampMin = "1000.0"))
+	float IronSightAimDistance = 100000.0f;
+
+	// Negative values move the impact point below the exact screen center so the
+	// physical front-sight tip can be used as the point of aim.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mounted Gun|Camera", meta = (ClampMin = "-5.0", ClampMax = "5.0"))
+	float IronSightAimPitchOffset = -0.35f;
+
+	// Blueprint-added chair/platform meshes that should follow yaw, never pitch.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mounted Gun|Assembly")
+	TArray<FName> YawOnlyComponentNames = {
+		TEXT("Office_Chair"),
+		TEXT("SM_MERGED_StaticMeshActor_96")
+	};
 
 	UPROPERTY(EditDefaultsOnly, Category = "Mounted Gun")
 	TSubclassOf<AFPSProjectile> ProjectileClass;
@@ -183,6 +209,8 @@ private:
 	bool bMagazineFirePressed = false;
 
 	void ApplyMountedRecoil() const;
+	void ConfigureYawOnlyVisuals();
+	FVector GetIronSightAimTarget(const FVector& MuzzleLocation) const;
 	void ApplyFireAnimation();
 	void UpdateFireAnimation(float DeltaTime);
 	void StartAmmoFeedAnimation();

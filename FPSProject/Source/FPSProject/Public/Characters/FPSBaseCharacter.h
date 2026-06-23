@@ -62,6 +62,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "FPS|Inventory")
 	bool AddItem(EItemType NewItemType);
 
+	void AddStage2DistributedItem(EItemType NewItemType);
+	bool ConsumeInventoryItem(EItemType ItemType);
+	int32 GetInventoryItemCount(EItemType ItemType) const;
+	void RefreshStage2ItemUI();
+
 	UFUNCTION(BlueprintCallable, Category = "FPS|Inventory")
 	bool UseHealPack();
 
@@ -255,8 +260,6 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "FPS|Inventory", meta = (AllowPrivateAccess = "true", ClampMin = "0.0"))
 	float HealPackHealAmount = 50.0f;
-
-	void RefreshStage2ItemUI();
 
 public:
 	void SetPlayerInfo(const Protocol::PosInfo& Info);

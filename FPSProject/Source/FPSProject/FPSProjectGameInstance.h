@@ -177,6 +177,7 @@ private:
 	void QueueStage2Spawn(const Protocol::ObjectInfo& ObjectInfo, bool IsMine);
 	void ProcessPendingStage2Spawns();
 	void ApplyStage2StartupActorHold(bool bHold);
+	void TryDistributeStage1CargoItemsToPlayers();
 	bool bShouldShowEntryLoadingWidget = false;
 	bool bWaitingForStage2MapLoad = false;
 	FString PendingStageTransitionLevelName;
@@ -185,4 +186,5 @@ private:
 	uint32 CachedStage1ItemSpawnSeed = 0;
 	bool bHasStage1ItemSpawnSeed = false;
 	bool bHasAppliedStage1ItemSpawns = false;
+	bool bHasDistributedStage1CargoItems = false;
 };

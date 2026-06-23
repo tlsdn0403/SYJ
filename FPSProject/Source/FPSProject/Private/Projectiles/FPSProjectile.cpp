@@ -7,6 +7,7 @@
 #include "GameFramework/Pawn.h"
 #include "Particles/ParticleSystem.h"
 #include "Kismet/GameplayStatics.h"  
+#include "Sound/SoundBase.h"
 #include "FPSProjectGameInstance.h"
 #include "Characters/FPSBaseCharacter.h"
 #include "Components/SkeletalMeshComponent.h"
@@ -44,6 +45,14 @@ FHitResult BuildZombieDamageHit(const FHitResult& Hit, ABaseZombie* HitZombie)
 	}
 
 	return DamageHit;
+}
+
+bool IsZombieHeadHit(FName BoneName)
+{
+	const FString BoneString = BoneName.ToString();
+	return BoneString.Contains(TEXT("head"), ESearchCase::IgnoreCase) ||
+		BoneString.Contains(TEXT("neck"), ESearchCase::IgnoreCase) ||
+		BoneString.Contains(TEXT("eye"), ESearchCase::IgnoreCase);
 }
 }
 
@@ -120,6 +129,13 @@ AFPSProjectile::AFPSProjectile()
 			StoneImpactEffect = ImpactEffect.Object;
 		}
 	}
+
+	static ConstructorHelpers::FObjectFinder<USoundBase> ZombieHeadHitSoundAsset(
+		TEXT("/Game/Sound/bulletHit.bulletHit"));
+	if (ZombieHeadHitSoundAsset.Succeeded())
+	{
+		ZombieHeadHitSound = ZombieHeadHitSoundAsset.Object;
+	}
 }
 
 // Called when the game starts or when spawned
@@ -171,6 +187,10 @@ void AFPSProjectile::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor
 	{
 		ABaseZombie* HitZombie = Cast<ABaseZombie>(OtherActor);
 		const FHitResult DamageHit = BuildZombieDamageHit(Hit, HitZombie);
+		if (HitZombie && HitZombie->IsAlive() && IsZombieHeadHit(DamageHit.BoneName) && ZombieHeadHitSound)
+		{
+			UGameplayStatics::PlaySoundAtLocation(this, ZombieHeadHitSound, DamageHit.ImpactPoint);
+		}
 
 		AFPSBaseCharacter* InstigatorCharacter = Cast<AFPSBaseCharacter>(InstigatorActor);
 		const bool bSentZombieHitPacket =
@@ -179,9 +199,9 @@ void AFPSProjectile::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor
 				InstigatorCharacter,
 				HitZombie,
 				20.0f,
-				Hit.ImpactPoint,
-				Hit.BoneName,
-				Hit.ImpactNormal);
+				DamageHit.ImpactPoint,
+				DamageHit.BoneName,
+				DamageHit.ImpactNormal);
 
 
 		if (!bSentZombieHitPacket)

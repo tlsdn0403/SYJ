@@ -276,6 +276,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Audio")
 	USoundBase* LoadItemSound;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Audio")
+	USoundBase* ZombieCrashSound;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Turret", meta = (AllowPrivateAccess = "true"))
 	TSubclassOf<AMountedMachineGun> MountedWeaponClass;
 

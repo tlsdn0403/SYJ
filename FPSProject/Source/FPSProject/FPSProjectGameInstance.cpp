@@ -180,6 +180,45 @@ namespace
 		return true;
 	}
 
+	bool TryPlaceTruckOnStage2Ground(
+		ATruck* Truck,
+		const FVector& InLocation,
+		float AdditionalGroundOffset,
+		FVector& OutLocation)
+	{
+		if (!IsValid(Truck) || !Truck->GetMesh())
+		{
+			return false;
+		}
+
+		UWorld* World = Truck->GetWorld();
+		if (!IsStage2World(World))
+		{
+			return false;
+		}
+
+		FHitResult GroundHit;
+		const FVector TraceStart = InLocation + FVector(0.0f, 0.0f, 500.0f);
+		const FVector TraceEnd = InLocation - FVector(0.0f, 0.0f, 2500.0f);
+		FCollisionQueryParams QueryParams;
+		QueryParams.bTraceComplex = false;
+		QueryParams.AddIgnoredActor(Truck);
+		if (!World->LineTraceSingleByChannel(GroundHit, TraceStart, TraceEnd, ECC_Visibility, QueryParams))
+		{
+			return false;
+		}
+
+		const FBoxSphereBounds MeshBounds = Truck->GetMesh()->Bounds;
+		const float CurrentMeshBottomZ = MeshBounds.Origin.Z - MeshBounds.BoxExtent.Z;
+		const float ActorOriginToMeshBottom = Truck->GetActorLocation().Z - CurrentMeshBottomZ;
+
+		OutLocation = FVector(
+			InLocation.X,
+			InLocation.Y,
+			GroundHit.ImpactPoint.Z + AdditionalGroundOffset + ActorOriginToMeshBottom);
+		return true;
+	}
+
 	void SnapActorToStage2Ground(AActor* Actor, float AdditionalGroundOffset = 2.0f)
 	{
 		if (!IsValid(Actor))
@@ -240,7 +279,7 @@ namespace
 		if (!Truck->Tags.Contains(Stage2InitialTruckPlacementTag))
 		{
 			static constexpr float TruckSpawnForwardOffset = 700.0f;
-			static constexpr float TruckSpawnHeightOffset = -400.0f;
+			static constexpr float TruckGroundClearance = 8.0f;
 
 			FTransform InitialSpawnTransform;
 			const AStage2TileManager* Stage2TileManager = FindStage2TileManager(World);
@@ -252,10 +291,10 @@ namespace
 			}
 
 			const FVector TruckForwardVector = -InitialSpawnTransform.GetRotation().GetRightVector();
-			const FVector TruckSpawnLocation =
+			FVector TruckSpawnLocation =
 				InitialSpawnTransform.GetLocation() +
-				TruckForwardVector * TruckSpawnForwardOffset +
-				FVector(0.0f, 0.0f, TruckSpawnHeightOffset);
+				TruckForwardVector * TruckSpawnForwardOffset;
+			TryPlaceTruckOnStage2Ground(Truck, TruckSpawnLocation, TruckGroundClearance, TruckSpawnLocation);
 			FRotator TruckRotation = TruckForwardVector.Rotation();
 			TruckRotation.Yaw += 90.0f;
 			Truck->SetActorLocationAndRotation(
@@ -266,7 +305,6 @@ namespace
 				ETeleportType::TeleportPhysics);
 			Truck->Tags.Add(Stage2InitialTruckPlacementTag);
 		}
-
 	}
 }
 

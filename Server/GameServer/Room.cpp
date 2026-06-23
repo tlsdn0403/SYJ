@@ -557,6 +557,9 @@ PlayerRef Room::FindNearestPlayer(const Protocol::PosInfo& origin, float maxRang
 		if (player == nullptr)
 			continue;
 
+		if (player->posInfo->state() == Protocol::MOVE_STATE_DEAD)
+			continue;
+
 		const float dx = player->posInfo->x() - origin.x();
 		const float dy = player->posInfo->y() - origin.y();
 		const float dz = player->posInfo->z() - origin.z();
@@ -724,6 +727,26 @@ void Room::HandleMove(PlayerRef player, Protocol::C_MOVE pkt)
 	player = dynamic_pointer_cast<Player>(_objects[objectId]);
 	if (player == nullptr)
 		return;
+
+	if (player->posInfo->state() == Protocol::MOVE_STATE_DEAD &&
+		pkt.info().state() != Protocol::MOVE_STATE_DEAD)
+	{
+		return;
+	}
+
+	if (pkt.info().state() == Protocol::MOVE_STATE_DEAD)
+	{
+		ForceExitTruck(player);
+		player->posInfo->CopyFrom(pkt.info());
+		player->objectInfo->mutable_pos_info()->CopyFrom(*player->posInfo);
+
+		Protocol::S_MOVE movePkt;
+		movePkt.mutable_info()->CopyFrom(pkt.info());
+
+		SendBufferRef sendBuffer = ServerPacketHandler::MakeSendBuffer(movePkt);
+		Broadcast(sendBuffer);
+		return;
+	}
 
 	const bool bShouldIgnoreMoveWhileInTruck =
 		player->bIsInTruck &&

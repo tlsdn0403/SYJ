@@ -108,8 +108,9 @@ public:
 	UFUNCTION()
 	void PressedTAB(const FInputActionValue& InputValue);
 
+	bool TrySpectatePlayerSlot(int32 SlotIndex);
+
 	UFUNCTION()
 	bool PickUp_Item(UTexture2D* image,int32 handw);
 
 };
-

@@ -65,15 +65,21 @@ bool Handle_S_ENTER_GAME(PacketSessionRef& session, Protocol::S_ENTER_GAME& pkt)
 
 bool Handle_S_LEAVE_GAME(PacketSessionRef& session, Protocol::S_LEAVE_GAME& pkt)
 {
-	UWorld* World = GetGameWorld();
-	if (World)
-	{
-		if (auto* GameInstance = Cast<UFPSProjectGameInstance>(World->GetGameInstance()))
+	Protocol::S_LEAVE_GAME* pktCopy = new Protocol::S_LEAVE_GAME(pkt);
+
+	AsyncTask(ENamedThreads::GameThread, [pktCopy]()
 		{
-			// TODO : 게임 종료 혹은 로비 이동 로직
-			// 예: UGameplayStatics::OpenLevel(World, TEXT("StartMap"));
-		}
-	}
+			UWorld* World = GetGameWorld();
+			if (World)
+			{
+				if (auto* GameInstance = Cast<UFPSProjectGameInstance>(World->GetGameInstance()))
+				{
+					GameInstance->HandleLeaveGame(*pktCopy);
+				}
+			}
+
+			delete pktCopy;
+		});
 
 	return true;
 }

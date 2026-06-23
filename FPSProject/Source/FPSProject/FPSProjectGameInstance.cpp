@@ -182,20 +182,65 @@ void UFPSProjectGameInstance::DisconnectFromGameServer()
 void UFPSProjectGameInstance::HandleLeaveGame(const Protocol::S_LEAVE_GAME& pkt)
 {
 	uint64 LeaveId = pkt.object_id();
+	RemovePlayerById(LeaveId);
+}
+
+bool UFPSProjectGameInstance::RemovePlayerById(uint64 PlayerId)
+{
+	if (PlayerId == 0)
+	{
+		return false;
+	}
+
+	bool bRemoved = false;
+
+	for (int32 i = PendingStage2SpawnInfos.Num() - 1; i >= 0; --i)
+	{
+		if (PendingStage2SpawnInfos[i].ObjectInfo.object_id() == PlayerId)
+		{
+			PendingStage2SpawnInfos.RemoveAtSwap(i);
+			bRemoved = true;
+		}
+	}
+
+	PendingWeaponsByPlayer.Remove(PlayerId);
 
 	// 플레이어 장부(Players)에 나간 사람이 있는지 확인
-	if (Players.Contains(LeaveId))
+	if (Players.Contains(PlayerId))
 	{
-		AFPSBaseCharacter* LeavePlayer = Players[LeaveId];
+		AFPSBaseCharacter* LeavePlayer = Players[PlayerId];
 		if (LeavePlayer)
 		{
+			for (TPair<uint64, ATruck*>& TruckEntry : Trucks)
+			{
+				ATruck* Truck = TruckEntry.Value;
+				if (Truck == nullptr)
+				{
+					continue;
+				}
+
+				if (Truck->GetDriverCharacter() == LeavePlayer)
+				{
+					Truck->SetLocallyDriven(false);
+					Truck->SetDriverCharacter(nullptr);
+				}
+
+				if (Truck->GetMountedWeaponUser() == LeavePlayer)
+				{
+					Truck->SetMountedWeaponUser(nullptr);
+				}
+			}
+
 			// 맵에서 그 캐릭터를 삭제
 			LeavePlayer->Destroy();
 		}
 
 		// 장부에서도 지워주기
-		Players.Remove(LeaveId);
+		Players.Remove(PlayerId);
+		bRemoved = true;
 	}
+
+	return bRemoved;
 }
 
 void UFPSProjectGameInstance::HandleRecvPackets()
@@ -1202,19 +1247,7 @@ void UFPSProjectGameInstance::HandleDespawn(uint64 ObjectId)
 	}
 
 	// 1. Players 맵에서 해당 ID를 가진 캐릭터 찾기
-	AFPSBaseCharacter** FindActor = Players.Find(ObjectId);
-	if (FindActor == nullptr)
-		return;
-
-	AFPSBaseCharacter* Player = *FindActor;
-	if (Player)
-	{
-		// 2. 월드에서 캐릭터 제거
-		World->DestroyActor(Player);
-	}
-
-	// 3. 맵에서 해당 데이터 완전히 삭제 (매우 중요!)
-	Players.Remove(ObjectId);
+	RemovePlayerById(ObjectId);
 }
 
 void UFPSProjectGameInstance::HandleDespawn(const Protocol::S_DESPAWN& DespawnPkt)
@@ -1268,14 +1301,8 @@ void UFPSProjectGameInstance::HandleDespawn(const Protocol::S_DESPAWN& DespawnPk
 				continue;
 			}
 
-			if (AFPSBaseCharacter** FindActor = Players.Find(ObjectId))
+			if (RemovePlayerById(ObjectId))
 			{
-				if (AFPSBaseCharacter* Player = *FindActor)
-				{
-					World->DestroyActor(Player);
-				}
-
-				Players.Remove(ObjectId);
 				continue;
 			}
 			break;
@@ -1323,13 +1350,20 @@ void UFPSProjectGameInstance::HandleMove(const Protocol::S_MOVE& MovePkt)
 	if (Player == nullptr)
 		return;
 
+	const Protocol::PosInfo& Info = MovePkt.info();
+	if (Info.state() == Protocol::MOVE_STATE_DEAD)
+	{
+		Player->SetDestInfo(Info);
+		Player->Die(false);
+		return;
+	}
+
 	// 2. 내 캐릭터가 서버로부터 내 이동 패킷을 다시 받은 거라면 무시
 	if (Player->IsLocallyControlled())
 		return;
 
 	// 3. 남의 캐릭터라면 목표 위치(DestInfo)를 갱신
 	// 이렇게 갱신해주면 AFPSBaseCharacter::Tick 함수에서 이걸 보고 자연스럽게 걸어갑니다.
-	const Protocol::PosInfo& Info = MovePkt.info();
 	Player->SetDestInfo(Info);
 }
 
@@ -1472,6 +1506,35 @@ AFPSBaseCharacter* UFPSProjectGameInstance::ResolvePlayerById(uint64 PlayerId) c
 	}
 
 	return Players.FindRef(PlayerId);
+}
+
+AFPSBaseCharacter* UFPSProjectGameInstance::GetSpectateTargetBySlot(int32 SlotIndex) const
+{
+	if (SlotIndex < 0)
+	{
+		return nullptr;
+	}
+
+	TArray<TPair<uint64, AFPSBaseCharacter*>> SpectateCandidates;
+	SpectateCandidates.Reserve(Players.Num());
+
+	for (const TPair<uint64, AFPSBaseCharacter*>& PlayerEntry : Players)
+	{
+		AFPSBaseCharacter* Player = PlayerEntry.Value;
+		if (!IsValid(Player) || Player == MyPlayer || Player->IsDead())
+		{
+			continue;
+		}
+
+		SpectateCandidates.Add(PlayerEntry);
+	}
+
+	Algo::SortBy(SpectateCandidates, [](const TPair<uint64, AFPSBaseCharacter*>& PlayerEntry)
+	{
+		return PlayerEntry.Key;
+	});
+
+	return SpectateCandidates.IsValidIndex(SlotIndex) ? SpectateCandidates[SlotIndex].Value : nullptr;
 }
 
 void UFPSProjectGameInstance::CacheTruckActors()

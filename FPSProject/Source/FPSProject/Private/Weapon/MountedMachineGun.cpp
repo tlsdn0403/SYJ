@@ -100,6 +100,7 @@ AMountedMachineGun::AMountedMachineGun()
 void AMountedMachineGun::BeginPlay()
 {
 	Super::BeginPlay();
+	ConfigureYawOnlyVisuals();
 
 	if (GunMesh)
 	{
@@ -159,9 +160,46 @@ void AMountedMachineGun::ConfigureOperatorSeat(const FTransform& SeatWorldTransf
 
 	if (CameraBoom)
 	{
-		CameraBoom->SetRelativeLocation(OperatorCameraOffset);
+		// Start from the authored seat-relative eye position, then preserve that world
+		// transform while parenting the camera to the pitching gun. This keeps the
+		// horizontal view unchanged but makes the sight picture follow pitch exactly.
+		CameraBoom->SetWorldLocation(SeatWorldTransform.TransformPosition(OperatorCameraOffset));
 		CameraBoom->SetWorldRotation(SeatWorldTransform.Rotator());
 		CameraBoom->SocketOffset = FVector::ZeroVector;
+
+		if (GunMesh)
+		{
+			CameraBoom->AttachToComponent(GunMesh, FAttachmentTransformRules::KeepWorldTransform);
+		}
+	}
+}
+
+void AMountedMachineGun::ConfigureYawOnlyVisuals()
+{
+	if (!YawPivot)
+	{
+		return;
+	}
+
+	TArray<USceneComponent*> SceneComponents;
+	GetComponents<USceneComponent>(SceneComponents);
+	for (USceneComponent* Component : SceneComponents)
+	{
+		if (!Component || Component == YawPivot || Component == OperatorSeatPoint)
+		{
+			continue;
+		}
+
+		const FString ComponentName = Component->GetName();
+		const bool bYawOnly = YawOnlyComponentNames.ContainsByPredicate(
+			[&ComponentName](const FName ConfiguredName)
+			{
+				return ComponentName.StartsWith(ConfiguredName.ToString());
+			});
+		if (bYawOnly && Component->GetAttachParent() != YawPivot)
+		{
+			Component->AttachToComponent(YawPivot, FAttachmentTransformRules::KeepWorldTransform);
+		}
 	}
 }
 
@@ -216,9 +254,11 @@ void AMountedMachineGun::Fire()
 		FireRotation = MuzzlePoint->GetComponentRotation();
 	}
 
-	// Fire along the physical barrel/sight line instead of converging toward the
-	// center-screen crosshair. The muzzle socket is aligned with the iron sights.
-	const FVector FireDirection = FireRotation.Vector().GetSafeNormal();
+	// Converge the muzzle projectile on the center of the iron-sight camera. This
+	// removes pitch-dependent parallax while still spawning the round at the muzzle.
+	const FVector AimTarget = GetIronSightAimTarget(FireLocation);
+	const FVector FireDirection = (AimTarget - FireLocation).GetSafeNormal();
+	FireRotation = FireDirection.IsNearlyZero() ? FireRotation : FireDirection.Rotation();
 
 	if (UObjectPoolSubSystem* PoolSubsystem = GetWorld()->GetSubsystem<UObjectPoolSubSystem>())
 	{
@@ -304,12 +344,46 @@ void AMountedMachineGun::UpdateAim(const FRotator& ControlRotation)
 
 	if (CameraBoom)
 	{
-		// Position follows the yawing seat; only the view direction follows pitch.
-		// This avoids orbiting the camera through the gun/platform while aiming up/down.
-		CameraBoom->SetRelativeLocation(OperatorCameraOffset);
+		// CameraBoom is parented to GunMesh after the seat transform is configured,
+		// so its position and the physical sights follow pitch together.
 		CameraBoom->SetWorldRotation(ClampedRotation);
 		CameraBoom->SocketOffset = FVector::ZeroVector;
 	}
+}
+
+FVector AMountedMachineGun::GetIronSightAimTarget(const FVector& MuzzleLocation) const
+{
+	const FVector ViewLocation = GetCameraLocation();
+	const FVector ViewDirection = GetCameraRotation().Vector().GetSafeNormal();
+	if (!GetWorld() || ViewDirection.IsNearlyZero())
+	{
+		return MuzzleLocation + GetActorForwardVector() * IronSightAimDistance;
+	}
+
+	const FVector TraceEnd = ViewLocation + ViewDirection * IronSightAimDistance;
+	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(MountedGunIronSightTrace), true, this);
+	QueryParams.AddIgnoredActor(this);
+	if (CurrentUser)
+	{
+		QueryParams.AddIgnoredActor(CurrentUser);
+		if (CurrentUser->CurrentTruck)
+		{
+			QueryParams.AddIgnoredActor(CurrentUser->CurrentTruck);
+		}
+	}
+
+	FHitResult HitResult;
+	if (GetWorld()->LineTraceSingleByChannel(
+		HitResult,
+		ViewLocation,
+		TraceEnd,
+		ECC_Visibility,
+		QueryParams))
+	{
+		return HitResult.ImpactPoint;
+	}
+
+	return TraceEnd;
 }
 
 FRotator AMountedMachineGun::ClampAimRotation(const FRotator& DesiredRotation) const

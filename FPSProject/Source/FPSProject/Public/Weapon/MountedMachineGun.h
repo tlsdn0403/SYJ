@@ -82,6 +82,16 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mounted Gun|Camera")
 	FVector OperatorCameraOffset = FVector(25.0f, 0.0f, 70.0f);
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mounted Gun|Camera", meta = (ClampMin = "1000.0"))
+	float IronSightAimDistance = 100000.0f;
+
+	// Blueprint-added chair/platform meshes that should follow yaw, never pitch.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mounted Gun|Assembly")
+	TArray<FName> YawOnlyComponentNames = {
+		TEXT("Office_Chair"),
+		TEXT("SM_MERGED_StaticMeshActor_96")
+	};
+
 	UPROPERTY(EditDefaultsOnly, Category = "Mounted Gun")
 	TSubclassOf<AFPSProjectile> ProjectileClass;
 
@@ -194,6 +204,8 @@ private:
 	bool bMagazineFirePressed = false;
 
 	void ApplyMountedRecoil() const;
+	void ConfigureYawOnlyVisuals();
+	FVector GetIronSightAimTarget(const FVector& MuzzleLocation) const;
 	void ApplyFireAnimation();
 	void UpdateFireAnimation(float DeltaTime);
 	void StartAmmoFeedAnimation();

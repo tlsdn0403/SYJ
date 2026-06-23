@@ -8133,7 +8133,7 @@ inline bool S_TRUCK_MOVE::is_correction() const {
   return _internal_is_correction();
 }
 inline void S_TRUCK_MOVE::_internal_set_is_correction(bool value) {
-
+  
   _impl_.is_correction_ = value;
 }
 inline void S_TRUCK_MOVE::set_is_correction(bool value) {

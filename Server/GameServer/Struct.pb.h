@@ -780,7 +780,7 @@ inline float PosInfo::pitch() const {
   return _internal_pitch();
 }
 inline void PosInfo::_internal_set_pitch(float value) {
-
+  
   _impl_.pitch_ = value;
 }
 inline void PosInfo::set_pitch(float value) {
@@ -800,7 +800,7 @@ inline float PosInfo::roll() const {
   return _internal_roll();
 }
 inline void PosInfo::_internal_set_roll(float value) {
-
+  
   _impl_.roll_ = value;
 }
 inline void PosInfo::set_roll(float value) {

@@ -324,6 +324,7 @@ void UFPSProjectGameInstance::RequestEnterGameWhenReady()
 	CachedStage1ItemSpawnSeed = 0;
 	bHasStage1ItemSpawnSeed = false;
 	bHasAppliedStage1ItemSpawns = false;
+	bHasDistributedStage1CargoItems = false;
 }
 
 bool UFPSProjectGameInstance::TrySendEnterGamePacket()
@@ -429,6 +430,7 @@ void UFPSProjectGameInstance::HandlePostLoadMap(UWorld* LoadedWorld)
 	PendingStage2SpawnInfos.Reset();
 	bProcessingPendingStage2Spawns = false;
 	bStage2StartupHoldApplied = false;
+	bHasDistributedStage1CargoItems = false;
 
 	if (EntryLoadingWidget)
 	{
@@ -948,6 +950,108 @@ void UFPSProjectGameInstance::ProcessPendingStage2Spawns()
 
 		ProcessSpawnObject(PendingSpawn.ObjectInfo, PendingSpawn.bIsMine);
 	}
+
+	TryDistributeStage1CargoItemsToPlayers();
+}
+
+void UFPSProjectGameInstance::TryDistributeStage1CargoItemsToPlayers()
+{
+	if (bHasDistributedStage1CargoItems || RecordedStage1CargoItems.Num() == 0)
+	{
+		return;
+	}
+
+	if (!IsStage2World(GetWorld()) || ShouldDelayStage2ActorSpawn() || PendingStage2SpawnInfos.Num() > 0)
+	{
+		return;
+	}
+
+	if (IsConnectedToGameServer() && CachedEntryLoadingReadyCount <= 0)
+	{
+		return;
+	}
+
+	TArray<TPair<uint64, AFPSBaseCharacter*>> Stage2Players;
+	Stage2Players.Reserve(Players.Num());
+	for (const TPair<uint64, AFPSBaseCharacter*>& PlayerEntry : Players)
+	{
+		if (IsValid(PlayerEntry.Value))
+		{
+			Stage2Players.Add(PlayerEntry);
+		}
+	}
+
+	Algo::SortBy(Stage2Players, [](const TPair<uint64, AFPSBaseCharacter*>& PlayerEntry)
+	{
+		return PlayerEntry.Key;
+	});
+
+	const int32 ExpectedPlayerCount = FMath::Max(CachedEntryLoadingReadyCount, 1);
+	if (Stage2Players.Num() < ExpectedPlayerCount)
+	{
+		return;
+	}
+
+	const int32 PlayerCount = Stage2Players.Num();
+	for (const TPair<EItemType, int32>& CargoEntry : RecordedStage1CargoItems)
+	{
+		const EItemType ItemType = CargoEntry.Key;
+		const int32 ItemCount = CargoEntry.Value;
+		if (ItemType == EItemType::None || ItemCount <= 0)
+		{
+			continue;
+		}
+
+		const int32 BaseShare = ItemCount / PlayerCount;
+		const int32 Remainder = ItemCount % PlayerCount;
+
+		for (const TPair<uint64, AFPSBaseCharacter*>& PlayerEntry : Stage2Players)
+		{
+			for (int32 i = 0; i < BaseShare; ++i)
+			{
+				PlayerEntry.Value->AddStage2DistributedItem(ItemType);
+			}
+		}
+
+		if (Remainder > 0)
+		{
+			TArray<int32> RemainderPlayerIndexes;
+			RemainderPlayerIndexes.Reserve(PlayerCount);
+			for (int32 PlayerIndex = 0; PlayerIndex < PlayerCount; ++PlayerIndex)
+			{
+				RemainderPlayerIndexes.Add(PlayerIndex);
+			}
+
+			uint32 RemainderSeed = static_cast<uint32>(ItemType) * 16777619u ^ static_cast<uint32>(ItemCount);
+			for (const TPair<uint64, AFPSBaseCharacter*>& PlayerEntry : Stage2Players)
+			{
+				RemainderSeed ^= static_cast<uint32>(PlayerEntry.Key);
+				RemainderSeed *= 16777619u;
+				RemainderSeed ^= static_cast<uint32>(PlayerEntry.Key >> 32);
+			}
+
+			FRandomStream RandomStream(static_cast<int32>(RemainderSeed));
+			for (int32 i = RemainderPlayerIndexes.Num() - 1; i > 0; --i)
+			{
+				const int32 SwapIndex = RandomStream.RandRange(0, i);
+				RemainderPlayerIndexes.Swap(i, SwapIndex);
+			}
+
+			for (int32 i = 0; i < Remainder; ++i)
+			{
+				Stage2Players[RemainderPlayerIndexes[i]].Value->AddStage2DistributedItem(ItemType);
+			}
+		}
+	}
+
+	for (const TPair<uint64, AFPSBaseCharacter*>& PlayerEntry : Stage2Players)
+	{
+		PlayerEntry.Value->RefreshStage2ItemUI();
+	}
+
+	ClearRecordedStage1CargoItems();
+	bHasDistributedStage1CargoItems = true;
+	UE_LOG(LogTemp, Log, TEXT("[Stage2Cargo] Distributed Stage1 cargo to %d players."), PlayerCount);
 }
 
 void UFPSProjectGameInstance::ApplyStage2StartupActorHold(bool bHold)
@@ -1892,6 +1996,7 @@ void UFPSProjectGameInstance::Tick(float DeltaTime)
 	TrySendEnterGamePacket();
 	HandleRecvPackets();
 	ProcessPendingStage2Spawns();
+	TryDistributeStage1CargoItemsToPlayers();
 	RefreshStage2StartupActorHold();
 }
 

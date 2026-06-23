@@ -1547,6 +1547,52 @@ bool AFPSBaseCharacter::AddItem(EItemType NewItemType)
 	return true;
 }
 
+void AFPSBaseCharacter::AddStage2DistributedItem(EItemType NewItemType)
+{
+	if (NewItemType == EItemType::None)
+	{
+		return;
+	}
+
+	Inventory.Add(NewItemType);
+
+	if (OnInventoryUpdated.IsBound())
+	{
+		OnInventoryUpdated.Broadcast(Inventory);
+	}
+}
+
+bool AFPSBaseCharacter::ConsumeInventoryItem(EItemType ItemType)
+{
+	const int32 ItemIndex = Inventory.Find(ItemType);
+	if (ItemIndex == INDEX_NONE)
+	{
+		return false;
+	}
+
+	Inventory.RemoveAt(ItemIndex);
+	if (OnInventoryUpdated.IsBound())
+	{
+		OnInventoryUpdated.Broadcast(Inventory);
+	}
+
+	return true;
+}
+
+int32 AFPSBaseCharacter::GetInventoryItemCount(EItemType ItemType) const
+{
+	int32 Count = 0;
+	for (const EItemType InventoryItem : Inventory)
+	{
+		if (InventoryItem == ItemType)
+		{
+			++Count;
+		}
+	}
+
+	return Count;
+}
+
 bool AFPSBaseCharacter::UseHealPack()
 {
 	UFPSProjectGameInstance* GameInstance = Cast<UFPSProjectGameInstance>(GetGameInstance());
@@ -1566,8 +1612,8 @@ bool AFPSBaseCharacter::UseHealPack()
 	}
 
 	const bool bConsumedHealPack =
-		GameInstance->ConsumeRecordedStage1CargoItem(EItemType::HealPack) ||
-		GameInstance->ConsumeRecordedStage1CargoItem(EItemType::MedicalKit);
+		ConsumeInventoryItem(EItemType::HealPack) ||
+		ConsumeInventoryItem(EItemType::MedicalKit);
 	if (!bConsumedHealPack)
 	{
 		RefreshStage2ItemUI();
@@ -1579,8 +1625,8 @@ bool AFPSBaseCharacter::UseHealPack()
 	RefreshStage2ItemUI();
 	UE_LOG(LogTemp, Log, TEXT("Heal Pack used. Healed %.1f, remaining=%d"),
 		HealPackHealAmount,
-		GameInstance->GetRecordedStage1CargoItemCount(EItemType::HealPack) +
-		GameInstance->GetRecordedStage1CargoItemCount(EItemType::MedicalKit));
+		GetInventoryItemCount(EItemType::HealPack) +
+		GetInventoryItemCount(EItemType::MedicalKit));
 	return true;
 }
 
@@ -1599,10 +1645,9 @@ void AFPSBaseCharacter::RefreshStage2ItemUI()
 	}
 
 	PlayerController->L2BaseW->ItemSetting(
-		GameInstance->GetRecordedStage1CargoItemCount(EItemType::Fuel),
-		GameInstance->GetRecordedStage1CargoItemCount(EItemType::HealPack) +
-			GameInstance->GetRecordedStage1CargoItemCount(EItemType::MedicalKit),
-		GameInstance->GetRecordedStage1CargoItemCount(EItemType::TruckRepairKit));
+		GetInventoryItemCount(EItemType::Fuel),
+		GetInventoryItemCount(EItemType::HealPack) + GetInventoryItemCount(EItemType::MedicalKit),
+		GetInventoryItemCount(EItemType::TruckRepairKit));
 }
 
 TArray<EItemType> AFPSBaseCharacter::OffloadItems()

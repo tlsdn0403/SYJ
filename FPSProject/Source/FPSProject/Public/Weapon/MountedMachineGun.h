@@ -30,6 +30,7 @@ public:
 	void SetWeaponUser(AFPSBaseCharacter* NewUser);
 	void Fire();
 	void UpdateAim(const FRotator& ControlRotation);
+	FRotator ClampAimRotation(const FRotator& DesiredRotation) const;
 	FVector GetCameraLocation() const;
 	FRotator GetCameraRotation() const;
 	float GetFireInterval() const { return FireInterval; }
@@ -65,7 +66,7 @@ protected:
 	UChildActorComponent* MagazineActorComponent;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mounted Gun")
-	FName MuzzleSocketName = TEXT("Muzzle");
+	FName MuzzleSocketName = TEXT("Muzzle_Socket");
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mounted Gun")
 	FVector CameraSocketOffset = FVector(-20.0f, 0.0f, 6.0f);
@@ -87,6 +88,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mounted Gun")
 	float MinPitch = -15.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mounted Gun", meta = (ClampMin = "0.0", ClampMax = "180.0"))
+	float MaxYaw = 60.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mounted Gun|Recoil")
 	FVector2D RecoilPitchRange = FVector2D(0.2f, 0.45f);

@@ -15,6 +15,7 @@
 #include "Animation/AnimInstance.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/Actor.h"
+#include "GameFramework/Controller.h"
 #include "TimerManager.h"
 #include "UObject/ConstructorHelpers.h"
 #include "UObject/UnrealType.h"
@@ -168,68 +169,23 @@ void AMountedMachineGun::Fire()
 	CurrentBulletsInMagazine = FMath::Max(0, CurrentBulletsInMagazine - 1);
 	MagazineAnimationPlayingTime = CurrentTime + FireInterval;
 
-	const FVector CameraLocation = GetCameraLocation();
-	const FRotator CameraRotation = GetCameraRotation();
-
-	const FVector AimDirection = CameraRotation.Vector().GetSafeNormal();
-	const FVector TraceStart = CameraLocation;
-	const FVector TraceEnd = TraceStart + AimDirection * 10000.0f;
-
-	FHitResult HitResult;
-	FCollisionQueryParams QueryParams;
-	QueryParams.AddIgnoredActor(this);
-	QueryParams.AddIgnoredActor(CurrentUser);
-	if (CurrentUser->CurrentTruck)
-	{
-		QueryParams.AddIgnoredActor(CurrentUser->CurrentTruck);
-	}
-
-	const bool bHit = GetWorld()->LineTraceSingleByChannel(HitResult, TraceStart, TraceEnd, ECC_Visibility, QueryParams);
-	FVector TargetLocation = bHit ? HitResult.ImpactPoint : TraceEnd;
-	AActor* AimHitActor = bHit ? HitResult.GetActor() : nullptr;
-
 	FVector FireLocation = GetActorLocation();
+	FRotator FireRotation = GetActorRotation();
 	if (GunMesh && MuzzleSocketName != NAME_None && GunMesh->DoesSocketExist(MuzzleSocketName))
 	{
-		FireLocation = GunMesh->GetSocketLocation(MuzzleSocketName);
+		const FTransform MuzzleTransform = GunMesh->GetSocketTransform(MuzzleSocketName, RTS_World);
+		FireLocation = MuzzleTransform.GetLocation();
+		FireRotation = MuzzleTransform.Rotator();
 	}
 	else if (MuzzlePoint)
 	{
 		FireLocation = MuzzlePoint->GetComponentLocation();
+		FireRotation = MuzzlePoint->GetComponentRotation();
 	}
 
-	FHitResult MuzzleHitResult;
-	FCollisionQueryParams MuzzleQueryParams(SCENE_QUERY_STAT(MountedMachineGunMuzzleTrace), true);
-	MuzzleQueryParams.AddIgnoredActor(this);
-	MuzzleQueryParams.AddIgnoredActor(CurrentUser);
-	if (CurrentUser->CurrentTruck)
-	{
-		MuzzleQueryParams.AddIgnoredActor(CurrentUser->CurrentTruck);
-	}
-
-	const bool bMuzzleBlocked = GetWorld()->LineTraceSingleByChannel(
-		MuzzleHitResult,
-		FireLocation,
-		TargetLocation,
-		ECC_Visibility,
-		MuzzleQueryParams);
-
-	if (bMuzzleBlocked)
-	{
-		const bool bHitSameAimActor = AimHitActor && MuzzleHitResult.GetActor() == AimHitActor;
-		if (!bHitSameAimActor)
-		{
-			TargetLocation = MuzzleHitResult.ImpactPoint;
-		}
-	}
-
-	FVector FireDirection = (TargetLocation - FireLocation).GetSafeNormal();
-	if (FireDirection.IsNearlyZero() || FVector::DotProduct(FireDirection, AimDirection) <= 0.0f)
-	{
-		FireDirection = AimDirection;
-	}
-
-	const FRotator FireRotation = FireDirection.Rotation();
+	// Fire along the physical barrel/sight line instead of converging toward the
+	// center-screen crosshair. The muzzle socket is aligned with the iron sights.
+	const FVector FireDirection = FireRotation.Vector().GetSafeNormal();
 
 	if (UObjectPoolSubSystem* PoolSubsystem = GetWorld()->GetSubsystem<UObjectPoolSubSystem>())
 	{
@@ -291,8 +247,17 @@ void AMountedMachineGun::Fire()
 void AMountedMachineGun::UpdateAim(const FRotator& ControlRotation)
 {
 	const FRotator ActorRotation = GetActorRotation();
-	const float RelativeYaw = FMath::FindDeltaAngleDegrees(ActorRotation.Yaw, ControlRotation.Yaw);
-	const float RelativePitch = FMath::ClampAngle(ControlRotation.Pitch, MinPitch, MaxPitch);
+	const FRotator ClampedRotation = ClampAimRotation(ControlRotation);
+	const float RelativeYaw = FMath::FindDeltaAngleDegrees(ActorRotation.Yaw, ClampedRotation.Yaw);
+	const float RelativePitch = ClampedRotation.Pitch;
+
+	if (CurrentUser && CurrentUser->IsLocallyControlled())
+	{
+		if (AController* Controller = CurrentUser->GetController())
+		{
+			Controller->SetControlRotation(ClampedRotation);
+		}
+	}
 
 	if (YawPivot)
 	{
@@ -308,6 +273,21 @@ void AMountedMachineGun::UpdateAim(const FRotator& ControlRotation)
 	{
 		CameraBoom->SocketOffset = CameraSocketOffset;
 	}
+}
+
+FRotator AMountedMachineGun::ClampAimRotation(const FRotator& DesiredRotation) const
+{
+	const FRotator ActorRotation = GetActorRotation();
+	const float DesiredRelativeYaw = FMath::FindDeltaAngleDegrees(
+		ActorRotation.Yaw,
+		DesiredRotation.Yaw);
+	const float ClampedRelativeYaw = FMath::Clamp(DesiredRelativeYaw, -MaxYaw, MaxYaw);
+	const float ClampedPitch = FMath::ClampAngle(DesiredRotation.Pitch, MinPitch, MaxPitch);
+
+	return FRotator(
+		ClampedPitch,
+		ActorRotation.Yaw + ClampedRelativeYaw,
+		0.0f).GetNormalized();
 }
 
 void AMountedMachineGun::ApplyMountedRecoil() const

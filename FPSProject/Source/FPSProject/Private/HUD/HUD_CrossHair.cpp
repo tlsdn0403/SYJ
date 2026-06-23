@@ -2,12 +2,21 @@
 
 
 #include "HUD/HUD_CrossHair.h"
+#include "Characters/FPSBaseCharacter.h"
+#include "GameFramework/PlayerController.h"
 
 void AHUD_CrossHair::DrawHUD()
 {
-    Super::DrawHUD();
+	Super::DrawHUD();
 
-    if (CrosshairTexture)
+	const AFPSBaseCharacter* Character = Cast<AFPSBaseCharacter>(
+		PlayerOwner ? PlayerOwner->GetPawn() : nullptr);
+	if (Character && Character->IsUsingMountedWeapon())
+	{
+		return;
+	}
+
+	if (CrosshairTexture)
     {
         // 캔버스 중앙을 찾습니다.
         FVector2D Center(Canvas->ClipX * 0.5f, Canvas->ClipY * 0.5f);

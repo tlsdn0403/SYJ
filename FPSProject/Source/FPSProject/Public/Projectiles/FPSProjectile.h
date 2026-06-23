@@ -11,6 +11,7 @@
 class USphereComponent;
 class UProjectileMovementComponent;
 class UParticleSystem;
+class USoundBase;
 
 UCLASS()
 class FPSPROJECT_API AFPSProjectile : public AActor , public IFPSPoolableInterface  //풀링 인터페이스 상속 추가
@@ -65,6 +66,9 @@ public:
 	// 총알이 돌이랑 피격시 이펙트
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
 	UParticleSystem* StoneImpactEffect;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon|Audio")
+	USoundBase* ZombieHeadHitSound;
 
 
 

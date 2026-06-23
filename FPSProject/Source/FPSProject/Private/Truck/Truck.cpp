@@ -235,6 +235,13 @@ ATruck::ATruck()
 			TurretInteractWidget->SetWidgetClass(TurretWidgetBP.Class);
 		}
 	}
+
+	static ConstructorHelpers::FObjectFinder<USoundBase> ZombieCrashSoundAsset(
+		TEXT("/Game/Sound/crashZombie.crashZombie"));
+	if (ZombieCrashSoundAsset.Succeeded())
+	{
+		ZombieCrashSound = ZombieCrashSoundAsset.Object;
+	}
 }
 
 void ATruck::BeginPlay()
@@ -1184,6 +1191,10 @@ void ATruck::ProcessZombieImpact(ABaseZombie* Zombie, const FVector& ImpactPoint
 	// LastZombieImpactTimes 맵에 좀비의 마지막 충돌 시간을 업데이트
 	LastZombieImpactTimes.Add(Zombie, CurrentTime);
 
+	if (ZombieCrashSound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(this, ZombieCrashSound, ImpactPoint);
+	}
 
 	// 전달받은 충돌 방향이 거의 0 이면 트럭 전방으로 간주
 	const FVector SafeImpactDirection = ImpactDirection.IsNearlyZero() ? GetActorForwardVector() : ImpactDirection.GetSafeNormal();

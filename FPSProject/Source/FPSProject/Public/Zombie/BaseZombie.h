@@ -66,6 +66,7 @@ protected:
 	virtual void BeginPlay() override;
 	virtual float GetDirectAttackAnimationDuration();
 	virtual float PlayDeathAnimationBeforeRagdoll();
+	AActor* GetCurrentAttackTarget() const { return CurrentAttackTarget; }
 
 	/** 좀비 대미지 처리 내부 로직 */
 	UFUNCTION()

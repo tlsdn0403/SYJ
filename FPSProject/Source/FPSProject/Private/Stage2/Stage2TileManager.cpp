@@ -773,12 +773,20 @@ EStage2TileType AStage2TileManager::ChooseNextTileType()
 		return EStage2TileType::Goal;
 	}
 
-	// The playable path always alternates straight and right-turn tiles.
-	// The count advances only after a tile is activated, so a temporary pool
-	// failure cannot skip an item in the sequence.
-	return SpawnedPlayableTileCount % 2 == 0
-		? EStage2TileType::Straight
-		: EStage2TileType::Right;
+	// Repeat the fixed playable route after the Start tile. The count advances
+	// only after activation succeeds, so a pool failure cannot skip an item.
+	static constexpr EStage2TileType PlayableTileSequence[] =
+	{
+		EStage2TileType::Straight,
+		EStage2TileType::Right,
+		EStage2TileType::Left,
+		EStage2TileType::Right,
+		EStage2TileType::Straight,
+		EStage2TileType::Left
+	};
+
+	const int32 SequenceIndex = SpawnedPlayableTileCount % UE_ARRAY_COUNT(PlayableTileSequence);
+	return PlayableTileSequence[SequenceIndex];
 }
 
 AStage2TileMarker* AStage2TileManager::FindTileMarkerFromStreamingLevel(ULevelStreamingDynamic* StreamingLevel) const

@@ -3,6 +3,53 @@
 
 #include "Zombie/BP_Zombiegirl.h"
 
+#include "Animation/AnimSequenceBase.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Engine/SkeletalMesh.h"
+#include "UObject/ConstructorHelpers.h"
+
+ABP_Zombiegirl::ABP_Zombiegirl()
+{
+	static ConstructorHelpers::FObjectFinder<USkeletalMesh> GirlMesh(
+		TEXT("/Script/Engine.SkeletalMesh'/Game/Zombie/mixamo/ch/zom_girl/Zombiegirl_W_Kurniawan.Zombiegirl_W_Kurniawan'"));
+	static ConstructorHelpers::FObjectFinder<UAnimSequenceBase> GirlIdle(
+		TEXT("/Script/Engine.AnimSequence'/Game/Zombie/mixamo/Ani/NewFolder/ayjstart_Anim.ayjstart_Anim'"));
+	static ConstructorHelpers::FObjectFinder<UAnimSequenceBase> GirlWalk(
+		TEXT("/Script/Engine.AnimSequence'/Game/Zombie/mixamo/Ani/NewFolder/Zombie_Walk.Zombie_Walk'"));
+	static ConstructorHelpers::FObjectFinder<UAnimSequenceBase> GirlAttackOne(
+		TEXT("/Script/Engine.AnimSequence'/Game/Zombie/mixamo/Ani/NewFolder/attack.attack'"));
+	static ConstructorHelpers::FObjectFinder<UAnimSequenceBase> GirlAttackTwo(
+		TEXT("/Script/Engine.AnimSequence'/Game/Zombie/mixamo/Ani/NewFolder/Attack2.Attack2'"));
+	static ConstructorHelpers::FObjectFinder<UAnimSequenceBase> GirlTruckAttackOne(
+		TEXT("/Script/Engine.AnimSequence'/Game/Zombie/mixamo/Ani/NewFolder/TruckAttack.TruckAttack'"));
+	static ConstructorHelpers::FObjectFinder<UAnimSequenceBase> GirlTruckAttackTwo(
+		TEXT("/Script/Engine.AnimSequence'/Game/Zombie/mixamo/Ani/NewFolder/truckattack2.truckattack2'"));
+	static ConstructorHelpers::FObjectFinder<UAnimSequenceBase> GirlDeathOne(
+		TEXT("/Script/Engine.AnimSequence'/Game/Zombie/mixamo/Ani/NewFolder/Zombie_Dying__1_.Zombie_Dying__1_'"));
+	static ConstructorHelpers::FObjectFinder<UAnimSequenceBase> GirlDeathTwo(
+		TEXT("/Script/Engine.AnimSequence'/Game/Zombie/mixamo/Ani/NewFolder/HeadDying.HeadDying'"));
+
+	if (GirlMesh.Succeeded() && GetMesh())
+	{
+		GetMesh()->SetSkeletalMesh(GirlMesh.Object);
+		GetMesh()->SetRelativeLocation(FVector(-2.0f, 0.0f, -65.0f));
+		GetMesh()->SetRelativeRotation(FRotator(0.0f, -90.0f, 0.0f));
+	}
+
+	IdleAnimation = GirlIdle.Object;
+	WalkAnimation = GirlWalk.Object;
+	AttackAnimations.Reset();
+	if (GirlAttackOne.Succeeded()) AttackAnimations.Add(GirlAttackOne.Object);
+	if (GirlAttackTwo.Succeeded()) AttackAnimations.Add(GirlAttackTwo.Object);
+	TruckAttackAnimations.Reset();
+	if (GirlTruckAttackOne.Succeeded()) TruckAttackAnimations.Add(GirlTruckAttackOne.Object);
+	if (GirlTruckAttackTwo.Succeeded()) TruckAttackAnimations.Add(GirlTruckAttackTwo.Object);
+	DeathAnimation = GirlDeathOne.Object;
+	DeathAnimations.Reset();
+	if (GirlDeathOne.Succeeded()) DeathAnimations.Add(GirlDeathOne.Object);
+	if (GirlDeathTwo.Succeeded()) DeathAnimations.Add(GirlDeathTwo.Object);
+}
+
 void ABP_Zombiegirl::InitializeBoneDurability()
 {
 	ResetDismemberBones();

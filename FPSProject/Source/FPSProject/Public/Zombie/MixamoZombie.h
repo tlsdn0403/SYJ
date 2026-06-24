@@ -47,10 +47,16 @@ protected:
 	TArray<TObjectPtr<UAnimSequenceBase>> AttackAnimations;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Zombie|Direct Animation")
+	TArray<TObjectPtr<UAnimSequenceBase>> TruckAttackAnimations;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Zombie|Direct Animation")
 	TObjectPtr<UAnimSequenceBase> CrawlingAttackAnimation;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Zombie|Direct Animation")
 	TObjectPtr<UAnimSequenceBase> DeathAnimation;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Zombie|Direct Animation")
+	TArray<TObjectPtr<UAnimSequenceBase>> DeathAnimations;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Zombie|Direct Animation", meta = (ClampMin = "0.0"))
 	float MovingSpeedThreshold = 3.0f;
@@ -71,6 +77,7 @@ private:
 	void PlayDirectAnimation(EDirectAnimationState NewState);
 	UAnimSequenceBase* GetAnimationForState(EDirectAnimationState State) const;
 	UAnimSequenceBase* ChooseAttackAnimation();
+	UAnimSequenceBase* ChooseDeathAnimation();
 	bool IsAnimationCompatible(const UAnimSequenceBase* Animation) const;
 	float GetAnimationDuration(const UAnimSequenceBase* Animation) const;
 
@@ -78,4 +85,7 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UAnimSequenceBase> CurrentAttackAnimation;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UAnimSequenceBase> CurrentDeathAnimation;
 };

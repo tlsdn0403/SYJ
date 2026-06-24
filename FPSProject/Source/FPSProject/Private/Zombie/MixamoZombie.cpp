@@ -6,6 +6,7 @@
 #include "Engine/SkeletalMesh.h"
 #include "Animation/Skeleton.h"
 #include "AIController.h"
+#include "Truck/Truck.h"
 #include "UObject/ConstructorHelpers.h"
 
 AMixamoZombie::AMixamoZombie()
@@ -181,7 +182,7 @@ UAnimSequenceBase* AMixamoZombie::GetAnimationForState(EDirectAnimationState Sta
 	case EDirectAnimationState::CrawlingAttacking:
 		return CrawlingAttackAnimation ? CrawlingAttackAnimation.Get() : CurrentAttackAnimation.Get();
 	case EDirectAnimationState::Dead:
-		return DeathAnimation;
+		return CurrentDeathAnimation ? CurrentDeathAnimation.Get() : DeathAnimation.Get();
 	default:
 		return nullptr;
 	}
@@ -189,8 +190,14 @@ UAnimSequenceBase* AMixamoZombie::GetAnimationForState(EDirectAnimationState Sta
 
 UAnimSequenceBase* AMixamoZombie::ChooseAttackAnimation()
 {
+	const bool bAttackingTruck = IsValid(GetCurrentAttackTarget()) && GetCurrentAttackTarget()->IsA<ATruck>();
+	const TArray<TObjectPtr<UAnimSequenceBase>>& CandidateSource =
+		bAttackingTruck && !TruckAttackAnimations.IsEmpty()
+			? TruckAttackAnimations
+			: AttackAnimations;
+
 	TArray<UAnimSequenceBase*> CompatibleAnimations;
-	for (UAnimSequenceBase* Animation : AttackAnimations)
+	for (UAnimSequenceBase* Animation : CandidateSource)
 	{
 		if (Animation && IsAnimationCompatible(Animation))
 		{
@@ -206,6 +213,27 @@ UAnimSequenceBase* AMixamoZombie::ChooseAttackAnimation()
 
 	CurrentAttackAnimation = CompatibleAnimations[FMath::RandRange(0, CompatibleAnimations.Num() - 1)];
 	return CurrentAttackAnimation;
+}
+
+UAnimSequenceBase* AMixamoZombie::ChooseDeathAnimation()
+{
+	TArray<UAnimSequenceBase*> CompatibleAnimations;
+	for (UAnimSequenceBase* Animation : DeathAnimations)
+	{
+		if (Animation && IsAnimationCompatible(Animation))
+		{
+			CompatibleAnimations.Add(Animation);
+		}
+	}
+
+	if (CompatibleAnimations.IsEmpty())
+	{
+		CurrentDeathAnimation = IsAnimationCompatible(DeathAnimation) ? DeathAnimation.Get() : nullptr;
+		return CurrentDeathAnimation;
+	}
+
+	CurrentDeathAnimation = CompatibleAnimations[FMath::RandRange(0, CompatibleAnimations.Num() - 1)];
+	return CurrentDeathAnimation;
 }
 
 bool AMixamoZombie::IsAnimationCompatible(const UAnimSequenceBase* Animation) const
@@ -238,13 +266,14 @@ float AMixamoZombie::GetDirectAttackAnimationDuration()
 
 float AMixamoZombie::PlayDeathAnimationBeforeRagdoll()
 {
-	if (!bUseDirectAnimation || !IsAnimationCompatible(DeathAnimation))
+	UAnimSequenceBase* SelectedDeathAnimation = ChooseDeathAnimation();
+	if (!bUseDirectAnimation || !SelectedDeathAnimation)
 	{
 		return 0.0f;
 	}
 
 	PlayDirectAnimation(EDirectAnimationState::Dead);
-	return GetAnimationDuration(DeathAnimation);
+	return GetAnimationDuration(SelectedDeathAnimation);
 }
 
 void AMixamoZombie::InitializeBoneDurability()

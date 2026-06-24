@@ -3,17 +3,20 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Zombie/BaseZombie.h"
+#include "Zombie/MixamoZombie.h"
 #include "BP_Zombiegirl.generated.h"
 
 /**
  * 
  */
-UCLASS()
-class FPSPROJECT_API ABP_Zombiegirl : public ABaseZombie
+UCLASS(Blueprintable, meta = (DisplayName = "Mixamo Girl Zombie"))
+class FPSPROJECT_API ABP_Zombiegirl : public AMixamoZombie
 {
 	GENERATED_BODY()
-	
+
+public:
+	ABP_Zombiegirl();
+
 protected:
 	virtual void InitializeBoneDurability() override;
 	virtual FName GetParentBoneForDamage(FName HitBoneName) const override;

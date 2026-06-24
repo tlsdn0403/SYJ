@@ -11,6 +11,7 @@
 class UUserWidget;
 class ALootItemBase;
 class FFPSNetworkManager;
+class FFPSSpawnManager;
 class FFPSStageFlowManager;
 class UFPSWorldObjectManager;
 
@@ -22,6 +23,7 @@ UCLASS()
 class FPSPROJECT_API UFPSProjectGameInstance : public UGameInstance, public FTickableGameObject
 {
 	GENERATED_BODY()
+	friend class FFPSSpawnManager;
 	friend class FFPSStageFlowManager;
 
 	struct FPendingEquippedWeapon
@@ -167,6 +169,7 @@ private:
 
 	int16 Port = 7777;
 	TSharedPtr<FFPSNetworkManager> NetworkManager;
+	TSharedPtr<FFPSSpawnManager> SpawnManager;
 	TSharedPtr<FFPSStageFlowManager> StageFlowManager;
 
 	TSubclassOf<class AFPSBaseCharacter> ResolvePlayerCharacterClass(uint64 ObjectId) const;

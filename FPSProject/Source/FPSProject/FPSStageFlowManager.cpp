@@ -1,5 +1,6 @@
-﻿#include "FPSStageFlowManager.h"
+#include "FPSStageFlowManager.h"
 #include "FPSProjectGameInstance.h"
+#include "FPSStage2WorldUtils.h"
 #include "ClientPacketHandler.h"
 #include "Characters/FPSBaseCharacter.h"
 #include "Characters/FPSPlayerController.h"
@@ -13,36 +14,6 @@
 #include "Stage2/Stage2TileManager.h"
 #include "Algo/Sort.h"
 
-namespace
-{
-	bool IsStage2LevelNameForStageFlow(const FString& LevelName)
-	{
-		return LevelName.Contains(TEXT("map_level2"), ESearchCase::IgnoreCase) ||
-			LevelName.Contains(TEXT("level2"), ESearchCase::IgnoreCase) ||
-			LevelName.Contains(TEXT("stage2"), ESearchCase::IgnoreCase);
-	}
-
-	bool IsStage2WorldForStageFlow(const UWorld* World)
-	{
-		return World && IsStage2LevelNameForStageFlow(World->GetMapName());
-	}
-
-	AStage2TileManager* FindStage2TileManagerForStageFlow(UWorld* World)
-	{
-		if (!World)
-		{
-			return nullptr;
-		}
-
-		for (TActorIterator<AStage2TileManager> It(World); It; ++It)
-		{
-			return *It;
-		}
-
-		return nullptr;
-	}
-}
-
 FFPSStageFlowManager::FFPSStageFlowManager(UFPSProjectGameInstance& InOwner)
 	: Owner(InOwner)
 {
@@ -50,17 +21,17 @@ FFPSStageFlowManager::FFPSStageFlowManager(UFPSProjectGameInstance& InOwner)
 
 bool FFPSStageFlowManager::ShouldDelayEnterGameRequest() const
 {
-	if (const AStage2TileManager* Stage2TileManager = FindStage2TileManagerForStageFlow(Owner.GetWorld()))
+	if (const AStage2TileManager* Stage2TileManager = FPSStage2WorldUtils::FindStage2TileManager(Owner.GetWorld()))
 	{
 		return !Stage2TileManager->AreInitialTilesReady();
 	}
 
-	if (bWaitingForStage2MapLoad && IsStage2LevelNameForStageFlow(PendingStageTransitionLevelName))
+	if (bWaitingForStage2MapLoad && FPSStage2WorldUtils::IsStage2LevelName(PendingStageTransitionLevelName))
 	{
 		return true;
 	}
 
-	if (IsStage2WorldForStageFlow(Owner.GetWorld()))
+	if (FPSStage2WorldUtils::IsStage2World(Owner.GetWorld()))
 	{
 		return true;
 	}
@@ -187,7 +158,7 @@ void FFPSStageFlowManager::HandlePostLoadMap(UWorld* LoadedWorld)
 	bHasAppliedStage1ItemSpawns = false;
 	ApplyStage1ItemSpawnSeed();
 
-	if (bWaitingForStage2MapLoad && !IsStage2WorldForStageFlow(LoadedWorld))
+	if (bWaitingForStage2MapLoad && !FPSStage2WorldUtils::IsStage2World(LoadedWorld))
 	{
 		bWaitingForStage2MapLoad = false;
 		PendingStageTransitionLevelName.Empty();
@@ -249,7 +220,7 @@ void FFPSStageFlowManager::TryDistributeStage1CargoItemsToPlayers()
 		return;
 	}
 
-	if (!IsStage2WorldForStageFlow(Owner.GetWorld()) || Owner.ShouldDelayStage2ActorSpawn() || Owner.PendingStage2SpawnInfos.Num() > 0)
+	if (!FPSStage2WorldUtils::IsStage2World(Owner.GetWorld()) || Owner.ShouldDelayStage2ActorSpawn() || Owner.PendingStage2SpawnInfos.Num() > 0)
 	{
 		return;
 	}
@@ -357,7 +328,7 @@ void FFPSStageFlowManager::HandleStageTransition(const Protocol::S_STAGE_TRANSIT
 	}
 
 	PendingStageTransitionLevelName = TargetLevelName;
-	bWaitingForStage2MapLoad = IsStage2LevelNameForStageFlow(TargetLevelName);
+	bWaitingForStage2MapLoad = FPSStage2WorldUtils::IsStage2LevelName(TargetLevelName);
 	UGameplayStatics::OpenLevel(&Owner, FName(*TargetLevelName));
 }
 

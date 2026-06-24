@@ -23,6 +23,7 @@ class UWidgetComponent;
 class AStage2TileManager;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnTruckHealthChanged, float, CurrentHealth, float, MaxHealth);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnTruckFuelChanged, float, CurrentFuel, float, MaxFuel);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnTruckDestroyed);
 
 USTRUCT(BlueprintType)
@@ -72,6 +73,9 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Combat")
 	FOnTruckHealthChanged OnTruckHealthChanged;
 
+	UPROPERTY(BlueprintAssignable, Category = "Fuel")
+	FOnTruckFuelChanged OnTruckFuelChanged;
+
 	UPROPERTY(BlueprintAssignable, Category = "Combat")
 	FOnTruckDestroyed OnTruckDestroyed;
 
@@ -83,6 +87,21 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Combat")
 	bool IsTruckDestroyed() const { return bTruckDestroyed; }
+
+	UFUNCTION(BlueprintPure, Category = "Fuel")
+	float GetTruckFuel() const { return CurrentTruckFuel; }
+
+	UFUNCTION(BlueprintPure, Category = "Fuel")
+	float GetTruckMaxFuel() const { return TruckMaxFuel; }
+
+	UFUNCTION(BlueprintPure, Category = "Fuel")
+	bool HasTruckFuel() const { return !bUseFuel || CurrentTruckFuel > KINDA_SMALL_NUMBER; }
+
+	UFUNCTION(BlueprintCallable, Category = "Fuel")
+	void SetTruckFuel(float NewFuel);
+
+	UFUNCTION(BlueprintCallable, Category = "Fuel")
+	void RefuelTruck(float FuelAmount);
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Driver")
 	USceneComponent* DriverSeatPoint;
@@ -333,8 +352,23 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Collision", meta = (EditCondition = "bAutoFitVehiclePawnCollision"))
 	FVector VehiclePawnCollisionPadding = FVector(8.0f, 8.0f, 4.0f);
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat", meta = (ClampMin = "1.0"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Health", meta = (ClampMin = "1.0"))
 	float TruckMaxHealth = 1000.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Fuel")
+	bool bUseFuel = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Fuel", meta = (ClampMin = "1.0", EditCondition = "bUseFuel"))
+	float TruckMaxFuel = 100.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Fuel", meta = (ClampMin = "0.0", EditCondition = "bUseFuel"))
+	float TruckStartingFuel = 100.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Fuel", meta = (ClampMin = "0.0", EditCondition = "bUseFuel"))
+	float FuelConsumptionPerSecond = 1.0f;
+
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Fuel")
+	float CurrentTruckFuel = 0.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
 	float BrakeSoundMinSpeed = 300.0f;
@@ -358,9 +392,11 @@ private:
 	float TruckMovePacketSendTimer = 0.0f;
 	float DebugTransformLogTimer = 0.0f;
 	float ZombieNoiseTimer = 0.0f;
+	float CurrentThrottleInput = 0.0f;
 	static constexpr float TRUCK_MOVE_PACKET_SEND_DELAY = 0.05f;
 
 	void ReportZombieAwarenessNoise(float DeltaTime);
+	void UpdateFuelConsumption(float DeltaTime);
 	void ConfigureVehiclePawnCollision();
 	bool IsLocalInteractionCharacter(const AFPSBaseCharacter* Character) const;
 	void RefreshLocalInteractionWidgets();

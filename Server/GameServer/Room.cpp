@@ -168,7 +168,7 @@ bool Room::EnterRoom(ObjectRef object, bool randPos /*= true*/)
 	{
 		Protocol::S_ENTER_GAME enterGamePkt;
 		enterGamePkt.set_success(success);
-		
+
 		Protocol::ObjectInfo* playerInfo = new Protocol::ObjectInfo();
 		playerInfo->CopyFrom(*object->objectInfo);
 		enterGamePkt.set_allocated_player(playerInfo);
@@ -460,6 +460,7 @@ void Room::HandleStageMapReady(GameSessionRef session)
 	_stageTransitionReadyPlayerIds.clear();
 	_bStageTransitionStarted = false;
 	SpawnStage2Zombies();
+	SpawnStage2Weapons();
 }
 
 void Room::RemovePendingReadySession(GameSessionRef session)
@@ -494,6 +495,7 @@ void Room::RemovePendingReadySession(GameSessionRef session)
 
 namespace
 {
+	constexpr uint64 STAGE2_WEAPON_OBJECT_ID_START = 200001;
 	constexpr uint64 ZOMBIE_OBJECT_ID_START = 1000000;
 	constexpr float ZOMBIE_SERVER_TICK_SECONDS = 0.1f;
 	constexpr float ZOMBIE_MOVE_SPEED = 180.0f;
@@ -520,6 +522,78 @@ namespace
 		{ 2600.0f, 550.0f, 588.0f, 180.0f },
 		{ 2850.0f, 100.0f, 588.0f, 180.0f },
 	};
+
+	struct Stage2WeaponSpawnInfo
+	{
+		float x;
+		float y;
+		float z;
+		float yaw;
+	};
+
+	constexpr Stage2WeaponSpawnInfo STAGE2_WEAPON_SPAWNS[] =
+	{
+		{ 120.0f, 0.0f, 0.0f, 0.0f },
+		{ 120.0f, 0.0f, 0.0f, 0.0f },
+		{ 120.0f, 0.0f, 0.0f, 0.0f },
+	};
+}
+
+void Room::SendStage2WeaponsToSession(const GameSessionRef& session) const
+{
+	if (session == nullptr || _stage2Weapons.empty())
+		return;
+
+	Protocol::S_SPAWN_ITEM spawnItemPkt;
+	for (const Stage2WeaponState& weaponState : _stage2Weapons)
+	{
+		if (weaponState.pickedUp)
+			continue;
+
+		Protocol::ObjectInfo* weaponInfo = spawnItemPkt.add_items();
+		weaponInfo->set_object_id(weaponState.itemId);
+		weaponInfo->set_object_type(Protocol::OBJECT_TYPE_ITEM);
+		weaponInfo->mutable_pos_info()->CopyFrom(weaponState.posInfo);
+		weaponInfo->set_weapon_type(weaponState.weaponType);
+	}
+
+	if (spawnItemPkt.items_size() > 0)
+		session->Send(ServerPacketHandler::MakeSendBuffer(spawnItemPkt));
+}
+
+void Room::SpawnStage2Weapons()
+{
+	if (!_stage2Weapons.empty())
+		return;
+
+	_stage2Weapons.reserve(sizeof(STAGE2_WEAPON_SPAWNS) / sizeof(STAGE2_WEAPON_SPAWNS[0]));
+	for (int32 i = 0; i < static_cast<int32>(sizeof(STAGE2_WEAPON_SPAWNS) / sizeof(STAGE2_WEAPON_SPAWNS[0])); ++i)
+	{
+		const Stage2WeaponSpawnInfo& spawnInfo = STAGE2_WEAPON_SPAWNS[i];
+		Stage2WeaponState& weaponState = _stage2Weapons.emplace_back();
+		weaponState.itemId = STAGE2_WEAPON_OBJECT_ID_START + i;
+		weaponState.weaponType = Protocol::WEAPON_TYPE_RIFLE;
+		weaponState.pickedUp = false;
+		weaponState.posInfo.set_object_id(weaponState.itemId);
+		weaponState.posInfo.set_x(spawnInfo.x);
+		weaponState.posInfo.set_y(spawnInfo.y);
+		weaponState.posInfo.set_z(spawnInfo.z);
+		weaponState.posInfo.set_yaw(spawnInfo.yaw);
+		weaponState.posInfo.set_state(Protocol::MOVE_STATE_IDLE);
+	}
+
+	Protocol::S_SPAWN_ITEM spawnItemPkt;
+	for (const Stage2WeaponState& weaponState : _stage2Weapons)
+	{
+		Protocol::ObjectInfo* weaponInfo = spawnItemPkt.add_items();
+		weaponInfo->set_object_id(weaponState.itemId);
+		weaponInfo->set_object_type(Protocol::OBJECT_TYPE_ITEM);
+		weaponInfo->mutable_pos_info()->CopyFrom(weaponState.posInfo);
+		weaponInfo->set_weapon_type(weaponState.weaponType);
+	}
+
+	Broadcast(ServerPacketHandler::MakeSendBuffer(spawnItemPkt));
+	cout << "[Stage2Weapon] SpawnStage2Weapons count=" << _stage2Weapons.size() << endl;
 }
 
 void Room::SpawnStage2Zombies()
@@ -544,6 +618,17 @@ void Room::SpawnStage2Zombies()
 	}
 
 	cout << "[ZombieSync] SpawnStage2Zombies count=" << static_cast<int32>(sizeof(STAGE2_ZOMBIE_SPAWNS) / sizeof(STAGE2_ZOMBIE_SPAWNS[0])) << endl;
+}
+
+Room::Stage2WeaponState* Room::FindStage2Weapon(uint64 itemId)
+{
+	for (Stage2WeaponState& weaponState : _stage2Weapons)
+	{
+		if (weaponState.itemId == itemId)
+			return &weaponState;
+	}
+
+	return nullptr;
 }
 
 PlayerRef Room::FindNearestPlayer(const Protocol::PosInfo& origin, float maxRange) const
@@ -843,19 +928,47 @@ void Room::HandleEquipWeapon(PlayerRef player, Protocol::C_EQUIP_WEAPON pkt)
 	if (player == nullptr)
 		return;
 
-	// 이 플레이어의 구조체 정보 갱신
-	// (참고: 지금은 무조건 라이플을 주웠다고 가정하고 하드코딩합니다. 나중에는 맵에 떨어진 아이템 ID를 조회해서 타입을 찾아야 합니다.)
-	player->objectInfo->set_weapon_type(Protocol::WEAPON_TYPE_RIFLE);
+	const uint64 itemObjectId = pkt.itemobjectid();
+	Stage2WeaponState* weaponState = FindStage2Weapon(itemObjectId);
+	if (weaponState == nullptr)
+	{
+		cout << "[EquipWeapon] rejected unknown itemObjectId=" << itemObjectId
+			<< " playerId=" << player->objectInfo->object_id() << endl;
+		return;
+	}
+
+	if (weaponState->pickedUp)
+	{
+		cout << "[EquipWeapon] rejected already picked itemObjectId=" << itemObjectId
+			<< " playerId=" << player->objectInfo->object_id() << endl;
+		return;
+	}
+
+	if (player->objectInfo->weapon_type() != Protocol::WEAPON_TYPE_NONE)
+	{
+		cout << "[EquipWeapon] rejected because player already has weapon. playerId="
+			<< player->objectInfo->object_id()
+			<< " currentWeaponType=" << player->objectInfo->weapon_type()
+			<< " itemObjectId=" << itemObjectId << endl;
+		return;
+	}
+
+	weaponState->pickedUp = true;
+	player->objectInfo->set_weapon_type(weaponState->weaponType);
 
 	// 다른 사람들에게 뿌릴 S_EQUIP_WEAPON 패킷 조립
 	Protocol::S_EQUIP_WEAPON equipPkt;
 	equipPkt.set_playerid(player->objectInfo->object_id()); // 누가 주웠는지 (본인)
-	equipPkt.set_itemobjectid(pkt.itemobjectid());          // 어떤 아이템을 주웠는지 (클라가 보내준 맵의 총기 ID)
-	equipPkt.set_weapontype(Protocol::WEAPON_TYPE_RIFLE);   // 무슨 타입인지
+	equipPkt.set_itemobjectid(itemObjectId);                // 어떤 아이템을 주웠는지
+	equipPkt.set_weapontype(weaponState->weaponType);       // 서버에 등록된 무기 타입
 
 	// 방에 있는 모든 사람에게 소문내기 (Broadcast)
 	SendBufferRef sendBuffer = ServerPacketHandler::MakeSendBuffer(equipPkt);
 	Broadcast(sendBuffer);
+
+	cout << "[EquipWeapon] playerId=" << player->objectInfo->object_id()
+		<< " itemObjectId=" << itemObjectId
+		<< " weaponType=" << weaponState->weaponType << endl;
 }
 
 void Room::HandlePickupLootItem(PlayerRef player, Protocol::C_PICKUP_LOOT_ITEM pkt)

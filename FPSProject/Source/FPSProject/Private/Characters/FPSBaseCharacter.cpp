@@ -11,7 +11,7 @@
 #include "HUD/InventoryWidget.h"
 #include "HUD/BasicUI.h"
 #include "HUD/EffectUI.h"
-#include "HUD/BaseUI.h"     //ÀÌ°Å Å¸ÀÌ¸Ó ¿ë
+#include "HUD/BaseUI.h"
 #include "HUD/L2BaseUI.h"
 #include "Characters/FPSPlayerController.h"
 #include "Interface/InteractInterface.h"
@@ -109,9 +109,7 @@ void AFPSBaseCharacter::BeginPlay()
 		HealthComponent->OnHealthChanged.AddDynamic(this, &AFPSBaseCharacter::HandleHealthChanged);
 	}
 
-	check(GEngine != nullptr);
-	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("We are using FPSCharacter."));
-  
+
 	AFPSPlayerController* PC = Cast<AFPSPlayerController>(GetController());
 
 	if (IsLocallyControlled())
@@ -122,7 +120,7 @@ void AFPSBaseCharacter::BeginPlay()
 			GameInstance->RefreshStage2StartupActorHold();
 		}
 
-		// ¸¶¿ì½º Ä¿¼­ ¼û±â±â
+		// ë§ˆìš°ìŠ¤ ì»¤ì„œ ìˆ¨ê¸°ê¸°
 		if (PC)
 		{
 			FInputModeGameOnly InputMode;
@@ -137,7 +135,6 @@ void AFPSBaseCharacter::BeginPlay()
 		{
 			Add_L1_Widget(PC);
 			Add_L2_Widget(PC);
-
 		}
 	}
 }
@@ -148,17 +145,6 @@ void AFPSBaseCharacter::Delete_L1Widget(AFPSPlayerController* PC) {
 	{
 		PC->InventoryW->RemoveFromParent();
 	}
-
-	if (PC->TimerW)
-	{
-		PC->TimerW->RemoveFromParent();
-	}
-
-	if (PC->BasicW)
-	{
-		PC->BasicW->RemoveFromParent();
-	}
-
 }
 
 void AFPSBaseCharacter::Add_L1_Widget(AFPSPlayerController* PC) {
@@ -166,7 +152,7 @@ void AFPSBaseCharacter::Add_L1_Widget(AFPSPlayerController* PC) {
 	PC->TimerW->AddToViewport();
 	PC->BasicW->AddToViewport();
 	RefreshStage2ItemUI();
-	SetHealth(100, 100); //ÀÌ°Ç Ã³À½°ª ÀÓÀÇ ¼¼ÆÃ 
+	SetHealth(100, 100); //ì´ê±´ ì²˜ìŒê°’ ì„ì˜ ì„¸íŒ…
 }
 
 void AFPSBaseCharacter::Add_L2_Widget(AFPSPlayerController* PC) {
@@ -185,7 +171,7 @@ void AFPSBaseCharacter::Tick(float DeltaTime)
 		ConstrainToTruckCargoBounds();
 	}
 
-	// ÁÜ ÇßÀ» ‹š FOV È®´ë
+	// ì¤Œ í–ˆì„ ë–„ FOV í™•ëŒ€
 	const bool bUseIronSightCamera =
 		IsLocallyControlled() &&
 		bIsIronSightAiming &&
@@ -245,14 +231,14 @@ void AFPSBaseCharacter::Tick(float DeltaTime)
 	}
 	if (ThirdPersonCameraComponent && CameraBoom)
 	{
-		// Á¶ÁØÁßÀÌ¸é Aiming Ä«¸Ş¶ó , ¾Æ´Ï¸é ±âÁ¸
+		// ì¡°ì¤€ì¤‘ì´ë©´ Aiming ì¹´ë©”ë¼ , ì•„ë‹ˆë©´ ê¸°ì¡´
 		const float TargetFOV = bIsHoldAiming ? AimingThirdPersonFOV : DefaultThirdPersonFOV;
-		// ÀÌ°Íµµ Á¶ÁØÁßÀÌ¸é Aiming Ä«¸Ş¶ó ºÕ
+		// ì´ê²ƒë„ ì¡°ì¤€ì¤‘ì´ë©´ Aiming ì¹´ë©”ë¼ ë¶
 		const float TargetBoomLength = bIsHoldAiming ? AimingBoomLength : DefaultBoomLength;
-		// ÀÌ°Íµµ Á¶ÁØÁßÀÌ¸é Aiming Ä«¸Ş¶ó ºÕ ¼ÒÄÏ ¿ÀÇÁ¼Â
+		// ì´ê²ƒë„ ì¡°ì¤€ì¤‘ì´ë©´ Aiming ì¹´ë©”ë¼ ë¶ ì†Œì¼“ ì˜¤í”„ì…‹
 		const FVector TargetSocketOffset = bIsHoldAiming ? AimingCameraBoomSocketOffset : DefaultCameraBoomSocketOffset;
 
-		// º¸°£À» ÀÌ¿ëÇØ¼­, Ä«¸Ş¶ó°¡ ºÎµå·´°Ô ÀÌµ¿ÇÏµµ·Ï
+		// ë³´ê°„ì„ ì´ìš©í•´ì„œ, ì¹´ë©”ë¼ê°€ ë¶€ë“œëŸ½ê²Œ ì´ë™í•˜ë„ë¡
 		ThirdPersonCameraComponent->FieldOfView = FMath::FInterpTo(
 			ThirdPersonCameraComponent->FieldOfView,
 			TargetFOV,
@@ -306,12 +292,12 @@ void AFPSBaseCharacter::Tick(float DeltaTime)
 			SendMovePacket();
 		}
 	}
-	//(½Å¿ì) Æ®·°À» Å¸°í ÀÖÀ» ¶§ À§Ä¡º¸Á¤ ¾ÈÇÏµµ·Ï  (ÀÌ°Å ¾ÈÇÏ´Ï±î ÀÌ»óÇÑ°÷¿¡ ¾É¾ÆÀÖÀ½)
+	//(ì‹ ìš°) íŠ¸ëŸ­ì„ íƒ€ê³  ìˆì„ ë•Œ ìœ„ì¹˜ë³´ì • ì•ˆí•˜ë„ë¡  (ì´ê±° ì•ˆí•˜ë‹ˆê¹Œ ì´ìƒí•œê³³ì— ì•‰ì•„ìˆìŒ)
 	else if (bShouldSkipRemoteMovementSync)
 	{
 		return;
 	}
-	// [½Å¿ì] Å¾½ÂÀÚ º¸Á¤À» ¹Ù²Ş idleÀÏ ¶§ ºü¸£°Ô º¸Á¤	
+	// [ì‹ ìš°] íƒ‘ìŠ¹ì ë³´ì •ì„ ë°”ê¿ˆ idleì¼ ë•Œ ë¹ ë¥´ê²Œ ë³´ì •
 	else if (bIsOnTruckCargo && CurrentTruck)
 	{
 		const FRotator TargetRot(0.f, DestInfo->yaw(), 0.f);
@@ -357,7 +343,7 @@ void AFPSBaseCharacter::Tick(float DeltaTime)
 		}
 		return;
 	}
-	else // ³²ÀÇ Ä³¸¯ÅÍÀÏ ¶§
+	else // ë‚¨ì˜ ìºë¦­í„°ì¼ ë•Œ
 	{
 		const Protocol::MoveState State = PlayerInfo->state();
 		FVector CurrentLocation = GetActorLocation();
@@ -393,7 +379,7 @@ void AFPSBaseCharacter::Tick(float DeltaTime)
 				SetActorLocation(TargetLocation);
 			}
 		}
-		else 
+		else
 		{
 			if (DistToDest > 2.0f)
 			{
@@ -522,7 +508,7 @@ void AFPSBaseCharacter::Die(bool bBroadcastDeath)
 		}
 	}
 }
-// 2½ºÅ×ÀÌÁö ¸ÊÀ¸·Î ÀÌµ¿
+// 2ìŠ¤í…Œì´ì§€ ë§µìœ¼ë¡œ ì´ë™
 void AFPSBaseCharacter::TravelToStage2Map()
 {
 	UGameplayStatics::OpenLevel(this, FName(TEXT("map_level2_test")));
@@ -536,7 +522,7 @@ void AFPSBaseCharacter::SendEnterGamePacket()
 	}
 
 	Protocol::C_ENTER_GAME EnterGamePkt;
-	EnterGamePkt.set_playerindex(0); // ÀÓ½Ã·Î 0¹ø
+	EnterGamePkt.set_playerindex(0); // ì„ì‹œë¡œ 0ë²ˆ
 
 	if (auto* GameInstance = Cast<UFPSProjectGameInstance>(GetGameInstance()))
 	{
@@ -1015,7 +1001,7 @@ void AFPSBaseCharacter::LeaveGame()
 {
 	if (IsLocallyControlled())
 	{
-		// ³» °ÔÀÓ ÀÎ½ºÅÏ½º¸¦ Ã£¾Æ¿Í¼­ Á¢¼Ó ²÷±â ÇÔ¼ö ½ÇÇà!
+		// ë‚´ ê²Œì„ ì¸ìŠ¤í„´ìŠ¤ë¥¼ ì°¾ì•„ì™€ì„œ ì ‘ì† ëŠê¸° í•¨ìˆ˜ ì‹¤í–‰!
 		if (UFPSProjectGameInstance* GI = Cast<UFPSProjectGameInstance>(GetGameInstance()))
 		{
 			GI->DisconnectFromGameServer();
@@ -1132,20 +1118,20 @@ void AFPSBaseCharacter::StopFire()
 
 void AFPSBaseCharacter::GetWeaponAimViewPoint(FVector& OutLocation, FRotator& OutRotation) const
 {
-	// ½ÇÁ¦ ÇÃ·¹ÀÌ¾î°¡ Á¶Á¾ÁÙÀÏ ¶§
+	// ì‹¤ì œ í”Œë ˆì´ì–´ê°€ ì¡°ì¢…ì¤„ì¼ ë•Œ
 	if (const APlayerController* PlayerController = Cast<APlayerController>(Controller))
 	{
-		// ºäÆ÷Æ® Å©±â °¡Á®¿È
+		// ë·°í¬íŠ¸ í¬ê¸° ê°€ì ¸ì˜´
 		int32 ViewportSizeX = 0;
 		int32 ViewportSizeY = 0;
 		PlayerController->GetViewportSize(ViewportSizeX, ViewportSizeY);
 
-		// Áß¾Ó ÁÂÇ¥ °è»ê
+		// ì¤‘ì•™ ì¢Œí‘œ ê³„ì‚°
 		if (ViewportSizeX > 0 && ViewportSizeY > 0)
 		{
 			FVector WorldDirection;
-			// È­¸é Áß¾ÓÀ» ¿ùµå ¹æÇâÀ¸·Î º¯È¯
-			// 2D È­¸é ÁÂÇ¥¸¦ 3D ¿ùµå ÁÂÇ¥¿Í ¹æÇâÀ¸·Î ¹Ù²Ù¾î ÁÖ´Â ÇÔ¼ö´Ù
+			// í™”ë©´ ì¤‘ì•™ì„ ì›”ë“œ ë°©í–¥ìœ¼ë¡œ ë³€í™˜
+			// 2D í™”ë©´ ì¢Œí‘œë¥¼ 3D ì›”ë“œ ì¢Œí‘œì™€ ë°©í–¥ìœ¼ë¡œ ë°”ê¾¸ì–´ ì£¼ëŠ” í•¨ìˆ˜ë‹¤
 			if (PlayerController->DeprojectScreenPositionToWorld(
 				ViewportSizeX * 0.5f,
 				ViewportSizeY * 0.5f,
@@ -1156,10 +1142,10 @@ void AFPSBaseCharacter::GetWeaponAimViewPoint(FVector& OutLocation, FRotator& Ou
 				return;
 			}
 		}
-		// OutLocation -> ¿ùµå °ø°£¿¡¼­ È­¸é Áß¾Ó¿¡ ÇØ´çÇÏ´Â À§Ä¡
-		// OutRotation -> ¿ùµå °ø°£¿¡¼­ È­¸é Áß¾ÓÀ» ÇâÇÏ´Â ¹æÇâÀÇ È¸Àü°ª
+		// OutLocation -> ì›”ë“œ ê³µê°„ì—ì„œ í™”ë©´ ì¤‘ì•™ì— í•´ë‹¹í•˜ëŠ” ìœ„ì¹˜
+		// OutRotation -> ì›”ë“œ ê³µê°„ì—ì„œ í™”ë©´ ì¤‘ì•™ì„ í–¥í•˜ëŠ” ë°©í–¥ì˜ íšŒì „ê°’
 	}
-	
+
 	if (FPSCameraComponent && FPSCameraComponent->IsActive())
 	{
 		OutLocation = FPSCameraComponent->GetComponentLocation();
@@ -1177,7 +1163,7 @@ void AFPSBaseCharacter::GetWeaponAimViewPoint(FVector& OutLocation, FRotator& Ou
 	GetActorEyesViewPoint(OutLocation, OutRotation);
 }
 
-// ÃÑÀ» ½ò ¶§ ÃÑ±â ¹İµ¿À» ÁÖ±â.
+// ì´ì„ ì  ë•Œ ì´ê¸° ë°˜ë™ì„ ì£¼ê¸°.
 void AFPSBaseCharacter::ApplyWeaponRecoil(float PitchKick, float YawKick)
 {
 	if (!IsLocallyControlled() || !Controller || bIsDrivingTruck)
@@ -1221,32 +1207,32 @@ void AFPSBaseCharacter::BeginTruckCargoWalk(ATruck* Truck)
 
 	EndTruckCargoWalk();
 
-	// Æ®··Å© À§Ä¡·Î Ä³¸¯ÅÍ ÀÌµ¿
+	// íŠ¸ë í¬ ìœ„ì¹˜ë¡œ ìºë¦­í„° ì´ë™
 	SetActorLocationAndRotation(
 		Truck->GetCargoRideLocation(),
 		Truck->GetCargoRideRotation()
 	);
 
 	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-	// Ä³¸¯ÅÍ ¸Å½Ã°¡ Æ®·° ¸Å½Ã¿Í Ãæµ¹ÇÏÁö ¾Êµµ·Ï ¼³Á¤
+	// ìºë¦­í„° ë§¤ì‹œê°€ íŠ¸ëŸ­ ë§¤ì‹œì™€ ì¶©ëŒí•˜ì§€ ì•Šë„ë¡ ì„¤ì •
 	GetMesh()->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 
 	if (GetCharacterMovement())
 	{
-		// Å¾½Â Á÷Àü¿¡ Ä³¸¯ÅÍ°¡ °¡Áö°í ÀÖ´ø ¼Óµµ¸¦ Á¦°Å
+		// íƒ‘ìŠ¹ ì§ì „ì— ìºë¦­í„°ê°€ ê°€ì§€ê³  ìˆë˜ ì†ë„ë¥¼ ì œê±°
 		GetCharacterMovement()->StopMovementImmediately();
-		// ÀûÀçÇÔ À§¿¡¼­ °È±â °¡´ÉÇÏµµ·Ï ÀÌµ¿ ¸ğµå º¯°æ
+		// ì ì¬í•¨ ìœ„ì—ì„œ ê±·ê¸° ê°€ëŠ¥í•˜ë„ë¡ ì´ë™ ëª¨ë“œ ë³€ê²½
 		GetCharacterMovement()->SetMovementMode(MOVE_Walking);
 
 		GetCharacterMovement()->bFastAttachedMove = true;
 
 	}
-	// Ä³¸¯ÅÍ Ä¸½¶°ú Æ®·° ¸Ş½Ã°¡ ¼­·Î ÀÌµ¿ Ãæµ¹À» ¹«½ÃÇÏµµ·Ï ¼³Á¤
+	// ìºë¦­í„° ìº¡ìŠê³¼ íŠ¸ëŸ­ ë©”ì‹œê°€ ì„œë¡œ ì´ë™ ì¶©ëŒì„ ë¬´ì‹œí•˜ë„ë¡ ì„¤ì •
 	SetTruckMeshMovementIgnored(Truck, true);
 
 	if (UPrimitiveComponent* CargoMovementBase = Truck->GetCargoMovementBase())
 	{
-		// Ä³¸¯ÅÍ°¡ ¾î¶² ¹Ù´Ú À§¿¡¼­ ¿òÁ÷ÀÌ´ÂÁö ¼³Á¤À» ÇØÁÜ
+		// ìºë¦­í„°ê°€ ì–´ë–¤ ë°”ë‹¥ ìœ„ì—ì„œ ì›€ì§ì´ëŠ”ì§€ ì„¤ì •ì„ í•´ì¤Œ
 		SetBase(CargoMovementBase);
 	}
 

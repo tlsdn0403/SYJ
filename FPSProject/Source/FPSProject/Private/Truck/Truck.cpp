@@ -53,6 +53,66 @@ void SetCargoSlotShown(UStaticMeshComponent* Slot, bool bShown)
 	Slot->SetHiddenInGame(!bShown, true);
 	Slot->MarkRenderStateDirty();
 }
+
+void EnsureVehicleMeshPhysicsReady(USkeletalMeshComponent* TruckMesh, bool bWakeBodies)
+{
+	if (!TruckMesh)
+	{
+		return;
+	}
+
+	TruckMesh->VisibilityBasedAnimTickOption = EVisibilityBasedAnimTickOption::AlwaysTickPoseAndRefreshBones;
+
+	if (!TruckMesh->IsSimulatingPhysics())
+	{
+		TruckMesh->SetSimulatePhysics(true);
+		TruckMesh->RecreatePhysicsState();
+	}
+
+	if (bWakeBodies)
+	{
+		TruckMesh->WakeAllRigidBodies();
+	}
+	else
+	{
+		TruckMesh->PutAllRigidBodiesToSleep();
+	}
+
+	TruckMesh->RefreshBoneTransforms();
+	TruckMesh->MarkRenderTransformDirty();
+	TruckMesh->MarkRenderDynamicDataDirty();
+}
+
+void RefreshVehicleMeshRenderState(USkeletalMeshComponent* TruckMesh)
+{
+	if (!TruckMesh)
+	{
+		return;
+	}
+
+	TruckMesh->VisibilityBasedAnimTickOption = EVisibilityBasedAnimTickOption::AlwaysTickPoseAndRefreshBones;
+	TruckMesh->RefreshBoneTransforms();
+	TruckMesh->MarkRenderTransformDirty();
+	TruckMesh->MarkRenderDynamicDataDirty();
+}
+
+void MakeVehicleMeshKinematic(USkeletalMeshComponent* TruckMesh)
+{
+	if (!TruckMesh)
+	{
+		return;
+	}
+
+	RefreshVehicleMeshRenderState(TruckMesh);
+
+	if (TruckMesh->IsSimulatingPhysics())
+	{
+		TruckMesh->SetPhysicsLinearVelocity(FVector::ZeroVector);
+		TruckMesh->SetPhysicsAngularVelocityInDegrees(FVector::ZeroVector);
+		TruckMesh->PutAllRigidBodiesToSleep();
+		TruckMesh->SetSimulatePhysics(false);
+	}
+}
 }
 
 ATruck::ATruck()
@@ -168,6 +228,17 @@ ATruck::ATruck()
 
 	for (int32 i = 0; i < 3; i++)
 	{
+		FName SlotName = FName(*FString::Printf(TEXT("RepairKitSlot_%d"), i));
+		UStaticMeshComponent* NewSlot = CreateDefaultSubobject<UStaticMeshComponent>(SlotName);
+		NewSlot->SetupAttachment(CargoOrigin);
+		NewSlot->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		NewSlot->SetSimulatePhysics(false);
+		NewSlot->SetEnableGravity(false);
+		RepairKitSlots.Add(NewSlot);
+	}
+
+	for (int32 i = 0; i < 3; i++)
+	{
 		FName SlotName = FName(*FString::Printf(TEXT("MedKitSlot_%d"), i));
 		UStaticMeshComponent* NewSlot = CreateDefaultSubobject<UStaticMeshComponent>(SlotName);
 		NewSlot->SetupAttachment(CargoOrigin);
@@ -221,7 +292,7 @@ ATruck::ATruck()
 	MountedWeaponClass = AMountedMachineGun::StaticClass();
 
 	static ConstructorHelpers::FClassFinder<AMountedMachineGun> MountedWeaponBP(TEXT("/Game/Truck/MachineGun/BP_MountedMachineGun"));
-	UE_LOG(LogTemp, Warning, TEXT("MountedWeaponBP success: %d, class: %s"),
+	UE_LOG(LogTemp, Verbose, TEXT("MountedWeaponBP success: %d, class: %s"),
 		MountedWeaponBP.Succeeded(),
 		*GetNameSafe(MountedWeaponBP.Class));
 	if (MountedWeaponBP.Succeeded())
@@ -284,6 +355,7 @@ void ATruck::ConfigureVehiclePawnCollision()
 void ATruck::BeginPlay()
 {
 	Super::BeginPlay();
+	const FTransform PlacedTransform = GetActorTransform();
 	ConfigureVehiclePawnCollision();
 
 	if (HealthComponent)
@@ -317,6 +389,8 @@ void ATruck::BeginPlay()
 	// The driver's client is the only physics authority for the truck.
 	// Until a local driver is assigned, keep the vehicle kinematic on every client.
 	SetLocallyDriven(false);
+	SetActorTransform(PlacedTransform, false, nullptr, ETeleportType::TeleportPhysics);
+	RefreshVehicleMeshRenderState(GetMesh());
 
 	if (EngineSoundCue)
 	{
@@ -360,10 +434,12 @@ void ATruck::BeginPlay()
 	for (UStaticMeshComponent* Slot : AmmoSlots) { SetCargoSlotShown(Slot, false); }
 	for (UStaticMeshComponent* Slot : MountedAmmoSlots) { SetCargoSlotShown(Slot, false); }
 	for (UStaticMeshComponent* Slot : FuelSlots) { SetCargoSlotShown(Slot, false); }
+	for (UStaticMeshComponent* Slot : RepairKitSlots) { SetCargoSlotShown(Slot, false); }
 	for (UStaticMeshComponent* Slot : MedKitSlots) { SetCargoSlotShown(Slot, false); }
 	for (UStaticMeshComponent* Slot : AmmoSlots) { if (Slot) { Slot->SetSimulatePhysics(false); Slot->SetEnableGravity(false); Slot->SetCollisionEnabled(ECollisionEnabled::NoCollision); } }
 	for (UStaticMeshComponent* Slot : MountedAmmoSlots) { if (Slot) { Slot->SetSimulatePhysics(false); Slot->SetEnableGravity(false); Slot->SetCollisionEnabled(ECollisionEnabled::NoCollision); } }
 	for (UStaticMeshComponent* Slot : FuelSlots) { if (Slot) { Slot->SetSimulatePhysics(false); Slot->SetEnableGravity(false); Slot->SetCollisionEnabled(ECollisionEnabled::NoCollision); } }
+	for (UStaticMeshComponent* Slot : RepairKitSlots) { if (Slot) { Slot->SetSimulatePhysics(false); Slot->SetEnableGravity(false); Slot->SetCollisionEnabled(ECollisionEnabled::NoCollision); } }
 	for (UStaticMeshComponent* Slot : MedKitSlots) { if (Slot) { Slot->SetSimulatePhysics(false); Slot->SetEnableGravity(false); Slot->SetCollisionEnabled(ECollisionEnabled::NoCollision); } }
 
 	if (MountedWeaponClass && TurretMountPoint)
@@ -371,7 +447,7 @@ void ATruck::BeginPlay()
 		FActorSpawnParameters SpawnParams;
 		SpawnParams.Owner = this;
 		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-		UE_LOG(LogTemp, Warning, TEXT("Spawn Mounted Weapon"));
+		UE_LOG(LogTemp, Verbose, TEXT("Spawn Mounted Weapon"));
 
 		MountedWeapon = GetWorld()->SpawnActor<AMountedMachineGun>(
 			MountedWeaponClass,
@@ -417,7 +493,7 @@ void ATruck::Tick(float DeltaTime)
 			const FVector ViewLocation = ViewTarget ? ViewTarget->GetActorLocation() : FVector::ZeroVector;
 			const FRotator ViewRotation = ViewTarget ? ViewTarget->GetActorRotation() : FRotator::ZeroRotator;
 
-			UE_LOG(LogTemp, Warning,
+			UE_LOG(LogTemp, Verbose,
 				TEXT("[TruckDebug] Truck=%s ActorLoc=%s ActorRot=%s MeshLoc=%s MeshRot=%s ViewTarget=%s ViewLoc=%s ViewRot=%s Driver=%s"),
 				*GetName(),
 				*ActorLocation.ToString(),
@@ -512,7 +588,7 @@ void ATruck::SetLocallyDriven(bool bLocallyDriven)
 {
 	bIsLocallyDriven = bLocallyDriven;
 
-	UE_LOG(LogTemp, Warning,
+	UE_LOG(LogTemp, Verbose,
 		TEXT("[TruckDebug] SetLocallyDriven Truck=%s bLocallyDriven=%d Controller=%s IsPlayerControlled=%d"),
 		*GetNameSafe(this),
 		bLocallyDriven ? 1 : 0,
@@ -541,22 +617,11 @@ void ATruck::SetLocallyDriven(bool bLocallyDriven)
 	{
 		if (bLocallyDriven)
 		{
-			if (!TruckMesh->IsSimulatingPhysics())
-			{
-				TruckMesh->SetSimulatePhysics(true);
-			}
-
-			TruckMesh->WakeAllRigidBodies();
+			EnsureVehicleMeshPhysicsReady(TruckMesh, true);
 		}
 		else
 		{
-			if (TruckMesh->IsSimulatingPhysics())
-			{
-				TruckMesh->SetPhysicsLinearVelocity(FVector::ZeroVector);
-				TruckMesh->SetPhysicsAngularVelocityInDegrees(FVector::ZeroVector);
-				TruckMesh->PutAllRigidBodiesToSleep();
-				TruckMesh->SetSimulatePhysics(false);
-			}
+			MakeVehicleMeshKinematic(TruckMesh);
 		}
 	}
 }
@@ -586,6 +651,7 @@ void ATruck::ApplyNetworkTransform(const FVector& TargetLocation, const FRotator
 
 		if (USkeletalMeshComponent* TruckMesh = GetMesh())
 		{
+			EnsureVehicleMeshPhysicsReady(TruckMesh, true);
 			TruckMesh->SetPhysicsLinearVelocity(FVector::ZeroVector);
 			TruckMesh->SetPhysicsAngularVelocityInDegrees(FVector::ZeroVector);
 		}
@@ -596,17 +662,20 @@ void ATruck::ApplyNetworkTransform(const FVector& TargetLocation, const FRotator
 			false,
 			nullptr,
 			ETeleportType::TeleportPhysics);
+
+		if (USkeletalMeshComponent* TruckMesh = GetMesh())
+		{
+			TruckMesh->WakeAllRigidBodies();
+			TruckMesh->RefreshBoneTransforms();
+			TruckMesh->MarkRenderTransformDirty();
+			TruckMesh->MarkRenderDynamicDataDirty();
+		}
 		return;
 	}
 
 	if (USkeletalMeshComponent* TruckMesh = GetMesh())
 	{
-		if (TruckMesh->IsSimulatingPhysics())
-		{
-			TruckMesh->SetPhysicsLinearVelocity(FVector::ZeroVector);
-			TruckMesh->SetPhysicsAngularVelocityInDegrees(FVector::ZeroVector);
-			TruckMesh->SetSimulatePhysics(false);
-		}
+		MakeVehicleMeshKinematic(TruckMesh);
 	}
 
 	SetActorLocationAndRotation(
@@ -615,6 +684,15 @@ void ATruck::ApplyNetworkTransform(const FVector& TargetLocation, const FRotator
 		false,
 		nullptr,
 		ETeleportType::TeleportPhysics);
+
+	if (USkeletalMeshComponent* TruckMesh = GetMesh())
+	{
+		if (TruckMesh->IsSimulatingPhysics())
+		{
+			TruckMesh->PutAllRigidBodiesToSleep();
+		}
+		RefreshVehicleMeshRenderState(TruckMesh);
+	}
 }
 
 void ATruck::SetLoadingPhase(bool bLoadingPhase)
@@ -768,7 +846,6 @@ void ATruck::HandleTruckHealthChanged(float NewHealth, float Damage)
 
 void ATruck::MoveForward(float Value)
 {
-	/*UE_LOG(LogTemp, Warning, TEXT("Throttle Input: %f"), Value);*/
 	if (auto* MoveComp = Cast<UChaosWheeledVehicleMovementComponent>(GetVehicleMovement()))
 	{
 		MoveComp->SetThrottleInput(bTruckDestroyed ? 0.0f : Value);
@@ -927,8 +1004,16 @@ void ATruck::AddCargoVisual(EItemType ItemType)
 		break;
 
 	case EItemType::TruckRepairKit:
-		TargetSlots = &FuelSlots;
-		TargetCount = &CurrentFuelCount;
+		if (AreCargoSlotsConfigured(RepairKitSlots))
+		{
+			TargetSlots = &RepairKitSlots;
+			TargetCount = &CurrentRepairKitCount;
+		}
+		else
+		{
+			UE_LOG(LogTemp, Log, TEXT("Truck repair kit cargo visual skipped because RepairKitSlots are not configured on truck %s"), *GetName());
+			return;
+		}
 		break;
 
 	case EItemType::MedicalKit:
@@ -953,7 +1038,7 @@ void ATruck::AddCargoVisual(EItemType ItemType)
 		return;
 	}
 
-	UE_LOG(LogTemp, Warning, TEXT("Failed to find a visible cargo slot for item type %d on truck %s"), static_cast<int32>(ItemType), *GetName());
+	UE_LOG(LogTemp, Log, TEXT("No cargo visual slot available for item type %d on truck %s. Cargo data is still loaded."), static_cast<int32>(ItemType), *GetName());
 }
 
 void ATruck::ApplyLoadedCargoItem(EItemType ItemType)
@@ -964,7 +1049,7 @@ void ATruck::ApplyLoadedCargoItem(EItemType ItemType)
 
 void ATruck::Interact_Implementation(AFPSBaseCharacter* Character)
 {
-	UE_LOG(LogTemp, Warning,
+	UE_LOG(LogTemp, Verbose,
 		TEXT("[TruckDebug] Interact Truck=%s Character=%s InteractType=%d Local=%d Driver=%s"),
 		*GetNameSafe(this),
 		*GetNameSafe(Character),
@@ -990,7 +1075,7 @@ void ATruck::Interact_Implementation(AFPSBaseCharacter* Character)
 
 			for (EItemType Item : ReceivedItems)
 			{
-				UE_LOG(LogTemp, Warning, TEXT("[Stage1Cargo] Offload item type=%d"), static_cast<int32>(Item));
+				UE_LOG(LogTemp, Verbose, TEXT("[Stage1Cargo] Offload item type=%d"), static_cast<int32>(Item));
 				ApplyLoadedCargoItem(Item);
 
 				switch (Item)
@@ -1003,6 +1088,8 @@ void ATruck::Interact_Implementation(AFPSBaseCharacter* Character)
 					UE_LOG(LogTemp, Log, TEXT("Loaded Mounted Gun Ammo"));
 					break;
 				case EItemType::Fuel:
+					UE_LOG(LogTemp, Log, TEXT("Loaded Fuel"));
+					break;
 				case EItemType::TruckRepairKit:
 					UE_LOG(LogTemp, Log, TEXT("Loaded Truck Repair Kit"));
 					break;
@@ -1029,7 +1116,7 @@ void ATruck::Interact_Implementation(AFPSBaseCharacter* Character)
 						LoadPkt.set_truck_id(NetworkTruckId);
 						for (EItemType Item : ReceivedItems)
 						{
-							UE_LOG(LogTemp, Warning, TEXT("[Stage1Cargo] SendLoadTruckItem type=%d"), static_cast<int32>(Item));
+							UE_LOG(LogTemp, Verbose, TEXT("[Stage1Cargo] SendLoadTruckItem type=%d"), static_cast<int32>(Item));
 							LoadPkt.add_item_types(static_cast<int32>(Item));
 						}
 						GameInstance->SendPacket(ClientPacketHandler::MakeSendBuffer(LoadPkt));
@@ -1055,7 +1142,7 @@ void ATruck::Interact_Implementation(AFPSBaseCharacter* Character)
 	// 운전석 탑승
 	if (Character->GetCurrentTruckInteractType() == ETruckInteractType::DriverSeat)
 	{
-		UE_LOG(LogTemp, Warning,
+		UE_LOG(LogTemp, Verbose,
 			TEXT("[TruckDebug] DriverSeatRequest Truck=%s Character=%s Local=%d"),
 			*GetNameSafe(this),
 			*GetNameSafe(Character),
@@ -1170,7 +1257,7 @@ void ATruck::ExitDriverSeat()
 		bIsLocallyDriven ||
 		(GetController() && GetController()->IsLocalController());
 
-	UE_LOG(LogTemp, Warning,
+	UE_LOG(LogTemp, Verbose,
 		TEXT("[TruckDebug] ExitDriverSeat Truck=%s Driver=%s bShouldHandleLocalExit=%d bIsLocallyDriven=%d Controller=%s CharacterLocal=%d"),
 		*GetNameSafe(this),
 		*GetNameSafe(CharacterToRestore),
@@ -1548,7 +1635,6 @@ void ATruck::UpdateEngineSound()
 	if (MoveComp)
 	{
 		float CurrentRPM = MoveComp->GetEngineRotationSpeed();
-		/*UE_LOG(LogTemp, Warning, TEXT("CurrentRPM: %f"), CurrentRPM);*/
 		EngineAudioComponent->SetFloatParameter(TEXT("RPM"), CurrentRPM);
 	}
 }

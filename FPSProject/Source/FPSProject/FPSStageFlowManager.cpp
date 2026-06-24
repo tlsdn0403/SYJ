@@ -140,6 +140,26 @@ void FFPSStageFlowManager::RemoveEntryLoadingWidget()
 	}
 }
 
+void FFPSStageFlowManager::RemoveStage1WidgetsForLocalPlayer()
+{
+	AFPSPlayerController* PlayerController = Cast<AFPSPlayerController>(UGameplayStatics::GetPlayerController(&Owner, 0));
+	if (PlayerController == nullptr)
+	{
+		return;
+	}
+
+	AFPSBaseCharacter* LocalCharacter = Owner.MyPlayer;
+	if (LocalCharacter == nullptr)
+	{
+		LocalCharacter = Cast<AFPSBaseCharacter>(PlayerController->GetPawn());
+	}
+
+	if (LocalCharacter)
+	{
+		LocalCharacter->Delete_L1Widget(PlayerController);
+	}
+}
+
 void FFPSStageFlowManager::HandlePostLoadMap(UWorld* LoadedWorld)
 {
 	bHasDistributedStage1CargoItems = false;
@@ -168,6 +188,7 @@ void FFPSStageFlowManager::HandlePostLoadMap(UWorld* LoadedWorld)
 void FFPSStageFlowManager::CompleteStage2MapLoad()
 {
 	RemoveEntryLoadingWidget();
+	RemoveStage1WidgetsForLocalPlayer();
 	bWaitingForStage2MapLoad = false;
 	PendingStageTransitionLevelName.Empty();
 }
@@ -208,6 +229,11 @@ void FFPSStageFlowManager::ProcessPendingStage2Spawns()
 		}
 
 		Owner.ProcessSpawnObject(PendingSpawn.ObjectInfo, PendingSpawn.bIsMine);
+
+		if (PendingSpawn.bIsMine)
+		{
+			RemoveStage1WidgetsForLocalPlayer();
+		}
 	}
 
 	TryDistributeStage1CargoItemsToPlayers();
@@ -244,7 +270,7 @@ void FFPSStageFlowManager::TryDistributeStage1CargoItemsToPlayers()
 	{
 		const EItemType ItemType = CargoEntry.Key;
 		const int32 ItemCount = CargoEntry.Value;
-		UE_LOG(LogTemp, Warning, TEXT("[Stage2Cargo] Distribute item type=%d count=%d players=%d"),
+		UE_LOG(LogTemp, Verbose, TEXT("[Stage2Cargo] Distribute item type=%d count=%d players=%d"),
 			static_cast<int32>(ItemType),
 			ItemCount,
 			PlayerCount);
@@ -255,42 +281,27 @@ void FFPSStageFlowManager::TryDistributeStage1CargoItemsToPlayers()
 
 		const int32 BaseShare = ItemCount / PlayerCount;
 		const int32 Remainder = ItemCount % PlayerCount;
+		auto GrantCargoItem = [ItemType](const TPair<uint64, AFPSBaseCharacter*>& PlayerEntry)
+			{
+				PlayerEntry.Value->AddStage2DistributedItem(ItemType);
+				UE_LOG(LogTemp, Verbose, TEXT("[Stage2Cargo] Grant item type=%d to playerId=%llu"),
+					static_cast<int32>(ItemType),
+					PlayerEntry.Key);
+			};
 
 		for (const TPair<uint64, AFPSBaseCharacter*>& PlayerEntry : Stage2Players)
 		{
 			for (int32 i = 0; i < BaseShare; ++i)
 			{
-				PlayerEntry.Value->AddStage2DistributedItem(ItemType);
+				GrantCargoItem(PlayerEntry);
 			}
 		}
 
 		if (Remainder > 0)
 		{
-			TArray<int32> RemainderPlayerIndexes;
-			RemainderPlayerIndexes.Reserve(PlayerCount);
-			for (int32 PlayerIndex = 0; PlayerIndex < PlayerCount; ++PlayerIndex)
-			{
-				RemainderPlayerIndexes.Add(PlayerIndex);
-			}
-
-			uint32 RemainderSeed = static_cast<uint32>(ItemType) * 16777619u ^ static_cast<uint32>(ItemCount);
-			for (const TPair<uint64, AFPSBaseCharacter*>& PlayerEntry : Stage2Players)
-			{
-				RemainderSeed ^= static_cast<uint32>(PlayerEntry.Key);
-				RemainderSeed *= 16777619u;
-				RemainderSeed ^= static_cast<uint32>(PlayerEntry.Key >> 32);
-			}
-
-			FRandomStream RandomStream(static_cast<int32>(RemainderSeed));
-			for (int32 i = RemainderPlayerIndexes.Num() - 1; i > 0; --i)
-			{
-				const int32 SwapIndex = RandomStream.RandRange(0, i);
-				RemainderPlayerIndexes.Swap(i, SwapIndex);
-			}
-
 			for (int32 i = 0; i < Remainder; ++i)
 			{
-				Stage2Players[RemainderPlayerIndexes[i]].Value->AddStage2DistributedItem(ItemType);
+				GrantCargoItem(Stage2Players[i]);
 			}
 		}
 	}

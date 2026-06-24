@@ -178,7 +178,11 @@ void UFPSProjectGameInstance::RecordStage1CargoItems(const TArray<EItemType>& It
 {
 	for (const EItemType ItemType : Items)
 	{
-		RecordedStage1CargoItems.FindOrAdd(ItemType)++;
+		int32& ItemCount = RecordedStage1CargoItems.FindOrAdd(ItemType);
+		++ItemCount;
+		UE_LOG(LogTemp, Verbose, TEXT("[Stage1Cargo] Recorded item type=%d total=%d"),
+			static_cast<int32>(ItemType),
+			ItemCount);
 	}
 }
 
@@ -535,7 +539,7 @@ void UFPSProjectGameInstance::HandleDespawn(uint64 ObjectId)
 
 	if (ALootItemBase* LootItem = FindNetworkLootItemById(ObjectId))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[HandleDespawn] Hiding loot item '%s' with NetworkItemId=%llu"),
+		UE_LOG(LogTemp, Verbose, TEXT("[HandleDespawn] Hiding loot item '%s' with NetworkItemId=%llu"),
 			*LootItem->GetName(),
 			LootItem->GetNetworkItemId());
 		LootItem->SetNetworkItemActive(false);
@@ -556,7 +560,7 @@ void UFPSProjectGameInstance::HandleDespawn(const Protocol::S_DESPAWN& DespawnPk
 		const uint64 ObjectId = DespawnInfo.object_id();
 		const Protocol::ObjectType ObjectType = DespawnInfo.object_type();
 
-		UE_LOG(LogTemp, Warning, TEXT("[HandleDespawn] Received ObjectId=%llu Type=%d"), ObjectId, static_cast<int32>(ObjectType));
+		UE_LOG(LogTemp, Verbose, TEXT("[HandleDespawn] Received ObjectId=%llu Type=%d"), ObjectId, static_cast<int32>(ObjectType));
 
 		switch (ObjectType)
 		{
@@ -568,7 +572,7 @@ void UFPSProjectGameInstance::HandleDespawn(const Protocol::S_DESPAWN& DespawnPk
 
 			if (ALootItemBase* LootItem = FindNetworkLootItemById(ObjectId))
 			{
-				UE_LOG(LogTemp, Warning, TEXT("[HandleDespawn] Hiding loot item '%s' with NetworkItemId=%llu"),
+				UE_LOG(LogTemp, Verbose, TEXT("[HandleDespawn] Hiding loot item '%s' with NetworkItemId=%llu"),
 					*LootItem->GetName(),
 					LootItem->GetNetworkItemId());
 				LootItem->SetNetworkItemActive(false);
@@ -797,7 +801,7 @@ void UFPSProjectGameInstance::HandleEnterTruck(const Protocol::S_ENTER_TRUCK& pk
 	const bool bIsLocalPlayer =
 		(MyPlayer && MyPlayer->GetPlayerInfo() && MyPlayer->GetPlayerInfo()->object_id() == pkt.player_id()) ||
 		(LocalPawn && LocalPawn->GetPlayerInfo() && LocalPawn->GetPlayerInfo()->object_id() == pkt.player_id());
-	UE_LOG(LogTemp, Warning,
+	UE_LOG(LogTemp, Verbose,
 		TEXT("[TruckDebug] HandleEnterTruck PlayerId=%llu TruckId=%llu SeatType=%d HasPlayer=%d HasTruck=%d Player=%s Truck=%s MyPlayer=%s MyPlayerId=%llu MappedPlayer=%s MappedPlayerId=%llu LocalPawn=%s LocalPawnId=%llu"),
 		pkt.player_id(),
 		pkt.truck_id(),
@@ -828,7 +832,7 @@ void UFPSProjectGameInstance::HandleEnterTruck(const Protocol::S_ENTER_TRUCK& pk
 		{
 			LocalPlayerController->Possess(Truck);
 			LocalPlayerController->SetControlRotation(Truck->GetActorRotation());
-			UE_LOG(LogTemp, Warning,
+			UE_LOG(LogTemp, Verbose,
 				TEXT("[TruckDebug] EnterDriver Player=%s Truck=%s Controller=%s ViewTarget=%s TruckLoc=%s MeshLoc=%s"),
 				*GetNameSafe(Player),
 				*GetNameSafe(Truck),
@@ -859,7 +863,7 @@ void UFPSProjectGameInstance::HandleExitTruck(const Protocol::S_EXIT_TRUCK& pkt)
 {
 	AFPSBaseCharacter* Player = ResolvePlayerById(pkt.player_id());
 	ATruck* Truck = FindTruckById(pkt.truck_id());
-	UE_LOG(LogTemp, Warning,
+	UE_LOG(LogTemp, Verbose,
 		TEXT("[TruckDebug] HandleExitTruck PlayerId=%llu TruckId=%llu SeatType=%d HasPlayer=%d HasTruck=%d Player=%s Truck=%s"),
 		pkt.player_id(),
 		pkt.truck_id(),
@@ -1002,7 +1006,7 @@ void UFPSProjectGameInstance::ApplyEquippedWeapon(uint64 PlayerId, uint64 ItemId
 	}
 
 	AFPSBaseCharacter* TargetPlayer = WorldObjects->FindPlayer(PlayerId);
-	UE_LOG(LogTemp, Warning, TEXT("[EquipDebug] ApplyEquippedWeapon Start PlayerId=%llu ItemId=%llu WeaponType=%d HasPlayer=%s"),
+	UE_LOG(LogTemp, Verbose, TEXT("[EquipDebug] ApplyEquippedWeapon Start PlayerId=%llu ItemId=%llu WeaponType=%d HasPlayer=%s"),
 		PlayerId,
 		ItemId,
 		WeaponType,
@@ -1020,14 +1024,14 @@ void UFPSProjectGameInstance::ApplyEquippedWeapon(uint64 PlayerId, uint64 ItemId
 
 	if (AActor* FieldItemActor = WorldObjects->FindFieldItem(ItemId))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[EquipDebug] Destroy FieldItem Actor ItemId=%llu Actor=%s"),
+		UE_LOG(LogTemp, Verbose, TEXT("[EquipDebug] Destroy FieldItem Actor ItemId=%llu Actor=%s"),
 			ItemId,
 			*GetNameSafe(FieldItemActor));
 		WorldObjects->DestroyAndRemoveFieldItem(ItemId);
 	}
 
 	TSubclassOf<AWeaponBase> WeaponClass = ResolveWeaponClass(WeaponType);
-	UE_LOG(LogTemp, Warning, TEXT("[EquipDebug] ResolveWeaponClass PlayerId=%llu WeaponType=%d Class=%s"),
+	UE_LOG(LogTemp, Verbose, TEXT("[EquipDebug] ResolveWeaponClass PlayerId=%llu WeaponType=%d Class=%s"),
 		PlayerId,
 		WeaponType,
 		*GetNameSafe(WeaponClass.Get()));
@@ -1058,7 +1062,7 @@ void UFPSProjectGameInstance::ApplyEquippedWeapon(uint64 PlayerId, uint64 ItemId
 
 	EquippedWeapon->ItemObjectId = ItemId;
 	TargetPlayer->EquipWeapon(EquippedWeapon);
-	UE_LOG(LogTemp, Warning, TEXT("[EquipDebug] Equip Success PlayerId=%llu ItemId=%llu Weapon=%s CurrentWeapon=%s IsLocal=%s"),
+	UE_LOG(LogTemp, Verbose, TEXT("[EquipDebug] Equip Success PlayerId=%llu ItemId=%llu Weapon=%s CurrentWeapon=%s IsLocal=%s"),
 		PlayerId,
 		ItemId,
 		*GetNameSafe(EquippedWeapon),
@@ -1108,11 +1112,18 @@ void UFPSProjectGameInstance::HandleSpawnItem(const Protocol::S_SPAWN_ITEM& pkt)
 
 		// 스폰할 좌표 설정
 		FVector SpawnLocation(Pos.x(), Pos.y(), Pos.z());
+		FRotator SpawnRotation(0.0f, Pos.yaw(), 0.0f);
+		FTransform Stage2WeaponSpawnTransform;
+		if (FPSStage2WorldUtils::TryGetWeaponSpawnTransform(CurrentWorld, ItemId, SpawnLocation, Stage2WeaponSpawnTransform))
+		{
+			SpawnLocation = Stage2WeaponSpawnTransform.GetLocation();
+			SpawnRotation = Stage2WeaponSpawnTransform.Rotator();
+		}
 
 		// 무기 스폰! (에디터에서 DefaultWeaponClass를 지정해뒀어야 함)
 		if (DefaultWeaponClass)
 		{
-			AWeaponBase* SpawnedWeapon = CurrentWorld->SpawnActor<AWeaponBase>(DefaultWeaponClass, SpawnLocation, FRotator::ZeroRotator);
+			AWeaponBase* SpawnedWeapon = CurrentWorld->SpawnActor<AWeaponBase>(DefaultWeaponClass, SpawnLocation, SpawnRotation);
 
 			if (SpawnedWeapon)
 			{
@@ -1122,7 +1133,10 @@ void UFPSProjectGameInstance::HandleSpawnItem(const Protocol::S_SPAWN_ITEM& pkt)
 				// 2. 바닥 아이템 장부에 등록! (이게 정석의 핵심)
 				WorldObjects->RegisterFieldItem(ItemId, SpawnedWeapon);
 
-				UE_LOG(LogTemp, Warning, TEXT("[Network] %llu번 무기가 맵에 소환되었습니다! (위치: %s)"), ItemId, *SpawnLocation.ToString());
+				UE_LOG(LogTemp, Verbose, TEXT("[Network] %llu번 무기가 맵에 소환되었습니다. WeaponType=%d Location=%s"),
+					ItemId,
+					ItemInfo.weapon_type(),
+					*SpawnLocation.ToString());
 			}
 		}
 		else
@@ -1145,7 +1159,7 @@ void UFPSProjectGameInstance::HandleFire(const Protocol::S_FIRE& pkt)
 
 	if (AFPSBaseCharacter* Shooter = WorldObjects->FindPlayer(ShooterId))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[FireDebug] ShooterId=%llu HasPlayer=true Shooter=%s IsLocal=%s HasWeapon=%s Weapon=%s"),
+		UE_LOG(LogTemp, Verbose, TEXT("[FireDebug] ShooterId=%llu HasPlayer=true Shooter=%s IsLocal=%s HasWeapon=%s Weapon=%s"),
 			ShooterId,
 			*GetNameSafe(Shooter),
 			(Shooter && Shooter->IsLocallyControlled()) ? TEXT("true") : TEXT("false"),

@@ -15,6 +15,7 @@ namespace FPSStage2WorldUtils
 	bool IsStage2World(const UWorld* World);
 	AStage2TileManager* FindStage2TileManager(UWorld* World);
 	bool TryGetPlayerSpawnTransform(UWorld* World, uint64 ObjectId, FTransform& OutTransform);
+	bool TryGetWeaponSpawnTransform(UWorld* World, uint64 ItemObjectId, const FVector& LocalOffset, FTransform& OutTransform);
 	bool TryProjectLocationToGround(
 		UWorld* World,
 		const FVector& InLocation,

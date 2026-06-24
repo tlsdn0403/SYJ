@@ -445,12 +445,6 @@ void AWeaponBase::RemoteFire()
 		}
 	}
 
-	if (GEngine)
-	{
-		GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Blue, TEXT("빵! (상대방 화면에서 가짜 총알 발사됨!)"));
-	}
-	UE_LOG(LogTemp, Warning, TEXT("[Network] RemoteFire 실행됨! 남의 총구에서 쐈습니다."));
-
 	PlayMuzzleFlash();
 
 	// 2. 총알 스폰 (카메라 조준선 계산 없이, 캐릭터가 바라보는 방향으로 무지성 발사!)
@@ -531,4 +525,3 @@ void AWeaponBase::PlayMuzzleFlash() const
 		WeaponMesh->GetComponentLocation(),
 		WeaponMesh->GetComponentRotation());
 }
-

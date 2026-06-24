@@ -991,6 +991,7 @@ void AFPSBaseCharacter::LeaveGame()
 		if (UFPSProjectGameInstance* GI = Cast<UFPSProjectGameInstance>(GetGameInstance()))
 		{
 			GI->DisconnectFromGameServer();
+			GI->QuitGame();
 		}
 	}
 }

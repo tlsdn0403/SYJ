@@ -10,15 +10,19 @@
 
 class UUserWidget;
 class ALootItemBase;
+class FFPSNetworkManager;
+class FFPSStageFlowManager;
+class UFPSWorldObjectManager;
 
 /**
- * 
+ *
  */
 
 UCLASS()
 class FPSPROJECT_API UFPSProjectGameInstance : public UGameInstance, public FTickableGameObject
 {
 	GENERATED_BODY()
+	friend class FFPSStageFlowManager;
 
 	struct FPendingEquippedWeapon
 	{
@@ -34,6 +38,10 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void DisconnectFromGameServer();
+
+	UFUNCTION(BlueprintCallable)
+	void QuitGame();
+
 	// 서버에서 남이 나갔다고 알려줬을 때 실행할 함수
 	void HandleLeaveGame(const Protocol::S_LEAVE_GAME& pkt);
 
@@ -116,13 +124,6 @@ public:
 	virtual bool IsTickable() const override { return true; }
 
 public:
-	// GameServer
-	class FSocket* Socket;
-	//FString IpAddress = TEXT("127.0.0.1");
-	int16 Port = 7777;
-	TSharedPtr<class PacketSession> GameServerSession;
-
-public:
 	UPROPERTY(EditAnywhere, Category = "Network")
 	TSubclassOf<class AFPSBaseCharacter> OtherPlayerClass;
 
@@ -132,22 +133,8 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Network")
 	TSubclassOf<class ABaseZombie> NetworkZombieClass;
 	class AFPSBaseCharacter* MyPlayer;
-	TMap<uint64, class AFPSBaseCharacter*> Players;
-	UPROPERTY()
-	TMap<uint64, TObjectPtr<class ABaseZombie>> Zombies;
-	TMap<uint64, class ATruck*> Trucks;
-	TMap<int32, class AADoor*> Doors;
-
-	// [추가] 바닥에 떨어진 아이템(총기 등)들을 ID로 관리하기 위한 맵
-	UPROPERTY()
-	TMap<uint64, AActor*> FieldItems;
-
-	UPROPERTY()
-	TMap<uint64, TObjectPtr<ALootItemBase>> NetworkLootItems;
 
 	TMap<uint64, FPendingEquippedWeapon> PendingWeaponsByPlayer;
-	bool bPendingEnterGameRequest = false;
-	bool bEnterGamePacketSent = false;
 
 	struct FPendingStage2SpawnInfo
 	{
@@ -175,25 +162,26 @@ public:
 	TSubclassOf<UUserWidget> EntryLoadingWidgetClass;
 
 private:
+	UPROPERTY()
+	TObjectPtr<UFPSWorldObjectManager> WorldObjects;
+
+	int16 Port = 7777;
+	TSharedPtr<FFPSNetworkManager> NetworkManager;
+	TSharedPtr<FFPSStageFlowManager> StageFlowManager;
+
 	TSubclassOf<class AFPSBaseCharacter> ResolvePlayerCharacterClass(uint64 ObjectId) const;
 	void HandlePostLoadMap(UWorld* LoadedWorld);
 	void ApplyEntryLoadingReadyCount(int32 ReadyCount);
 	void ApplyStageTimerToLocalUI();
-	void ApplyStage1ItemSpawnSeed();
 	void ProcessSpawnObject(const Protocol::ObjectInfo& ObjectInfo, bool IsMine);
 	bool ShouldDelayStage2ActorSpawn() const;
 	void QueueStage2Spawn(const Protocol::ObjectInfo& ObjectInfo, bool IsMine);
 	void ProcessPendingStage2Spawns();
 	void ApplyStage2StartupActorHold(bool bHold);
 	void TryDistributeStage1CargoItemsToPlayers();
+	bool IsRegisteredPlayer(class AFPSBaseCharacter* Player) const;
+	void GetValidRegisteredPlayers(TArray<TPair<uint64, class AFPSBaseCharacter*>>& OutPlayers) const;
+	void TickNetwork();
+	void TickStageFlow();
 	bool RemovePlayerById(uint64 PlayerId);
-	bool bShouldShowEntryLoadingWidget = false;
-	bool bWaitingForStage2MapLoad = false;
-	FString PendingStageTransitionLevelName;
-	int32 CachedEntryLoadingReadyCount = 0;
-	int32 CachedStageTimerRemainingSeconds = INDEX_NONE;
-	uint32 CachedStage1ItemSpawnSeed = 0;
-	bool bHasStage1ItemSpawnSeed = false;
-	bool bHasAppliedStage1ItemSpawns = false;
-	bool bHasDistributedStage1CargoItems = false;
 };

@@ -1,9 +1,7 @@
 ﻿#include "FPSProjectGameInstance.h"
-#include "Sockets.h"
-#include "Common/TcpSocketBuilder.h"
-#include "Serialization/ArrayWriter.h"
-#include "SocketSubsystem.h"
-#include "PacketSession.h"
+#include "FPSNetworkManager.h"
+#include "FPSStageFlowManager.h"
+#include "FPSWorldObjectManager.h"
 #include "Weapon/WeaponBase.h"
 #include "Protocol.pb.h"
 #include "Enum.pb.h"
@@ -16,7 +14,6 @@
 #include "ADoor.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
-#include "Kismet/KismetSystemLibrary.h"
 #include "EngineUtils.h"
 #include "Zombie/BaseZombie.h"
 #include "Zombie/ZombieSpawner.h"
@@ -310,6 +307,9 @@ namespace
 
 UFPSProjectGameInstance::UFPSProjectGameInstance()
 {
+	NetworkManager = MakeShared<FFPSNetworkManager>();
+	StageFlowManager = MakeShared<FFPSStageFlowManager>(*this);
+
 	static ConstructorHelpers::FClassFinder<AFPSBaseCharacter> Character1Class(
 		TEXT("/Game/Characters/Blueprint/BP_FPSBaseCharacter"));
 	static ConstructorHelpers::FClassFinder<AFPSBaseCharacter> Character2Class(
@@ -349,62 +349,8 @@ TSubclassOf<AFPSBaseCharacter> UFPSProjectGameInstance::ResolvePlayerCharacterCl
 void UFPSProjectGameInstance::Init()
 {
 	Super::Init();
+	WorldObjects = NewObject<UFPSWorldObjectManager>(this);
 	FCoreUObjectDelegates::PostLoadMapWithWorld.AddUObject(this, &UFPSProjectGameInstance::HandlePostLoadMap);
-}
-
-void UFPSProjectGameInstance::ConnectToGameServer(const FString& IPAddress)
-{
-	FIPv4Address Ip;
-	if (FIPv4Address::Parse(IPAddress, Ip) == false)
-	{
-		return; // 이상한 IP면 여기서 함수를 바로 종료해서 크래시를 막습니다!
-	}
-
-	Socket = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->CreateSocket(TEXT("Stream"), TEXT("Client Socket"));
-
-	TSharedRef<FInternetAddr> InternetAddr = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->CreateInternetAddr();
-	InternetAddr->SetIp(Ip.Value);
-	InternetAddr->SetPort(Port);
-
-	bool Connected = Socket->Connect(*InternetAddr);
-
-	if (Connected)
-	{
-		Socket->SetNonBlocking(true);
-
-		// Session
-		GameServerSession = MakeShared<PacketSession>(Socket);
-		GameServerSession->Run();
-	}
-	else
-	{
-	}
-}
-
-void UFPSProjectGameInstance::DisconnectFromGameServer()
-{
-	// 서버에 패킷 쏘기
-	if (Socket && GameServerSession)
-	{
-		Protocol::C_LEAVE_GAME LeavePkt;
-		if (GameServerSession->SendPacketNow(ClientPacketHandler::MakeSendBuffer(LeavePkt)) == false)
-		{
-			UE_LOG(LogTemp, Warning, TEXT("[Network] Failed to send C_LEAVE_GAME before disconnect"));
-		}
-
-		GameServerSession->Disconnect();
-		GameServerSession = nullptr;
-	}
-
-	// 소켓 통신 닫기
-	if (Socket)
-	{
-		Socket->Close();
-		Socket = nullptr;
-	}
-
-	// 내 게임 화면 끄기
-	UKismetSystemLibrary::QuitGame(this, nullptr, EQuitPreference::Quit, false);
 }
 
 void UFPSProjectGameInstance::HandleLeaveGame(const Protocol::S_LEAVE_GAME& pkt)
@@ -433,83 +379,12 @@ bool UFPSProjectGameInstance::RemovePlayerById(uint64 PlayerId)
 
 	PendingWeaponsByPlayer.Remove(PlayerId);
 
-	// 플레이어 장부(Players)에 나간 사람이 있는지 확인
-	if (Players.Contains(PlayerId))
+	if (WorldObjects && WorldObjects->DestroyAndRemovePlayer(PlayerId))
 	{
-		AFPSBaseCharacter* LeavePlayer = Players[PlayerId];
-		if (LeavePlayer)
-		{
-			for (TPair<uint64, ATruck*>& TruckEntry : Trucks)
-			{
-				ATruck* Truck = TruckEntry.Value;
-				if (Truck == nullptr)
-				{
-					continue;
-				}
-
-				if (Truck->GetDriverCharacter() == LeavePlayer)
-				{
-					Truck->SetLocallyDriven(false);
-					Truck->SetDriverCharacter(nullptr);
-				}
-
-				if (Truck->GetMountedWeaponUser() == LeavePlayer)
-				{
-					Truck->SetMountedWeaponUser(nullptr);
-				}
-			}
-
-			// 맵에서 그 캐릭터를 삭제
-			LeavePlayer->Destroy();
-		}
-
-		// 장부에서도 지워주기
-		Players.Remove(PlayerId);
 		bRemoved = true;
 	}
 
 	return bRemoved;
-}
-
-void UFPSProjectGameInstance::HandleRecvPackets()
-{
-	if (Socket == nullptr || GameServerSession == nullptr)
-		return;
-
-	GameServerSession->HandleRecvPackets();
-}
-
-void UFPSProjectGameInstance::SendPacket(SendBufferRef SendBuffer)
-{
-	if (Socket == nullptr || GameServerSession == nullptr)
-		return;
-
-	GameServerSession->SendPacket(SendBuffer);
-}
-
-void UFPSProjectGameInstance::SendPacketStatic(SendBufferRef SendBuffer)
-{
-	UWorld* World = nullptr;
-	if (GEngine)
-	{
-		for (const FWorldContext& Context : GEngine->GetWorldContexts())
-		{
-			if (Context.WorldType == EWorldType::PIE || Context.WorldType == EWorldType::Game)
-			{
-				World = Context.World();
-				break;
-			}
-		}
-	}
-	if (World == nullptr) World = GWorld;
-
-	if (World)
-	{
-		if (auto* GI = Cast<UFPSProjectGameInstance>(World->GetGameInstance()))
-		{
-			GI->SendPacket(SendBuffer);
-		}
-	}
 }
 
 bool UFPSProjectGameInstance::SendZombieHitPacket(AFPSBaseCharacter* Attacker, ABaseZombie* Zombie, float Damage, const FVector& HitLocation, FName HitBoneName, const FVector& HitNormal)
@@ -558,187 +433,19 @@ bool UFPSProjectGameInstance::SendZombieHitPacket(AFPSBaseCharacter* Attacker, A
 	return true;
 }
 
-bool UFPSProjectGameInstance::IsConnectedToGameServer() const
-{
-	return Socket != nullptr && GameServerSession != nullptr;
-}
-
-bool UFPSProjectGameInstance::ShouldUseLocalInteractionFallback() const
-{
-	return !IsConnectedToGameServer();
-}
-
-bool UFPSProjectGameInstance::ShouldDelayEnterGameRequest() const
-{
-	if (const AStage2TileManager* Stage2TileManager = FindStage2TileManager(GetWorld()))
-	{
-		return !Stage2TileManager->AreInitialTilesReady();
-	}
-
-	if (bWaitingForStage2MapLoad && IsStage2LevelName(PendingStageTransitionLevelName))
-	{
-		return true;
-	}
-
-	if (IsStage2World(GetWorld()))
-	{
-		return true;
-	}
-
-	return false;
-}
-
-void UFPSProjectGameInstance::RequestEnterGameWhenReady()
-{
-	bPendingEnterGameRequest = true;
-	bEnterGamePacketSent = false;
-	bShouldShowEntryLoadingWidget = true;
-	CachedEntryLoadingReadyCount = 0;
-	CachedStage1ItemSpawnSeed = 0;
-	bHasStage1ItemSpawnSeed = false;
-	bHasAppliedStage1ItemSpawns = false;
-	bHasDistributedStage1CargoItems = false;
-}
-
-bool UFPSProjectGameInstance::TrySendEnterGamePacket()
-{
-	if (!bPendingEnterGameRequest || bEnterGamePacketSent)
-	{
-		return false;
-	}
-
-	if (Socket == nullptr || GameServerSession == nullptr)
-	{
-		return false;
-	}
-
-	if (ShouldDelayEnterGameRequest())
-	{
-		return false;
-	}
-
-	Protocol::C_ENTER_GAME EnterGamePkt;
-	EnterGamePkt.set_playerindex(0);
-	SendBufferRef SendBuffer = ClientPacketHandler::MakeSendBuffer(EnterGamePkt);
-	SendPacket(SendBuffer);
-
-	bEnterGamePacketSent = true;
-	bPendingEnterGameRequest = false;
-	UE_LOG(LogTemp, Warning, TEXT("[Network] Stage2 ready check passed. C_ENTER_GAME 전송 완료!"));
-	return true;
-}
-
-void UFPSProjectGameInstance::RefreshStage2StartupActorHold()
-{
-	const bool bShouldHold = ShouldDelayStage2ActorSpawn();
-	if (bShouldHold || bStage2StartupHoldApplied)
-	{
-		ApplyStage2StartupActorHold(bShouldHold);
-	}
-}
-
-void UFPSProjectGameInstance::SetEntryLoadingWidgetClass(TSubclassOf<UUserWidget> WidgetClass)
-{
-	EntryLoadingWidgetClass = WidgetClass;
-	CachedEntryLoadingReadyCount = 0;
-}
-
-void UFPSProjectGameInstance::ShowEntryLoadingWidget()
-{
-	bShouldShowEntryLoadingWidget = true;
-
-	if (EntryLoadingWidget)
-	{
-		return;
-	}
-
-	if (!EntryLoadingWidgetClass)
-	{
-		return;
-	}
-
-	UWorld* World = GetWorld();
-	if (World == nullptr)
-	{
-		return;
-	}
-
-	UUserWidget* Widget = CreateWidget<UUserWidget>(World, EntryLoadingWidgetClass);
-	if (Widget == nullptr)
-	{
-		return;
-	}
-
-	Widget->AddToViewport();
-	RegisterEntryLoadingWidget(Widget);
-}
-
-void UFPSProjectGameInstance::RegisterEntryLoadingWidget(UUserWidget* Widget)
-{
-	EntryLoadingWidget = Widget;
-	ApplyEntryLoadingReadyCount(CachedEntryLoadingReadyCount);
-}
-
-void UFPSProjectGameInstance::RemoveEntryLoadingWidget()
-{
-	bShouldShowEntryLoadingWidget = false;
-
-	if (EntryLoadingWidget)
-	{
-		EntryLoadingWidget->RemoveFromParent();
-		EntryLoadingWidget = nullptr;
-	}
-}
-
 void UFPSProjectGameInstance::HandlePostLoadMap(UWorld* LoadedWorld)
 {
 	MyPlayer = nullptr;
-	Players.Empty();
-	Zombies.Empty();
-	Trucks.Empty();
-	Doors.Empty();
-	FieldItems.Empty();
-	NetworkLootItems.Empty();
+	WorldObjects->ClearAll();
 	PendingWeaponsByPlayer.Empty();
 	PendingStage2SpawnInfos.Reset();
 	bProcessingPendingStage2Spawns = false;
 	bStage2StartupHoldApplied = false;
-	bHasDistributedStage1CargoItems = false;
 
-	if (EntryLoadingWidget)
+	if (StageFlowManager)
 	{
-		EntryLoadingWidget->RemoveFromParent();
-		EntryLoadingWidget = nullptr;
+		StageFlowManager->HandlePostLoadMap(LoadedWorld);
 	}
-
-	if (bShouldShowEntryLoadingWidget)
-	{
-		ShowEntryLoadingWidget();
-	}
-
-	bHasAppliedStage1ItemSpawns = false;
-	ApplyStage1ItemSpawnSeed();
-
-	if (bWaitingForStage2MapLoad && !IsStage2World(LoadedWorld))
-	{
-		bWaitingForStage2MapLoad = false;
-		PendingStageTransitionLevelName.Empty();
-	}
-}
-
-void UFPSProjectGameInstance::ApplyEntryLoadingReadyCount(int32 ReadyCount)
-{
-	CachedEntryLoadingReadyCount = ReadyCount;
-
-	ULoadingUI* LoadingUI = Cast<ULoadingUI>(EntryLoadingWidget);
-	if (LoadingUI == nullptr)
-	{
-		return;
-	}
-
-	LoadingUI->logout();
-	LoadingUI->OnlineP = FMath::Clamp(ReadyCount, 0, 3);
-	LoadingUI->connect(LoadingUI->OnlineP);
 }
 
 void UFPSProjectGameInstance::RecordStage1CargoItems(const TArray<EItemType>& Items)
@@ -793,81 +500,23 @@ bool UFPSProjectGameInstance::IsInStage2World() const
 
 void UFPSProjectGameInstance::RegisterNetworkLootItem(ALootItemBase* LootItem)
 {
-	if (LootItem == nullptr)
+	if (WorldObjects)
 	{
-		return;
+		WorldObjects->RegisterNetworkLootItem(LootItem);
 	}
-
-	NetworkLootItems.FindOrAdd(LootItem->GetNetworkItemId()) = LootItem;
 }
 
 void UFPSProjectGameInstance::UnregisterNetworkLootItem(uint64 LootItemId)
 {
-	if (LootItemId == 0)
+	if (WorldObjects)
 	{
-		return;
+		WorldObjects->UnregisterNetworkLootItem(LootItemId);
 	}
-
-	NetworkLootItems.Remove(LootItemId);
 }
 
 ALootItemBase* UFPSProjectGameInstance::FindNetworkLootItemById(uint64 LootItemId)
 {
-	if (LootItemId == 0)
-	{
-		return nullptr;
-	}
-
-	if (TObjectPtr<ALootItemBase>* LootItemPtr = NetworkLootItems.Find(LootItemId))
-	{
-		return LootItemPtr->Get();
-	}
-
-	UWorld* World = GetWorld();
-	if (World == nullptr)
-	{
-		return nullptr;
-	}
-
-	for (TActorIterator<ALootItemBase> It(World); It; ++It)
-	{
-		ALootItemBase* LootItem = *It;
-		if (LootItem == nullptr)
-		{
-			continue;
-		}
-
-		if (LootItem->GetNetworkItemId() == LootItemId)
-		{
-			RegisterNetworkLootItem(LootItem);
-			return LootItem;
-		}
-	}
-
-	FString KnownItemIds;
-	int32 LoggedCount = 0;
-	for (const TPair<uint64, TObjectPtr<ALootItemBase>>& Entry : NetworkLootItems)
-	{
-		if (LoggedCount >= 10)
-		{
-			KnownItemIds += TEXT(" ...");
-			break;
-		}
-
-		if (!KnownItemIds.IsEmpty())
-		{
-			KnownItemIds += TEXT(", ");
-		}
-
-		KnownItemIds += FString::Printf(TEXT("%llu"), Entry.Key);
-		++LoggedCount;
-	}
-
-	UE_LOG(LogTemp, Warning, TEXT("[DespawnLookup] Failed to find LootItemId=%llu. RegisteredIds=[%s]"),
-		LootItemId,
-		KnownItemIds.IsEmpty() ? TEXT("none") : *KnownItemIds);
-
-	return nullptr;
+	return WorldObjects ? WorldObjects->FindNetworkLootItemById(LootItemId, GetWorld()) : nullptr;
 }
 
 bool UFPSProjectGameInstance::TryPickupWeaponLocally(AFPSBaseCharacter* Character, AWeaponBase* Weapon)
@@ -877,7 +526,7 @@ bool UFPSProjectGameInstance::TryPickupWeaponLocally(AFPSBaseCharacter* Characte
 		return false;
 	}
 
-	FieldItems.Remove(Weapon->ItemObjectId);
+	WorldObjects->RemoveFieldItem(Weapon->ItemObjectId);
 	Weapon->SetOwner(Character);
 	Weapon->SetInstigator(Character);
 	Character->EquipWeapon(Weapon);
@@ -988,7 +637,7 @@ void UFPSProjectGameInstance::HandleSpawn(const Protocol::ObjectInfo& ObjectInfo
 
 void UFPSProjectGameInstance::ProcessSpawnObject(const Protocol::ObjectInfo& ObjectInfo, bool IsMine)
 {
-	if (Socket == nullptr || GameServerSession == nullptr)
+	if (!IsConnectedToGameServer())
 		return;
 
 	auto* World = GetWorld();
@@ -1001,7 +650,7 @@ void UFPSProjectGameInstance::ProcessSpawnObject(const Protocol::ObjectInfo& Obj
 	const uint64 ObjectId = ObjectInfo.object_id();
 	if (ObjectId >= 1000000)
 	{
-		if (Zombies.Find(ObjectId) != nullptr)
+		if (WorldObjects->FindZombie(ObjectId) != nullptr)
 		{
 			return;
 		}
@@ -1034,12 +683,12 @@ void UFPSProjectGameInstance::ProcessSpawnObject(const Protocol::ObjectInfo& Obj
 				AIController->Destroy();
 			}
 
-			Zombies.Add(ObjectId, SpawnedZombie);
+			WorldObjects->RegisterZombie(ObjectId, SpawnedZombie);
 		}
 		return;
 	}
 
-	if (Players.Find(ObjectId) != nullptr)
+	if (WorldObjects->HasPlayer(ObjectId))
 		return;
 
 	FVector SpawnLocation(ObjectInfo.pos_info().x(), ObjectInfo.pos_info().y(), ObjectInfo.pos_info().z());
@@ -1118,7 +767,7 @@ void UFPSProjectGameInstance::ProcessSpawnObject(const Protocol::ObjectInfo& Obj
 					MoveComp->StopMovementImmediately();
 					MoveComp->SetMovementMode(MOVE_Walking);
 				}
-				Players.Add(ObjectId, MyPlayer);
+				WorldObjects->RegisterPlayer(ObjectId, MyPlayer);
 				RetryPendingWeapon(ObjectId);
 				ApplyStageTimerToLocalUI();
 				if (bUsedStage2SpawnTransform)
@@ -1166,7 +815,7 @@ void UFPSProjectGameInstance::ProcessSpawnObject(const Protocol::ObjectInfo& Obj
 				MoveComp->StopMovementImmediately();
 				MoveComp->SetMovementMode(MOVE_Walking);
 			}
-			Players.Add(ObjectId, OtherPlayer);               // 맵에 등록
+			WorldObjects->RegisterPlayer(ObjectId, OtherPlayer);               // 맵에 등록
 			UE_LOG(LogTemp, Warning,
 				TEXT("[TruckDebug] SpawnOther ObjectId=%llu OtherPlayer=%s Local=%d Location=%s Hidden=%d"),
 				ObjectId,
@@ -1195,9 +844,10 @@ void UFPSProjectGameInstance::HandleSpawn(const Protocol::S_ENTER_GAME& EnterGam
 		return;
 	}
 
-	RemoveEntryLoadingWidget();
-	bWaitingForStage2MapLoad = false;
-	PendingStageTransitionLevelName.Empty();
+	if (StageFlowManager)
+	{
+		StageFlowManager->CompleteStage2MapLoad();
+	}
 	HandleSpawn(EnterGamePkt.player(), true);
 }
 
@@ -1211,22 +861,7 @@ void UFPSProjectGameInstance::HandleSpawn(const Protocol::S_SPAWN& SpawnPkt)
 
 bool UFPSProjectGameInstance::ShouldDelayStage2ActorSpawn() const
 {
-	if (const AStage2TileManager* Stage2TileManager = FindStage2TileManager(GetWorld()))
-	{
-		return !Stage2TileManager->AreInitialTilesReady();
-	}
-
-	if (bWaitingForStage2MapLoad && IsStage2LevelName(PendingStageTransitionLevelName))
-	{
-		return true;
-	}
-
-	if (IsStage2World(GetWorld()))
-	{
-		return true;
-	}
-
-	return false;
+	return StageFlowManager && StageFlowManager->ShouldDelayEnterGameRequest();
 }
 
 void UFPSProjectGameInstance::QueueStage2Spawn(const Protocol::ObjectInfo& ObjectInfo, bool IsMine)
@@ -1245,136 +880,6 @@ void UFPSProjectGameInstance::QueueStage2Spawn(const Protocol::ObjectInfo& Objec
 	FPendingStage2SpawnInfo& PendingSpawn = PendingStage2SpawnInfos.AddDefaulted_GetRef();
 	PendingSpawn.ObjectInfo = ObjectInfo;
 	PendingSpawn.bIsMine = IsMine;
-}
-
-void UFPSProjectGameInstance::ProcessPendingStage2Spawns()
-{
-	if (PendingStage2SpawnInfos.Num() == 0 || ShouldDelayStage2ActorSpawn())
-	{
-		return;
-	}
-
-	TArray<FPendingStage2SpawnInfo> SpawnsToProcess = MoveTemp(PendingStage2SpawnInfos);
-	PendingStage2SpawnInfos.Reset();
-
-	TGuardValue<bool> ProcessingGuard(bProcessingPendingStage2Spawns, true);
-	for (const FPendingStage2SpawnInfo& PendingSpawn : SpawnsToProcess)
-	{
-		if (PendingSpawn.bIsMine)
-		{
-			RemoveEntryLoadingWidget();
-			bWaitingForStage2MapLoad = false;
-			PendingStageTransitionLevelName.Empty();
-		}
-
-		ProcessSpawnObject(PendingSpawn.ObjectInfo, PendingSpawn.bIsMine);
-	}
-
-	TryDistributeStage1CargoItemsToPlayers();
-}
-
-void UFPSProjectGameInstance::TryDistributeStage1CargoItemsToPlayers()
-{
-	if (bHasDistributedStage1CargoItems || RecordedStage1CargoItems.Num() == 0)
-	{
-		return;
-	}
-
-	if (!IsStage2World(GetWorld()) || ShouldDelayStage2ActorSpawn() || PendingStage2SpawnInfos.Num() > 0)
-	{
-		return;
-	}
-
-	if (IsConnectedToGameServer() && CachedEntryLoadingReadyCount <= 0)
-	{
-		return;
-	}
-
-	TArray<TPair<uint64, AFPSBaseCharacter*>> Stage2Players;
-	Stage2Players.Reserve(Players.Num());
-	for (const TPair<uint64, AFPSBaseCharacter*>& PlayerEntry : Players)
-	{
-		if (IsValid(PlayerEntry.Value))
-		{
-			Stage2Players.Add(PlayerEntry);
-		}
-	}
-
-	Algo::SortBy(Stage2Players, [](const TPair<uint64, AFPSBaseCharacter*>& PlayerEntry)
-	{
-		return PlayerEntry.Key;
-	});
-
-	const int32 ExpectedPlayerCount = FMath::Max(CachedEntryLoadingReadyCount, 1);
-	if (Stage2Players.Num() < ExpectedPlayerCount)
-	{
-		return;
-	}
-
-	const int32 PlayerCount = Stage2Players.Num();
-	for (const TPair<EItemType, int32>& CargoEntry : RecordedStage1CargoItems)
-	{
-		const EItemType ItemType = CargoEntry.Key;
-		const int32 ItemCount = CargoEntry.Value;
-		UE_LOG(LogTemp, Warning, TEXT("[Stage2Cargo] Distribute item type=%d count=%d players=%d"),
-			static_cast<int32>(ItemType),
-			ItemCount,
-			PlayerCount);
-		if (ItemType == EItemType::None || ItemCount <= 0)
-		{
-			continue;
-		}
-
-		const int32 BaseShare = ItemCount / PlayerCount;
-		const int32 Remainder = ItemCount % PlayerCount;
-
-		for (const TPair<uint64, AFPSBaseCharacter*>& PlayerEntry : Stage2Players)
-		{
-			for (int32 i = 0; i < BaseShare; ++i)
-			{
-				PlayerEntry.Value->AddStage2DistributedItem(ItemType);
-			}
-		}
-
-		if (Remainder > 0)
-		{
-			TArray<int32> RemainderPlayerIndexes;
-			RemainderPlayerIndexes.Reserve(PlayerCount);
-			for (int32 PlayerIndex = 0; PlayerIndex < PlayerCount; ++PlayerIndex)
-			{
-				RemainderPlayerIndexes.Add(PlayerIndex);
-			}
-
-			uint32 RemainderSeed = static_cast<uint32>(ItemType) * 16777619u ^ static_cast<uint32>(ItemCount);
-			for (const TPair<uint64, AFPSBaseCharacter*>& PlayerEntry : Stage2Players)
-			{
-				RemainderSeed ^= static_cast<uint32>(PlayerEntry.Key);
-				RemainderSeed *= 16777619u;
-				RemainderSeed ^= static_cast<uint32>(PlayerEntry.Key >> 32);
-			}
-
-			FRandomStream RandomStream(static_cast<int32>(RemainderSeed));
-			for (int32 i = RemainderPlayerIndexes.Num() - 1; i > 0; --i)
-			{
-				const int32 SwapIndex = RandomStream.RandRange(0, i);
-				RemainderPlayerIndexes.Swap(i, SwapIndex);
-			}
-
-			for (int32 i = 0; i < Remainder; ++i)
-			{
-				Stage2Players[RemainderPlayerIndexes[i]].Value->AddStage2DistributedItem(ItemType);
-			}
-		}
-	}
-
-	for (const TPair<uint64, AFPSBaseCharacter*>& PlayerEntry : Stage2Players)
-	{
-		PlayerEntry.Value->RefreshStage2ItemUI();
-	}
-
-	ClearRecordedStage1CargoItems();
-	bHasDistributedStage1CargoItems = true;
-	UE_LOG(LogTemp, Log, TEXT("[Stage2Cargo] Distributed Stage1 cargo to %d players."), PlayerCount);
 }
 
 void UFPSProjectGameInstance::ApplyStage2StartupActorHold(bool bHold)
@@ -1420,18 +925,7 @@ void UFPSProjectGameInstance::ApplyStage2StartupActorHold(bool bHold)
 		LocalCharacter = Cast<AFPSBaseCharacter>(PlayerController->GetPawn());
 	}
 
-	bool bLocalCharacterRegistered = false;
-	if (LocalCharacter)
-	{
-		for (const TPair<uint64, AFPSBaseCharacter*>& PlayerEntry : Players)
-		{
-			if (PlayerEntry.Value == LocalCharacter)
-			{
-				bLocalCharacterRegistered = true;
-				break;
-			}
-		}
-	}
+	const bool bLocalCharacterRegistered = IsRegisteredPlayer(LocalCharacter);
 
 	const bool bHoldLocalCharacter =
 		bHold ||
@@ -1440,7 +934,10 @@ void UFPSProjectGameInstance::ApplyStage2StartupActorHold(bool bHold)
 
 	if (!bHold)
 	{
-		for (const TPair<uint64, AFPSBaseCharacter*>& PlayerEntry : Players)
+		TArray<TPair<uint64, AFPSBaseCharacter*>> RegisteredPlayers;
+		GetValidRegisteredPlayers(RegisteredPlayers);
+
+		for (const TPair<uint64, AFPSBaseCharacter*>& PlayerEntry : RegisteredPlayers)
 		{
 			AFPSBaseCharacter* RegisteredPlayer = PlayerEntry.Value;
 			if (RegisteredPlayer && RegisteredPlayer != LocalCharacter)
@@ -1487,31 +984,16 @@ void UFPSProjectGameInstance::ApplyStage2StartupActorHold(bool bHold)
 
 void UFPSProjectGameInstance::HandleDespawn(uint64 ObjectId)
 {
-	if (Socket == nullptr || GameServerSession == nullptr)
+	if (!IsConnectedToGameServer())
 		return;
 
-	auto* World = GetWorld();
-	if (World == nullptr)
-		return;
-
-	if (ABaseZombie* Zombie = Zombies.FindRef(ObjectId))
+	if (WorldObjects && WorldObjects->DestroyAndRemoveZombie(ObjectId))
 	{
-		if (IsValid(Zombie))
-		{
-			World->DestroyActor(Zombie);
-		}
-		Zombies.Remove(ObjectId);
 		return;
 	}
 
-	if (AActor** ItemActor = FieldItems.Find(ObjectId))
+	if (WorldObjects && WorldObjects->DestroyAndRemoveFieldItem(ObjectId))
 	{
-		if (AActor* Actor = *ItemActor)
-		{
-			World->DestroyActor(Actor);
-		}
-
-		FieldItems.Remove(ObjectId);
 		return;
 	}
 
@@ -1524,17 +1006,13 @@ void UFPSProjectGameInstance::HandleDespawn(uint64 ObjectId)
 		return;
 	}
 
-	// 1. Players 맵에서 해당 ID를 가진 캐릭터 찾기
+	// 1. 플레이어 장부에서 해당 ID를 가진 캐릭터 찾기
 	RemovePlayerById(ObjectId);
 }
 
 void UFPSProjectGameInstance::HandleDespawn(const Protocol::S_DESPAWN& DespawnPkt)
 {
-	if (Socket == nullptr || GameServerSession == nullptr)
-		return;
-
-	auto* World = GetWorld();
-	if (World == nullptr)
+	if (!IsConnectedToGameServer())
 		return;
 
 	for (const Protocol::DespawnInfo& DespawnInfo : DespawnPkt.despawn_infos())
@@ -1547,14 +1025,8 @@ void UFPSProjectGameInstance::HandleDespawn(const Protocol::S_DESPAWN& DespawnPk
 		switch (ObjectType)
 		{
 		case Protocol::OBJECT_TYPE_ITEM:
-			if (AActor** ItemActor = FieldItems.Find(ObjectId))
+			if (WorldObjects && WorldObjects->DestroyAndRemoveFieldItem(ObjectId))
 			{
-				if (AActor* Actor = *ItemActor)
-				{
-					World->DestroyActor(Actor);
-				}
-
-				FieldItems.Remove(ObjectId);
 				continue;
 			}
 
@@ -1569,13 +1041,8 @@ void UFPSProjectGameInstance::HandleDespawn(const Protocol::S_DESPAWN& DespawnPk
 			break;
 
 		case Protocol::OBJECT_TYPE_CREATURE:
-			if (ABaseZombie* Zombie = Zombies.FindRef(ObjectId))
+			if (WorldObjects && WorldObjects->DestroyAndRemoveZombie(ObjectId))
 			{
-				if (IsValid(Zombie))
-				{
-					World->DestroyActor(Zombie);
-				}
-				Zombies.Remove(ObjectId);
 				continue;
 			}
 
@@ -1595,7 +1062,7 @@ void UFPSProjectGameInstance::HandleDespawn(const Protocol::S_DESPAWN& DespawnPk
 
 void UFPSProjectGameInstance::HandleMove(const Protocol::S_MOVE& MovePkt)
 {
-	if (Socket == nullptr || GameServerSession == nullptr)
+	if (!IsConnectedToGameServer())
 		return;
 
 	auto* World = GetWorld();
@@ -1605,10 +1072,10 @@ void UFPSProjectGameInstance::HandleMove(const Protocol::S_MOVE& MovePkt)
 	const uint64 ObjectId = MovePkt.info().object_id();
 	if (ObjectId >= 1000000)
 	{
-		ABaseZombie* Zombie = Zombies.FindRef(ObjectId);
+		ABaseZombie* Zombie = WorldObjects->FindZombie(ObjectId);
 		if (!IsValid(Zombie))
 		{
-			Zombies.Remove(ObjectId);
+			WorldObjects->RemoveZombie(ObjectId);
 			return;
 		}
 
@@ -1620,12 +1087,7 @@ void UFPSProjectGameInstance::HandleMove(const Protocol::S_MOVE& MovePkt)
 		return;
 	}
 
-	// 1. 패킷이 알려준 ID로 우리 맵에서 캐릭터 찾기
-	AFPSBaseCharacter** FindActor = Players.Find(ObjectId);
-	if (FindActor == nullptr)
-		return;
-
-	AFPSBaseCharacter* Player = (*FindActor);
+	AFPSBaseCharacter* Player = WorldObjects->FindPlayer(ObjectId);
 	if (Player == nullptr)
 		return;
 
@@ -1648,10 +1110,10 @@ void UFPSProjectGameInstance::HandleMove(const Protocol::S_MOVE& MovePkt)
 
 void UFPSProjectGameInstance::HandleZombieAttack(const Protocol::S_ZOMBIE_ATTACK& pkt)
 {
-	ABaseZombie* Zombie = Zombies.FindRef(pkt.zombie_id());
+	ABaseZombie* Zombie = WorldObjects->FindZombie(pkt.zombie_id());
 	if (!IsValid(Zombie))
 	{
-		Zombies.Remove(pkt.zombie_id());
+		WorldObjects->RemoveZombie(pkt.zombie_id());
 		return;
 	}
 
@@ -1672,10 +1134,10 @@ void UFPSProjectGameInstance::HandleZombieAttack(const Protocol::S_ZOMBIE_ATTACK
 
 void UFPSProjectGameInstance::HandleZombieHp(const Protocol::S_ZOMBIE_HP& pkt)
 {
-	ABaseZombie* Zombie = Zombies.FindRef(pkt.zombie_id());
+	ABaseZombie* Zombie = WorldObjects->FindZombie(pkt.zombie_id());
 	if (!IsValid(Zombie))
 	{
-		Zombies.Remove(pkt.zombie_id());
+		WorldObjects->RemoveZombie(pkt.zombie_id());
 		return;
 	}
 
@@ -1684,10 +1146,10 @@ void UFPSProjectGameInstance::HandleZombieHp(const Protocol::S_ZOMBIE_HP& pkt)
 
 void UFPSProjectGameInstance::HandleZombieDie(const Protocol::S_ZOMBIE_DIE& pkt)
 {
-	ABaseZombie* Zombie = Zombies.FindRef(pkt.zombie_id());
+	ABaseZombie* Zombie = WorldObjects->FindZombie(pkt.zombie_id());
 	if (!IsValid(Zombie))
 	{
-		Zombies.Remove(pkt.zombie_id());
+		WorldObjects->RemoveZombie(pkt.zombie_id());
 		return;
 	}
 
@@ -1696,10 +1158,10 @@ void UFPSProjectGameInstance::HandleZombieDie(const Protocol::S_ZOMBIE_DIE& pkt)
 
 void UFPSProjectGameInstance::HandleZombieDismember(const Protocol::S_ZOMBIE_DISMEMBER& pkt)
 {
-	ABaseZombie* Zombie = Zombies.FindRef(pkt.zombie_id());
+	ABaseZombie* Zombie = WorldObjects->FindZombie(pkt.zombie_id());
 	if (!IsValid(Zombie))
 	{
-		Zombies.Remove(pkt.zombie_id());
+		WorldObjects->RemoveZombie(pkt.zombie_id());
 		return;
 	}
 
@@ -1711,160 +1173,68 @@ void UFPSProjectGameInstance::HandleZombieDismember(const Protocol::S_ZOMBIE_DIS
 
 ATruck* UFPSProjectGameInstance::FindTruckById(uint64 TruckId)
 {
-	if (TruckId == 0)
-	{
-		return nullptr;
-	}
-
-	if (ATruck** FoundTruck = Trucks.Find(TruckId))
-	{
-		if (IsValid(*FoundTruck))
-		{
-			return *FoundTruck;
-		}
-
-		Trucks.Remove(TruckId);
-	}
-
-	CacheTruckActors();
-
-	if (ATruck** FoundTruck = Trucks.Find(TruckId))
-	{
-		return IsValid(*FoundTruck) ? *FoundTruck : nullptr;
-	}
-
-	return nullptr;
+	return WorldObjects
+		? WorldObjects->FindTruckById(TruckId, GetWorld(), [](ATruck* Truck)
+			{
+				ApplyStage2InitialTruckPlacement(Truck);
+			})
+		: nullptr;
 }
 
 AADoor* UFPSProjectGameInstance::FindDoorById(int32 DoorId)
 {
-	if (DoorId == 0)
-	{
-		return nullptr;
-	}
-
-	if (AADoor** FoundDoor = Doors.Find(DoorId))
-	{
-		if (IsValid(*FoundDoor))
-		{
-			return *FoundDoor;
-		}
-
-		Doors.Remove(DoorId);
-	}
-
-	CacheDoorActors();
-
-	if (AADoor** FoundDoor = Doors.Find(DoorId))
-	{
-		return IsValid(*FoundDoor) ? *FoundDoor : nullptr;
-	}
-
-	return nullptr;
+	return WorldObjects ? WorldObjects->FindDoorById(DoorId, GetWorld()) : nullptr;
 }
 
 AFPSBaseCharacter* UFPSProjectGameInstance::ResolvePlayerById(uint64 PlayerId) const
 {
-	if (MyPlayer && MyPlayer->GetPlayerInfo() && MyPlayer->GetPlayerInfo()->object_id() == PlayerId)
-	{
-		return MyPlayer;
-	}
-
-	if (UWorld* World = GetWorld())
-	{
-		if (APlayerController* PlayerController = UGameplayStatics::GetPlayerController(World, 0))
-		{
-			if (AFPSBaseCharacter* LocalPawn = Cast<AFPSBaseCharacter>(PlayerController->GetPawn()))
-			{
-				if (LocalPawn->GetPlayerInfo() && LocalPawn->GetPlayerInfo()->object_id() == PlayerId)
-				{
-					return LocalPawn;
-				}
-			}
-		}
-	}
-
-	return Players.FindRef(PlayerId);
+	return WorldObjects ? WorldObjects->ResolvePlayerById(PlayerId, MyPlayer, GetWorld()) : nullptr;
 }
 
 AFPSBaseCharacter* UFPSProjectGameInstance::GetSpectateTargetBySlot(int32 SlotIndex) const
 {
-	if (SlotIndex < 0)
+	return WorldObjects ? WorldObjects->GetSpectateTargetBySlot(SlotIndex, MyPlayer) : nullptr;
+}
+
+bool UFPSProjectGameInstance::IsRegisteredPlayer(AFPSBaseCharacter* Player) const
+{
+	return WorldObjects ? WorldObjects->ContainsPlayerActor(Player) : false;
+}
+
+void UFPSProjectGameInstance::GetValidRegisteredPlayers(TArray<TPair<uint64, AFPSBaseCharacter*>>& OutPlayers) const
+{
+	if (WorldObjects)
 	{
-		return nullptr;
+		WorldObjects->GetValidPlayersSorted(OutPlayers);
+		return;
 	}
 
-	TArray<TPair<uint64, AFPSBaseCharacter*>> SpectateCandidates;
-	SpectateCandidates.Reserve(Players.Num());
-
-	for (const TPair<uint64, AFPSBaseCharacter*>& PlayerEntry : Players)
-	{
-		AFPSBaseCharacter* Player = PlayerEntry.Value;
-		if (!IsValid(Player) || Player == MyPlayer || Player->IsDead())
-		{
-			continue;
-		}
-
-		SpectateCandidates.Add(PlayerEntry);
-	}
-
-	Algo::SortBy(SpectateCandidates, [](const TPair<uint64, AFPSBaseCharacter*>& PlayerEntry)
-	{
-		return PlayerEntry.Key;
-	});
-
-	return SpectateCandidates.IsValidIndex(SlotIndex) ? SpectateCandidates[SlotIndex].Value : nullptr;
+	OutPlayers.Reset();
 }
 
 void UFPSProjectGameInstance::CacheTruckActors()
 {
-	UWorld* World = GetWorld();
-	if (World == nullptr)
+	if (WorldObjects)
 	{
-		return;
-	}
-
-	Trucks.Empty();
-
-	for (TActorIterator<ATruck> It(World); It; ++It)
-	{
-		ATruck* Truck = *It;
-		if (IsValid(Truck) && Truck->NetworkTruckId != 0)
-		{
-			if (!Truck->IsLocallyDriven())
+		WorldObjects->CacheTruckActors(GetWorld(), [](ATruck* Truck)
 			{
 				ApplyStage2InitialTruckPlacement(Truck);
-			}
-
-			Trucks.Add(Truck->NetworkTruckId, Truck);
-		}
+			});
 	}
 }
 
 void UFPSProjectGameInstance::CacheDoorActors()
 {
-	UWorld* World = GetWorld();
-	if (World == nullptr)
+	if (WorldObjects)
 	{
-		return;
-	}
-
-	Doors.Empty();
-
-	for (TActorIterator<AADoor> It(World); It; ++It)
-	{
-		AADoor* Door = *It;
-		if (IsValid(Door) && Door->NetworkDoorId != 0)
-		{
-			Doors.Add(Door->NetworkDoorId, Door);
-		}
+		WorldObjects->CacheDoorActors(GetWorld());
 	}
 }
 
 void UFPSProjectGameInstance::HandleEnterTruck(const Protocol::S_ENTER_TRUCK& pkt)
 {
 	AFPSBaseCharacter* Player = ResolvePlayerById(pkt.player_id());
-	AFPSBaseCharacter* MappedPlayer = Players.FindRef(pkt.player_id());
+	AFPSBaseCharacter* MappedPlayer = WorldObjects->FindPlayer(pkt.player_id());
 	ATruck* Truck = FindTruckById(pkt.truck_id());
 	APlayerController* LocalPlayerController = UGameplayStatics::GetPlayerController(this, 0);
 	AFPSBaseCharacter* LocalPawn = LocalPlayerController ? Cast<AFPSBaseCharacter>(LocalPlayerController->GetPawn()) : nullptr;
@@ -2052,20 +1422,6 @@ void UFPSProjectGameInstance::HandleEnterGameReadyCount(const Protocol::S_ENTER_
 	ApplyEntryLoadingReadyCount(pkt.ready_count());
 }
 
-void UFPSProjectGameInstance::HandleStageTimer(const Protocol::S_STAGE_TIMER& pkt)
-{
-	CachedStageTimerRemainingSeconds = pkt.is_loading_phase() ? pkt.remaining_seconds() : 0;
-	ApplyStageTimerToLocalUI();
-}
-
-void UFPSProjectGameInstance::HandleStage1ItemSeed(const Protocol::S_STAGE1_ITEM_SEED& pkt)
-{
-	CachedStage1ItemSpawnSeed = pkt.seed();
-	bHasStage1ItemSpawnSeed = true;
-	bHasAppliedStage1ItemSpawns = false;
-	ApplyStage1ItemSpawnSeed();
-}
-
 void UFPSProjectGameInstance::HandleRespawnLootItem(const Protocol::S_RESPAWN_LOOT_ITEM& pkt)
 {
 	for (uint64 ItemId : pkt.item_object_ids())
@@ -2077,77 +1433,6 @@ void UFPSProjectGameInstance::HandleRespawnLootItem(const Protocol::S_RESPAWN_LO
 	}
 }
 
-void UFPSProjectGameInstance::HandleStageTransition(const Protocol::S_STAGE_TRANSITION& pkt)
-{
-	const FString TargetLevelName = UTF8_TO_TCHAR(pkt.target_level().c_str());
-	if (TargetLevelName.IsEmpty())
-	{
-		return;
-	}
-
-	PendingStageTransitionLevelName = TargetLevelName;
-	bWaitingForStage2MapLoad = IsStage2LevelName(TargetLevelName);
-	UGameplayStatics::OpenLevel(this, FName(*TargetLevelName));
-}
-
-void UFPSProjectGameInstance::ApplyStageTimerToLocalUI()
-{
-	if (CachedStageTimerRemainingSeconds == INDEX_NONE)
-		return;
-
-	AFPSPlayerController* PlayerController = Cast<AFPSPlayerController>(UGameplayStatics::GetPlayerController(this, 0));
-	if (PlayerController == nullptr || PlayerController->TimerW == nullptr)
-		return;
-
-	PlayerController->TimerW->SetRemainingTime(CachedStageTimerRemainingSeconds);
-}
-
-void UFPSProjectGameInstance::ApplyStage1ItemSpawnSeed()
-{
-	if (!bHasStage1ItemSpawnSeed || bHasAppliedStage1ItemSpawns)
-	{
-		return;
-	}
-
-	UWorld* World = GetWorld();
-	if (World == nullptr)
-	{
-		return;
-	}
-
-	TArray<AStage1ItemSpawnPoint*> SpawnPoints;
-	for (TActorIterator<AStage1ItemSpawnPoint> It(World); It; ++It)
-	{
-		if (AStage1ItemSpawnPoint* SpawnPoint = *It)
-		{
-			SpawnPoints.Add(SpawnPoint);
-		}
-	}
-
-	Algo::SortBy(SpawnPoints, [](const AStage1ItemSpawnPoint* SpawnPoint)
-	{
-		return GetPathNameSafe(SpawnPoint);
-	});
-
-	FRandomStream RandomStream(static_cast<int32>(CachedStage1ItemSpawnSeed));
-	for (AStage1ItemSpawnPoint* SpawnPoint : SpawnPoints)
-	{
-		if (SpawnPoint == nullptr)
-		{
-			continue;
-		}
-
-		SpawnPoint->ClearSpawnedItem();
-		SpawnPoint->SpawnItemFromRandomStream(RandomStream);
-		if (ALootItemBase* LootItem = SpawnPoint->GetSpawnedItem())
-		{
-			RegisterNetworkLootItem(LootItem);
-		}
-	}
-
-	bHasAppliedStage1ItemSpawns = true;
-}
-
 void UFPSProjectGameInstance::HandleEquipWeapon(const Protocol::S_EQUIP_WEAPON& pkt)
 {
 	ApplyEquippedWeapon(pkt.playerid(), pkt.itemobjectid(), pkt.weapontype());
@@ -2155,7 +1440,7 @@ void UFPSProjectGameInstance::HandleEquipWeapon(const Protocol::S_EQUIP_WEAPON& 
 
 void UFPSProjectGameInstance::ApplyEquippedWeapon(uint64 PlayerId, uint64 ItemId, int32 WeaponType)
 {
-	AFPSBaseCharacter* TargetPlayer = Players.Contains(PlayerId) ? Players[PlayerId] : nullptr;
+	AFPSBaseCharacter* TargetPlayer = WorldObjects->FindPlayer(PlayerId);
 	UE_LOG(LogTemp, Warning, TEXT("[EquipDebug] ApplyEquippedWeapon Start PlayerId=%llu ItemId=%llu WeaponType=%d HasPlayer=%s"),
 		PlayerId,
 		ItemId,
@@ -2172,16 +1457,12 @@ void UFPSProjectGameInstance::ApplyEquippedWeapon(uint64 PlayerId, uint64 ItemId
 		return;
 	}
 
-	if (FieldItems.Contains(ItemId))
+	if (AActor* FieldItemActor = WorldObjects->FindFieldItem(ItemId))
 	{
-		if (AActor* FieldItemActor = FieldItems[ItemId])
-		{
-			UE_LOG(LogTemp, Warning, TEXT("[EquipDebug] Destroy FieldItem Actor ItemId=%llu Actor=%s"),
-				ItemId,
-				*GetNameSafe(FieldItemActor));
-			FieldItemActor->Destroy();
-		}
-		FieldItems.Remove(ItemId);
+		UE_LOG(LogTemp, Warning, TEXT("[EquipDebug] Destroy FieldItem Actor ItemId=%llu Actor=%s"),
+			ItemId,
+			*GetNameSafe(FieldItemActor));
+		WorldObjects->DestroyAndRemoveFieldItem(ItemId);
 	}
 
 	TSubclassOf<AWeaponBase> WeaponClass = ResolveWeaponClass(WeaponType);
@@ -2261,7 +1542,7 @@ void UFPSProjectGameInstance::HandleSpawnItem(const Protocol::S_SPAWN_ITEM& pkt)
 		const Protocol::PosInfo& Pos = ItemInfo.pos_info();
 
 		// 이미 맵(장부)에 소환되어 있는 아이템이면 패스
-		if (FieldItems.Contains(ItemId))
+		if (WorldObjects->FindFieldItem(ItemId))
 			continue;
 
 		// 스폰할 좌표 설정
@@ -2278,7 +1559,7 @@ void UFPSProjectGameInstance::HandleSpawnItem(const Protocol::S_SPAWN_ITEM& pkt)
 				SpawnedWeapon->ItemObjectId = ItemId;
 
 				// 2. 바닥 아이템 장부에 등록! (이게 정석의 핵심)
-				FieldItems.Add(ItemId, SpawnedWeapon);
+				WorldObjects->RegisterFieldItem(ItemId, SpawnedWeapon);
 
 				UE_LOG(LogTemp, Warning, TEXT("[Network] %llu번 무기가 맵에 소환되었습니다! (위치: %s)"), ItemId, *SpawnLocation.ToString());
 			}
@@ -2296,9 +1577,8 @@ void UFPSProjectGameInstance::HandleFire(const Protocol::S_FIRE& pkt)
 
 	UE_LOG(LogTemp, Error, TEXT("[Network] 3. S_FIRE 패킷 서버로부터 수신 완료! 쏜 사람: %llu"), ShooterId);
 
-	if (Players.Contains(ShooterId))
+	if (AFPSBaseCharacter* Shooter = WorldObjects->FindPlayer(ShooterId))
 	{
-		AFPSBaseCharacter* Shooter = Players[ShooterId];
 		UE_LOG(LogTemp, Warning, TEXT("[FireDebug] ShooterId=%llu HasPlayer=true Shooter=%s IsLocal=%s HasWeapon=%s Weapon=%s"),
 			ShooterId,
 			*GetNameSafe(Shooter),
@@ -2339,12 +1619,14 @@ void UFPSProjectGameInstance::Shutdown()
 
 void UFPSProjectGameInstance::Tick(float DeltaTime)
 {
-	RefreshStage2StartupActorHold();
+	TickNetwork();
+	TickStageFlow();
+}
+
+void UFPSProjectGameInstance::TickNetwork()
+{
 	TrySendEnterGamePacket();
 	HandleRecvPackets();
-	ProcessPendingStage2Spawns();
-	TryDistributeStage1CargoItemsToPlayers();
-	RefreshStage2StartupActorHold();
 }
 
 TStatId UFPSProjectGameInstance::GetStatId() const

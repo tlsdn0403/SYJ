@@ -1,0 +1,431 @@
+﻿#include "FPSStageFlowManager.h"
+#include "FPSProjectGameInstance.h"
+#include "ClientPacketHandler.h"
+#include "Characters/FPSBaseCharacter.h"
+#include "Characters/FPSPlayerController.h"
+#include "Blueprint/UserWidget.h"
+#include "EngineUtils.h"
+#include "HUD/BaseUI.h"
+#include "HUD/LoadingUI.h"
+#include "Items/LootItemBase.h"
+#include "Items/Stage1ItemSpawnPoint.h"
+#include "Kismet/GameplayStatics.h"
+#include "Stage2/Stage2TileManager.h"
+#include "Algo/Sort.h"
+
+namespace
+{
+	bool IsStage2LevelNameForStageFlow(const FString& LevelName)
+	{
+		return LevelName.Contains(TEXT("map_level2"), ESearchCase::IgnoreCase) ||
+			LevelName.Contains(TEXT("level2"), ESearchCase::IgnoreCase) ||
+			LevelName.Contains(TEXT("stage2"), ESearchCase::IgnoreCase);
+	}
+
+	bool IsStage2WorldForStageFlow(const UWorld* World)
+	{
+		return World && IsStage2LevelNameForStageFlow(World->GetMapName());
+	}
+
+	AStage2TileManager* FindStage2TileManagerForStageFlow(UWorld* World)
+	{
+		if (!World)
+		{
+			return nullptr;
+		}
+
+		for (TActorIterator<AStage2TileManager> It(World); It; ++It)
+		{
+			return *It;
+		}
+
+		return nullptr;
+	}
+}
+
+FFPSStageFlowManager::FFPSStageFlowManager(UFPSProjectGameInstance& InOwner)
+	: Owner(InOwner)
+{
+}
+
+bool FFPSStageFlowManager::ShouldDelayEnterGameRequest() const
+{
+	if (const AStage2TileManager* Stage2TileManager = FindStage2TileManagerForStageFlow(Owner.GetWorld()))
+	{
+		return !Stage2TileManager->AreInitialTilesReady();
+	}
+
+	if (bWaitingForStage2MapLoad && IsStage2LevelNameForStageFlow(PendingStageTransitionLevelName))
+	{
+		return true;
+	}
+
+	if (IsStage2WorldForStageFlow(Owner.GetWorld()))
+	{
+		return true;
+	}
+
+	return false;
+}
+
+void FFPSStageFlowManager::RequestEnterGameWhenReady()
+{
+	bPendingEnterGameRequest = true;
+	bEnterGamePacketSent = false;
+	bShouldShowEntryLoadingWidget = true;
+	CachedEntryLoadingReadyCount = 0;
+	CachedStage1ItemSpawnSeed = 0;
+	bHasStage1ItemSpawnSeed = false;
+	bHasAppliedStage1ItemSpawns = false;
+	bHasDistributedStage1CargoItems = false;
+}
+
+bool FFPSStageFlowManager::TrySendEnterGamePacket()
+{
+	if (!bPendingEnterGameRequest || bEnterGamePacketSent)
+	{
+		return false;
+	}
+
+	if (!Owner.IsConnectedToGameServer())
+	{
+		return false;
+	}
+
+	if (ShouldDelayEnterGameRequest())
+	{
+		return false;
+	}
+
+	Protocol::C_ENTER_GAME EnterGamePkt;
+	EnterGamePkt.set_playerindex(0);
+	Owner.SendPacket(ClientPacketHandler::MakeSendBuffer(EnterGamePkt));
+
+	bEnterGamePacketSent = true;
+	bPendingEnterGameRequest = false;
+	UE_LOG(LogTemp, Warning, TEXT("[Network] Stage2 ready check passed. C_ENTER_GAME 전송 완료!"));
+	return true;
+}
+
+void FFPSStageFlowManager::RefreshStage2StartupActorHold()
+{
+	const bool bShouldHold = Owner.ShouldDelayStage2ActorSpawn();
+	if (bShouldHold || Owner.bStage2StartupHoldApplied)
+	{
+		Owner.ApplyStage2StartupActorHold(bShouldHold);
+	}
+}
+
+void FFPSStageFlowManager::SetEntryLoadingWidgetClass(TSubclassOf<UUserWidget> WidgetClass)
+{
+	Owner.EntryLoadingWidgetClass = WidgetClass;
+	CachedEntryLoadingReadyCount = 0;
+}
+
+void FFPSStageFlowManager::ShowEntryLoadingWidget()
+{
+	bShouldShowEntryLoadingWidget = true;
+
+	if (Owner.EntryLoadingWidget)
+	{
+		return;
+	}
+
+	if (!Owner.EntryLoadingWidgetClass)
+	{
+		return;
+	}
+
+	UWorld* World = Owner.GetWorld();
+	if (World == nullptr)
+	{
+		return;
+	}
+
+	UUserWidget* Widget = CreateWidget<UUserWidget>(World, Owner.EntryLoadingWidgetClass);
+	if (Widget == nullptr)
+	{
+		return;
+	}
+
+	Widget->AddToViewport();
+	RegisterEntryLoadingWidget(Widget);
+}
+
+void FFPSStageFlowManager::RegisterEntryLoadingWidget(UUserWidget* Widget)
+{
+	Owner.EntryLoadingWidget = Widget;
+	ApplyEntryLoadingReadyCount(CachedEntryLoadingReadyCount);
+}
+
+void FFPSStageFlowManager::RemoveEntryLoadingWidget()
+{
+	bShouldShowEntryLoadingWidget = false;
+
+	if (Owner.EntryLoadingWidget)
+	{
+		Owner.EntryLoadingWidget->RemoveFromParent();
+		Owner.EntryLoadingWidget = nullptr;
+	}
+}
+
+void FFPSStageFlowManager::HandlePostLoadMap(UWorld* LoadedWorld)
+{
+	bHasDistributedStage1CargoItems = false;
+
+	if (Owner.EntryLoadingWidget)
+	{
+		Owner.EntryLoadingWidget->RemoveFromParent();
+		Owner.EntryLoadingWidget = nullptr;
+	}
+
+	if (bShouldShowEntryLoadingWidget)
+	{
+		ShowEntryLoadingWidget();
+	}
+
+	bHasAppliedStage1ItemSpawns = false;
+	ApplyStage1ItemSpawnSeed();
+
+	if (bWaitingForStage2MapLoad && !IsStage2WorldForStageFlow(LoadedWorld))
+	{
+		bWaitingForStage2MapLoad = false;
+		PendingStageTransitionLevelName.Empty();
+	}
+}
+
+void FFPSStageFlowManager::CompleteStage2MapLoad()
+{
+	RemoveEntryLoadingWidget();
+	bWaitingForStage2MapLoad = false;
+	PendingStageTransitionLevelName.Empty();
+}
+
+void FFPSStageFlowManager::ApplyEntryLoadingReadyCount(int32 ReadyCount)
+{
+	CachedEntryLoadingReadyCount = ReadyCount;
+
+	ULoadingUI* LoadingUI = Cast<ULoadingUI>(Owner.EntryLoadingWidget);
+	if (LoadingUI == nullptr)
+	{
+		return;
+	}
+
+	LoadingUI->logout();
+	LoadingUI->OnlineP = FMath::Clamp(ReadyCount, 0, 3);
+	LoadingUI->connect(LoadingUI->OnlineP);
+}
+
+void FFPSStageFlowManager::ProcessPendingStage2Spawns()
+{
+	if (Owner.PendingStage2SpawnInfos.Num() == 0 || Owner.ShouldDelayStage2ActorSpawn())
+	{
+		return;
+	}
+
+	TArray<UFPSProjectGameInstance::FPendingStage2SpawnInfo> SpawnsToProcess = MoveTemp(Owner.PendingStage2SpawnInfos);
+	Owner.PendingStage2SpawnInfos.Reset();
+
+	TGuardValue<bool> ProcessingGuard(Owner.bProcessingPendingStage2Spawns, true);
+	for (const UFPSProjectGameInstance::FPendingStage2SpawnInfo& PendingSpawn : SpawnsToProcess)
+	{
+		if (PendingSpawn.bIsMine)
+		{
+			RemoveEntryLoadingWidget();
+			bWaitingForStage2MapLoad = false;
+			PendingStageTransitionLevelName.Empty();
+		}
+
+		Owner.ProcessSpawnObject(PendingSpawn.ObjectInfo, PendingSpawn.bIsMine);
+	}
+
+	TryDistributeStage1CargoItemsToPlayers();
+}
+
+void FFPSStageFlowManager::TryDistributeStage1CargoItemsToPlayers()
+{
+	if (bHasDistributedStage1CargoItems || Owner.RecordedStage1CargoItems.Num() == 0)
+	{
+		return;
+	}
+
+	if (!IsStage2WorldForStageFlow(Owner.GetWorld()) || Owner.ShouldDelayStage2ActorSpawn() || Owner.PendingStage2SpawnInfos.Num() > 0)
+	{
+		return;
+	}
+
+	if (Owner.IsConnectedToGameServer() && CachedEntryLoadingReadyCount <= 0)
+	{
+		return;
+	}
+
+	TArray<TPair<uint64, AFPSBaseCharacter*>> Stage2Players;
+	Owner.GetValidRegisteredPlayers(Stage2Players);
+
+	const int32 ExpectedPlayerCount = FMath::Max(CachedEntryLoadingReadyCount, 1);
+	if (Stage2Players.Num() < ExpectedPlayerCount)
+	{
+		return;
+	}
+
+	const int32 PlayerCount = Stage2Players.Num();
+	for (const TPair<EItemType, int32>& CargoEntry : Owner.RecordedStage1CargoItems)
+	{
+		const EItemType ItemType = CargoEntry.Key;
+		const int32 ItemCount = CargoEntry.Value;
+		UE_LOG(LogTemp, Warning, TEXT("[Stage2Cargo] Distribute item type=%d count=%d players=%d"),
+			static_cast<int32>(ItemType),
+			ItemCount,
+			PlayerCount);
+		if (ItemType == EItemType::None || ItemCount <= 0)
+		{
+			continue;
+		}
+
+		const int32 BaseShare = ItemCount / PlayerCount;
+		const int32 Remainder = ItemCount % PlayerCount;
+
+		for (const TPair<uint64, AFPSBaseCharacter*>& PlayerEntry : Stage2Players)
+		{
+			for (int32 i = 0; i < BaseShare; ++i)
+			{
+				PlayerEntry.Value->AddStage2DistributedItem(ItemType);
+			}
+		}
+
+		if (Remainder > 0)
+		{
+			TArray<int32> RemainderPlayerIndexes;
+			RemainderPlayerIndexes.Reserve(PlayerCount);
+			for (int32 PlayerIndex = 0; PlayerIndex < PlayerCount; ++PlayerIndex)
+			{
+				RemainderPlayerIndexes.Add(PlayerIndex);
+			}
+
+			uint32 RemainderSeed = static_cast<uint32>(ItemType) * 16777619u ^ static_cast<uint32>(ItemCount);
+			for (const TPair<uint64, AFPSBaseCharacter*>& PlayerEntry : Stage2Players)
+			{
+				RemainderSeed ^= static_cast<uint32>(PlayerEntry.Key);
+				RemainderSeed *= 16777619u;
+				RemainderSeed ^= static_cast<uint32>(PlayerEntry.Key >> 32);
+			}
+
+			FRandomStream RandomStream(static_cast<int32>(RemainderSeed));
+			for (int32 i = RemainderPlayerIndexes.Num() - 1; i > 0; --i)
+			{
+				const int32 SwapIndex = RandomStream.RandRange(0, i);
+				RemainderPlayerIndexes.Swap(i, SwapIndex);
+			}
+
+			for (int32 i = 0; i < Remainder; ++i)
+			{
+				Stage2Players[RemainderPlayerIndexes[i]].Value->AddStage2DistributedItem(ItemType);
+			}
+		}
+	}
+
+	for (const TPair<uint64, AFPSBaseCharacter*>& PlayerEntry : Stage2Players)
+	{
+		PlayerEntry.Value->RefreshStage2ItemUI();
+	}
+
+	Owner.ClearRecordedStage1CargoItems();
+	bHasDistributedStage1CargoItems = true;
+	UE_LOG(LogTemp, Log, TEXT("[Stage2Cargo] Distributed Stage1 cargo to %d players."), PlayerCount);
+}
+
+void FFPSStageFlowManager::HandleStageTimer(const Protocol::S_STAGE_TIMER& Pkt)
+{
+	CachedStageTimerRemainingSeconds = Pkt.is_loading_phase() ? Pkt.remaining_seconds() : 0;
+	ApplyStageTimerToLocalUI();
+}
+
+void FFPSStageFlowManager::HandleStage1ItemSeed(const Protocol::S_STAGE1_ITEM_SEED& Pkt)
+{
+	CachedStage1ItemSpawnSeed = Pkt.seed();
+	bHasStage1ItemSpawnSeed = true;
+	bHasAppliedStage1ItemSpawns = false;
+	ApplyStage1ItemSpawnSeed();
+}
+
+void FFPSStageFlowManager::HandleStageTransition(const Protocol::S_STAGE_TRANSITION& Pkt)
+{
+	const FString TargetLevelName = UTF8_TO_TCHAR(Pkt.target_level().c_str());
+	if (TargetLevelName.IsEmpty())
+	{
+		return;
+	}
+
+	PendingStageTransitionLevelName = TargetLevelName;
+	bWaitingForStage2MapLoad = IsStage2LevelNameForStageFlow(TargetLevelName);
+	UGameplayStatics::OpenLevel(&Owner, FName(*TargetLevelName));
+}
+
+void FFPSStageFlowManager::TickStageFlow()
+{
+	RefreshStage2StartupActorHold();
+	ProcessPendingStage2Spawns();
+	TryDistributeStage1CargoItemsToPlayers();
+}
+
+void FFPSStageFlowManager::ApplyStageTimerToLocalUI()
+{
+	if (CachedStageTimerRemainingSeconds == INDEX_NONE)
+	{
+		return;
+	}
+
+	AFPSPlayerController* PlayerController = Cast<AFPSPlayerController>(UGameplayStatics::GetPlayerController(&Owner, 0));
+	if (PlayerController == nullptr || PlayerController->TimerW == nullptr)
+	{
+		return;
+	}
+
+	PlayerController->TimerW->SetRemainingTime(CachedStageTimerRemainingSeconds);
+}
+
+void FFPSStageFlowManager::ApplyStage1ItemSpawnSeed()
+{
+	if (!bHasStage1ItemSpawnSeed || bHasAppliedStage1ItemSpawns)
+	{
+		return;
+	}
+
+	UWorld* World = Owner.GetWorld();
+	if (World == nullptr)
+	{
+		return;
+	}
+
+	TArray<AStage1ItemSpawnPoint*> SpawnPoints;
+	for (TActorIterator<AStage1ItemSpawnPoint> It(World); It; ++It)
+	{
+		if (AStage1ItemSpawnPoint* SpawnPoint = *It)
+		{
+			SpawnPoints.Add(SpawnPoint);
+		}
+	}
+
+	Algo::SortBy(SpawnPoints, [](const AStage1ItemSpawnPoint* SpawnPoint)
+	{
+		return GetPathNameSafe(SpawnPoint);
+	});
+
+	FRandomStream RandomStream(static_cast<int32>(CachedStage1ItemSpawnSeed));
+	for (AStage1ItemSpawnPoint* SpawnPoint : SpawnPoints)
+	{
+		if (SpawnPoint == nullptr)
+		{
+			continue;
+		}
+
+		SpawnPoint->ClearSpawnedItem();
+		SpawnPoint->SpawnItemFromRandomStream(RandomStream);
+		if (ALootItemBase* LootItem = SpawnPoint->GetSpawnedItem())
+		{
+			Owner.RegisterNetworkLootItem(LootItem);
+		}
+	}
+
+	bHasAppliedStage1ItemSpawns = true;
+}

@@ -1305,6 +1305,10 @@ void UFPSProjectGameInstance::TryDistributeStage1CargoItemsToPlayers()
 	{
 		const EItemType ItemType = CargoEntry.Key;
 		const int32 ItemCount = CargoEntry.Value;
+		UE_LOG(LogTemp, Warning, TEXT("[Stage2Cargo] Distribute item type=%d count=%d players=%d"),
+			static_cast<int32>(ItemType),
+			ItemCount,
+			PlayerCount);
 		if (ItemType == EItemType::None || ItemCount <= 0)
 		{
 			continue;

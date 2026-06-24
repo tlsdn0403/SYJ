@@ -28,6 +28,14 @@
 #include "TimerManager.h"
 #include "EngineUtils.h"
 
+namespace
+{
+EItemType NormalizeStageItemType(EItemType ItemType)
+{
+	return ItemType == EItemType::TT ? EItemType::HealPack : ItemType;
+}
+}
+
 AFPSBaseCharacter::AFPSBaseCharacter()
 {
 	PrimaryActorTick.bCanEverTick = true;
@@ -1665,6 +1673,8 @@ void AFPSBaseCharacter::Interact()
 
 bool AFPSBaseCharacter::AddItem(EItemType NewItemType)
 {
+	NewItemType = NormalizeStageItemType(NewItemType);
+
 	if (Inventory.Num() >= MaxItemCount)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Inventory Full!"));
@@ -1684,6 +1694,8 @@ bool AFPSBaseCharacter::AddItem(EItemType NewItemType)
 
 void AFPSBaseCharacter::AddStage2DistributedItem(EItemType NewItemType)
 {
+	NewItemType = NormalizeStageItemType(NewItemType);
+
 	if (NewItemType == EItemType::None)
 	{
 		return;
@@ -1699,6 +1711,8 @@ void AFPSBaseCharacter::AddStage2DistributedItem(EItemType NewItemType)
 
 bool AFPSBaseCharacter::ConsumeInventoryItem(EItemType ItemType)
 {
+	ItemType = NormalizeStageItemType(ItemType);
+
 	const int32 ItemIndex = Inventory.Find(ItemType);
 	if (ItemIndex == INDEX_NONE)
 	{
@@ -1716,10 +1730,12 @@ bool AFPSBaseCharacter::ConsumeInventoryItem(EItemType ItemType)
 
 int32 AFPSBaseCharacter::GetInventoryItemCount(EItemType ItemType) const
 {
+	ItemType = NormalizeStageItemType(ItemType);
+
 	int32 Count = 0;
 	for (const EItemType InventoryItem : Inventory)
 	{
-		if (InventoryItem == ItemType)
+		if (NormalizeStageItemType(InventoryItem) == ItemType)
 		{
 			++Count;
 		}
@@ -1774,15 +1790,25 @@ void AFPSBaseCharacter::RefreshStage2ItemUI()
 		PlayerController = Cast<AFPSPlayerController>(UGameplayStatics::GetPlayerController(this, 0));
 	}
 
-	if (GameInstance == nullptr || PlayerController == nullptr || PlayerController->L2BaseW == nullptr)
+	if (GameInstance == nullptr || PlayerController == nullptr)
 	{
 		return;
 	}
 
-	PlayerController->L2BaseW->ItemSetting(
-		GetInventoryItemCount(EItemType::Fuel),
-		GetInventoryItemCount(EItemType::HealPack) + GetInventoryItemCount(EItemType::MedicalKit),
-		GetInventoryItemCount(EItemType::TruckRepairKit));
+	if (PlayerController->L2BaseW)
+	{
+		PlayerController->L2BaseW->ItemSetting(
+			GetInventoryItemCount(EItemType::Fuel),
+			GetInventoryItemCount(EItemType::HealPack) + GetInventoryItemCount(EItemType::MedicalKit),
+			GetInventoryItemCount(EItemType::TruckRepairKit));
+	}
+
+	if (PlayerController->BasicW)
+	{
+		PlayerController->BasicW->SetAmmoCount(
+			GetInventoryItemCount(EItemType::Ammo) +
+			GetInventoryItemCount(EItemType::CharacterAmmo));
+	}
 }
 
 TArray<EItemType> AFPSBaseCharacter::OffloadItems()

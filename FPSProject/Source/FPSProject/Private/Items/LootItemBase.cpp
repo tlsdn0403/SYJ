@@ -123,11 +123,19 @@ void ALootItemBase::Interact_Implementation(AFPSBaseCharacter* Character)
 				const bool bAddedToInventory = PlayerController->PickUp_Item(itemimage, HandWeight);
 				if (bAddedToInventory)
 				{
-					UE_LOG(LogTemp, Warning, TEXT("[PickupSend] Item='%s' NetworkItemId=%llu Respawn=%s Delay=%.2f"),
+					const bool bAddedToCharacterInventory = Character->AddItem(ItemType);
+					UE_LOG(LogTemp, Warning, TEXT("[PickupSend] Item='%s' Type=%d NetworkItemId=%llu Added=%d Respawn=%s Delay=%.2f"),
 						*GetName(),
+						static_cast<int32>(ItemType),
 						NetworkItemId,
+						bAddedToCharacterInventory ? 1 : 0,
 						bRespawnOnPickup ? TEXT("true") : TEXT("false"),
 						RespawnDelay);
+
+					if (!bAddedToCharacterInventory)
+					{
+						return;
+					}
 
 					bPickupPending = true;
 					SetNetworkItemActive(false);
@@ -137,15 +145,6 @@ void ALootItemBase::Interact_Implementation(AFPSBaseCharacter* Character)
 					PickupPkt.set_should_respawn(bRespawnOnPickup);
 					PickupPkt.set_respawn_delay(RespawnDelay);
 					GameInstance->SendPacket(ClientPacketHandler::MakeSendBuffer(PickupPkt));
-
-					Character->AddItem(ItemType);
-					if (HandWeight > 1)
-					{
-						for (int32 i = 0; i < HandWeight; ++i)
-						{
-							Character->AddItem(EItemType::TT);
-						}
-					}
 				}
 			}
 			return;
@@ -161,13 +160,6 @@ void ALootItemBase::Interact_Implementation(AFPSBaseCharacter* Character)
 	if (bAdded)
 	{
 		Character->AddItem(ItemType);
-		if (HandWeight > 1)
-		{
-			for (int32 i = 0; i < HandWeight; ++i)
-			{
-				Character->AddItem(EItemType::TT);
-			}
-		}
 		Destroy();
 	}
 }

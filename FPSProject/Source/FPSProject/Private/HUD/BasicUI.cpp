@@ -50,3 +50,10 @@ void UBasicUI::SetHealth(float CurrentHP,float MaxHP) {
 	HpBar->SetPercent(Ratio);
 	HpText->SetText(FText::FromString(FString::FromInt(CurrentHP)));
 }
+void UBasicUI::SetAmmoCount(int32 AmmoCount)
+{
+	if (GunText)
+	{
+		GunText->SetText(FText::FromString(FString::FromInt(AmmoCount)));
+	}
+}

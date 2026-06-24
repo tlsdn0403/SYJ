@@ -4,6 +4,7 @@
 #include "Animation/AnimSingleNodeInstance.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Engine/SkeletalMesh.h"
+#include "Animation/Skeleton.h"
 #include "AIController.h"
 #include "UObject/ConstructorHelpers.h"
 
@@ -11,18 +12,22 @@ AMixamoZombie::AMixamoZombie()
 {
 	static ConstructorHelpers::FObjectFinder<USkeletalMesh> DefaultMesh(
 		TEXT("/Script/Engine.SkeletalMesh'/Game/Zombie/mixamo/ch/zom_ch10/Ch10_nonPBR.Ch10_nonPBR'"));
-	static ConstructorHelpers::FObjectFinder<UAnimSequenceBase> DefaultIdle(
-		TEXT("/Script/Engine.AnimSequence'/Game/Zombie/mixamo/ch/zom_ch10/Ch10_nonPBR_Anim.Ch10_nonPBR_Anim'"));
+	static ConstructorHelpers::FObjectFinder<UAnimSequenceBase> TeamIdle(
+		TEXT("/Script/Engine.AnimSequence'/Game/Zombie/mixamo/Ani/NewFolder/ayjstart_Anim.ayjstart_Anim'"));
 	static ConstructorHelpers::FObjectFinder<UAnimSequenceBase> DefaultWalk(
 		TEXT("/Script/Engine.AnimSequence'/Game/Zombie/mixamo/Ani/Walking__3_.Walking__3_'"));
 	static ConstructorHelpers::FObjectFinder<UAnimSequenceBase> DefaultCrawl(
 		TEXT("/Script/Engine.AnimSequence'/Game/Zombie/mixamo/Ani/Zombie_Crawl.Zombie_Crawl'"));
-	static ConstructorHelpers::FObjectFinder<UAnimSequenceBase> DefaultAttack(
+	static ConstructorHelpers::FObjectFinder<UAnimSequenceBase> DefaultCrawlingAttack(
 		TEXT("/Script/Engine.AnimSequence'/Game/Zombie/mixamo/Ani/Zombie_Attack.Zombie_Attack'"));
-	static ConstructorHelpers::FObjectFinder<UAnimSequenceBase> DefaultHeadbutt(
-		TEXT("/Script/Engine.AnimSequence'/Game/Zombie/mixamo/Ani/Zombie_Headbutt.Zombie_Headbutt'"));
-	static ConstructorHelpers::FObjectFinder<UAnimSequenceBase> DefaultDeath(
-		TEXT("/Script/Engine.AnimSequence'/Game/Zombie/mixamo/Ani/Zombie_Death.Zombie_Death'"));
+	static ConstructorHelpers::FObjectFinder<UAnimSequenceBase> TeamAttackOne(
+		TEXT("/Script/Engine.AnimSequence'/Game/Zombie/mixamo/Ani/NewFolder/standing_attack-zom_Anim.standing_attack-zom_Anim'"));
+	static ConstructorHelpers::FObjectFinder<UAnimSequenceBase> TeamAttackTwo(
+		TEXT("/Script/Engine.AnimSequence'/Game/Zombie/mixamo/Ani/NewFolder/standing_attack2-zom1_Anim.standing_attack2-zom1_Anim'"));
+	static ConstructorHelpers::FObjectFinder<UAnimSequenceBase> TeamAttackThree(
+		TEXT("/Script/Engine.AnimSequence'/Game/Zombie/mixamo/Ani/NewFolder/standing_attack3_Anim.standing_attack3_Anim'"));
+	static ConstructorHelpers::FObjectFinder<UAnimSequenceBase> TeamDeath(
+		TEXT("/Script/Engine.AnimSequence'/Game/Zombie/mixamo/Ani/NewFolder/Zombie_Death.Zombie_Death'"));
 	static ConstructorHelpers::FClassFinder<AAIController> DefaultAIController(
 		TEXT("/Game/Zombie/AI/BP_AIZombieController"));
 
@@ -30,18 +35,22 @@ AMixamoZombie::AMixamoZombie()
 	{
 		GetMesh()->SetSkeletalMesh(DefaultMesh.Object);
 	}
-	IdleAnimation = DefaultIdle.Object;
+	IdleAnimation = TeamIdle.Object;
 	WalkAnimation = DefaultWalk.Object;
 	CrawlAnimation = DefaultCrawl.Object;
-	CrawlingAttackAnimation = DefaultAttack.Object;
-	DeathAnimation = DefaultDeath.Object;
-	if (DefaultAttack.Succeeded())
+	CrawlingAttackAnimation = DefaultCrawlingAttack.Object;
+	DeathAnimation = TeamDeath.Object;
+	if (TeamAttackOne.Succeeded())
 	{
-		AttackAnimations.Add(DefaultAttack.Object);
+		AttackAnimations.Add(TeamAttackOne.Object);
 	}
-	if (DefaultHeadbutt.Succeeded())
+	if (TeamAttackTwo.Succeeded())
 	{
-		AttackAnimations.Add(DefaultHeadbutt.Object);
+		AttackAnimations.Add(TeamAttackTwo.Object);
+	}
+	if (TeamAttackThree.Succeeded())
+	{
+		AttackAnimations.Add(TeamAttackThree.Object);
 	}
 	if (DefaultAIController.Succeeded())
 	{
@@ -203,7 +212,8 @@ bool AMixamoZombie::IsAnimationCompatible(const UAnimSequenceBase* Animation) co
 {
 	const USkeletalMeshComponent* MeshComp = GetMesh();
 	const USkeletalMesh* MeshAsset = MeshComp ? MeshComp->GetSkeletalMeshAsset() : nullptr;
-	return Animation && MeshAsset && Animation->GetSkeleton() == MeshAsset->GetSkeleton();
+	const USkeleton* AnimationSkeleton = Animation ? Animation->GetSkeleton() : nullptr;
+	return AnimationSkeleton && MeshAsset && AnimationSkeleton->IsCompatibleMesh(MeshAsset);
 }
 
 float AMixamoZombie::GetAnimationDuration(const UAnimSequenceBase* Animation) const

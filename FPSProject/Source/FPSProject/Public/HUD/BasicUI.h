@@ -41,5 +41,6 @@ public:
 
 	void GetGunAR4();
 	void SetHealth(float CurrentHP, float MaxHP);
+	void SetAmmoCount(int32 AmmoCount);
 	
 };

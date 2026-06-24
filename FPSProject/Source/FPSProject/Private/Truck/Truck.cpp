@@ -924,8 +924,11 @@ void ATruck::AddCargoVisual(EItemType ItemType)
 	case EItemType::Fuel:
 		TargetSlots = &FuelSlots;
 		TargetCount = &CurrentFuelCount;
+		break;
+
 	case EItemType::TruckRepairKit:
-		
+		TargetSlots = &FuelSlots;
+		TargetCount = &CurrentFuelCount;
 		break;
 
 	case EItemType::MedicalKit:
@@ -987,6 +990,7 @@ void ATruck::Interact_Implementation(AFPSBaseCharacter* Character)
 
 			for (EItemType Item : ReceivedItems)
 			{
+				UE_LOG(LogTemp, Warning, TEXT("[Stage1Cargo] Offload item type=%d"), static_cast<int32>(Item));
 				ApplyLoadedCargoItem(Item);
 
 				switch (Item)
@@ -1025,6 +1029,7 @@ void ATruck::Interact_Implementation(AFPSBaseCharacter* Character)
 						LoadPkt.set_truck_id(NetworkTruckId);
 						for (EItemType Item : ReceivedItems)
 						{
+							UE_LOG(LogTemp, Warning, TEXT("[Stage1Cargo] SendLoadTruckItem type=%d"), static_cast<int32>(Item));
 							LoadPkt.add_item_types(static_cast<int32>(Item));
 						}
 						GameInstance->SendPacket(ClientPacketHandler::MakeSendBuffer(LoadPkt));

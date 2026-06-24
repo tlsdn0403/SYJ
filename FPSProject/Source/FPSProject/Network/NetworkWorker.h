@@ -37,9 +37,11 @@ public:
 
 	virtual bool Init() override;
 	virtual uint32 Run() override;
+	virtual void Stop() override;
 	virtual void Exit() override;
 
 	void Destroy();
+	void StopAndWait();
 
 private:
 	bool ReceivePacket(TArray<uint8>& OutPacket);
@@ -47,7 +49,7 @@ private:
 
 protected:
 	FRunnableThread* Thread = nullptr;
-	bool Running = true;
+	FThreadSafeBool Running = true;
 	FSocket* Socket;
 	TWeakPtr<class PacketSession> SessionRef;
 };
@@ -61,18 +63,20 @@ public:
 
 	virtual bool Init() override;
 	virtual uint32 Run() override;
+	virtual void Stop() override;
 	virtual void Exit() override;
 
 	bool SendPacket(SendBufferRef SendBuffer);
 
 	void Destroy();
+	void StopAndWait();
 
 private:
 	bool SendDesiredBytes(const uint8* Buffer, int32 Size);
 
 protected:
 	FRunnableThread* Thread = nullptr;
-	bool Running = true;
+	FThreadSafeBool Running = true;
 	FSocket* Socket;
 	TWeakPtr<class PacketSession> SessionRef;
 };

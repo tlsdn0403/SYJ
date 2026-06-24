@@ -6,8 +6,6 @@
 #include "GameSession.h"
 #include "GameSessionManager.h"
 #include <tchar.h>
-#include<chrono>
-#include<thread>
 #include "Job.h"
 #include "Protocol.pb.h"
 #include "Room.h"
@@ -54,20 +52,10 @@ int main()
 			});
 	}
 
-	// Main Thread
-	//DoWorkerJob(service);
-
 	GRoom->DoAsync(&Room::UpdateTick);
 
-	while (true)
-	{
-		Protocol::S_CHAT pkt;
-		pkt.set_msg("HelloWorld");
-		auto sendBuffer = ServerPacketHandler::MakeSendBuffer(pkt);
-
-		GSessionManager.Broadcast(sendBuffer);
-		std::this_thread::sleep_for(0.1s);
-	}
+	// Main Thread
+	DoWorkerJob(service);
 
 	GThreadManager->Join();
 }

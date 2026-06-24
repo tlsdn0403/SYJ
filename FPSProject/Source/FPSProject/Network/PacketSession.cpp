@@ -8,6 +8,8 @@
 #include "Serialization/ArrayWriter.h"
 #include "SocketSubsystem.h"
 #include "ClientPacketHandler.h"
+#include "HAL/PlatformProcess.h"
+#include "HAL/PlatformTime.h"
 
 PacketSession::PacketSession(class FSocket* Socket) : Socket(Socket)
 {
@@ -21,6 +23,11 @@ PacketSession::~PacketSession()
 
 void PacketSession::Run()
 {
+	if (RecvWorkerThread || SendWorkerThread)
+	{
+		return;
+	}
+
 	RecvWorkerThread = MakeShared<RecvWorker>(Socket, AsShared());
 	SendWorkerThread = MakeShared<SendWorker>(Socket, AsShared());
 }
@@ -40,20 +47,54 @@ void PacketSession::HandleRecvPackets()
 
 void PacketSession::SendPacket(SendBufferRef SendBuffer)
 {
+	if (Socket == nullptr)
+	{
+		return;
+	}
+
 	SendPacketQueue.Enqueue(SendBuffer);
+}
+
+bool PacketSession::SendPacketNow(SendBufferRef SendBuffer, float TimeoutSeconds)
+{
+	if (Socket == nullptr || SendBuffer == nullptr)
+	{
+		return false;
+	}
+
+	const uint8* Buffer = SendBuffer->Buffer();
+	int32 Size = SendBuffer->WriteSize();
+	const double Deadline = FPlatformTime::Seconds() + TimeoutSeconds;
+
+	while (Size > 0 && FPlatformTime::Seconds() < Deadline)
+	{
+		int32 BytesSent = 0;
+		if (Socket->Send(Buffer, Size, BytesSent) && BytesSent > 0)
+		{
+			Buffer += BytesSent;
+			Size -= BytesSent;
+			continue;
+		}
+
+		FPlatformProcess::SleepNoStats(0.001f);
+	}
+
+	return Size == 0;
 }
 
 void PacketSession::Disconnect()
 {
 	if (RecvWorkerThread)
 	{
-		RecvWorkerThread->Destroy();
+		RecvWorkerThread->StopAndWait();
 		RecvWorkerThread = nullptr;
 	}
 
 	if (SendWorkerThread)
 	{
-		SendWorkerThread->Destroy();
+		SendWorkerThread->StopAndWait();
 		SendWorkerThread = nullptr;
 	}
+
+	Socket = nullptr;
 }

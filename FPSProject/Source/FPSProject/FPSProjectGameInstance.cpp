@@ -370,6 +370,8 @@ void UFPSProjectGameInstance::ConnectToGameServer(const FString& IPAddress)
 
 	if (Connected)
 	{
+		Socket->SetNonBlocking(true);
+
 		// Session
 		GameServerSession = MakeShared<PacketSession>(Socket);
 		GameServerSession->Run();
@@ -382,8 +384,17 @@ void UFPSProjectGameInstance::ConnectToGameServer(const FString& IPAddress)
 void UFPSProjectGameInstance::DisconnectFromGameServer()
 {
 	// 서버에 패킷 쏘기
-	Protocol::C_LEAVE_GAME LeavePkt;
-	SEND_PACKET(LeavePkt);
+	if (Socket && GameServerSession)
+	{
+		Protocol::C_LEAVE_GAME LeavePkt;
+		if (GameServerSession->SendPacketNow(ClientPacketHandler::MakeSendBuffer(LeavePkt)) == false)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[Network] Failed to send C_LEAVE_GAME before disconnect"));
+		}
+
+		GameServerSession->Disconnect();
+		GameServerSession = nullptr;
+	}
 
 	// 소켓 통신 닫기
 	if (Socket)

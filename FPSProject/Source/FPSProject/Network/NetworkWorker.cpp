@@ -13,7 +13,7 @@ RecvWorker::RecvWorker(FSocket* Socket, TSharedPtr<class PacketSession> Session)
 
 RecvWorker::~RecvWorker()
 {
-
+	StopAndWait();
 }
 
 bool RecvWorker::Init()
@@ -34,6 +34,10 @@ uint32 RecvWorker::Run()
 				Session->RecvPacketQueue.Enqueue(Packet);
 			}
 		}
+		else
+		{
+			FPlatformProcess::SleepNoStats(0.001f);
+		}
 	}
 
 	return 0;
@@ -44,14 +48,31 @@ void RecvWorker::Exit()
 
 }
 
-void RecvWorker::Destroy()
+void RecvWorker::Stop()
 {
 	Running = false;
 }
 
+void RecvWorker::Destroy()
+{
+	StopAndWait();
+}
+
+void RecvWorker::StopAndWait()
+{
+	Running = false;
+
+	if (Thread)
+	{
+		Thread->WaitForCompletion();
+		delete Thread;
+		Thread = nullptr;
+	}
+}
+
 bool RecvWorker::ReceivePacket(TArray<uint8>& OutPacket)
 {
-	// 패킷 헤더 파싱
+	// ?�킷 ?�더 ?�싱
 	const int32 HeaderSize = sizeof(FPacketHeader);
 	TArray<uint8> HeaderBuffer;
 	HeaderBuffer.AddZeroed(HeaderSize);
@@ -66,10 +87,16 @@ bool RecvWorker::ReceivePacket(TArray<uint8>& OutPacket)
 		Reader << Header;
 	}
 
-	// 패킷 헤더 복사
+	static constexpr int32 MaxPacketSize = 64 * 1024;
+	if (Header.PacketSize < HeaderSize || Header.PacketSize > MaxPacketSize)
+	{
+		return false;
+	}
+
+	// ?�킷 ?�더 복사
 	OutPacket = HeaderBuffer;
 
-	// 패킷 내용 파싱
+	// ?�킷 ?�용 ?�싱
 	TArray<uint8> PayloadBuffer;
 	const int32 PayloadSize = Header.PacketSize - HeaderSize;
 	if (PayloadSize == 0)
@@ -85,31 +112,38 @@ bool RecvWorker::ReceivePacket(TArray<uint8>& OutPacket)
 
 bool RecvWorker::ReceiveDesiredBytes(uint8* Results, int32 Size)
 {
-	// 방어 코드 추가!
 	if (Socket == nullptr)
-		return false;
-
-	uint32 PendingDataSize = 0;
-
-	if (Socket->HasPendingData(PendingDataSize) == false || PendingDataSize <= 0)
 		return false;
 
 	int32 Offset = 0;
 
-	while (Size > 0)
+	while (Running && Size > 0)
 	{
+		uint32 PendingDataSize = 0;
+		if (Socket->HasPendingData(PendingDataSize) == false || PendingDataSize <= 0)
+		{
+			FPlatformProcess::SleepNoStats(0.001f);
+			continue;
+		}
+
 		int32 NumRead = 0;
-		Socket->Recv(Results + Offset, Size, OUT NumRead);
+		const int32 BytesToRead = FMath::Min(Size, static_cast<int32>(PendingDataSize));
+		if (Socket->Recv(Results + Offset, BytesToRead, OUT NumRead) == false)
+			return false;
+
 		check(NumRead <= Size);
 
 		if (NumRead <= 0)
-			return false;
+		{
+			FPlatformProcess::SleepNoStats(0.001f);
+			continue;
+		}
 
 		Offset += NumRead;
 		Size -= NumRead;
 	}
 
-	return true;
+	return Size == 0;
 }
 
 // SendWorker
@@ -120,7 +154,7 @@ SendWorker::SendWorker(FSocket* Socket, TSharedPtr<PacketSession> Session) : Soc
 
 SendWorker::~SendWorker()
 {
-
+	StopAndWait();
 }
 
 bool SendWorker::Init()
@@ -140,6 +174,14 @@ uint32 SendWorker::Run()
 			{
 				SendPacket(SendBuffer);
 			}
+			else
+			{
+				FPlatformProcess::SleepNoStats(0.001f);
+			}
+		}
+		else
+		{
+			FPlatformProcess::SleepNoStats(0.001f);
 		}
 	}
 
@@ -149,6 +191,11 @@ uint32 SendWorker::Run()
 void SendWorker::Exit()
 {
 
+}
+
+void SendWorker::Stop()
+{
+	Running = false;
 }
 
 bool SendWorker::SendPacket(SendBufferRef SendBuffer)
@@ -161,20 +208,38 @@ bool SendWorker::SendPacket(SendBufferRef SendBuffer)
 
 void SendWorker::Destroy()
 {
+	StopAndWait();
+}
+
+void SendWorker::StopAndWait()
+{
 	Running = false;
+
+	if (Thread)
+	{
+		Thread->WaitForCompletion();
+		delete Thread;
+		Thread = nullptr;
+	}
 }
 
 bool SendWorker::SendDesiredBytes(const uint8* Buffer, int32 Size)
 {
-	while (Size > 0)
+	if (Socket == nullptr)
+		return false;
+
+	while (Running && Size > 0)
 	{
 		int32 BytesSent = 0;
-		if (Socket->Send(Buffer, Size, BytesSent) == false)
-			return false;
+		if (Socket->Send(Buffer, Size, BytesSent) == false || BytesSent <= 0)
+		{
+			FPlatformProcess::SleepNoStats(0.001f);
+			continue;
+		}
 
 		Size -= BytesSent;
 		Buffer += BytesSent;
 	}
 
-	return true;
+	return Size == 0;
 }

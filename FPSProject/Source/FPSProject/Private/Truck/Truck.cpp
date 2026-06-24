@@ -364,6 +364,12 @@ void ATruck::BeginPlay()
 		HealthComponent->SetMaxHealth(TruckMaxHealth, true);
 	}
 
+	TruckMaxFuel = FMath::Max(1.0f, TruckMaxFuel);
+	CurrentTruckFuel = bUseFuel
+		? FMath::Clamp(TruckStartingFuel, 0.0f, TruckMaxFuel)
+		: TruckMaxFuel;
+	OnTruckFuelChanged.Broadcast(CurrentTruckFuel, TruckMaxFuel);
+
 	if (ZombieStimuliSource)
 	{
 		ZombieStimuliSource->RegisterForSense(UAISense_Sight::StaticClass());
@@ -477,6 +483,8 @@ void ATruck::Tick(float DeltaTime)
 
 	if (bIsLocallyDriven)
 	{
+		UpdateFuelConsumption(DeltaTime);
+
 		DebugTransformLogTimer += DeltaTime;
 		if (DebugTransformLogTimer >= 1.0f)
 		{
@@ -587,6 +595,7 @@ void ATruck::SendTruckMovePacket()
 void ATruck::SetLocallyDriven(bool bLocallyDriven)
 {
 	bIsLocallyDriven = bLocallyDriven;
+	CurrentThrottleInput = 0.0f;
 
 	UE_LOG(LogTemp, Verbose,
 		TEXT("[TruckDebug] SetLocallyDriven Truck=%s bLocallyDriven=%d Controller=%s IsPlayerControlled=%d"),
@@ -835,6 +844,7 @@ void ATruck::HandleTruckHealthChanged(float NewHealth, float Damage)
 	bTruckDestroyed = true;
 	if (UChaosWheeledVehicleMovementComponent* MoveComp = Cast<UChaosWheeledVehicleMovementComponent>(GetVehicleMovement()))
 	{
+		CurrentThrottleInput = 0.0f;
 		MoveComp->SetThrottleInput(0.0f);
 		MoveComp->SetSteeringInput(0.0f);
 		MoveComp->SetBrakeInput(1.0f);
@@ -846,10 +856,56 @@ void ATruck::HandleTruckHealthChanged(float NewHealth, float Damage)
 
 void ATruck::MoveForward(float Value)
 {
+	/*UE_LOG(LogTemp, Warning, TEXT("Throttle Input: %f"), Value);*/
+	const bool bCanAccelerate = !bTruckDestroyed && HasTruckFuel();
+	CurrentThrottleInput = bCanAccelerate ? FMath::Clamp(Value, -1.0f, 1.0f) : 0.0f;
+
 	if (auto* MoveComp = Cast<UChaosWheeledVehicleMovementComponent>(GetVehicleMovement()))
 	{
-		MoveComp->SetThrottleInput(bTruckDestroyed ? 0.0f : Value);
+		MoveComp->SetThrottleInput(CurrentThrottleInput);
 	}
+}
+
+void ATruck::SetTruckFuel(float NewFuel)
+{
+	const float SafeMaxFuel = FMath::Max(1.0f, TruckMaxFuel);
+	const float ClampedFuel = FMath::Clamp(NewFuel, 0.0f, SafeMaxFuel);
+	if (FMath::IsNearlyEqual(CurrentTruckFuel, ClampedFuel))
+	{
+		return;
+	}
+
+	CurrentTruckFuel = ClampedFuel;
+	OnTruckFuelChanged.Broadcast(CurrentTruckFuel, SafeMaxFuel);
+
+	if (bUseFuel && CurrentTruckFuel <= KINDA_SMALL_NUMBER)
+	{
+		CurrentThrottleInput = 0.0f;
+		if (UChaosWheeledVehicleMovementComponent* MoveComp = Cast<UChaosWheeledVehicleMovementComponent>(GetVehicleMovement()))
+		{
+			MoveComp->SetThrottleInput(0.0f);
+		}
+	}
+}
+
+void ATruck::RefuelTruck(float FuelAmount)
+{
+	if (FuelAmount > 0.0f)
+	{
+		SetTruckFuel(CurrentTruckFuel + FuelAmount);
+	}
+}
+
+void ATruck::UpdateFuelConsumption(float DeltaTime)
+{
+	if (!bUseFuel || bTruckDestroyed || DeltaTime <= 0.0f ||
+		FuelConsumptionPerSecond <= 0.0f || FMath::IsNearlyZero(CurrentThrottleInput))
+	{
+		return;
+	}
+
+	const float FuelUsed = FuelConsumptionPerSecond * FMath::Abs(CurrentThrottleInput) * DeltaTime;
+	SetTruckFuel(CurrentTruckFuel - FuelUsed);
 }
 
 void ATruck::MoveRight(float Value)
@@ -1431,6 +1487,22 @@ void ATruck::EndMountedWeaponUse(AFPSBaseCharacter* Character)
 
 void ATruck::RefreshInteractionWidgetsForCharacter(AFPSBaseCharacter* Character)
 {
+	if (Character)
+	{
+		const bool bIsTruckOccupant =
+			Character->CurrentTruck == this &&
+			(Character->IsDrivingTruck() || Character->IsOnTruckCargo() || Character->IsUsingMountedWeapon());
+
+		if (bIsTruckOccupant)
+		{
+			Character->ShowTruckHealthOnHUD(this);
+		}
+		else if (Character->CurrentTruck == nullptr)
+		{
+			Character->RestorePlayerHealthOnHUD();
+		}
+	}
+
 	if (Character && VehiclePawnCollision)
 	{
 		// Seat state is applied only after the server broadcasts S_ENTER_TRUCK / S_EXIT_TRUCK.

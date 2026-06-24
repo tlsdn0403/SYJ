@@ -800,6 +800,12 @@ void Room::UpdateZombies()
 void Room::HandleMove(PlayerRef player, Protocol::C_MOVE pkt)
 {
 	const uint64 objectId = pkt.info().object_id();
+	if (player == nullptr || player->objectInfo == nullptr ||
+		objectId != player->objectInfo->object_id())
+	{
+		return;
+	}
+
 	if (objectId >= ZOMBIE_OBJECT_ID_START)
 	{
 		return;
@@ -829,6 +835,26 @@ void Room::HandleMove(PlayerRef player, Protocol::C_MOVE pkt)
 		movePkt.mutable_info()->CopyFrom(pkt.info());
 
 		SendBufferRef sendBuffer = ServerPacketHandler::MakeSendBuffer(movePkt);
+		Broadcast(sendBuffer);
+		return;
+	}
+
+	if (player->bIsInTruck &&
+		player->currentTruckSeatType == Protocol::TRUCK_SEAT_TURRET)
+	{
+		// Mounted-gun users still send normal character movement from their pawn.
+		// Only packets carrying the turret marker are allowed through this branch.
+		constexpr float TURRET_AIM_PACKET_MARKER = 1.0f;
+		if (std::abs(pkt.info().roll() - TURRET_AIM_PACKET_MARKER) > 0.001f ||
+			!std::isfinite(pkt.info().yaw()) ||
+			!std::isfinite(pkt.info().pitch()))
+		{
+			return;
+		}
+
+		Protocol::S_MOVE aimPkt;
+		aimPkt.mutable_info()->CopyFrom(pkt.info());
+		SendBufferRef sendBuffer = ServerPacketHandler::MakeSendBuffer(aimPkt);
 		Broadcast(sendBuffer);
 		return;
 	}

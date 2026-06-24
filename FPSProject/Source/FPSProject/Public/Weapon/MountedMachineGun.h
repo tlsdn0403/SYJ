@@ -30,6 +30,7 @@ public:
 	void SetWeaponUser(AFPSBaseCharacter* NewUser);
 	void Fire();
 	void UpdateAim(const FRotator& ControlRotation);
+	void ApplyNetworkAim(const FRotator& NetworkAimRotation);
 	FRotator ClampAimRotation(const FRotator& DesiredRotation) const;
 	FVector GetCameraLocation() const;
 	FRotator GetCameraRotation() const;
@@ -117,6 +118,12 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mounted Gun", meta = (ClampMin = "0.0", ClampMax = "180.0"))
 	float MaxYaw = 60.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mounted Gun|Network", meta = (ClampMin = "1.0"))
+	float NetworkAimInterpolationSpeed = 15.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mounted Gun|Network", meta = (ClampMin = "0.01"))
+	float NetworkAimSendInterval = 0.05f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mounted Gun|Recoil")
 	FVector2D RecoilPitchRange = FVector2D(0.2f, 0.45f);
@@ -207,8 +214,13 @@ private:
 	float MagazineAnimationPlayingTime = 0.0f;
 	int32 CurrentBulletsInMagazine = 0;
 	bool bMagazineFirePressed = false;
+	bool bHasNetworkAimTarget = false;
+	float LastNetworkAimSendTime = -1000.0f;
+	FRotator NetworkAimTarget = FRotator::ZeroRotator;
 
 	void ApplyMountedRecoil() const;
+	void ApplyAimVisuals(const FRotator& AimRotation);
+	void SendAimToServer(const FRotator& AimRotation);
 	void ConfigureYawOnlyVisuals();
 	FVector GetIronSightAimTarget(const FVector& MuzzleLocation) const;
 	void ApplyFireAnimation();

@@ -143,6 +143,8 @@ public:
 	void SyncMovementToServer();
 
 	void SetHealth(float currentHp, float maxHp);   //체력 수정 함수
+	void ShowTruckHealthOnHUD(ATruck* Truck);
+	void RestorePlayerHealthOnHUD();
 
 protected:
 	virtual void BeginPlay() override;
@@ -159,6 +161,8 @@ protected:
 	void HandleUseHealPackInput();
 	UFUNCTION()
 	void HandleHealthChanged(float NewHealth, float Damage);
+	UFUNCTION()
+	void HandleDisplayedTruckHealthChanged(float CurrentHealth, float MaxHealth);
 	void LeaveGame();
 	void SendEnterGamePacket();
 
@@ -316,6 +320,9 @@ protected:
 	void UpdateIronSightFirstPersonView(bool bEnable);
 	void ClearTruckInteractionState();
 	void RefreshTruckInteractionState(ATruck* Truck);
+	void StopShowingTruckHealthOnHUD();
+	void UpdateHealthHUD(float CurrentHealth, float MaxHealth);
+	AFPSPlayerController* ResolveHealthHUDController() const;
 
 	void SendMovePacket();
 	void SendDeathPacket();
@@ -332,6 +339,9 @@ protected:
 
 	UPROPERTY(Transient)
 	bool bHasSavedTruckCargoLocalLocation = false;
+
+	UPROPERTY(Transient)
+	TObjectPtr<ATruck> DisplayedHealthTruck = nullptr;
 
 	UPROPERTY(Transient)
 	FVector ReplicatedTruckCargoLocalLocation = FVector::ZeroVector;

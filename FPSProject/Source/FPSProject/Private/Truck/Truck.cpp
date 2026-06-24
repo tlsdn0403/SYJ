@@ -1399,6 +1399,22 @@ void ATruck::EndMountedWeaponUse(AFPSBaseCharacter* Character)
 
 void ATruck::RefreshInteractionWidgetsForCharacter(AFPSBaseCharacter* Character)
 {
+	if (Character)
+	{
+		const bool bIsTruckOccupant =
+			Character->CurrentTruck == this &&
+			(Character->IsDrivingTruck() || Character->IsOnTruckCargo() || Character->IsUsingMountedWeapon());
+
+		if (bIsTruckOccupant)
+		{
+			Character->ShowTruckHealthOnHUD(this);
+		}
+		else if (Character->CurrentTruck == nullptr)
+		{
+			Character->RestorePlayerHealthOnHUD();
+		}
+	}
+
 	if (Character && VehiclePawnCollision)
 	{
 		// Seat state is applied only after the server broadcasts S_ENTER_TRUCK / S_EXIT_TRUCK.

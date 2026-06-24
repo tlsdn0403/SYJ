@@ -57,6 +57,7 @@ public:
 
 	UPROPERTY()
 	UL2BaseUI* L2BaseW;
+
 public:
 	UPROPERTY()
 	UInventoryWidget* InventoryW;

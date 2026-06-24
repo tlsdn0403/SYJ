@@ -70,7 +70,6 @@ void AFPSPlayerController::Pressed1(const FInputActionValue& Value)		//2라운�
 	}
 
 	// 여기서 인벤토리 / 무기 변경 / 슬롯 선택 처리
-	InventoryW->SelectSlot(0); // 예시로 슬롯 1 선택
 }
 
 void AFPSPlayerController::Pressed2(const FInputActionValue& Value)		//2라운드 힐팩 사용
@@ -94,6 +93,7 @@ void AFPSPlayerController::Pressed2(const FInputActionValue& Value)		//2라운�
 		AFPSBaseCharacter* player = Cast<AFPSBaseCharacter>(GetPawn());
 		if (player)
 		{
+			//여기에 100이면 사용못하게 코드 추가해여ㅑ함!!!
 			player->Heal(20.f);
 		}
 	}

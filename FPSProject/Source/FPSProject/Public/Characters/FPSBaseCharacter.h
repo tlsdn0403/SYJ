@@ -152,6 +152,7 @@ protected:
 	void MoveForward(float Value);
 	void MoveRight(float Value);
 	FRotator GetMovementViewRotation() const;
+	FRotator GetMovementViewRotation() const;
 	void StartJump();
 	void StopJump();
 	void Fire();

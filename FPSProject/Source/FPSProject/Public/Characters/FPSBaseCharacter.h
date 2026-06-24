@@ -20,6 +20,8 @@ class UAnimInstance;
 class UAnimationAsset;
 class ATruck;
 class AMountedMachineGun;
+class AFPSPlayerController;
+
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnInventoryUpdated, const TArray<EItemType>&, CurrentInventory);
 
@@ -289,6 +291,11 @@ public:
 	void Heal(float h);
 
 	Protocol::PosInfo* GetPlayerInfo() { return PlayerInfo; }
+
+	//위젯 추가 제거 코드----------------------------------
+	void Add_L1_Widget(AFPSPlayerController* PC);
+	void Add_L2_Widget(AFPSPlayerController* PC);
+	void Delete_L1Widget(AFPSPlayerController* PC);
 
 protected:
 	Protocol::PosInfo* PlayerInfo;

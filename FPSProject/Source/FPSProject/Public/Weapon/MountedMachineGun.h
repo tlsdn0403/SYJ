@@ -34,6 +34,7 @@ public:
 	FRotator ClampAimRotation(const FRotator& DesiredRotation) const;
 	FVector GetCameraLocation() const;
 	FRotator GetCameraRotation() const;
+	float GetCameraFOV() const { return CameraFOV; }
 	void ConfigureOperatorSeat(const FTransform& SeatWorldTransform);
 	void AttachUserToOperatorSeat(AFPSBaseCharacter* User);
 	float GetFireInterval() const { return FireInterval; }
@@ -82,6 +83,9 @@ protected:
 	// gun assembly prevents the view from clipping through the modified turret mesh.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mounted Gun|Camera")
 	FVector OperatorCameraOffset = FVector(25.0f, 0.0f, 70.0f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mounted Gun|Camera", meta = (ClampMin = "30.0", ClampMax = "120.0"))
+	float CameraFOV = 90.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mounted Gun|Camera", meta = (ClampMin = "1000.0"))
 	float IronSightAimDistance = 100000.0f;

@@ -307,6 +307,7 @@ void AFPSBaseCharacter::Tick(float DeltaTime)
 				CurrentMountedWeapon->GetCameraLocation(),
 				CurrentMountedWeapon->GetCameraRotation()
 			);
+			FPSCameraComponent->FieldOfView = CurrentMountedWeapon->GetCameraFOV();
 		}
 	}
 
@@ -782,6 +783,7 @@ void AFPSBaseCharacter::EnterMountedWeapon(ATruck* Truck, AMountedMachineGun* Mo
 			MountedWeapon->GetCameraLocation(),
 			MountedWeapon->GetCameraRotation()
 		);
+		FPSCameraComponent->FieldOfView = MountedWeapon->GetCameraFOV();
 		FPSCameraComponent->SetActive(true);
 	}
 

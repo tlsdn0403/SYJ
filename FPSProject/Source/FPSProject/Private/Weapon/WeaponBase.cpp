@@ -21,11 +21,19 @@ bool bDebug = false;
 
 namespace
 {
-	const FVector SecondFemaleWeaponRelativeLocation(-8.096968f, 5.593202f, 0.400127f);
-	const FRotator SecondFemaleWeaponRelativeRotation(-0.023171f, 82.465881f, 13.423545f);
-	const FVector SecondFemaleWeaponRelativeScale(1.0f, 1.0f, 1.0f);
+	const FVector DefaultThirdPersonWeaponMeshRelativeLocation(-8.883712f, 5.298776f, -0.142411f);
+	const FRotator DefaultThirdPersonWeaponMeshRelativeRotation(-0.023171f, 82.465882f, 13.423545f);
+	const FVector DefaultThirdPersonWeaponMeshRelativeScale(1.0f, 1.0f, 1.0f);
 
-	bool IsSecondFemaleCharacter(const AFPSBaseCharacter* TargetCharacter)
+	const FVector CharacterTwoWeaponMeshRelativeLocation(-0.965218f, -1.088177f, 0.471725f);
+	const FRotator CharacterTwoWeaponMeshRelativeRotation(45.649582f, 16.242712f, 17.986916f);
+	const FVector CharacterTwoWeaponMeshRelativeScale(1.0f, 1.0f, 1.0f);
+
+	const FVector CharacterThreeWeaponMeshRelativeLocation(-0.634522f, -2.488086f, 0.703186f);
+	const FRotator CharacterThreeWeaponMeshRelativeRotation(26.268092f, 6.162865f, 15.621803f);
+	const FVector CharacterThreeWeaponMeshRelativeScale(1.0f, 1.0f, 1.0f);
+
+	bool UsesCharacterTwoWeaponMeshOffset(const AFPSBaseCharacter* TargetCharacter)
 	{
 		if (!TargetCharacter)
 		{
@@ -34,7 +42,8 @@ namespace
 
 		if (const UClass* CharacterClass = TargetCharacter->GetClass())
 		{
-			if (CharacterClass->GetPathName().Contains(TEXT("BP_FPSBaseCharacter2")))
+			const FString CharacterClassPath = CharacterClass->GetPathName();
+			if (CharacterClassPath.Contains(TEXT("BP_FPSBaseCharacter2")))
 			{
 				return true;
 			}
@@ -45,6 +54,56 @@ namespace
 		return TargetSkeletalMesh &&
 			(TargetSkeletalMesh->GetPathName().Contains(TEXT("/Sarah/")) ||
 			 TargetSkeletalMesh->GetName().Contains(TEXT("SK_Sarah")));
+	}
+
+	bool UsesCharacterThreeWeaponMeshOffset(const AFPSBaseCharacter* TargetCharacter)
+	{
+		if (!TargetCharacter)
+		{
+			return false;
+		}
+
+		if (const UClass* CharacterClass = TargetCharacter->GetClass())
+		{
+			if (CharacterClass->GetPathName().Contains(TEXT("BP_FPSBaseCharacter3")))
+			{
+				return true;
+			}
+		}
+
+		const USkeletalMeshComponent* TargetMesh = TargetCharacter->GetMesh();
+		const USkeletalMesh* TargetSkeletalMesh = TargetMesh ? TargetMesh->GetSkeletalMeshAsset() : nullptr;
+		return TargetSkeletalMesh &&
+			(TargetSkeletalMesh->GetPathName().Contains(TEXT("/QuantumCharacter/")) ||
+			 TargetSkeletalMesh->GetName().Contains(TEXT("SKM_QuantumCharacter")));
+	}
+
+	void ApplyCharacterWeaponMeshOffset(USkeletalMeshComponent* TargetWeaponMesh, const AFPSBaseCharacter* TargetCharacter)
+	{
+		if (!TargetWeaponMesh)
+		{
+			return;
+		}
+
+		if (UsesCharacterThreeWeaponMeshOffset(TargetCharacter))
+		{
+			TargetWeaponMesh->SetRelativeLocation(CharacterThreeWeaponMeshRelativeLocation);
+			TargetWeaponMesh->SetRelativeRotation(CharacterThreeWeaponMeshRelativeRotation);
+			TargetWeaponMesh->SetRelativeScale3D(CharacterThreeWeaponMeshRelativeScale);
+			return;
+		}
+
+		if (UsesCharacterTwoWeaponMeshOffset(TargetCharacter))
+		{
+			TargetWeaponMesh->SetRelativeLocation(CharacterTwoWeaponMeshRelativeLocation);
+			TargetWeaponMesh->SetRelativeRotation(CharacterTwoWeaponMeshRelativeRotation);
+			TargetWeaponMesh->SetRelativeScale3D(CharacterTwoWeaponMeshRelativeScale);
+			return;
+		}
+
+		TargetWeaponMesh->SetRelativeLocation(DefaultThirdPersonWeaponMeshRelativeLocation);
+		TargetWeaponMesh->SetRelativeRotation(DefaultThirdPersonWeaponMeshRelativeRotation);
+		TargetWeaponMesh->SetRelativeScale3D(DefaultThirdPersonWeaponMeshRelativeScale);
 	}
 }
 
@@ -180,8 +239,7 @@ void AWeaponBase::AttachWeapon(AFPSBaseCharacter* TargetCharacter)
 	WeaponMesh->SetRelativeRotation(FRotator(1.090108f, -88.966904f, -4.015320f));*/
 
 	// 부착 후 무기  위치, 회전 조정
-	WeaponMesh->SetRelativeLocation(FVector(-8.883712f, 5.298776f, -0.142411f));
-	WeaponMesh->SetRelativeRotation(FRotator(-0.023171f, 82.465882f, 13.423545f));
+	ApplyCharacterWeaponMeshOffset(WeaponMesh, Character);
 
 	Character->SetCurrentWeapon(this);
 
@@ -242,18 +300,18 @@ void AWeaponBase::AlignThirdPersonWeaponToReference(AFPSBaseCharacter* TargetCha
 		ThirdPersonWeaponRelativeRotation,
 		ThirdPersonWeaponRelativeLocation,
 		ThirdPersonWeaponRelativeScale);
-	const FTransform CombinedRelativeTransform = IsSecondFemaleCharacter(TargetCharacter)
-		? FTransform(
-			SecondFemaleWeaponRelativeRotation,
-			SecondFemaleWeaponRelativeLocation,
-			SecondFemaleWeaponRelativeScale)
-		: WeaponFineTune * ReferenceSocketTransform;
+	const FTransform CombinedRelativeTransform = WeaponFineTune * ReferenceSocketTransform;
 
 	AttachToComponent(
 		TargetMesh,
 		FAttachmentTransformRules::SnapToTargetNotIncludingScale,
 		AttachBoneName);
 	SetActorRelativeTransform(CombinedRelativeTransform);
+
+	if (WeaponMesh)
+	{
+		ApplyCharacterWeaponMeshOffset(WeaponMesh, TargetCharacter);
+	}
 }
 
 void AWeaponBase::SetWeaponCollisionEnabled(bool bEnabled)

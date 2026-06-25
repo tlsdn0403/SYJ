@@ -150,10 +150,6 @@ void AFPSBaseCharacter::Delete_L1Widget(AFPSPlayerController* PC) {
 	{
 		PC->InventoryW->RemoveFromParent();
 	}
-	if (PC->TimerW)
-	{
-		PC->TimerW->RemoveFromParent();
-	}
 }
 
 void AFPSBaseCharacter::Add_L1_Widget(AFPSPlayerController* PC) {
@@ -178,6 +174,10 @@ void AFPSBaseCharacter::Add_L1_Widget(AFPSPlayerController* PC) {
 void AFPSBaseCharacter::Add_L2_Widget(AFPSPlayerController* PC) {
 	if (!PC) return;
 
+	if (PC->BasicW)
+	{
+		PC->BasicW->AddToViewport();
+	}
 	if (PC->EffectW)
 	{
 		PC->EffectW->AddToViewport();

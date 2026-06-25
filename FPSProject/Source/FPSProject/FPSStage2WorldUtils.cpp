@@ -2,6 +2,7 @@
 
 #include "Characters/FPSBaseCharacter.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "Components/WidgetComponent.h"
 #include "EngineUtils.h"
 #include "Engine/World.h"
 #include "GameFramework/Actor.h"
@@ -33,6 +34,19 @@ namespace FPSStage2WorldUtils
 			SkeletalMeshComponent->SetVisibility(true, true);
 			SkeletalMeshComponent->SetOwnerNoSee(false);
 			SkeletalMeshComponent->SetOnlyOwnerSee(false);
+		}
+
+		TArray<UWidgetComponent*> WidgetComponents;
+		Character->GetComponents<UWidgetComponent>(WidgetComponents);
+		for (UWidgetComponent* WidgetComponent : WidgetComponents)
+		{
+			if (!IsValid(WidgetComponent))
+			{
+				continue;
+			}
+
+			WidgetComponent->SetHiddenInGame(false, true);
+			WidgetComponent->SetVisibility(true, true);
 		}
 	}
 

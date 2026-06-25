@@ -19,6 +19,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Animation/AnimationAsset.h"
 #include "ClientPacketHandler.h"
+#include "FPSStage2WorldUtils.h"
 #include "FPSProjectGameInstance.h"
 #include "Kismet/GameplayStatics.h"
 #include "Perception/AIPerceptionStimuliSourceComponent.h"
@@ -131,10 +132,14 @@ void AFPSBaseCharacter::BeginPlay()
 
 	if (PC)
 	{
-		if (PC->InventoryW)
+		if (FPSStage2WorldUtils::IsStage2World(GetWorld()))
+		{
+			Delete_L1Widget(PC);
+			Add_L2_Widget(PC);
+		}
+		else
 		{
 			Add_L1_Widget(PC);
-			Add_L2_Widget(PC);
 		}
 	}
 }
@@ -144,21 +149,43 @@ void AFPSBaseCharacter::Delete_L1Widget(AFPSPlayerController* PC) {
 	if (PC->InventoryW)
 	{
 		PC->InventoryW->RemoveFromParent();
-		PC->TimerW->RemoveFromParent();
 	}
 }
 
 void AFPSBaseCharacter::Add_L1_Widget(AFPSPlayerController* PC) {
-	PC->InventoryW->AddToViewport();
-	PC->TimerW->AddToViewport();
-	PC->BasicW->AddToViewport();
+	if (!PC) return;
+
+	if (PC->InventoryW)
+	{
+		PC->InventoryW->AddToViewport();
+	}
+	if (PC->TimerW)
+	{
+		PC->TimerW->AddToViewport();
+	}
+	if (PC->BasicW)
+	{
+		PC->BasicW->AddToViewport();
+	}
 	RefreshStage2ItemUI();
 	SetHealth(100, 100); //이건 처음값 임의 세팅
 }
 
 void AFPSBaseCharacter::Add_L2_Widget(AFPSPlayerController* PC) {
-	PC->EffectW->AddToViewport();
-	PC->L2BaseW->AddToViewport();
+	if (!PC) return;
+
+	if (PC->BasicW)
+	{
+		PC->BasicW->AddToViewport();
+	}
+	if (PC->EffectW)
+	{
+		PC->EffectW->AddToViewport();
+	}
+	if (PC->L2BaseW)
+	{
+		PC->L2BaseW->AddToViewport();
+	}
 }
 
 void AFPSBaseCharacter::Tick(float DeltaTime)
@@ -179,7 +206,6 @@ void AFPSBaseCharacter::Tick(float DeltaTime)
 		!bIsHoldAiming &&
 		!bIsDrivingTruck &&
 		!bIsUsingMountedWeapon &&
-		!bIsOnTruckCargo &&
 		CurrentWeapon != nullptr;
 
 	UpdateIronSightFirstPersonView(bUseIronSightCamera && bUseFirstPersonWeaponIronSight);
@@ -281,6 +307,7 @@ void AFPSBaseCharacter::Tick(float DeltaTime)
 				CurrentMountedWeapon->GetCameraLocation(),
 				CurrentMountedWeapon->GetCameraRotation()
 			);
+			FPSCameraComponent->FieldOfView = CurrentMountedWeapon->GetCameraFOV();
 		}
 	}
 
@@ -756,6 +783,7 @@ void AFPSBaseCharacter::EnterMountedWeapon(ATruck* Truck, AMountedMachineGun* Mo
 			MountedWeapon->GetCameraLocation(),
 			MountedWeapon->GetCameraRotation()
 		);
+		FPSCameraComponent->FieldOfView = MountedWeapon->GetCameraFOV();
 		FPSCameraComponent->SetActive(true);
 	}
 
@@ -971,7 +999,7 @@ void AFPSBaseCharacter::StopJump()
 
 void AFPSBaseCharacter::StartAim()
 {
-	if (bIsDrivingTruck || bIsUsingMountedWeapon || bIsOnTruckCargo || !CurrentWeapon)
+	if (bIsDrivingTruck || bIsUsingMountedWeapon || !CurrentWeapon)
 	{
 		return;
 	}
@@ -1372,7 +1400,6 @@ void AFPSBaseCharacter::UpdateIronSightFirstPersonView(bool bEnable)
 		IsLocallyControlled() &&
 		!bIsDrivingTruck &&
 		!bIsUsingMountedWeapon &&
-		!bIsOnTruckCargo &&
 		IsValid(CurrentWeapon) &&
 		IsValid(FPSCameraComponent);
 

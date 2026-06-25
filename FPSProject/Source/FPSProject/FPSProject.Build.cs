@@ -13,7 +13,9 @@ public class FPSProject : ModuleRules
             "Niagara",
             "AIModule",
             "GameplayTasks",
-            "NavigationSystem"
+            "NavigationSystem",
+            "LevelSequence",
+            "MovieScene"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] { "ProtobufCore" });

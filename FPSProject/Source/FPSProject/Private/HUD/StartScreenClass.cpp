@@ -18,9 +18,8 @@ void UStartScreenClass::NativeConstruct()
 		LoginButton->OnClicked.AddDynamic(this, &UStartScreenClass::OnClickLogin);
 	}
 
-	// ---------------------------------------------------------
-	// [디버그용 자동 세팅] IP와 랜덤 닉네임을 알아서 타이핑해줌
-	////[디버그용 자동 세팅] IP와 랜덤 닉네임을 알아서 타이핑해줌
+	//// ---------------------------------------------------------
+	////// [디버그용 자동 세팅] IP와 랜덤 닉네임을 알아서 타이핑해줌
 	//if (IPT)
 	//{
 	//	IPT->SetText(FText::FromString(TEXT("127.0.0.1")));
@@ -33,10 +32,10 @@ void UStartScreenClass::NativeConstruct()
 	//	NicknameT->SetText(FText::FromString(RandomNick));
 	//}
 
-	//// [완전 자동화] 0.5초 뒤에 알아서 로그인 버튼을 클릭해버림! (클릭조차 하기 싫을 때)
+	////// [완전 자동화] 0.5초 뒤에 알아서 로그인 버튼을 클릭해버림! (클릭조차 하기 싫을 때)
 	//FTimerHandle AutoLoginTimer;
 	//GetWorld()->GetTimerManager().SetTimer(AutoLoginTimer, this, &UStartScreenClass::OnClickLogin, 0.5f, false);
-	// ---------------------------------------------------------
+	//// ---------------------------------------------------------
 }
 
 void UStartScreenClass::PlayAni_Start() {

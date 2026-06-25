@@ -1,6 +1,8 @@
 ﻿#include "Weapon/MountedMachineGun.h"
 
+#include "ClientPacketHandler.h"
 #include "Characters/FPSBaseCharacter.h"
+#include "FPSProject.h"
 #include "Truck/Truck.h"
 #include "Kismet/GameplayStatics.h"
 #include "Particles/ParticleSystem.h"
@@ -136,6 +138,21 @@ void AMountedMachineGun::BeginPlay()
 void AMountedMachineGun::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	if (bHasNetworkAimTarget && (!CurrentUser || !CurrentUser->IsLocallyControlled()))
+	{
+		const FRotator CurrentAim(
+			PitchPivot ? PitchPivot->GetRelativeRotation().Pitch : 0.0f,
+			GetActorRotation().Yaw + (YawPivot ? YawPivot->GetRelativeRotation().Yaw : 0.0f),
+			0.0f);
+		const FRotator SmoothedAim = FMath::RInterpTo(
+			CurrentAim,
+			NetworkAimTarget,
+			DeltaTime,
+			NetworkAimInterpolationSpeed);
+		ApplyAimVisuals(SmoothedAim);
+	}
+
 	// 애니메이션 업데이트
 	UpdateFireAnimation(DeltaTime);
 	UpdateAmmoFeedAnimation(DeltaTime);
@@ -150,6 +167,8 @@ void AMountedMachineGun::SetWeaponUser(AFPSBaseCharacter* NewUser)
 	}
 
 	CurrentUser = NewUser;
+	bHasNetworkAimTarget = false;
+	LastNetworkAimSendTime = -1000.0f;
 
 	if (CurrentUser)
 	{
@@ -329,10 +348,7 @@ void AMountedMachineGun::Fire()
 
 void AMountedMachineGun::UpdateAim(const FRotator& ControlRotation)
 {
-	const FRotator ActorRotation = GetActorRotation();
 	const FRotator ClampedRotation = ClampAimRotation(ControlRotation);
-	const float RelativeYaw = FMath::FindDeltaAngleDegrees(ActorRotation.Yaw, ClampedRotation.Yaw);
-	const float RelativePitch = ClampedRotation.Pitch;
 
 	if (CurrentUser && CurrentUser->IsLocallyControlled())
 	{
@@ -341,6 +357,23 @@ void AMountedMachineGun::UpdateAim(const FRotator& ControlRotation)
 			Controller->SetControlRotation(ClampedRotation);
 		}
 	}
+
+	ApplyAimVisuals(ClampedRotation);
+	SendAimToServer(ClampedRotation);
+}
+
+void AMountedMachineGun::ApplyNetworkAim(const FRotator& NetworkAimRotation)
+{
+	NetworkAimTarget = ClampAimRotation(NetworkAimRotation);
+	bHasNetworkAimTarget = true;
+}
+
+void AMountedMachineGun::ApplyAimVisuals(const FRotator& AimRotation)
+{
+	const FRotator ActorRotation = GetActorRotation();
+	const FRotator ClampedRotation = ClampAimRotation(AimRotation);
+	const float RelativeYaw = FMath::FindDeltaAngleDegrees(ActorRotation.Yaw, ClampedRotation.Yaw);
+	const float RelativePitch = ClampedRotation.Pitch;
 
 	if (YawPivot)
 	{
@@ -359,6 +392,36 @@ void AMountedMachineGun::UpdateAim(const FRotator& ControlRotation)
 		CameraBoom->SetWorldRotation(ClampedRotation);
 		CameraBoom->SocketOffset = FVector::ZeroVector;
 	}
+}
+
+void AMountedMachineGun::SendAimToServer(const FRotator& AimRotation)
+{
+	if (!CurrentUser || !CurrentUser->IsLocallyControlled() || !CurrentUser->GetPlayerInfo() || !GetWorld())
+	{
+		return;
+	}
+
+	const float CurrentTime = GetWorld()->GetTimeSeconds();
+	if (CurrentTime - LastNetworkAimSendTime < NetworkAimSendInterval)
+	{
+		return;
+	}
+	LastNetworkAimSendTime = CurrentTime;
+
+	Protocol::C_MOVE AimPacket;
+	Protocol::PosInfo* Info = AimPacket.mutable_info();
+	Info->set_object_id(CurrentUser->GetPlayerInfo()->object_id());
+	Info->set_x(CurrentUser->GetActorLocation().X);
+	Info->set_y(CurrentUser->GetActorLocation().Y);
+	Info->set_z(CurrentUser->GetActorLocation().Z);
+	Info->set_yaw(AimRotation.Yaw);
+	Info->set_pitch(AimRotation.Pitch);
+	// Non-zero roll marks a turret-aim packet. Regular character movement keeps
+	// roll at zero and is still rejected by the server while using the turret.
+	Info->set_roll(1.0f);
+	Info->set_state(Protocol::MOVE_STATE_IDLE);
+
+	SEND_PACKET(AimPacket);
 }
 
 FVector AMountedMachineGun::GetIronSightAimTarget(const FVector& MuzzleLocation) const

@@ -10,8 +10,15 @@
 #include "HUD/LoadingUI.h"
 #include "Items/LootItemBase.h"
 #include "Items/Stage1ItemSpawnPoint.h"
+#include "LevelSequence.h"
+#include "LevelSequenceActor.h"
+#include "LevelSequencePlayer.h"
+#include "MovieScene.h"
+#include "Components/PrimitiveComponent.h"
+#include "GameFramework/PlayerController.h"
 #include "Kismet/GameplayStatics.h"
 #include "Stage2/Stage2TileManager.h"
+#include "Truck/Truck.h"
 #include "Algo/Sort.h"
 
 FFPSStageFlowManager::FFPSStageFlowManager(UFPSProjectGameInstance& InOwner)
@@ -140,26 +147,6 @@ void FFPSStageFlowManager::RemoveEntryLoadingWidget()
 	}
 }
 
-void FFPSStageFlowManager::RemoveStage1WidgetsForLocalPlayer()
-{
-	AFPSPlayerController* PlayerController = Cast<AFPSPlayerController>(UGameplayStatics::GetPlayerController(&Owner, 0));
-	if (PlayerController == nullptr)
-	{
-		return;
-	}
-
-	AFPSBaseCharacter* LocalCharacter = Owner.MyPlayer;
-	if (LocalCharacter == nullptr)
-	{
-		LocalCharacter = Cast<AFPSBaseCharacter>(PlayerController->GetPawn());
-	}
-
-	if (LocalCharacter)
-	{
-		LocalCharacter->Delete_L1Widget(PlayerController);
-	}
-}
-
 void FFPSStageFlowManager::HandlePostLoadMap(UWorld* LoadedWorld)
 {
 	bHasDistributedStage1CargoItems = false;
@@ -188,7 +175,6 @@ void FFPSStageFlowManager::HandlePostLoadMap(UWorld* LoadedWorld)
 void FFPSStageFlowManager::CompleteStage2MapLoad()
 {
 	RemoveEntryLoadingWidget();
-	RemoveStage1WidgetsForLocalPlayer();
 	bWaitingForStage2MapLoad = false;
 	PendingStageTransitionLevelName.Empty();
 }
@@ -229,11 +215,6 @@ void FFPSStageFlowManager::ProcessPendingStage2Spawns()
 		}
 
 		Owner.ProcessSpawnObject(PendingSpawn.ObjectInfo, PendingSpawn.bIsMine);
-
-		if (PendingSpawn.bIsMine)
-		{
-			RemoveStage1WidgetsForLocalPlayer();
-		}
 	}
 
 	TryDistributeStage1CargoItemsToPlayers();
@@ -339,8 +320,15 @@ void FFPSStageFlowManager::HandleStageTransition(const Protocol::S_STAGE_TRANSIT
 	}
 
 	PendingStageTransitionLevelName = TargetLevelName;
-	bWaitingForStage2MapLoad = FPSStage2WorldUtils::IsStage2LevelName(TargetLevelName);
-	UGameplayStatics::OpenLevel(&Owner, FName(*TargetLevelName));
+	const bool bTargetIsStage2 = FPSStage2WorldUtils::IsStage2LevelName(TargetLevelName);
+	bWaitingForStage2MapLoad = false;
+
+	if (bTargetIsStage2 && TryPlayStageTransitionCinematic())
+	{
+		return;
+	}
+
+	OpenPendingStageTransitionLevel();
 }
 
 void FFPSStageFlowManager::TickStageFlow()
@@ -410,4 +398,164 @@ void FFPSStageFlowManager::ApplyStage1ItemSpawnSeed()
 	}
 
 	bHasAppliedStage1ItemSpawns = true;
+}
+
+bool FFPSStageFlowManager::TryPlayStageTransitionCinematic()
+{
+	if (bStageTransitionCinematicPlaying)
+	{
+		return true;
+	}
+
+	UWorld* World = Owner.GetWorld();
+	if (World == nullptr)
+	{
+		return false;
+	}
+
+	static const TCHAR* StageTransitionSequencePath =
+		TEXT("/Game/Maps/Map_Level1/LS_level1.LS_level1");
+	ULevelSequence* Sequence = LoadObject<ULevelSequence>(nullptr, StageTransitionSequencePath);
+	if (Sequence == nullptr)
+	{
+		UE_LOG(LogTemp, Warning,
+			TEXT("[StageTransition] Failed to load cinematic sequence: %s"),
+			StageTransitionSequencePath);
+		return false;
+	}
+
+	FMovieSceneSequencePlaybackSettings PlaybackSettings;
+	PlaybackSettings.bAutoPlay = false;
+
+	ALevelSequenceActor* SequenceActor = nullptr;
+	ULevelSequencePlayer* SequencePlayer =
+		ULevelSequencePlayer::CreateLevelSequencePlayer(World, Sequence, PlaybackSettings, SequenceActor);
+	if (SequencePlayer == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[StageTransition] Failed to create LS_level1 player."));
+		return false;
+	}
+
+	StageTransitionSequenceActor = SequenceActor;
+	StageTransitionSequencePlayer = SequencePlayer;
+	bStageTransitionCinematicPlaying = true;
+	PrepareStageTransitionCinematicActors();
+	SetStageTransitionCinematicMode(true);
+
+	float SequenceDurationSeconds = 0.0f;
+	if (const UMovieScene* MovieScene = Sequence->GetMovieScene())
+	{
+		const TRange<FFrameNumber> PlaybackRange = MovieScene->GetPlaybackRange();
+		if (PlaybackRange.HasLowerBound() && PlaybackRange.HasUpperBound())
+		{
+			const FFrameNumber DurationFrames =
+				PlaybackRange.GetUpperBoundValue() - PlaybackRange.GetLowerBoundValue();
+			SequenceDurationSeconds = static_cast<float>(
+				MovieScene->GetTickResolution().AsSeconds(DurationFrames));
+		}
+	}
+
+	SequencePlayer->Play();
+
+	const float SafeDurationSeconds = FMath::Max(SequenceDurationSeconds, 0.1f);
+	World->GetTimerManager().SetTimer(
+		StageTransitionCinematicTimerHandle,
+		FTimerDelegate::CreateRaw(this, &FFPSStageFlowManager::FinishStageTransitionCinematic),
+		SafeDurationSeconds,
+		false);
+
+	UE_LOG(LogTemp, Log,
+		TEXT("[StageTransition] Playing LS_level1 before opening level '%s' duration=%.2f"),
+		*PendingStageTransitionLevelName,
+		SafeDurationSeconds);
+	return true;
+}
+
+void FFPSStageFlowManager::FinishStageTransitionCinematic()
+{
+	if (!bStageTransitionCinematicPlaying)
+	{
+		return;
+	}
+
+	if (ULevelSequencePlayer* SequencePlayer = StageTransitionSequencePlayer.Get())
+	{
+		SequencePlayer->Stop();
+	}
+
+	if (ALevelSequenceActor* SequenceActor = StageTransitionSequenceActor.Get())
+	{
+		SequenceActor->Destroy();
+	}
+
+	StageTransitionSequencePlayer.Reset();
+	StageTransitionSequenceActor.Reset();
+	bStageTransitionCinematicPlaying = false;
+	SetStageTransitionCinematicMode(false);
+
+	OpenPendingStageTransitionLevel();
+}
+
+void FFPSStageFlowManager::OpenPendingStageTransitionLevel()
+{
+	if (PendingStageTransitionLevelName.IsEmpty())
+	{
+		return;
+	}
+
+	bWaitingForStage2MapLoad = FPSStage2WorldUtils::IsStage2LevelName(PendingStageTransitionLevelName);
+	UGameplayStatics::OpenLevel(&Owner, FName(*PendingStageTransitionLevelName));
+}
+
+void FFPSStageFlowManager::SetStageTransitionCinematicMode(bool bEnable)
+{
+	if (APlayerController* PlayerController = UGameplayStatics::GetPlayerController(&Owner, 0))
+	{
+		PlayerController->SetCinematicMode(bEnable, false, true, true, true);
+	}
+}
+
+void FFPSStageFlowManager::PrepareStageTransitionCinematicActors()
+{
+	UWorld* World = Owner.GetWorld();
+	if (World == nullptr)
+	{
+		return;
+	}
+
+	for (TActorIterator<ATruck> It(World); It; ++It)
+	{
+		ATruck* Truck = *It;
+		if (!IsValid(Truck))
+		{
+			continue;
+		}
+
+		Truck->SetActorHiddenInGame(false);
+
+		TArray<UPrimitiveComponent*> PrimitiveComponents;
+		Truck->GetComponents<UPrimitiveComponent>(PrimitiveComponents);
+		for (UPrimitiveComponent* PrimitiveComponent : PrimitiveComponents)
+		{
+			if (!IsValid(PrimitiveComponent))
+			{
+				continue;
+			}
+
+			PrimitiveComponent->SetHiddenInGame(false, true);
+			PrimitiveComponent->SetVisibility(true, true);
+		}
+	}
+
+	if (AFPSBaseCharacter* LocalCharacter = Owner.MyPlayer)
+	{
+		FPSStage2WorldUtils::RestoreNetworkCharacterVisibility(LocalCharacter);
+	}
+
+	TArray<TPair<uint64, AFPSBaseCharacter*>> RegisteredPlayers;
+	Owner.GetValidRegisteredPlayers(RegisteredPlayers);
+	for (const TPair<uint64, AFPSBaseCharacter*>& PlayerEntry : RegisteredPlayers)
+	{
+		FPSStage2WorldUtils::RestoreNetworkCharacterVisibility(PlayerEntry.Value);
+	}
 }

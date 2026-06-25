@@ -30,9 +30,11 @@ public:
 	void SetWeaponUser(AFPSBaseCharacter* NewUser);
 	void Fire();
 	void UpdateAim(const FRotator& ControlRotation);
+	void ApplyNetworkAim(const FRotator& NetworkAimRotation);
 	FRotator ClampAimRotation(const FRotator& DesiredRotation) const;
 	FVector GetCameraLocation() const;
 	FRotator GetCameraRotation() const;
+	float GetCameraFOV() const { return CameraFOV; }
 	void ConfigureOperatorSeat(const FTransform& SeatWorldTransform);
 	void AttachUserToOperatorSeat(AFPSBaseCharacter* User);
 	float GetFireInterval() const { return FireInterval; }
@@ -82,6 +84,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mounted Gun|Camera")
 	FVector OperatorCameraOffset = FVector(25.0f, 0.0f, 70.0f);
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mounted Gun|Camera", meta = (ClampMin = "30.0", ClampMax = "120.0"))
+	float CameraFOV = 90.0f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mounted Gun|Camera", meta = (ClampMin = "1000.0"))
 	float IronSightAimDistance = 100000.0f;
 
@@ -117,6 +122,12 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mounted Gun", meta = (ClampMin = "0.0", ClampMax = "180.0"))
 	float MaxYaw = 60.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mounted Gun|Network", meta = (ClampMin = "1.0"))
+	float NetworkAimInterpolationSpeed = 15.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mounted Gun|Network", meta = (ClampMin = "0.01"))
+	float NetworkAimSendInterval = 0.05f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mounted Gun|Recoil")
 	FVector2D RecoilPitchRange = FVector2D(0.2f, 0.45f);
@@ -207,8 +218,13 @@ private:
 	float MagazineAnimationPlayingTime = 0.0f;
 	int32 CurrentBulletsInMagazine = 0;
 	bool bMagazineFirePressed = false;
+	bool bHasNetworkAimTarget = false;
+	float LastNetworkAimSendTime = -1000.0f;
+	FRotator NetworkAimTarget = FRotator::ZeroRotator;
 
 	void ApplyMountedRecoil() const;
+	void ApplyAimVisuals(const FRotator& AimRotation);
+	void SendAimToServer(const FRotator& AimRotation);
 	void ConfigureYawOnlyVisuals();
 	FVector GetIronSightAimTarget(const FVector& MuzzleLocation) const;
 	void ApplyFireAnimation();

@@ -1,13 +1,16 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Engine/EngineTypes.h"
 #include "GameFramework/Actor.h"
 #include "Stage2/Stage2TileMarker.h"
+#include "UObject/ObjectKey.h"
 #include "Stage2TileManager.generated.h"
 
 class ULevelStreamingDynamic;
 class UWorld;
 class ABaseZombie;
+class UPrimitiveComponent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FStage2InitialTilesReadySignature);
 
@@ -114,6 +117,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stage2|Pool")
 	bool bHidePooledTiles = true;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stage2|Pool")
+	bool bDisablePooledTileCollision = true;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stage2|Rules", meta = (ClampMin = "1"))
 	int32 GoalAfterPlayableTileCount = 8;
 
@@ -187,6 +193,7 @@ private:
 	int32 ConsecutiveRightTurns = 0;
 	int32 NextPoolParkingIndex = 0;
 	FRandomStream RandomStream;
+	TMap<TObjectKey<UPrimitiveComponent>, ECollisionEnabled::Type> CachedTileCollisionStates;
 
 	void PreloadTilePool();
 	void QueueTilePoolLevels(const TArray<TSoftObjectPtr<UWorld>>& LevelArray, EStage2TileType TileType);
@@ -196,8 +203,11 @@ private:
 	bool IsTilePoolReady() const;
 	bool IsPoolTileAvailable(EStage2TileType TileType) const;
 	bool TryActivatePooledTile(EStage2TileType TileType, const FTransform& EntryTransform);
-	bool TryMoveTileTolocation(FStage2LoadedTile& LoadedTile, const FTransform& NewLevelTransform) const;
+	bool TryMoveTileTolocation(FStage2LoadedTile& LoadedTile, const FTransform& NewLevelTransform);
 	void SetTileRenderingEnabled(const FStage2LoadedTile& LoadedTile, bool bEnabled) const;
+	void SetTileCollisionEnabled(const FStage2LoadedTile& LoadedTile, bool bEnabled);
+	void RefreshTilePhysicsState(const FStage2LoadedTile& LoadedTile) const;
+	void ForgetTileCollisionStates(const FStage2LoadedTile& LoadedTile);
 	FTransform MakePoolParkingTransform();
 	void FinalizeLoadedTile(int32 TileIndex);
 	void UpdateNextSpawnTransformFromTile(const AStage2TileMarker* TileMarker);

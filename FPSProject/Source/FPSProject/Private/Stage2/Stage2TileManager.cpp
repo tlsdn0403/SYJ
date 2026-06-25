@@ -12,7 +12,7 @@
 AStage2TileManager::AStage2TileManager()
 {
 	PrimaryActorTick.bCanEverTick = true;
-	PrimaryActorTick.bStartWithTickEnabled = true;
+	PrimaryActorTick.bStartWithTickEnabled = false;
 
 	NextSpawnTransform = GetActorTransform();
 }
@@ -195,6 +195,7 @@ void AStage2TileManager::PreloadTilePool()
 	bTilePoolPreloadStarted = true;
 	bTilePoolReady = false;
 	NextPoolParkingIndex = 0;
+	SetActorTickEnabled(true);
 
 	// 각 타입별 타일을 미리 보이지 않는 위치에 로드해 두고, 런타임에는 새로 로드하지 않는다.
 	QueueTilePoolLevels(StartTileLevels, EStage2TileType::Start);
@@ -206,6 +207,7 @@ void AStage2TileManager::PreloadTilePool()
 	if (TilePool.Num() == 0)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Stage2TileManager: Tile pool is empty. Check Stage2 tile level settings."));
+		SetActorTickEnabled(false);
 	}
 }
 
@@ -313,6 +315,10 @@ void AStage2TileManager::TryFinalizePooledTiles()
 	if (bTilePoolReady && bVerboseLog)
 	{
 		UE_LOG(LogTemp, Log, TEXT("Stage2TileManager: Preloaded %d pooled tile instance(s)."), TilePool.Num());
+	}
+	if (bTilePoolReady)
+	{
+		SetActorTickEnabled(false);
 	}
 }
 
@@ -904,6 +910,7 @@ void AStage2TileManager::ResetGenerationState()
 	NextPoolParkingIndex = 0;
 	SpawnedPlayableTileCount = 0;
 	NextSpawnTransform = GetActorTransform();
+	SetActorTickEnabled(false);
 }
 
 void AStage2TileManager::SpawnZombiesForTile(FStage2LoadedTile& LoadedTile)

@@ -33,9 +33,6 @@ public:
 	void SetNetworkObjectId(uint64 InNetworkObjectId) { NetworkObjectId = InNetworkObjectId; }
 	uint64 GetNetworkObjectId() const { return NetworkObjectId; }
 
-	// --- 인터페이스 섹션 (Public) ---
-	virtual void Tick(float DeltaTime) override;
-
 	UFUNCTION(BlueprintCallable, Category = "Zombie")
 	bool IsAlive() const { return bIsAlive; }
 

@@ -1185,7 +1185,7 @@ void UFPSProjectGameInstance::HandleFire(const Protocol::S_FIRE& pkt)
 
 	uint64 ShooterId = pkt.object_id();
 
-	UE_LOG(LogTemp, Error, TEXT("[Network] 3. S_FIRE 패킷 서버로부터 수신 완료! 쏜 사람: %llu"), ShooterId);
+	UE_LOG(LogTemp, Verbose, TEXT("[Network] 3. S_FIRE packet received. Shooter=%llu"), ShooterId);
 
 	if (AFPSBaseCharacter* Shooter = WorldObjects->FindPlayer(ShooterId))
 	{

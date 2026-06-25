@@ -85,7 +85,6 @@ protected:
 	UStaticMeshComponent* MeshComp;
 
 public:
-	virtual void Tick(float DeltaTime) override;
 	virtual void Interact_Implementation(AFPSBaseCharacter* Character) override;
 
 	UFUNCTION()

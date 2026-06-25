@@ -87,7 +87,7 @@ FName ABP_Zombiegirl::GetParentBoneForDamage(FName HitBoneName) const
 {
 	const FString BoneString = HitBoneName.ToString();
 
-	UE_LOG(LogTemp, Log, TEXT("ZombieGirl Hit Bone: %s"), *BoneString);
+	UE_LOG(LogTemp, Verbose, TEXT("ZombieGirl Hit Bone: %s"), *BoneString);
 
 	if (BoneString.Contains("Head") ||
 		BoneString.Contains("HeadTop") ||

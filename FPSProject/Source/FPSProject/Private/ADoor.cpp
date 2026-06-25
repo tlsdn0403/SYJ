@@ -11,6 +11,7 @@
 AADoor::AADoor()
 {
 	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bStartWithTickEnabled = false;
 
 	SceneRoot = CreateDefaultSubobject<USceneComponent>(TEXT("SceneRoot"));
 	SetRootComponent(SceneRoot);
@@ -62,9 +63,21 @@ void AADoor::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	if (!DoorMeshComp)
+	{
+		SetActorTickEnabled(false);
+		return;
+	}
+
 	const FRotator Current = DoorMeshComp->GetRelativeRotation();
 	const FRotator NewRot = FMath::RInterpTo(Current, Target, DeltaTime, MoveTime);
 	DoorMeshComp->SetRelativeRotation(NewRot);
+
+	if (NewRot.Equals(Target, 0.1f))
+	{
+		DoorMeshComp->SetRelativeRotation(Target);
+		SetActorTickEnabled(false);
+	}
 }
 
 void AADoor::Interact_Implementation(AFPSBaseCharacter* Character)
@@ -92,6 +105,7 @@ void AADoor::ApplyDoorState(bool bShouldOpen)
 {
 	bOpen = bShouldOpen;
 	Target = bOpen ? (OriginalRotation + MoveDir) : OriginalRotation;
+	SetActorTickEnabled(DoorMeshComp && !DoorMeshComp->GetRelativeRotation().Equals(Target, 0.1f));
 
 	if (UInteractUIClass* UI = Cast<UInteractUIClass>(WidgetComp->GetUserWidgetObject()))
 	{

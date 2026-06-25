@@ -22,7 +22,7 @@ void AZombieSpawner::BeginPlay()
 	{
 		if (GameInstance->IsConnectedToGameServer())
 		{
-			UE_LOG(LogTemp, Warning, TEXT("[ZombieSync] %s BeginPlay skipped auto-spawn because GameServer is connected"), *GetName());
+			UE_LOG(LogTemp, Verbose, TEXT("[ZombieSync] %s BeginPlay skipped auto-spawn because GameServer is connected"), *GetName());
 			return;
 		}
 	}
@@ -43,7 +43,7 @@ void AZombieSpawner::SpawnZombies()
 
 	if (bSpawnOnlyOnce && bHasSpawnedOnce)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[ZombieSync] %s SpawnZombies skipped: already spawned once"), *GetName());
+		UE_LOG(LogTemp, Verbose, TEXT("[ZombieSync] %s SpawnZombies skipped: already spawned once"), *GetName());
 		return;
 	}
 
@@ -53,7 +53,7 @@ void AZombieSpawner::SpawnZombies()
 		return;
 	}
 
-	UE_LOG(LogTemp, Warning, TEXT("[ZombieSync] %s SpawnZombies start. SpawnPointCount=%d"), *GetName(), SpawnPoints.Num());
+	UE_LOG(LogTemp, Verbose, TEXT("[ZombieSync] %s SpawnZombies start. SpawnPointCount=%d"), *GetName(), SpawnPoints.Num());
 
 	TArray<FVector> UsedSpawnLocations;
 	for (ATargetPoint* SpawnPoint : SpawnPoints)
@@ -102,7 +102,7 @@ void AZombieSpawner::SpawnZombies()
 			SpawnPoint->GetActorRotation(),
 			SpawnParameters))
 		{
-			UE_LOG(LogTemp, Warning, TEXT("[ZombieSync] Spawned zombie %s at %s"), *GetNameSafe(SpawnedZombie), *SpawnLocation.ToString());
+			UE_LOG(LogTemp, Verbose, TEXT("[ZombieSync] Spawned zombie %s at %s"), *GetNameSafe(SpawnedZombie), *SpawnLocation.ToString());
 			SpawnedZombies.Add(SpawnedZombie);
 			UsedSpawnLocations.Add(SpawnedZombie->GetActorLocation());
 		}
@@ -113,7 +113,7 @@ void AZombieSpawner::SpawnZombies()
 	}
 
 	bHasSpawnedOnce = true;
-	UE_LOG(LogTemp, Warning, TEXT("[ZombieSync] %s SpawnZombies complete. SpawnedCount=%d"), *GetName(), SpawnedZombies.Num());
+	UE_LOG(LogTemp, Verbose, TEXT("[ZombieSync] %s SpawnZombies complete. SpawnedCount=%d"), *GetName(), SpawnedZombies.Num());
 }
 
 void AZombieSpawner::ClearSpawnedZombies()

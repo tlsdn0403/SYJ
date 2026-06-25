@@ -101,7 +101,7 @@ namespace
 
 AWeaponBase::AWeaponBase()
 {
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false;
 
 	USceneComponent* SceneRoot = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
 	RootComponent = SceneRoot;
@@ -382,7 +382,7 @@ bool AWeaponBase::GetAimCameraViewPoint(FVector& OutLocation, FRotator& OutRotat
 void AWeaponBase::Fire()
 {
 	if (!Character || !Character->GetController()) return;
-	UE_LOG(LogTemp, Log, TEXT("WeaponBase::Fire (Shooter: %s, Weapon: %s)"), *GetNameSafe(Character), *GetName());
+	UE_LOG(LogTemp, Verbose, TEXT("WeaponBase::Fire (Shooter: %s, Weapon: %s)"), *GetNameSafe(Character), *GetName());
 
 	if (ProjectileClass)
 	{
@@ -505,11 +505,6 @@ void AWeaponBase::Fire()
 
 	PlayMuzzleFlash();
 	
-}
-
-void AWeaponBase::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
 }
 
 void AWeaponBase::RemoteFire()

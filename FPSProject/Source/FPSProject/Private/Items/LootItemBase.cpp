@@ -64,7 +64,7 @@ namespace
 
 ALootItemBase::ALootItemBase()
 {
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false;
 
 	SceneRoot = CreateDefaultSubobject<USceneComponent>(TEXT("SceneRoot"));
 	SetRootComponent(SceneRoot);
@@ -114,11 +114,6 @@ void ALootItemBase::BeginPlay()
 			GameInstance->RegisterNetworkLootItem(this);
 		}
 	}
-}
-
-void ALootItemBase::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
 }
 
 void ALootItemBase::EndPlay(const EEndPlayReason::Type EndPlayReason)

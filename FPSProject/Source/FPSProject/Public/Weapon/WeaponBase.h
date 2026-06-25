@@ -139,8 +139,6 @@ protected:
 	virtual void DetachWeapon();
 
 public:
-	virtual void Tick(float DeltaTime) override;
-
 	// 서버가 발급해준 아이템 고유 ID (이걸 알아야 줍기 요청을 할 수 있음!)
 	uint64 ItemObjectId = 0;
 

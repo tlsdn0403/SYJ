@@ -51,12 +51,12 @@ void SetAnimBoolIfPresent(UAnimInstance* AnimInstance, const TCHAR* PropertyName
 
 ABaseZombie::ABaseZombie()
 {
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false;
 	bReplicates = true;
 	SetReplicateMovement(true);
 	bAlwaysRelevant = true;
-	NetUpdateFrequency = 30.0f;
-	MinNetUpdateFrequency = 15.0f;
+	SetNetUpdateFrequency(30.0f);
+	SetMinNetUpdateFrequency(15.0f);
 
 	// 기본 좀비 메시 컴포넌트 가져오기
 	ZombieMesh = GetMesh();
@@ -122,11 +122,6 @@ void ABaseZombie::BeginPlay()
 	ApplyAnimationDesync();
 	ApplyMovementTuning();
 	InitializeBoneDurability();
-}
-
-void ABaseZombie::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
 }
 
 float ABaseZombie::GetDirectAttackAnimationDuration()
@@ -547,7 +542,7 @@ void ABaseZombie::StartAttack(AActor* TargetActor, bool bAllowFallbackTarget)
 
 	FaceAttackTarget(CurrentAttackTarget);
 
-	UE_LOG(LogTemp, Warning, TEXT("Zombie %s Attack! State=%d"), *GetName(), static_cast<int32>(MovementState));
+	UE_LOG(LogTemp, Verbose, TEXT("Zombie %s Attack! State=%d"), *GetName(), static_cast<int32>(MovementState));
 
 	UAnimInstance* AnimInstance = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr;
 	UAnimMontage* SelectedAttackMontage = GetAttackMontageForCurrentState();
@@ -560,7 +555,7 @@ void ABaseZombie::StartAttack(AActor* TargetActor, bool bAllowFallbackTarget)
 		const float MontageDuration = AnimInstance->Montage_Play(SelectedAttackMontage, AttackPlayRate, EMontagePlayReturnType::Duration);
 		if (MontageDuration > 0.0f)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("Zombie %s Attack Montage: %s"), *GetName(), *GetNameSafe(SelectedAttackMontage));
+			UE_LOG(LogTemp, Verbose, TEXT("Zombie %s Attack Montage: %s"), *GetName(), *GetNameSafe(SelectedAttackMontage));
 			ScheduleAttackDamage(MontageDuration);
 
 			FOnMontageEnded EndDelegate;
@@ -630,7 +625,7 @@ void ABaseZombie::FinishAttack()
 	bAttackDamageApplied = false;
 	bShouldApplyCurrentNetworkAttackDamage = true;
 	ApplyAvoidanceTuning();
-	UE_LOG(LogTemp, Log, TEXT("Attack Finished"));
+	UE_LOG(LogTemp, Verbose, TEXT("Attack Finished"));
 }
 
 void ABaseZombie::CancelAttack()
@@ -661,7 +656,7 @@ void ABaseZombie::ApplyAttackDamage(AActor* TargetActor)
 	const bool bServerConfirmedTruckAttack = NetworkObjectId != 0 && TargetActor->IsA<ATruck>();
 	if (Distance > AttackRange && !bServerConfirmedTruckAttack)
 	{
-		UE_LOG(LogTemp, Log, TEXT("Attack missed - target moved away"));
+		UE_LOG(LogTemp, Verbose, TEXT("Attack missed - target moved away"));
 		return;
 	}
 
@@ -681,7 +676,7 @@ void ABaseZombie::ApplyAttackDamage(AActor* TargetActor)
 	{
 		TargetHealth->ApplyDamage(AttackDamage);
 	}
-	UE_LOG(LogTemp, Warning, TEXT("Zombie dealt %f damage to %s!"), AttackDamage, *GetNameSafe(TargetActor));
+	UE_LOG(LogTemp, Verbose, TEXT("Zombie dealt %f damage to %s!"), AttackDamage, *GetNameSafe(TargetActor));
 
 	if (PlayerPawn)
 	{
@@ -707,7 +702,7 @@ void ABaseZombie::OnZombieDamaged(float NewHealth, float Damage, const FHitResul
 		return;
 	}
 
-	UE_LOG(LogTemp, Warning, TEXT("Zombie Damaged: NewHealth=%f, Damage=%f, HitBone=%s"), NewHealth, Damage, *Hit.BoneName.ToString());
+	UE_LOG(LogTemp, Verbose, TEXT("Zombie Damaged: NewHealth=%f, Damage=%f, HitBone=%s"), NewHealth, Damage, *Hit.BoneName.ToString());
 	FVector EffectLocation =  Hit.ImpactPoint;
  /*   if (BloodImpactEffect)
 	{
@@ -785,7 +780,7 @@ FName ABaseZombie::GetParentBoneForDamage(FName HitBoneName) const
 {
 	FString BoneString = HitBoneName.ToString();
 
-	UE_LOG(LogTemp, Log, TEXT("Hit Bone: %s"), *BoneString);
+	UE_LOG(LogTemp, Verbose, TEXT("Hit Bone: %s"), *BoneString);
 	// 머리/목
 	if (BoneString.Contains("neck") || BoneString.Contains("head")) return FName("head");
 
@@ -848,7 +843,7 @@ void ABaseZombie::ProcessBoneDamage(FName BoneName, float Damage, FVector Impact
 		float CurrentBoneHealth = BoneDurability[BoneName] - Damage;
 		BoneDurability[BoneName] = CurrentBoneHealth;
 
-		UE_LOG(LogTemp, Log, TEXT("Bone: %s Health: %f"), *BoneName.ToString(), CurrentBoneHealth);
+		UE_LOG(LogTemp, Verbose, TEXT("Bone: %s Health: %f"), *BoneName.ToString(), CurrentBoneHealth);
 
 		// 뼈 체력이 0 이하라면 분해
 		if (CurrentBoneHealth <= 0.0f)
@@ -892,7 +887,7 @@ void ABaseZombie::DismemberLimb(FName BoneName, FVector Impulse, FVector HitLoca
 		// 물리 시뮬레이션은 별도 조각 액터에서만 처리해야 캡슐/CharacterMovement와 충돌하지 않는다.
 		MeshComp->HideBoneByName(BoneName, EPhysBodyOp::PBO_Term);
 
-		UE_LOG(LogTemp, Warning, TEXT("Dismembered: %s"), *BoneName.ToString());
+		UE_LOG(LogTemp, Verbose, TEXT("Dismembered: %s"), *BoneName.ToString());
 	}
 }
 
@@ -970,7 +965,7 @@ void ABaseZombie::StartCrawling()
 	// 좀비의 상태를 기어 다니는 상태로 변경
 	MovementState = EZombieMovementState::Crawling;
 
-	UE_LOG(LogTemp, Warning, TEXT("Zombie %s is now CRAWLING"), *GetName());
+	UE_LOG(LogTemp, Verbose, TEXT("Zombie %s is now CRAWLING"), *GetName());
 
 	// 좀비가 바닥에 붙도록 캡슐 크기 줄이기
 	UCapsuleComponent* Capsule = GetCapsuleComponent();
@@ -1033,7 +1028,7 @@ void ABaseZombie::Die()
 	GetWorldTimerManager().ClearTimer(AttackDamageTimerHandle);
 	GetWorldTimerManager().ClearTimer(AttackFinishTimerHandle);
 
-	UE_LOG(LogTemp, Warning, TEXT("Zombie %s Died!"), *GetName());
+	UE_LOG(LogTemp, Verbose, TEXT("Zombie %s Died!"), *GetName());
 
 	if (AAIController* AIController = Cast<AAIController>(GetController()))
 	{

@@ -6,9 +6,7 @@
 // Sets default values for this component's properties
 UHealthComponent::UHealthComponent()
 {
-	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
-	// off to improve performance if you don't need them.
-	PrimaryComponentTick.bCanEverTick = true;
+	PrimaryComponentTick.bCanEverTick = false;
 
 	// ...
 	Health = MaxHealth;							 // 체력을 최대 체력으로 생성 될 때 초기화
@@ -85,20 +83,12 @@ void UHealthComponent::ApplyDamageInternal(float Damage, bool bBroadcastHealthCh
 	Health -= Damage;
 	Health = FMath::Max(Health, 0.f);  	// 체력 음수 방지
 
-	UE_LOG(LogTemp, Warning, TEXT("ApplyDamage: %f, Remaining Health: %f"), Damage, Health);
+	UE_LOG(LogTemp, Verbose, TEXT("ApplyDamage: %f, Remaining Health: %f"), Damage, Health);
 
 	if (bBroadcastHealthChanged)
 	{
 		OnHealthChanged.Broadcast(Health, Damage);
 	}
-}
-
-// Called every frame
-void UHealthComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
-{
-	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-
-	// ...
 }
 
 void UHealthComponent::Heal(float Amount)

@@ -62,10 +62,7 @@ private:
 	UFUNCTION()
 	void PointDamageTaken(AActor* DamagedActor, float Damage, AController* InstigatedBy, FVector HitLocation,
 		UPrimitiveComponent* FHitComponent, FName BoneName, FVector ShotFromDirection, const UDamageType* DamageType, AActor* DamageCauser);
-public:	
-	// Called every frame
-	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
-
+public:
 	UPROPERTY(BlueprintAssignable, Category = "Hit")
 	FOnDamagedByBullet OnDamaged;
 	

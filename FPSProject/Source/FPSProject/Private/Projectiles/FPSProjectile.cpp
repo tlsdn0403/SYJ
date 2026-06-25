@@ -39,7 +39,7 @@ FHitResult BuildZombieDamageHit(const FHitResult& Hit, ABaseZombie* HitZombie)
 		DamageHit.Component = ZombieMesh;
 		DamageHit.Location = Hit.ImpactPoint;
 		DamageHit.ImpactPoint = Hit.ImpactPoint;
-		UE_LOG(LogTemp, Log, TEXT("Projectile inferred zombie bone %s from component %s"),
+		UE_LOG(LogTemp, Verbose, TEXT("Projectile inferred zombie bone %s from component %s"),
 			*ClosestBoneName.ToString(),
 			*GetNameSafe(Hit.GetComponent()));
 	}
@@ -59,8 +59,7 @@ bool IsZombieHeadHit(FName BoneName)
 // Sets default values
 AFPSProjectile::AFPSProjectile()
 {
-	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false;
 
 
 	if (!RootComponent)
@@ -145,13 +144,6 @@ void AFPSProjectile::BeginPlay()
 	
 }
 
-// Called every frame
-void AFPSProjectile::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
-
-}
-
 void AFPSProjectile::FireInDirection(const FVector& ShootDirection)
 {
 	if (ProjectileMovementComponent)
@@ -217,7 +209,7 @@ void AFPSProjectile::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor
 			);
 		}
 
-		UE_LOG(LogTemp, Warning, TEXT("ammo damage to %s! Bone=%s Component=%s"),
+		UE_LOG(LogTemp, Verbose, TEXT("ammo damage to %s! Bone=%s Component=%s"),
 			*GetNameSafe(OtherActor),
 			*DamageHit.BoneName.ToString(),
 			*GetNameSafe(DamageHit.GetComponent()));

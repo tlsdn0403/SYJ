@@ -42,9 +42,6 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Pool")
 	float LifetimeSeconds = 3.0f;
 public:	
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
-
 	// 스피어 콜리전 컴포넌트
 	UPROPERTY(VisibleDefaultsOnly, Category = Projectile)
 	USphereComponent* CollisionComponent;

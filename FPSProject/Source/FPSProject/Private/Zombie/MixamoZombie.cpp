@@ -11,6 +11,10 @@
 
 AMixamoZombie::AMixamoZombie()
 {
+	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bStartWithTickEnabled = false;
+	PrimaryActorTick.TickInterval = 0.05f;
+
 	static ConstructorHelpers::FObjectFinder<USkeletalMesh> DefaultMesh(
 		TEXT("/Script/Engine.SkeletalMesh'/Game/Zombie/mixamo/ch/zom_ch10/Ch10_nonPBR.Ch10_nonPBR'"));
 	static ConstructorHelpers::FObjectFinder<UAnimSequenceBase> TeamIdle(
@@ -67,12 +71,14 @@ void AMixamoZombie::BeginPlay()
 	USkeletalMeshComponent* MeshComp = GetMesh();
 	if (!bUseDirectAnimation || !MeshComp)
 	{
+		SetActorTickEnabled(false);
 		return;
 	}
 
 	MeshComp->SetAnimationMode(EAnimationMode::AnimationSingleNode);
 	CurrentDirectState = EDirectAnimationState::None;
 	UpdateDirectAnimation();
+	SetActorTickEnabled(true);
 }
 
 void AMixamoZombie::Tick(float DeltaTime)

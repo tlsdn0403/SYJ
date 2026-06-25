@@ -1126,7 +1126,7 @@ void AFPSBaseCharacter::Fire()
 		{
 			Protocol::C_FIRE FirePkt;
 			SEND_PACKET(FirePkt);
-			UE_LOG(LogTemp, Error, TEXT("[Network] 1. C_FIRE sent to server."));
+			UE_LOG(LogTemp, Verbose, TEXT("[Network] 1. C_FIRE sent to server."));
 		}
 
 		return;

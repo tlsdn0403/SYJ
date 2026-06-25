@@ -226,7 +226,6 @@ private:
 	void ApplyAimVisuals(const FRotator& AimRotation);
 	void SendAimToServer(const FRotator& AimRotation);
 	void ConfigureYawOnlyVisuals();
-	FVector GetStabilizedCameraLocation() const;
 	FRotator GetStabilizedCameraRotation() const;
 	FVector GetIronSightAimTarget(const FVector& MuzzleLocation) const;
 	void ApplyFireAnimation();

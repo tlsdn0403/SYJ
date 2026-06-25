@@ -18,6 +18,36 @@
 #include "UObject/ConstructorHelpers.h"
 
 bool bDebug = false;
+
+namespace
+{
+	const FVector SecondFemaleWeaponRelativeLocation(-8.096968f, 5.593202f, 0.400127f);
+	const FRotator SecondFemaleWeaponRelativeRotation(-0.023171f, 82.465881f, 13.423545f);
+	const FVector SecondFemaleWeaponRelativeScale(1.0f, 1.0f, 1.0f);
+
+	bool IsSecondFemaleCharacter(const AFPSBaseCharacter* TargetCharacter)
+	{
+		if (!TargetCharacter)
+		{
+			return false;
+		}
+
+		if (const UClass* CharacterClass = TargetCharacter->GetClass())
+		{
+			if (CharacterClass->GetPathName().Contains(TEXT("BP_FPSBaseCharacter2")))
+			{
+				return true;
+			}
+		}
+
+		const USkeletalMeshComponent* TargetMesh = TargetCharacter->GetMesh();
+		const USkeletalMesh* TargetSkeletalMesh = TargetMesh ? TargetMesh->GetSkeletalMeshAsset() : nullptr;
+		return TargetSkeletalMesh &&
+			(TargetSkeletalMesh->GetPathName().Contains(TEXT("/Sarah/")) ||
+			 TargetSkeletalMesh->GetName().Contains(TEXT("SK_Sarah")));
+	}
+}
+
 AWeaponBase::AWeaponBase()
 {
 	PrimaryActorTick.bCanEverTick = true;
@@ -212,7 +242,12 @@ void AWeaponBase::AlignThirdPersonWeaponToReference(AFPSBaseCharacter* TargetCha
 		ThirdPersonWeaponRelativeRotation,
 		ThirdPersonWeaponRelativeLocation,
 		ThirdPersonWeaponRelativeScale);
-	const FTransform CombinedRelativeTransform = WeaponFineTune * ReferenceSocketTransform;
+	const FTransform CombinedRelativeTransform = IsSecondFemaleCharacter(TargetCharacter)
+		? FTransform(
+			SecondFemaleWeaponRelativeRotation,
+			SecondFemaleWeaponRelativeLocation,
+			SecondFemaleWeaponRelativeScale)
+		: WeaponFineTune * ReferenceSocketTransform;
 
 	AttachToComponent(
 		TargetMesh,

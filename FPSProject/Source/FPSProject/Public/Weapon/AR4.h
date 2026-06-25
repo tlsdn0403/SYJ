@@ -16,10 +16,15 @@ class FPSPROJECT_API AAR4 : public AWeaponBase
 	
 
 public:
-	
+	AAR4();
 
 protected:
+	virtual void BeginPlay() override;
+
 	virtual void AttachWeapon(AFPSBaseCharacter* TargetCharacter) override;
 
 	virtual void Fire() override;
+
+private:
+	void ApplyFirstPersonZoomTransform();
 };

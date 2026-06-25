@@ -19,12 +19,13 @@ public class FPSProject : ModuleRules
             "AdvancedWidgets"
         });
 
-		PrivateDependencyModuleNames.AddRange(new string[] { "ProtobufCore" });
+		PrivateDependencyModuleNames.AddRange(new string[] { "ProtobufCore", "AdvancedWidgets" });
         
 		PrivateIncludePaths.AddRange(new string[]
 		{
 			"FPSProject/",
-			"FPSProject/Network/",
+			"FPSProject/Network/"
+
 		});
 
 		// Uncomment if you are using Slate UI

@@ -47,6 +47,14 @@
 		{
 			"Name": "MotionTrajectory",
 			"Enabled": true
+		},
+		{
+			"Name": "Metasound",
+			"Enabled": false
+		},
+		{
+			"Name": "AudioWidgets",
+			"Enabled": true
 		}
 	],
 	"TargetPlatforms": [

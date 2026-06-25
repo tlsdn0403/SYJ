@@ -34,6 +34,7 @@ public:
 public:
 	void UpdateTick();
 	void SpawnStage2Zombies();
+	void SpawnStage2Weapons();
 
 	RoomRef GetRoomRef();
 
@@ -52,6 +53,7 @@ private:
 	void BroadcastStageTimer();
 	void SendStageTimerToSession(const GameSessionRef& session) const;
 	void SendStage1ItemSeedToSession(const GameSessionRef& session) const;
+	void SendStage2WeaponsToSession(const GameSessionRef& session) const;
 	int32 GetTruckLoadingPhaseRemainingSeconds() const;
 
 	struct TruckState
@@ -76,6 +78,14 @@ private:
 		float remainingTime = 0.0f;
 	};
 
+	struct Stage2WeaponState
+	{
+		uint64 itemId = 0;
+		Protocol::PosInfo posInfo;
+		Protocol::WeaponType weaponType = Protocol::WEAPON_TYPE_NONE;
+		bool pickedUp = false;
+	};
+
 	TruckState* FindTruckState(uint64 truckId);
 	TruckState& GetOrCreateTruckState(uint64 truckId);
 	bool IsTruckSeatOccupied(const TruckState& truckState, Protocol::TruckSeatType seatType) const;
@@ -85,6 +95,7 @@ private:
 	void ClearPlayerTruckState(PlayerRef player);
 	void ForceExitTruck(PlayerRef player);
 	void BroadcastTruckState(const TruckState& truckState, bool isCorrection = false);
+	Stage2WeaponState* FindStage2Weapon(uint64 itemId);
 
 private:
 	//[신우] 현재 2스테이지 트럭 적재함은 최대 4명까지 타는 구조로 서버에서 제한한다.
@@ -98,6 +109,7 @@ private:
 	vector<weak_ptr<GameSession>> _pendingReadySessions;
 	vector<PendingZombieDespawn> _pendingZombieDespawns;
 	vector<PendingLootItemRespawn> _pendingLootItemRespawns;
+	vector<Stage2WeaponState> _stage2Weapons;
 	unordered_set<uint64> _inactiveLootItemIds;
 	unordered_set<uint64> _stageTransitionReadyPlayerIds;
 	bool _bTruckLoadingPhaseActive = false;

@@ -10,7 +10,6 @@
 void ULoadingUI::NativeConstruct()
 {
 	Super::NativeConstruct();
-	UE_LOG(LogTemp, Warning, TEXT("REAL SLOT CREATED %p"), this);
 	Players.Empty();
 
 	Players.Add(Player1);

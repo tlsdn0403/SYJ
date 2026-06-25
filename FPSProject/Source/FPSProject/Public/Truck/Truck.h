@@ -280,11 +280,15 @@ protected:
 	TArray<UStaticMeshComponent*> FuelSlots;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cargo|Slots")
+	TArray<UStaticMeshComponent*> RepairKitSlots;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cargo|Slots")
 	TArray<UStaticMeshComponent*> MedKitSlots;
 
 	int32 CurrentAmmoCount = 0;
 	int32 CurrentMountedAmmoCount = 0;
 	int32 CurrentFuelCount = 0;
+	int32 CurrentRepairKitCount = 0;
 	int32 CurrentMedKitCount = 0;
 
 	void AddCargoVisual(EItemType ItemType);

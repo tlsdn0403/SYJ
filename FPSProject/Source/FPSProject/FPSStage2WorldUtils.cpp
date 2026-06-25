@@ -125,6 +125,27 @@ namespace FPSStage2WorldUtils
 		return true;
 	}
 
+	bool TryGetWeaponSpawnTransform(UWorld* World, uint64 ItemObjectId, const FVector& LocalOffset, FTransform& OutTransform)
+	{
+		if (!TryGetPlayerSpawnTransform(World, ItemObjectId, OutTransform))
+		{
+			return false;
+		}
+
+		const FQuat SpawnRotation = OutTransform.GetRotation();
+		const FVector SpawnForwardVector = -SpawnRotation.GetRightVector();
+		const FVector SpawnRightVector = SpawnRotation.GetForwardVector();
+		FVector SpawnLocation =
+			OutTransform.GetLocation() +
+			SpawnRightVector * LocalOffset.Y +
+			SpawnForwardVector * LocalOffset.X +
+			FVector(0.0f, 0.0f, LocalOffset.Z);
+
+		TryProjectLocationToGround(World, SpawnLocation, 18.0f, SpawnLocation);
+		OutTransform.SetLocation(SpawnLocation);
+		return true;
+	}
+
 	bool TryProjectLocationToGround(
 		UWorld* World,
 		const FVector& InLocation,

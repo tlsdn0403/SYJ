@@ -24,9 +24,7 @@ void AFPSPlayerController::BeginPlay()
 	BasicW = CreateWidget<UBasicUI>(this, BasicWidgetClass);
 	EffectW = CreateWidget<UEffectUI>(this, EffectWidgetClass);
 	L2BaseW = CreateWidget<UL2BaseUI>(this, L2BaseWidgetClass);
-	//여기서 위젯 생성 후 플레이어에서 뷰포트에 추가함. 여기서 뷰포트 추가하면 순서때문에 화면에 안그려짐.
 
-	//입력 시스템 등록
 	UEnhancedInputLocalPlayerSubsystem* Subsystem =
 		ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer());
 
@@ -53,9 +51,8 @@ void AFPSPlayerController::SetupInputComponent()
 	}
 }
 
-void AFPSPlayerController::Pressed1(const FInputActionValue& Value)		//2라운드 기름 사용
+void AFPSPlayerController::Pressed1(const FInputActionValue& Value)
 {
-	UE_LOG(LogTemp, Warning, TEXT("1 Key Pressed"));
 
 	if (TrySpectatePlayerSlot(0))
 	{
@@ -72,9 +69,8 @@ void AFPSPlayerController::Pressed1(const FInputActionValue& Value)		//2라운�
 	// 여기서 인벤토리 / 무기 변경 / 슬롯 선택 처리
 }
 
-void AFPSPlayerController::Pressed2(const FInputActionValue& Value)		//2라운드 힐팩 사용
+void AFPSPlayerController::Pressed2(const FInputActionValue& Value)
 {
-	UE_LOG(LogTemp, Warning, TEXT("2 Key Pressed"));
 
 	if (TrySpectatePlayerSlot(1))
 	{
@@ -100,31 +96,25 @@ void AFPSPlayerController::Pressed2(const FInputActionValue& Value)		//2라운�
 
 }
 
-void AFPSPlayerController::Pressed3(const FInputActionValue& Value)		//2라운드 정비툴박스 사용
+void AFPSPlayerController::Pressed3(const FInputActionValue& Value)
 {
-	UE_LOG(LogTemp, Warning, TEXT("1 Key Pressed"));
 
-	// 여기서 인벤토리 / 무기 변경 / 슬롯 선택 처리
-	InventoryW->SelectSlot(2); // 예시로 슬롯 1 선택
+	InventoryW->SelectSlot(2);
 }
 
 void AFPSPlayerController::Pressed4(const FInputActionValue& Value)
 {
-	UE_LOG(LogTemp, Warning, TEXT("1 Key Pressed"));
 
-	// 여기서 인벤토리 / 무기 변경 / 슬롯 선택 처리
-	InventoryW->SelectSlot(3); // 예시로 슬롯 1 선택
+	InventoryW->SelectSlot(3);
 }
 
 void AFPSPlayerController::Pressed5(const FInputActionValue& Value)
 {
-	UE_LOG(LogTemp, Warning, TEXT("1 Key Pressed"));
 
-	// 여기서 인벤토리 / 무기 변경 / 슬롯 선택 처리
-	InventoryW->SelectSlot(4); // 예시로 슬롯 1 선택
+	InventoryW->SelectSlot(4);
 }
 
-void AFPSPlayerController::PressedTAB(const FInputActionValue& Value)	//2라운드 Tab눌리면 아이템바 열기/닫기
+void AFPSPlayerController::PressedTAB(const FInputActionValue& Value)
 {
 	openItem = !openItem;
 	if (openItem) {

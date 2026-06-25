@@ -14,6 +14,30 @@
 
 namespace
 {
+	EItemType ResolvePickupItemType(EItemType ConfiguredItemType, const ALootItemBase* LootItem)
+	{
+		if (ConfiguredItemType == EItemType::MountedGunAmmo && LootItem != nullptr)
+		{
+			const FString ItemName = LootItem->GetName();
+			const FString InteractText = LootItem->setText.ToString();
+			if (ItemName.Contains(TEXT("Repair"), ESearchCase::IgnoreCase) ||
+				ItemName.Contains(TEXT("ToolBox"), ESearchCase::IgnoreCase) ||
+				ItemName.Contains(TEXT("TruckRepair"), ESearchCase::IgnoreCase) ||
+				InteractText.Contains(TEXT("Repair"), ESearchCase::IgnoreCase) ||
+				InteractText.Contains(TEXT("ToolBox"), ESearchCase::IgnoreCase) ||
+				InteractText.Contains(TEXT("TruckRepair"), ESearchCase::IgnoreCase))
+			{
+				UE_LOG(LogTemp, Log, TEXT("[PickupTypeFix] Item='%s' configured as type=%d but treated as TruckRepairKit(type=%d). Check the Blueprint ItemType."),
+					*ItemName,
+					static_cast<int32>(ConfiguredItemType),
+					static_cast<int32>(EItemType::TruckRepairKit));
+				return EItemType::TruckRepairKit;
+			}
+		}
+
+		return ConfiguredItemType;
+	}
+
 	FText GetDefaultPickupText(EItemType ItemType)
 	{
 		switch (ItemType)
@@ -75,7 +99,7 @@ void ALootItemBase::BeginPlay()
 
 	if (UInteractUIClass* UI = Cast<UInteractUIClass>(WidgetComp ? WidgetComp->GetUserWidgetObject() : nullptr))
 	{
-		UI->SetInteractText(setText.IsEmpty() ? GetDefaultPickupText(ItemType) : setText);
+		UI->SetInteractText(setText.IsEmpty() ? GetDefaultPickupText(ResolvePickupItemType(ItemType, this)) : setText);
 	}
 
 	if (NetworkItemId == 0)
@@ -123,9 +147,11 @@ void ALootItemBase::Interact_Implementation(AFPSBaseCharacter* Character)
 				const bool bAddedToInventory = PlayerController->PickUp_Item(itemimage, HandWeight);
 				if (bAddedToInventory)
 				{
-					const bool bAddedToCharacterInventory = Character->AddItem(ItemType);
-					UE_LOG(LogTemp, Warning, TEXT("[PickupSend] Item='%s' Type=%d NetworkItemId=%llu Added=%d Respawn=%s Delay=%.2f"),
+					const EItemType PickupItemType = ResolvePickupItemType(ItemType, this);
+					const bool bAddedToCharacterInventory = Character->AddItem(PickupItemType);
+					UE_LOG(LogTemp, Verbose, TEXT("[PickupSend] Item='%s' Type=%d ConfiguredType=%d NetworkItemId=%llu Added=%d Respawn=%s Delay=%.2f"),
 						*GetName(),
+						static_cast<int32>(PickupItemType),
 						static_cast<int32>(ItemType),
 						NetworkItemId,
 						bAddedToCharacterInventory ? 1 : 0,
@@ -159,7 +185,7 @@ void ALootItemBase::Interact_Implementation(AFPSBaseCharacter* Character)
 
 	if (bAdded)
 	{
-		Character->AddItem(ItemType);
+		Character->AddItem(ResolvePickupItemType(ItemType, this));
 		Destroy();
 	}
 }

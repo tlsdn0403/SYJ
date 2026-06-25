@@ -217,13 +217,13 @@ void FFPSSpawnManager::SpawnLocalPlayer(UWorld* World, const FPlayerSpawnContext
 		Owner.MyPlayer->SyncMovementToServer();
 	}
 
-	UE_LOG(LogTemp, Warning,
+	UE_LOG(LogTemp, Verbose,
 		TEXT("[TruckDebug] SpawnMine ObjectId=%llu MyPlayer=%s Local=%d Pawn=%s"),
 		SpawnContext.ObjectId,
 		*GetNameSafe(Owner.MyPlayer),
 		Owner.MyPlayer->IsLocallyControlled() ? 1 : 0,
 		*GetNameSafe(PlayerController->GetPawn()));
-	UE_LOG(LogTemp, Warning, TEXT("[ZombieSync] My player spawned. PlayerId=%llu"), SpawnContext.ObjectId);
+	UE_LOG(LogTemp, Verbose, TEXT("[ZombieSync] My player spawned. PlayerId=%llu"), SpawnContext.ObjectId);
 }
 
 void FFPSSpawnManager::SpawnRemotePlayer(UWorld* World, const FPlayerSpawnContext& SpawnContext)
@@ -282,7 +282,7 @@ void FFPSSpawnManager::SpawnRemotePlayer(UWorld* World, const FPlayerSpawnContex
 	}
 
 	Owner.WorldObjects->RegisterPlayer(SpawnContext.ObjectId, OtherPlayer);
-	UE_LOG(LogTemp, Warning,
+	UE_LOG(LogTemp, Verbose,
 		TEXT("[TruckDebug] SpawnOther ObjectId=%llu OtherPlayer=%s Local=%d Location=%s Hidden=%d"),
 		SpawnContext.ObjectId,
 		*GetNameSafe(OtherPlayer),

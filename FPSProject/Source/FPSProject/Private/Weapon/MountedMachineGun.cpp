@@ -244,12 +244,12 @@ void AMountedMachineGun::AttachUserToOperatorSeat(AFPSBaseCharacter* User)
 
 FVector AMountedMachineGun::GetCameraLocation() const
 {
-	return CameraPoint ? CameraPoint->GetComponentLocation() : GetActorLocation();
+	return GetStabilizedCameraLocation();
 }
 
 FRotator AMountedMachineGun::GetCameraRotation() const
 {
-	return CameraPoint ? CameraPoint->GetComponentRotation() : GetActorRotation();
+	return GetStabilizedCameraRotation();
 }
 
 void AMountedMachineGun::Fire()
@@ -387,11 +387,35 @@ void AMountedMachineGun::ApplyAimVisuals(const FRotator& AimRotation)
 
 	if (CameraBoom)
 	{
-		// CameraBoom is parented to GunMesh after the seat transform is configured,
-		// so its position and the physical sights follow pitch together.
-		CameraBoom->SetWorldRotation(ClampedRotation);
+		// Keep the mounted view level even when the truck body rolls on uneven ground.
+		CameraBoom->SetWorldLocation(GetStabilizedCameraLocation());
+		CameraBoom->SetWorldRotation(FRotator(ClampedRotation.Pitch, ClampedRotation.Yaw, 0.0f));
 		CameraBoom->SocketOffset = FVector::ZeroVector;
 	}
+}
+
+FVector AMountedMachineGun::GetStabilizedCameraLocation() const
+{
+	if (CurrentUser && CurrentUser->CurrentTruck)
+	{
+		const ATruck* Truck = CurrentUser->CurrentTruck;
+		const FVector SeatRelativeLocation = Truck->TurretSeatPoint
+			? Truck->TurretSeatPoint->GetRelativeLocation()
+			: FVector::ZeroVector;
+		const FRotator TruckYawOnly(0.0f, Truck->GetActorRotation().Yaw, 0.0f);
+		return Truck->GetActorLocation() + TruckYawOnly.RotateVector(SeatRelativeLocation + OperatorCameraOffset);
+	}
+
+	return CameraPoint ? CameraPoint->GetComponentLocation() : GetActorLocation();
+}
+
+FRotator AMountedMachineGun::GetStabilizedCameraRotation() const
+{
+	const FRotator SourceRotation = CameraBoom
+		? CameraBoom->GetComponentRotation()
+		: (CameraPoint ? CameraPoint->GetComponentRotation() : GetActorRotation());
+
+	return FRotator(SourceRotation.Pitch, SourceRotation.Yaw, 0.0f).GetNormalized();
 }
 
 void AMountedMachineGun::SendAimToServer(const FRotator& AimRotation)

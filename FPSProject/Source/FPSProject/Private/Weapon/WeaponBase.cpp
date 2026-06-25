@@ -21,10 +21,6 @@ bool bDebug = false;
 
 namespace
 {
-	const FVector DefaultThirdPersonWeaponMeshRelativeLocation(-8.883712f, 5.298776f, -0.142411f);
-	const FRotator DefaultThirdPersonWeaponMeshRelativeRotation(-0.023171f, 82.465882f, 13.423545f);
-	const FVector DefaultThirdPersonWeaponMeshRelativeScale(1.0f, 1.0f, 1.0f);
-
 	const FVector CharacterTwoWeaponMeshRelativeLocation(-0.965218f, -1.088177f, 0.471725f);
 	const FRotator CharacterTwoWeaponMeshRelativeRotation(45.649582f, 16.242712f, 17.986916f);
 	const FVector CharacterTwoWeaponMeshRelativeScale(1.0f, 1.0f, 1.0f);
@@ -100,10 +96,6 @@ namespace
 			TargetWeaponMesh->SetRelativeScale3D(CharacterTwoWeaponMeshRelativeScale);
 			return;
 		}
-
-		TargetWeaponMesh->SetRelativeLocation(DefaultThirdPersonWeaponMeshRelativeLocation);
-		TargetWeaponMesh->SetRelativeRotation(DefaultThirdPersonWeaponMeshRelativeRotation);
-		TargetWeaponMesh->SetRelativeScale3D(DefaultThirdPersonWeaponMeshRelativeScale);
 	}
 }
 

@@ -130,6 +130,21 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stage2|Pool")
 	bool bDisablePooledTileCollision = true;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stage2|Performance")
+	bool bApplyTileCullDistances = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stage2|Performance", meta = (ClampMin = "0.0", EditCondition = "bApplyTileCullDistances"))
+	float TilePrimitiveCullDistance = 12000.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stage2|Performance", meta = (ClampMin = "0.0", EditCondition = "bApplyTileCullDistances"))
+	float TileSmallPrimitiveCullDistance = 6000.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stage2|Performance", meta = (ClampMin = "0.0", EditCondition = "bApplyTileCullDistances"))
+	float TileSmallPrimitiveBoundsRadius = 250.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stage2|Performance")
+	bool bDisableSmallTilePrimitiveShadows = true;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stage2|Rules", meta = (ClampMin = "1"))
 	int32 GoalAfterPlayableTileCount = 8;
 
@@ -217,6 +232,8 @@ private:
 	bool TryMoveTileTolocation(FStage2LoadedTile& LoadedTile, const FTransform& NewLevelTransform);
 	void SetTileRenderingEnabled(const FStage2LoadedTile& LoadedTile, bool bEnabled) const;
 	void SetTileCollisionEnabled(const FStage2LoadedTile& LoadedTile, bool bEnabled);
+	void ApplyTilePerformanceSettings(const FStage2LoadedTile& LoadedTile) const;
+	void ApplyPrimitivePerformanceSettings(UPrimitiveComponent* PrimitiveComponent) const;
 	void RefreshTilePhysicsState(const FStage2LoadedTile& LoadedTile) const;
 	void ForgetTileCollisionStates(const FStage2LoadedTile& LoadedTile);
 	FTransform MakePoolParkingTransform();

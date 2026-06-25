@@ -25,6 +25,7 @@
 #include "Perception/AIPerceptionStimuliSourceComponent.h"
 #include "Perception/AISense_Hearing.h"
 #include "Perception/AISense_Sight.h"
+#include "NavigationInvokerComponent.h"
 #include "UObject/ConstructorHelpers.h"
 #include "TimerManager.h"
 #include "EngineUtils.h"
@@ -65,6 +66,8 @@ AFPSBaseCharacter::AFPSBaseCharacter()
 
 	HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComponent"));
 	ZombieStimuliSource = CreateDefaultSubobject<UAIPerceptionStimuliSourceComponent>(TEXT("ZombieStimuliSource"));
+	NavigationInvokerComponent = CreateDefaultSubobject<UNavigationInvokerComponent>(TEXT("NavigationInvoker"));
+	NavigationInvokerComponent->SetGenerationRadii(6000.0f, 8000.0f);
 
 	PlayerInfo = new Protocol::PosInfo();
 	DestInfo = new Protocol::PosInfo();
@@ -1833,11 +1836,18 @@ bool AFPSBaseCharacter::UseFuelCan()
 	}
 
 	const APlayerController* LocalPlayerController = UGameplayStatics::GetPlayerController(this, 0);
+	const bool bIsTruckOccupant =
+		CurrentTruck &&
+		(bIsDrivingTruck ||
+			bIsOnTruckCargo ||
+			bIsUsingMountedWeapon ||
+			CurrentTruck->GetDriverCharacter() == this ||
+			CurrentTruck->GetMountedWeaponUser() == this);
 	const bool bIsLocalPlayerCharacter =
 		IsLocallyControlled() ||
 		GameInstance->MyPlayer == this ||
 		(CurrentTruck->GetDriverCharacter() == this && CurrentTruck->GetController() == LocalPlayerController);
-	if (!bIsLocalPlayerCharacter)
+	if (!bIsTruckOccupant || !bIsLocalPlayerCharacter)
 	{
 		return false;
 	}
@@ -1873,11 +1883,18 @@ bool AFPSBaseCharacter::UseTruckRepairKit()
 	}
 
 	const APlayerController* LocalPlayerController = UGameplayStatics::GetPlayerController(this, 0);
+	const bool bIsTruckOccupant =
+		CurrentTruck &&
+		(bIsDrivingTruck ||
+			bIsOnTruckCargo ||
+			bIsUsingMountedWeapon ||
+			CurrentTruck->GetDriverCharacter() == this ||
+			CurrentTruck->GetMountedWeaponUser() == this);
 	const bool bIsLocalPlayerCharacter =
 		IsLocallyControlled() ||
 		GameInstance->MyPlayer == this ||
 		(CurrentTruck->GetDriverCharacter() == this && CurrentTruck->GetController() == LocalPlayerController);
-	if (!bIsLocalPlayerCharacter)
+	if (!bIsTruckOccupant || !bIsLocalPlayerCharacter)
 	{
 		return false;
 	}
@@ -1896,6 +1913,8 @@ bool AFPSBaseCharacter::UseTruckRepairKit()
 	}
 
 	CurrentTruck->RepairTruck(TruckRepairKitHealAmount);
+	ShowTruckHealthOnHUD(CurrentTruck);
+	CurrentTruck->SyncTruckStateToServer();
 	RefreshStage2ItemUI();
 	UE_LOG(LogTemp, Log, TEXT("Truck Repair Kit used. Repaired %.1f, truck health=%.1f/%.1f, remaining=%d"),
 		TruckRepairKitHealAmount,

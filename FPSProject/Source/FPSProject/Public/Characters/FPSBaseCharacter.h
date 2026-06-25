@@ -21,6 +21,7 @@ class UAnimationAsset;
 class ATruck;
 class AMountedMachineGun;
 class AFPSPlayerController;
+class UNavigationInvokerComponent;
 
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnInventoryUpdated, const TArray<EItemType>&, CurrentInventory);
@@ -190,6 +191,9 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AI|Perception")
 	UAIPerceptionStimuliSourceComponent* ZombieStimuliSource;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AI|Navigation")
+	UNavigationInvokerComponent* NavigationInvokerComponent;
 
 	UPROPERTY(EditAnywhere, Category = "Weapon")
 	TSubclassOf<class AWeaponBase> WeaponClass;

@@ -318,9 +318,10 @@ void FFPSStageFlowManager::HandleStageTransition(const Protocol::S_STAGE_TRANSIT
 	}
 
 	PendingStageTransitionLevelName = TargetLevelName;
-	bWaitingForStage2MapLoad = FPSStage2WorldUtils::IsStage2LevelName(TargetLevelName);
+	const bool bTargetIsStage2 = FPSStage2WorldUtils::IsStage2LevelName(TargetLevelName);
+	bWaitingForStage2MapLoad = false;
 
-	if (bWaitingForStage2MapLoad && TryPlayStageTransitionCinematic())
+	if (bTargetIsStage2 && TryPlayStageTransitionCinematic())
 	{
 		return;
 	}
@@ -499,6 +500,7 @@ void FFPSStageFlowManager::OpenPendingStageTransitionLevel()
 		return;
 	}
 
+	bWaitingForStage2MapLoad = FPSStage2WorldUtils::IsStage2LevelName(PendingStageTransitionLevelName);
 	UGameplayStatics::OpenLevel(&Owner, FName(*PendingStageTransitionLevelName));
 }
 

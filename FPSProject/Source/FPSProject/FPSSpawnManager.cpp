@@ -6,13 +6,172 @@
 #include "FPSWorldObjectManager.h"
 #include "AIController.h"
 #include "Characters/FPSBaseCharacter.h"
+#include "Components/CapsuleComponent.h"
+#include "Engine/EngineTypes.h"
+#include "Engine/OverlapResult.h"
 #include "Engine/World.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/Pawn.h"
 #include "GameFramework/PlayerController.h"
 #include "Kismet/GameplayStatics.h"
+#include "NavigationSystem.h"
 #include "Stage2/Stage2TileManager.h"
 #include "Zombie/BaseZombie.h"
+
+namespace
+{
+bool TryProjectZombieLocationToGround(UWorld* World, ABaseZombie* Zombie, const FVector& CandidateLocation, FVector& OutActorLocation)
+{
+	if (World == nullptr || Zombie == nullptr)
+	{
+		return false;
+	}
+
+	const UCapsuleComponent* Capsule = Zombie->GetCapsuleComponent();
+	const float CapsuleHalfHeight = Capsule ? Capsule->GetScaledCapsuleHalfHeight() : 88.0f;
+	const FVector TraceStart(CandidateLocation.X, CandidateLocation.Y, CandidateLocation.Z + 5000.0f);
+	const FVector TraceEnd(CandidateLocation.X, CandidateLocation.Y, CandidateLocation.Z - 12000.0f);
+
+	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(Stage2ZombieGroundTrace), false, Zombie);
+	QueryParams.bTraceComplex = false;
+
+	FHitResult GroundHit;
+	if (!World->LineTraceSingleByChannel(GroundHit, TraceStart, TraceEnd, ECC_Visibility, QueryParams) &&
+		!World->LineTraceSingleByChannel(GroundHit, TraceStart, TraceEnd, ECC_WorldStatic, QueryParams))
+	{
+		return false;
+	}
+
+	OutActorLocation = FVector(CandidateLocation.X, CandidateLocation.Y, GroundHit.ImpactPoint.Z + CapsuleHalfHeight + 2.0f);
+	return true;
+}
+
+bool IsZombiePlacementClear(UWorld* World, ABaseZombie* Zombie, const FVector& ActorLocation)
+{
+	if (World == nullptr || Zombie == nullptr)
+	{
+		return false;
+	}
+
+	const UCapsuleComponent* Capsule = Zombie->GetCapsuleComponent();
+	const float CapsuleRadius = Capsule ? Capsule->GetScaledCapsuleRadius() : 42.0f;
+	const float CapsuleHalfHeight = Capsule ? Capsule->GetScaledCapsuleHalfHeight() : 88.0f;
+
+	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(Stage2ZombiePlacementOverlap), false, Zombie);
+	QueryParams.bTraceComplex = false;
+
+	FCollisionObjectQueryParams ObjectQueryParams;
+	ObjectQueryParams.AddObjectTypesToQuery(ECC_WorldStatic);
+	ObjectQueryParams.AddObjectTypesToQuery(ECC_WorldDynamic);
+	ObjectQueryParams.AddObjectTypesToQuery(ECC_Pawn);
+
+	TArray<FOverlapResult> Overlaps;
+	if (!World->OverlapMultiByObjectType(
+		Overlaps,
+		ActorLocation,
+		FQuat::Identity,
+		ObjectQueryParams,
+		FCollisionShape::MakeCapsule(CapsuleRadius, CapsuleHalfHeight),
+		QueryParams))
+	{
+		return true;
+	}
+
+	for (const FOverlapResult& OverlapResult : Overlaps)
+	{
+		if (OverlapResult.bBlockingHit)
+		{
+			return false;
+		}
+	}
+
+	return true;
+}
+
+bool TryFindClearZombiePlacement(UWorld* World, ABaseZombie* Zombie, const FVector& DesiredLocation, FVector& OutActorLocation)
+{
+	if (World == nullptr || Zombie == nullptr)
+	{
+		return false;
+	}
+
+	TArray<FVector> CandidateOffsets;
+	CandidateOffsets.Reserve(257);
+	CandidateOffsets.Add(FVector::ZeroVector);
+
+	static constexpr float SearchRadii[] = { 240.0f, 480.0f, 720.0f, 960.0f, 1280.0f, 1600.0f, 2000.0f, 2400.0f, 3000.0f, 3600.0f };
+	static constexpr int32 AnglesPerRing = 16;
+	for (float Radius : SearchRadii)
+	{
+		for (int32 AngleIndex = 0; AngleIndex < AnglesPerRing; ++AngleIndex)
+		{
+			const float RingOffset = FMath::Fmod(Radius / 240.0f, 2.0f) * 0.5f;
+			const float AngleRadians = (2.0f * PI * (static_cast<float>(AngleIndex) + RingOffset)) / static_cast<float>(AnglesPerRing);
+			CandidateOffsets.Add(FVector(FMath::Cos(AngleRadians) * Radius, FMath::Sin(AngleRadians) * Radius, 0.0f));
+		}
+	}
+
+	const UCapsuleComponent* Capsule = Zombie->GetCapsuleComponent();
+	const float NavExtentZ = Capsule ? Capsule->GetScaledCapsuleHalfHeight() * 3.0f : 300.0f;
+	const FVector NavQueryExtent(700.0f, 700.0f, FMath::Max(700.0f, NavExtentZ));
+	UNavigationSystemV1* NavigationSystem = FNavigationSystem::GetCurrent<UNavigationSystemV1>(World);
+	FVector FallbackGroundedLocation = DesiredLocation;
+	bool bHasFallbackGroundedLocation = false;
+
+	for (const FVector& Offset : CandidateOffsets)
+	{
+		const FVector CandidateLocation = DesiredLocation + Offset;
+		FVector GroundedLocation;
+		if (TryProjectZombieLocationToGround(World, Zombie, CandidateLocation, GroundedLocation))
+		{
+			if (!bHasFallbackGroundedLocation)
+			{
+				FallbackGroundedLocation = GroundedLocation;
+				bHasFallbackGroundedLocation = true;
+			}
+
+			if (IsZombiePlacementClear(World, Zombie, GroundedLocation))
+			{
+				OutActorLocation = GroundedLocation;
+				return true;
+			}
+		}
+
+		if (NavigationSystem)
+		{
+			FNavLocation ProjectedNavLocation;
+			if (NavigationSystem->ProjectPointToNavigation(CandidateLocation, ProjectedNavLocation, NavQueryExtent))
+			{
+				FVector NavGroundedLocation;
+				if (!TryProjectZombieLocationToGround(World, Zombie, ProjectedNavLocation.Location, NavGroundedLocation))
+				{
+					continue;
+				}
+
+				if (!bHasFallbackGroundedLocation)
+				{
+					FallbackGroundedLocation = NavGroundedLocation;
+					bHasFallbackGroundedLocation = true;
+				}
+
+				if (IsZombiePlacementClear(World, Zombie, NavGroundedLocation))
+				{
+					OutActorLocation = NavGroundedLocation;
+					return true;
+				}
+			}
+		}
+	}
+
+	if (bHasFallbackGroundedLocation)
+	{
+		OutActorLocation = FallbackGroundedLocation;
+		return true;
+	}
+
+	return false;
+}
+}
 
 FFPSSpawnManager::FFPSSpawnManager(UFPSProjectGameInstance& InOwner)
 	: Owner(InOwner)
@@ -192,8 +351,9 @@ void FFPSSpawnManager::ProcessPendingTileZombiePlacements()
 			PendingPlacement.LocalYaw,
 			TileWorldTransform))
 		{
-			Zombie->SetActorLocationAndRotation(TileWorldTransform.GetLocation(), TileWorldTransform.Rotator(), false, nullptr, ETeleportType::TeleportPhysics);
-			FPSStage2WorldUtils::SnapActorToGround(Zombie);
+			FVector PlacementLocation = TileWorldTransform.GetLocation();
+			TryFindClearZombiePlacement(World, Zombie, TileWorldTransform.GetLocation(), PlacementLocation);
+			Zombie->SetActorLocationAndRotation(PlacementLocation, TileWorldTransform.Rotator(), false, nullptr, ETeleportType::TeleportPhysics);
 			Zombie->SetActorHiddenInGame(false);
 			Zombie->SetActorEnableCollision(true);
 			SendZombiePlacementCorrection(PendingPlacement.ObjectId, Zombie->GetActorLocation(), Zombie->GetActorRotation());
@@ -288,7 +448,6 @@ void FFPSSpawnManager::SpawnZombie(UWorld* World, const Protocol::ObjectInfo& Ob
 		}
 	}
 
-	FPSStage2WorldUtils::TryProjectLocationToGround(World, ZombieLocation, 120.0f, ZombieLocation);
 	FActorSpawnParameters SpawnParams;
 	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
 
@@ -298,7 +457,12 @@ void FFPSSpawnManager::SpawnZombie(UWorld* World, const Protocol::ObjectInfo& Ob
 		return;
 	}
 
-	FPSStage2WorldUtils::SnapActorToGround(SpawnedZombie);
+	if (TileTypeCode == 0 || bResolvedTileTransform)
+	{
+		FVector PlacementLocation = SpawnedZombie->GetActorLocation();
+		TryFindClearZombiePlacement(World, SpawnedZombie, ZombieLocation, PlacementLocation);
+		SpawnedZombie->SetActorLocationAndRotation(PlacementLocation, ZombieRotation, false, nullptr, ETeleportType::TeleportPhysics);
+	}
 	SpawnedZombie->SetNetworkObjectId(ObjectId);
 	SpawnedZombie->SetActorTickEnabled(false);
 	if (UCharacterMovementComponent* MoveComp = SpawnedZombie->GetCharacterMovement())

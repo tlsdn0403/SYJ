@@ -59,6 +59,11 @@ EBTNodeResult::Type UBTTask_Attack::ExecuteTask(UBehaviorTreeComponent& OwnerCom
 		return EBTNodeResult::Failed;
 	}
 
+	if (Zombie->IsCrawling())
+	{
+		return EBTNodeResult::Failed;
+	}
+
 	if (Zombie->IsAttacking())
 	{
 		return EBTNodeResult::Succeeded;

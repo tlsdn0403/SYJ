@@ -66,6 +66,7 @@ protected:
 	virtual void BeginPlay() override;
 	virtual float GetDirectAttackAnimationDuration();
 	virtual float PlayDeathAnimationBeforeRagdoll();
+	virtual FVector GetCrawlingMeshRelativeLocation(const FVector& CurrentStandingMeshRelativeLocation) const;
 	AActor* GetCurrentAttackTarget() const { return CurrentAttackTarget; }
 
 	/** 좀비 대미지 처리 내부 로직 */
@@ -161,6 +162,7 @@ private:
 	void ScheduleAttackDamage(float MontageDuration);
 	void TriggerAttackDamage();
 	void FinishAttack();
+	void CancelAttack();
 	void ApplyAttackDamage(AActor* TargetActor);
 	void ApplyAnimationDesync();
 	void ApplyMovementTuning();

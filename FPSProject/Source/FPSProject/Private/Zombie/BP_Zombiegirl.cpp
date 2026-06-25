@@ -4,6 +4,7 @@
 #include "Zombie/BP_Zombiegirl.h"
 
 #include "Animation/AnimSequenceBase.h"
+#include "Components/CapsuleComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Engine/SkeletalMesh.h"
 #include "UObject/ConstructorHelpers.h"
@@ -48,6 +49,19 @@ ABP_Zombiegirl::ABP_Zombiegirl()
 	DeathAnimations.Reset();
 	if (GirlDeathOne.Succeeded()) DeathAnimations.Add(GirlDeathOne.Object);
 	if (GirlDeathTwo.Succeeded()) DeathAnimations.Add(GirlDeathTwo.Object);
+}
+
+FVector ABP_Zombiegirl::GetCrawlingMeshRelativeLocation(const FVector& CurrentStandingMeshRelativeLocation) const
+{
+	const UCapsuleComponent* Capsule = GetCapsuleComponent();
+	const float GroundedMeshZ = Capsule
+		? -Capsule->GetUnscaledCapsuleHalfHeight()
+		: CurrentStandingMeshRelativeLocation.Z;
+
+	return FVector(
+		CurrentStandingMeshRelativeLocation.X,
+		CurrentStandingMeshRelativeLocation.Y,
+		FMath::Max(CurrentStandingMeshRelativeLocation.Z, GroundedMeshZ));
 }
 
 void ABP_Zombiegirl::InitializeBoneDurability()

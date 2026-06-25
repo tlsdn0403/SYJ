@@ -139,6 +139,11 @@ float ABaseZombie::PlayDeathAnimationBeforeRagdoll()
 	return 0.0f;
 }
 
+FVector ABaseZombie::GetCrawlingMeshRelativeLocation(const FVector& CurrentStandingMeshRelativeLocation) const
+{
+	return CurrentStandingMeshRelativeLocation;
+}
+
 void ABaseZombie::Attack()
 {
 	Attack(UGameplayStatics::GetPlayerPawn(GetWorld(), 0));
@@ -156,7 +161,7 @@ void ABaseZombie::Attack(AActor* TargetActor)
 
 void ABaseZombie::HandleNetworkAttack(AActor* TargetActor, bool bShouldApplyDamage)
 {
-	if (bIsAttacking)
+	if (bIsAttacking || MovementState == EZombieMovementState::Crawling)
 	{
 		return;
 	}
@@ -499,7 +504,7 @@ UAnimMontage* ABaseZombie::GetAttackMontageForCurrentState() const
 {
 	if (MovementState == EZombieMovementState::Crawling)
 	{
-		return CrawlingAttackMontage;
+		return nullptr;
 	}
 
 	return AttackMontage;
@@ -507,7 +512,7 @@ UAnimMontage* ABaseZombie::GetAttackMontageForCurrentState() const
 
 void ABaseZombie::StartAttack(AActor* TargetActor, bool bAllowFallbackTarget)
 {
-	if (!bIsAlive || bIsAttacking)
+	if (!bIsAlive || bIsAttacking || MovementState == EZombieMovementState::Crawling)
 	{
 		return;
 	}
@@ -626,6 +631,22 @@ void ABaseZombie::FinishAttack()
 	bShouldApplyCurrentNetworkAttackDamage = true;
 	ApplyAvoidanceTuning();
 	UE_LOG(LogTemp, Log, TEXT("Attack Finished"));
+}
+
+void ABaseZombie::CancelAttack()
+{
+	GetWorldTimerManager().ClearTimer(AttackDamageTimerHandle);
+	GetWorldTimerManager().ClearTimer(AttackFinishTimerHandle);
+
+	if (UAnimInstance* AnimInstance = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr)
+	{
+		AnimInstance->Montage_Stop(0.1f);
+	}
+
+	CurrentAttackTarget = nullptr;
+	bIsAttacking = false;
+	bAttackDamageApplied = false;
+	bShouldApplyCurrentNetworkAttackDamage = true;
 }
 
 void ABaseZombie::ApplyAttackDamage(AActor* TargetActor)
@@ -944,6 +965,8 @@ void ABaseZombie::StartCrawling()
 	
 	if (MovementState == EZombieMovementState::Crawling) return;
 
+	CancelAttack();
+
 	// 좀비의 상태를 기어 다니는 상태로 변경
 	MovementState = EZombieMovementState::Crawling;
 
@@ -978,7 +1001,7 @@ void ABaseZombie::StartCrawling()
 	{
 		if (bHasStandingMeshRelativeLocation)
 		{
-			MeshComp->SetRelativeLocation(StandingMeshRelativeLocation);
+			MeshComp->SetRelativeLocation(GetCrawlingMeshRelativeLocation(StandingMeshRelativeLocation));
 		}
 	}
 }

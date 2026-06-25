@@ -4,6 +4,7 @@
 #include "Zombie/PoliceZombie.h"
 
 #include "Animation/AnimSequenceBase.h"
+#include "Components/CapsuleComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Engine/SkeletalMesh.h"
 #include "UObject/ConstructorHelpers.h"
@@ -48,6 +49,19 @@ APoliceZombie::APoliceZombie()
 	DeathAnimations.Reset();
 	if (PoliceDeathOne.Succeeded()) DeathAnimations.Add(PoliceDeathOne.Object);
 	if (PoliceDeathTwo.Succeeded()) DeathAnimations.Add(PoliceDeathTwo.Object);
+}
+
+FVector APoliceZombie::GetCrawlingMeshRelativeLocation(const FVector& CurrentStandingMeshRelativeLocation) const
+{
+	const UCapsuleComponent* Capsule = GetCapsuleComponent();
+	const float GroundedMeshZ = Capsule
+		? -Capsule->GetUnscaledCapsuleHalfHeight()
+		: CurrentStandingMeshRelativeLocation.Z;
+
+	return FVector(
+		CurrentStandingMeshRelativeLocation.X,
+		CurrentStandingMeshRelativeLocation.Y,
+		FMath::Max(CurrentStandingMeshRelativeLocation.Z, GroundedMeshZ));
 }
 
 void APoliceZombie::InitializeBoneDurability()

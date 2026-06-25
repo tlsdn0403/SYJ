@@ -149,15 +149,10 @@ void AFPSBaseCharacter::Delete_L1Widget(AFPSPlayerController* PC) {
 	if (PC->InventoryW)
 	{
 		PC->InventoryW->RemoveFromParent();
-		PC->TimerW->RemoveFromParent();
 	}
 	if (PC->TimerW)
 	{
 		PC->TimerW->RemoveFromParent();
-	}
-	if (PC->BasicW)
-	{
-		PC->BasicW->RemoveFromParent();
 	}
 }
 

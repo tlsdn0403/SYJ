@@ -59,5 +59,11 @@ bool UL2BaseUI::UsingItem(int num)
 
 void UL2BaseUI::OilUpdate(int num) 
 {
-
+	OilSlider->SetValue(num / 100);
+	if (num <= 60) {
+		OilSlider->SetSliderBarColor(FLinearColor(1.0f, 0.55f, 0.0f, 1.0f));
+	}
+	else if (num <= 40) {
+		OilSlider->SetSliderBarColor(FLinearColor(1.0f, 0.45f, 0.0f, 1.0f));
+	}
 }

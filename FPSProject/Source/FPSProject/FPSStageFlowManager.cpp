@@ -140,26 +140,6 @@ void FFPSStageFlowManager::RemoveEntryLoadingWidget()
 	}
 }
 
-void FFPSStageFlowManager::RemoveStage1WidgetsForLocalPlayer()
-{
-	AFPSPlayerController* PlayerController = Cast<AFPSPlayerController>(UGameplayStatics::GetPlayerController(&Owner, 0));
-	if (PlayerController == nullptr)
-	{
-		return;
-	}
-
-	AFPSBaseCharacter* LocalCharacter = Owner.MyPlayer;
-	if (LocalCharacter == nullptr)
-	{
-		LocalCharacter = Cast<AFPSBaseCharacter>(PlayerController->GetPawn());
-	}
-
-	if (LocalCharacter)
-	{
-		LocalCharacter->Delete_L1Widget(PlayerController);
-	}
-}
-
 void FFPSStageFlowManager::HandlePostLoadMap(UWorld* LoadedWorld)
 {
 	bHasDistributedStage1CargoItems = false;
@@ -188,7 +168,6 @@ void FFPSStageFlowManager::HandlePostLoadMap(UWorld* LoadedWorld)
 void FFPSStageFlowManager::CompleteStage2MapLoad()
 {
 	RemoveEntryLoadingWidget();
-	RemoveStage1WidgetsForLocalPlayer();
 	bWaitingForStage2MapLoad = false;
 	PendingStageTransitionLevelName.Empty();
 }
@@ -229,11 +208,6 @@ void FFPSStageFlowManager::ProcessPendingStage2Spawns()
 		}
 
 		Owner.ProcessSpawnObject(PendingSpawn.ObjectInfo, PendingSpawn.bIsMine);
-
-		if (PendingSpawn.bIsMine)
-		{
-			RemoveStage1WidgetsForLocalPlayer();
-		}
 	}
 
 	TryDistributeStage1CargoItemsToPlayers();

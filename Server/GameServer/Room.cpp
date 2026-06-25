@@ -616,8 +616,6 @@ void Room::SpawnStage2Zombies()
 
 		EnterRoom(zombie, false);
 	}
-
-	cout << "[ZombieSync] SpawnStage2Zombies count=" << static_cast<int32>(sizeof(STAGE2_ZOMBIE_SPAWNS) / sizeof(STAGE2_ZOMBIE_SPAWNS[0])) << endl;
 }
 
 Room::Stage2WeaponState* Room::FindStage2Weapon(uint64 itemId)

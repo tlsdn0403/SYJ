@@ -32,7 +32,6 @@ public:
 
 private:
 	void ApplyStage1ItemSpawnSeed();
-	void RemoveStage1WidgetsForLocalPlayer();
 
 	UFPSProjectGameInstance& Owner;
 	bool bPendingEnterGameRequest = false;

@@ -643,6 +643,13 @@ void UFPSProjectGameInstance::HandleMove(const Protocol::S_MOVE& MovePkt)
 	if (Player->IsLocallyControlled())
 		return;
 
+	if (Player->IsUsingMountedWeapon() && Player->CurrentMountedWeapon)
+	{
+		Player->CurrentMountedWeapon->ApplyNetworkAim(
+			FRotator(Info.pitch(), Info.yaw(), 0.0f));
+		return;
+	}
+
 	// 3. 남의 캐릭터라면 목표 위치(DestInfo)를 갱신
 	// 이렇게 갱신해주면 AFPSBaseCharacter::Tick 함수에서 이걸 보고 자연스럽게 걸어갑니다.
 	Player->SetDestInfo(Info);

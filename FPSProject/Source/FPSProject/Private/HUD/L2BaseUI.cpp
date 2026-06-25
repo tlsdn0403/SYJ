@@ -57,13 +57,31 @@ bool UL2BaseUI::UsingItem(int num)
 }
 
 
-void UL2BaseUI::OilUpdate(int num) 
+void UL2BaseUI::OilUpdate(float CurrentFuel, float MaxFuel)
 {
-	OilSlider->SetValue(num / 100);
-	if (num <= 60) {
-		OilSlider->SetSliderBarColor(FLinearColor(1.0f, 0.55f, 0.0f, 1.0f));
-	}
-	else if (num <= 40) {
-		OilSlider->SetSliderBarColor(FLinearColor(1.0f, 0.45f, 0.0f, 1.0f));
+	const float FuelRatio = MaxFuel > KINDA_SMALL_NUMBER
+		? FMath::Clamp(CurrentFuel / MaxFuel, 0.0f, 1.0f)
+		: 0.0f;
+
+	if (OilSlider)
+	{
+		OilSlider->SetValue(FuelRatio);
+
+		if (FuelRatio <= 0.2f)
+		{
+			OilSlider->SetSliderBarColor(FLinearColor(1.0f, 0.1f, 0.0f, 1.0f));
+		}
+		else if (FuelRatio <= 0.4f)
+		{
+			OilSlider->SetSliderBarColor(FLinearColor(1.0f, 0.45f, 0.0f, 1.0f));
+		}
+		else if (FuelRatio <= 0.6f)
+		{
+			OilSlider->SetSliderBarColor(FLinearColor(1.0f, 0.55f, 0.0f, 1.0f));
+		}
+		else
+		{
+			OilSlider->SetSliderBarColor(FLinearColor(0.2f, 0.85f, 0.25f, 1.0f));
+		}
 	}
 }

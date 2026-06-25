@@ -151,6 +151,7 @@ public:
 
 	void SetHealth(float currentHp, float maxHp);   //체력 수정 함수
 	void ShowTruckHealthOnHUD(ATruck* Truck);
+	void ShowTruckFuelOnHUD(ATruck* Truck);
 	void RestorePlayerHealthOnHUD();
 
 protected:
@@ -170,6 +171,8 @@ protected:
 	void HandleHealthChanged(float NewHealth, float Damage);
 	UFUNCTION()
 	void HandleDisplayedTruckHealthChanged(float CurrentHealth, float MaxHealth);
+	UFUNCTION()
+	void HandleDisplayedTruckFuelChanged(float CurrentFuel, float MaxFuel);
 	void LeaveGame();
 	void SendEnterGamePacket();
 
@@ -337,7 +340,9 @@ protected:
 	void ClearTruckInteractionState();
 	void RefreshTruckInteractionState(ATruck* Truck);
 	void StopShowingTruckHealthOnHUD();
+	void StopShowingTruckFuelOnHUD();
 	void UpdateHealthHUD(float CurrentHealth, float MaxHealth);
+	void UpdateFuelHUD(float CurrentFuel, float MaxFuel);
 	AFPSPlayerController* ResolveHealthHUDController() const;
 
 	void SendMovePacket();
@@ -358,6 +363,9 @@ protected:
 
 	UPROPERTY(Transient)
 	TObjectPtr<ATruck> DisplayedHealthTruck = nullptr;
+
+	UPROPERTY(Transient)
+	TObjectPtr<ATruck> DisplayedFuelTruck = nullptr;
 
 	UPROPERTY(Transient)
 	FVector ReplicatedTruckCargoLocalLocation = FVector::ZeroVector;

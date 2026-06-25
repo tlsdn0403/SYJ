@@ -573,6 +573,7 @@ void AFPSBaseCharacter::EnterTruckDriverSeat(ATruck* Truck)
 
 	ClearTruckInteractionState();
 	CurrentTruck = Truck;
+	ShowTruckFuelOnHUD(Truck);
 	bIsDrivingTruck = true;
 	bIsAiming = false;
 	bIsHoldAiming = false;
@@ -625,6 +626,7 @@ void AFPSBaseCharacter::ExitTruckDriverSeat()
 
 	bIsDrivingTruck = false;
 	CurrentTruck = nullptr;
+	StopShowingTruckFuelOnHUD();
 	SetHeldWeaponVehicleVisibility(false);
 	RefreshTruckInteractionState(Truck);
 	Truck->RefreshInteractionWidgetsForCharacter(this);
@@ -660,6 +662,7 @@ void AFPSBaseCharacter::EnterTruckCargo(ATruck* Truck)
 	bIsIronSightAiming = false;
 	bAimInputHeld = false;
 	CurrentTruck = Truck;
+	ShowTruckFuelOnHUD(Truck);
 
 	SetActorLocationAndRotation(
 		Truck->GetCargoRideLocation(),
@@ -705,6 +708,7 @@ void AFPSBaseCharacter::ExitTruckCargo()
 
 	bIsOnTruckCargo = false;
 	CurrentTruck = nullptr;
+	StopShowingTruckFuelOnHUD();
 	bHasReplicatedTruckCargoLocalLocation = false;
 	bHasLastTruckCargoLocalLocationForMoveState = false;
 	RefreshTruckInteractionState(Truck);
@@ -736,6 +740,7 @@ void AFPSBaseCharacter::EnterMountedWeapon(ATruck* Truck, AMountedMachineGun* Mo
 	bIsIronSightAiming = false;
 	bAimInputHeld = false;
 	CurrentTruck = Truck;
+	ShowTruckFuelOnHUD(Truck);
 	CurrentMountedWeapon = MountedWeapon;
 	CurrentMountedWeapon->SetWeaponUser(this);
 	SetHeldWeaponVehicleVisibility(true);
@@ -890,6 +895,7 @@ void AFPSBaseCharacter::ExitMountedWeapon(bool bReturnToCargo)
 	{
 		bIsOnTruckCargo = false;
 		CurrentTruck = nullptr;
+		StopShowingTruckFuelOnHUD();
 		bHasReplicatedTruckCargoLocalLocation = false;
 		bHasLastTruckCargoLocalLocationForMoveState = false;
 

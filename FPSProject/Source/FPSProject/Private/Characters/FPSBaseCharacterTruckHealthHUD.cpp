@@ -4,6 +4,7 @@
 #include "Components/HealthComponent.h"
 #include "FPSProjectGameInstance.h"
 #include "HUD/BasicUI.h"
+#include "HUD/L2BaseUI.h"
 #include "Kismet/GameplayStatics.h"
 #include "Truck/Truck.h"
 
@@ -94,4 +95,52 @@ void AFPSBaseCharacter::RestorePlayerHealthOnHUD()
 void AFPSBaseCharacter::HandleDisplayedTruckHealthChanged(float CurrentHealth, float MaxHealth)
 {
 	UpdateHealthHUD(CurrentHealth, MaxHealth);
+}
+
+void AFPSBaseCharacter::UpdateFuelHUD(float CurrentFuel, float MaxFuel)
+{
+	if (AFPSPlayerController* PlayerController = ResolveHealthHUDController())
+	{
+		if (PlayerController->L2BaseW)
+		{
+			PlayerController->L2BaseW->OilUpdate(CurrentFuel, MaxFuel);
+		}
+	}
+}
+
+void AFPSBaseCharacter::ShowTruckFuelOnHUD(ATruck* Truck)
+{
+	if (!Truck || !ResolveHealthHUDController())
+	{
+		return;
+	}
+
+	if (DisplayedFuelTruck && DisplayedFuelTruck != Truck)
+	{
+		DisplayedFuelTruck->OnTruckFuelChanged.RemoveDynamic(
+			this,
+			&AFPSBaseCharacter::HandleDisplayedTruckFuelChanged);
+	}
+
+	DisplayedFuelTruck = Truck;
+	Truck->OnTruckFuelChanged.AddUniqueDynamic(
+		this,
+		&AFPSBaseCharacter::HandleDisplayedTruckFuelChanged);
+	UpdateFuelHUD(Truck->GetTruckFuel(), Truck->GetTruckMaxFuel());
+}
+
+void AFPSBaseCharacter::StopShowingTruckFuelOnHUD()
+{
+	if (DisplayedFuelTruck)
+	{
+		DisplayedFuelTruck->OnTruckFuelChanged.RemoveDynamic(
+			this,
+			&AFPSBaseCharacter::HandleDisplayedTruckFuelChanged);
+		DisplayedFuelTruck = nullptr;
+	}
+}
+
+void AFPSBaseCharacter::HandleDisplayedTruckFuelChanged(float CurrentFuel, float MaxFuel)
+{
+	UpdateFuelHUD(CurrentFuel, MaxFuel);
 }

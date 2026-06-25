@@ -3,6 +3,7 @@
 #include "Engine/LevelStreamingDynamic.h"
 #include "Engine/World.h"
 #include "Components/ModelComponent.h"
+#include "Components/PrimitiveComponent.h"
 #include "Components/SceneComponent.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "LevelUtils.h"
@@ -331,6 +332,7 @@ void AStage2TileManager::FinalizePooledTile(int32 PoolIndex)
 	PooledTile.bInitialized = true;
 
 	SetTileRenderingEnabled(PooledTile, false);
+	SetTileCollisionEnabled(PooledTile, false);
 }
 
 bool AStage2TileManager::IsTilePoolReady() const
@@ -388,19 +390,20 @@ bool AStage2TileManager::TryActivatePooledTile(EStage2TileType TileType, const F
 		return false;
 	}
 
-	SetTileRenderingEnabled(ActivatedTile, true);
-
 	ActivatedTile.RequestedEntryTransform = EntryTransform;
 	ActivatedTile.TileType = TileType;
 	// 풀에서 꺼낸 타일은 이미 로드되어 있으므로, 활성화 단계에서는 위치 이동과 트리거 재연결만 다시 처리한다.
 	ActivatedTile.bInitialized = false;
+
+	SetTileRenderingEnabled(ActivatedTile, true);
+	SetTileCollisionEnabled(ActivatedTile, true);
 
 	const int32 ActiveTileIndex = ActiveTiles.Add(ActivatedTile);
 	FinalizeLoadedTile(ActiveTileIndex);
 	return true;
 }
 
-bool AStage2TileManager::TryMoveTileTolocation(FStage2LoadedTile& LoadedTile, const FTransform& NewLevelTransform) const
+bool AStage2TileManager::TryMoveTileTolocation(FStage2LoadedTile& LoadedTile, const FTransform& NewLevelTransform)
 {
 	if (!LoadedTile.StreamingLevel)
 	{
@@ -434,7 +437,7 @@ bool AStage2TileManager::TryMoveTileTolocation(FStage2LoadedTile& LoadedTile, co
 		{
 			if (ModelComponent)
 			{
-				ModelComponent->UpdateComponentToWorld(EUpdateTransformFlags::SkipPhysicsUpdate, ETeleportType::TeleportPhysics);
+				ModelComponent->UpdateComponentToWorld(EUpdateTransformFlags::None, ETeleportType::TeleportPhysics);
 			}
 		}
 
@@ -447,13 +450,14 @@ bool AStage2TileManager::TryMoveTileTolocation(FStage2LoadedTile& LoadedTile, co
 
 			if (USceneComponent* ActorRootComponent = LevelActor->GetRootComponent())
 			{
-				ActorRootComponent->UpdateComponentToWorld(EUpdateTransformFlags::SkipPhysicsUpdate, ETeleportType::TeleportPhysics);
+				ActorRootComponent->UpdateComponentToWorld(EUpdateTransformFlags::None, ETeleportType::TeleportPhysics);
 			}
 		}
 	}
 
 	LoadedTile.StreamingLevel->LevelTransform = NewLevelTransform;
 	LoadedTile.AppliedLevelTransform = NewLevelTransform;
+	RefreshTilePhysicsState(LoadedTile);
 	return true;
 }
 
@@ -484,6 +488,175 @@ void AStage2TileManager::SetTileRenderingEnabled(const FStage2LoadedTile& Loaded
 		if (IsValid(LevelActor))
 		{
 			LevelActor->SetActorHiddenInGame(!bEnabled);
+		}
+	}
+}
+
+void AStage2TileManager::SetTileCollisionEnabled(const FStage2LoadedTile& LoadedTile, bool bEnabled)
+{
+	if (!bDisablePooledTileCollision || !LoadedTile.StreamingLevel)
+	{
+		return;
+	}
+
+	ULevel* LoadedLevel = LoadedTile.StreamingLevel->GetLoadedLevel();
+	if (!LoadedLevel)
+	{
+		return;
+	}
+
+	for (UModelComponent* ModelComponent : LoadedLevel->ModelComponents)
+	{
+		if (!IsValid(ModelComponent) || !ModelComponent->IsRegistered())
+		{
+			continue;
+		}
+
+		const TObjectKey<UPrimitiveComponent> ComponentKey(ModelComponent);
+		if (bEnabled)
+		{
+			if (const ECollisionEnabled::Type* CachedCollision = CachedTileCollisionStates.Find(ComponentKey))
+			{
+				ModelComponent->SetCollisionEnabled(*CachedCollision);
+			}
+		}
+		else
+		{
+			CachedTileCollisionStates.FindOrAdd(ComponentKey, ModelComponent->GetCollisionEnabled());
+			ModelComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		}
+
+		ModelComponent->UpdateComponentToWorld(EUpdateTransformFlags::None, ETeleportType::TeleportPhysics);
+	}
+
+	for (AActor* LevelActor : LoadedLevel->Actors)
+	{
+		if (!IsValid(LevelActor))
+		{
+			continue;
+		}
+
+		TInlineComponentArray<UPrimitiveComponent*> PrimitiveComponents(LevelActor);
+		LevelActor->GetComponents(PrimitiveComponents);
+
+		for (UPrimitiveComponent* PrimitiveComponent : PrimitiveComponents)
+		{
+			if (!IsValid(PrimitiveComponent) || !PrimitiveComponent->IsRegistered())
+			{
+				continue;
+			}
+
+			const TObjectKey<UPrimitiveComponent> ComponentKey(PrimitiveComponent);
+			if (bEnabled)
+			{
+				if (const ECollisionEnabled::Type* CachedCollision = CachedTileCollisionStates.Find(ComponentKey))
+				{
+					PrimitiveComponent->SetCollisionEnabled(*CachedCollision);
+				}
+			}
+			else
+			{
+				CachedTileCollisionStates.FindOrAdd(ComponentKey, PrimitiveComponent->GetCollisionEnabled());
+				PrimitiveComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+			}
+
+			PrimitiveComponent->UpdateComponentToWorld(EUpdateTransformFlags::None, ETeleportType::TeleportPhysics);
+		}
+	}
+
+	RefreshTilePhysicsState(LoadedTile);
+}
+
+void AStage2TileManager::RefreshTilePhysicsState(const FStage2LoadedTile& LoadedTile) const
+{
+	if (!LoadedTile.StreamingLevel)
+	{
+		return;
+	}
+
+	ULevel* LoadedLevel = LoadedTile.StreamingLevel->GetLoadedLevel();
+	if (!LoadedLevel)
+	{
+		return;
+	}
+
+	for (UModelComponent* ModelComponent : LoadedLevel->ModelComponents)
+	{
+		if (!ModelComponent || !ModelComponent->IsRegistered())
+		{
+			continue;
+		}
+
+		ModelComponent->UpdateComponentToWorld(EUpdateTransformFlags::None, ETeleportType::TeleportPhysics);
+		if (ModelComponent->GetCollisionEnabled() != ECollisionEnabled::NoCollision)
+		{
+			ModelComponent->RecreatePhysicsState();
+		}
+	}
+
+	for (AActor* LevelActor : LoadedLevel->Actors)
+	{
+		if (!IsValid(LevelActor))
+		{
+			continue;
+		}
+
+		TInlineComponentArray<UPrimitiveComponent*> PrimitiveComponents(LevelActor);
+		LevelActor->GetComponents(PrimitiveComponents);
+
+		for (UPrimitiveComponent* PrimitiveComponent : PrimitiveComponents)
+		{
+			if (!IsValid(PrimitiveComponent) || !PrimitiveComponent->IsRegistered())
+			{
+				continue;
+			}
+
+			PrimitiveComponent->UpdateComponentToWorld(EUpdateTransformFlags::None, ETeleportType::TeleportPhysics);
+			if (PrimitiveComponent->GetCollisionEnabled() != ECollisionEnabled::NoCollision)
+			{
+				PrimitiveComponent->RecreatePhysicsState();
+			}
+		}
+	}
+}
+
+void AStage2TileManager::ForgetTileCollisionStates(const FStage2LoadedTile& LoadedTile)
+{
+	if (!LoadedTile.StreamingLevel)
+	{
+		return;
+	}
+
+	ULevel* LoadedLevel = LoadedTile.StreamingLevel->GetLoadedLevel();
+	if (!LoadedLevel)
+	{
+		return;
+	}
+
+	for (UModelComponent* ModelComponent : LoadedLevel->ModelComponents)
+	{
+		if (ModelComponent)
+		{
+			CachedTileCollisionStates.Remove(TObjectKey<UPrimitiveComponent>(ModelComponent));
+		}
+	}
+
+	for (AActor* LevelActor : LoadedLevel->Actors)
+	{
+		if (!IsValid(LevelActor))
+		{
+			continue;
+		}
+
+		TInlineComponentArray<UPrimitiveComponent*> PrimitiveComponents(LevelActor);
+		LevelActor->GetComponents(PrimitiveComponents);
+
+		for (UPrimitiveComponent* PrimitiveComponent : PrimitiveComponents)
+		{
+			if (PrimitiveComponent)
+			{
+				CachedTileCollisionStates.Remove(TObjectKey<UPrimitiveComponent>(PrimitiveComponent));
+			}
 		}
 	}
 }
@@ -619,6 +792,7 @@ void AStage2TileManager::RecycleActiveTileAt(int32 TileIndex)
 	}
 
 	SetTileRenderingEnabled(RecycledTile, false);
+	SetTileCollisionEnabled(RecycledTile, false);
 	TryMoveTileTolocation(RecycledTile, MakePoolParkingTransform());
 	RecycledTile.RequestedEntryTransform = RecycledTile.AppliedLevelTransform;
 	RecycledTile.bInitialized = true;
@@ -637,6 +811,7 @@ void AStage2TileManager::UnloadTile(FStage2LoadedTile& LoadedTile)
 
 	if (LoadedTile.StreamingLevel)
 	{
+		ForgetTileCollisionStates(LoadedTile);
 		LoadedTile.StreamingLevel->SetShouldBeLoaded(false);
 		LoadedTile.StreamingLevel->SetShouldBeVisible(false);
 		LoadedTile.StreamingLevel->SetIsRequestingUnloadAndRemoval(true);

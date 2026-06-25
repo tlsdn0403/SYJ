@@ -134,6 +134,9 @@ public:
 	TArray<TSubclassOf<class AFPSBaseCharacter>> PlayerCharacterClasses;
 	UPROPERTY(EditAnywhere, Category = "Network")
 	TSubclassOf<class ABaseZombie> NetworkZombieClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Network")
+	TArray<TSubclassOf<class ABaseZombie>> NetworkZombieClasses;
 	class AFPSBaseCharacter* MyPlayer;
 
 	TMap<uint64, FPendingEquippedWeapon> PendingWeaponsByPlayer;

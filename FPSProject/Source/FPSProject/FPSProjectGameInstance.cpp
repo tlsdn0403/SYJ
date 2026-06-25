@@ -1229,6 +1229,10 @@ void UFPSProjectGameInstance::Tick(float DeltaTime)
 {
 	TickNetwork();
 	TickStageFlow();
+	if (SpawnManager)
+	{
+		SpawnManager->Tick(DeltaTime);
+	}
 }
 
 void UFPSProjectGameInstance::TickNetwork()

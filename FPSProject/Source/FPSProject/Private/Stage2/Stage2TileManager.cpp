@@ -162,11 +162,17 @@ bool AStage2TileManager::TryBuildWorldTransformForTileLocalPoint(
 	EStage2TileType TileType,
 	const FVector& LocalLocation,
 	float LocalYaw,
+	int32 TileOccurrenceIndex,
 	FTransform& OutTransform) const
 {
 	for (const FStage2LoadedTile& LoadedTile : ActiveTiles)
 	{
 		if (!LoadedTile.bInitialized || LoadedTile.TileType != TileType)
+		{
+			continue;
+		}
+
+		if (LoadedTile.TileOccurrenceIndex != TileOccurrenceIndex)
 		{
 			continue;
 		}
@@ -392,6 +398,7 @@ bool AStage2TileManager::TryActivatePooledTile(EStage2TileType TileType, const F
 
 	ActivatedTile.RequestedEntryTransform = EntryTransform;
 	ActivatedTile.TileType = TileType;
+	ActivatedTile.TileOccurrenceIndex = 0;
 	// 풀에서 꺼낸 타일은 이미 로드되어 있으므로, 활성화 단계에서는 위치 이동과 트리거 재연결만 다시 처리한다.
 	ActivatedTile.bInitialized = false;
 
@@ -688,6 +695,10 @@ void AStage2TileManager::FinalizeLoadedTile(int32 TileIndex)
 
 	AStage2TileMarker* TileMarker = LoadedTile.TileMarker;
 	const EStage2TileType TileType = LoadedTile.TileType;
+	if (TileType == EStage2TileType::Right)
+	{
+		LoadedTile.TileOccurrenceIndex = NextRightTileOccurrenceIndex++;
+	}
 
 	// 재활용될 때도 같은 기준점으로 맞출 수 있도록, 타일의 Entry 위치만 저장한다.
 	LoadedTile.EntryLocalTransform = TileMarker->GetEntryTransform().GetRelativeTransform(LoadedTile.AppliedLevelTransform);
@@ -827,6 +838,7 @@ void AStage2TileManager::ResetGenerationState()
 	bTilePoolReady = false;
 	ConsecutiveLeftTurns = 0;
 	ConsecutiveRightTurns = 0;
+	NextRightTileOccurrenceIndex = 0;
 	NextPoolParkingIndex = 0;
 	SpawnedPlayableTileCount = 0;
 	NextSpawnTransform = GetActorTransform();

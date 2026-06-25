@@ -507,10 +507,16 @@ namespace
 	constexpr float ZOMBIE_SEPARATION_WEIGHT = 1.35f;
 	constexpr int32 STAGE2_ZOMBIE_TILE_WORLD = 0;
 	constexpr int32 STAGE2_ZOMBIE_TILE_RIGHT = 3;
+	constexpr int32 STAGE2_RIGHT_TILE_OCCURRENCE_COUNT = 3;
 
-	constexpr int32 EncodeStage2ZombieSpawnType(Protocol::ZombieType zombieType, int32 tileTypeCode)
+	constexpr int32 EncodeStage2ZombieSpawnType(Protocol::ZombieType zombieType, int32 tileTypeCode, int32 tileOccurrenceIndex)
 	{
-		return tileTypeCode * 10 + static_cast<int32>(zombieType);
+		if (tileTypeCode == STAGE2_ZOMBIE_TILE_WORLD)
+		{
+			return static_cast<int32>(zombieType);
+		}
+
+		return tileTypeCode * 100 + tileOccurrenceIndex * 10 + static_cast<int32>(zombieType);
 	}
 
 	constexpr Protocol::ZombieType DecodeStage2ZombieType(int32 encodedSpawnType)
@@ -558,16 +564,6 @@ namespace
 		return static_cast<float>(MixStage2ZombieSeed(seed, index) % 360);
 	}
 
-	struct FixedZombieSpawnInfo
-	{
-		float x;
-		float y;
-		float z;
-		float yaw;
-		Protocol::ZombieType zombieType;
-		int32 tileTypeCode;
-	};
-
 	struct ZombieSpawnGroupInfo
 	{
 		float centerX;
@@ -578,22 +574,19 @@ namespace
 		float spacingX;
 		float spacingY;
 		int32 tileTypeCode;
+		int32 tileOccurrenceCount;
 		uint32 typeSeed;
 		uint32 yawSeed;
 	};
 
-	constexpr FixedZombieSpawnInfo STAGE2_FIXED_ZOMBIE_SPAWNS[] =
-	{
-		{ 2200.0f, -450.0f, 588.0f, 180.0f, Protocol::ZOMBIE_TYPE_MELEE, STAGE2_ZOMBIE_TILE_WORLD },
-		{ 2450.0f, -150.0f, 588.0f, 180.0f, Protocol::ZOMBIE_TYPE_RANGED, STAGE2_ZOMBIE_TILE_WORLD },
-		{ 2350.0f, 250.0f, 588.0f, 180.0f, Protocol::ZOMBIE_TYPE_TANKER, STAGE2_ZOMBIE_TILE_WORLD },
-		{ 2600.0f, 550.0f, 588.0f, 180.0f, Protocol::ZOMBIE_TYPE_MELEE, STAGE2_ZOMBIE_TILE_WORLD },
-		{ 2850.0f, 100.0f, 588.0f, 180.0f, Protocol::ZOMBIE_TYPE_RANGED, STAGE2_ZOMBIE_TILE_WORLD },
-	};
-
 	constexpr ZombieSpawnGroupInfo STAGE2_ZOMBIE_GROUPS[] =
 	{
-		{ 3508.3f, 4592.8f, 0.0f, 8, 5, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_RIGHT, 0x41C64E6Du, 0xA341316Cu },
+		{ 3508.3f, 4592.8f, 0.0f, 8, 5, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_RIGHT, STAGE2_RIGHT_TILE_OCCURRENCE_COUNT, 0x41C64E6Du, 0xA341316Cu },
+		{ 14984.0f, -92.9f, 0.0f, 8, 5, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_RIGHT, STAGE2_RIGHT_TILE_OCCURRENCE_COUNT, 0x6D2B79F5u, 0x13A5C89Bu },
+		{ 21570.8f, 5466.7f, -367.0f, 5, 4, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_RIGHT, STAGE2_RIGHT_TILE_OCCURRENCE_COUNT, 0x9E3779B9u, 0xC2B2AE35u },
+		{ 25608.8f, 12062.7f, -554.0f, 5, 4, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_RIGHT, STAGE2_RIGHT_TILE_OCCURRENCE_COUNT, 0x85EBCA6Bu, 0x27D4EB2Fu },
+		{ 21356.6f, 15914.6f, 0.0f, 8, 5, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_RIGHT, STAGE2_RIGHT_TILE_OCCURRENCE_COUNT, 0x165667B1u, 0xD3A2646Cu },
+		{ 16604.8f, 12468.7f, -743.0f, 5, 4, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_RIGHT, STAGE2_RIGHT_TILE_OCCURRENCE_COUNT, 0x27D4EB2Du, 0x94D049BBu },
 	};
 
 	struct Stage2WeaponSpawnInfo
@@ -683,7 +676,8 @@ void Room::SpawnStage2Zombies()
 		float z,
 		float yaw,
 		Protocol::ZombieType zombieType,
-		int32 tileTypeCode)
+		int32 tileTypeCode,
+		int32 tileOccurrenceIndex)
 	{
 		MonsterRef zombie = ObjectUtils::CreateMonster(zombieId++);
 		zombie->posInfo->set_x(x);
@@ -692,33 +686,32 @@ void Room::SpawnStage2Zombies()
 		zombie->posInfo->set_yaw(yaw);
 		zombie->posInfo->set_state(Protocol::MOVE_STATE_IDLE);
 		zombie->objectInfo->mutable_pos_info()->CopyFrom(*zombie->posInfo);
-		zombie->objectInfo->set_weapon_type(EncodeStage2ZombieSpawnType(zombieType, tileTypeCode));
+		zombie->objectInfo->set_weapon_type(EncodeStage2ZombieSpawnType(zombieType, tileTypeCode, tileOccurrenceIndex));
 
 		EnterRoom(zombie, false);
 	};
-
-	for (const FixedZombieSpawnInfo& spawnInfo : STAGE2_FIXED_ZOMBIE_SPAWNS)
-	{
-		spawnZombie(spawnInfo.x, spawnInfo.y, spawnInfo.z, spawnInfo.yaw, spawnInfo.zombieType, spawnInfo.tileTypeCode);
-	}
 
 	for (const ZombieSpawnGroupInfo& groupInfo : STAGE2_ZOMBIE_GROUPS)
 	{
 		const float startX = groupInfo.centerX - (static_cast<float>(groupInfo.columns - 1) * groupInfo.spacingX * 0.5f);
 		const float startY = groupInfo.centerY - (static_cast<float>(groupInfo.rows - 1) * groupInfo.spacingY * 0.5f);
 
-		for (int32 row = 0; row < groupInfo.rows; ++row)
+		for (int32 occurrenceIndex = 0; occurrenceIndex < groupInfo.tileOccurrenceCount; ++occurrenceIndex)
 		{
-			for (int32 column = 0; column < groupInfo.columns; ++column)
+			for (int32 row = 0; row < groupInfo.rows; ++row)
 			{
-				const int32 spawnIndex = row * groupInfo.columns + column;
-				spawnZombie(
-					startX + static_cast<float>(column) * groupInfo.spacingX,
-					startY + static_cast<float>(row) * groupInfo.spacingY,
-					groupInfo.centerZ,
-					PickStage2ZombieYaw(groupInfo.yawSeed, spawnIndex),
-					PickStage2ZombieType(groupInfo.typeSeed, spawnIndex),
-					groupInfo.tileTypeCode);
+				for (int32 column = 0; column < groupInfo.columns; ++column)
+				{
+					const int32 spawnIndex = occurrenceIndex * groupInfo.rows * groupInfo.columns + row * groupInfo.columns + column;
+					spawnZombie(
+						startX + static_cast<float>(column) * groupInfo.spacingX,
+						startY + static_cast<float>(row) * groupInfo.spacingY,
+						groupInfo.centerZ,
+						PickStage2ZombieYaw(groupInfo.yawSeed, spawnIndex),
+						PickStage2ZombieType(groupInfo.typeSeed, spawnIndex),
+						groupInfo.tileTypeCode,
+						occurrenceIndex);
+				}
 			}
 		}
 	}

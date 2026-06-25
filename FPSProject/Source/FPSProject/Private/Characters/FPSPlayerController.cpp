@@ -14,6 +14,32 @@
 #include "EnhancedInputSubsystems.h"
 #include "EnhancedInputComponent.h"
 
+namespace
+{
+AFPSBaseCharacter* ResolveLocalStageCharacter(AFPSPlayerController* PlayerController)
+{
+	if (!PlayerController)
+	{
+		return nullptr;
+	}
+
+	if (AFPSBaseCharacter* ControlledCharacter = Cast<AFPSBaseCharacter>(PlayerController->GetPawn()))
+	{
+		return ControlledCharacter;
+	}
+
+	if (const UFPSProjectGameInstance* GameInstance = Cast<UFPSProjectGameInstance>(PlayerController->GetGameInstance()))
+	{
+		if (IsValid(GameInstance->MyPlayer))
+		{
+			return GameInstance->MyPlayer;
+		}
+	}
+
+	return nullptr;
+}
+}
+
 
 void AFPSPlayerController::BeginPlay()
 {
@@ -72,11 +98,20 @@ void AFPSPlayerController::Pressed1(const FInputActionValue& Value)
 	{
 		return;
 	}
-	if (AFPSBaseCharacter* ControlledCharacter = Cast<AFPSBaseCharacter>(GetPawn()))
+	if (AFPSBaseCharacter* ControlledCharacter = ResolveLocalStageCharacter(this))
 	{
 		if (ControlledCharacter->IsDead())
 		{
 			return;
+		}
+
+		if (const UFPSProjectGameInstance* GameInstance = Cast<UFPSProjectGameInstance>(ControlledCharacter->GetGameInstance()))
+		{
+			if (GameInstance->IsInStage2World())
+			{
+				ControlledCharacter->UseFuelCan();
+				return;
+			}
 		}
 	}
 
@@ -111,6 +146,27 @@ void AFPSPlayerController::Pressed2(const FInputActionValue& Value)
 
 void AFPSPlayerController::Pressed3(const FInputActionValue& Value)
 {
+
+	if (TrySpectatePlayerSlot(2))
+	{
+		return;
+	}
+	if (AFPSBaseCharacter* ControlledCharacter = ResolveLocalStageCharacter(this))
+	{
+		if (ControlledCharacter->IsDead())
+		{
+			return;
+		}
+
+		if (const UFPSProjectGameInstance* GameInstance = Cast<UFPSProjectGameInstance>(ControlledCharacter->GetGameInstance()))
+		{
+			if (GameInstance->IsInStage2World())
+			{
+				ControlledCharacter->UseTruckRepairKit();
+				return;
+			}
+		}
+	}
 
 	InventoryW->SelectSlot(2);
 }

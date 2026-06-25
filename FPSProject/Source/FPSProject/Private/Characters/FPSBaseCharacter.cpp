@@ -1824,6 +1824,87 @@ bool AFPSBaseCharacter::UseHealPack()
 	return true;
 }
 
+bool AFPSBaseCharacter::UseFuelCan()
+{
+	UFPSProjectGameInstance* GameInstance = Cast<UFPSProjectGameInstance>(GetGameInstance());
+	if (GameInstance == nullptr || !GameInstance->IsInStage2World() || !CurrentTruck)
+	{
+		return false;
+	}
+
+	const APlayerController* LocalPlayerController = UGameplayStatics::GetPlayerController(this, 0);
+	const bool bIsLocalPlayerCharacter =
+		IsLocallyControlled() ||
+		GameInstance->MyPlayer == this ||
+		(CurrentTruck->GetDriverCharacter() == this && CurrentTruck->GetController() == LocalPlayerController);
+	if (!bIsLocalPlayerCharacter)
+	{
+		return false;
+	}
+
+	if (CurrentTruck->GetTruckFuel() >= CurrentTruck->GetTruckMaxFuel() - KINDA_SMALL_NUMBER)
+	{
+		return false;
+	}
+
+	if (!ConsumeInventoryItem(EItemType::Fuel))
+	{
+		RefreshStage2ItemUI();
+		UE_LOG(LogTemp, Warning, TEXT("Cannot use Fuel Can: no Stage 1 Fuel items remain."));
+		return false;
+	}
+
+	CurrentTruck->RefuelTruck(FuelCanRefuelAmount);
+	RefreshStage2ItemUI();
+	UE_LOG(LogTemp, Log, TEXT("Fuel Can used. Refueled %.1f, truck fuel=%.1f/%.1f, remaining=%d"),
+		FuelCanRefuelAmount,
+		CurrentTruck->GetTruckFuel(),
+		CurrentTruck->GetTruckMaxFuel(),
+		GetInventoryItemCount(EItemType::Fuel));
+	return true;
+}
+
+bool AFPSBaseCharacter::UseTruckRepairKit()
+{
+	UFPSProjectGameInstance* GameInstance = Cast<UFPSProjectGameInstance>(GetGameInstance());
+	if (GameInstance == nullptr || !GameInstance->IsInStage2World() || !CurrentTruck)
+	{
+		return false;
+	}
+
+	const APlayerController* LocalPlayerController = UGameplayStatics::GetPlayerController(this, 0);
+	const bool bIsLocalPlayerCharacter =
+		IsLocallyControlled() ||
+		GameInstance->MyPlayer == this ||
+		(CurrentTruck->GetDriverCharacter() == this && CurrentTruck->GetController() == LocalPlayerController);
+	if (!bIsLocalPlayerCharacter)
+	{
+		return false;
+	}
+
+	if (CurrentTruck->IsTruckDestroyed() ||
+		CurrentTruck->GetTruckHealth() >= CurrentTruck->GetTruckMaxHealth() - KINDA_SMALL_NUMBER)
+	{
+		return false;
+	}
+
+	if (!ConsumeInventoryItem(EItemType::TruckRepairKit))
+	{
+		RefreshStage2ItemUI();
+		UE_LOG(LogTemp, Warning, TEXT("Cannot use Truck Repair Kit: no Stage 1 Repair Kits remain."));
+		return false;
+	}
+
+	CurrentTruck->RepairTruck(TruckRepairKitHealAmount);
+	RefreshStage2ItemUI();
+	UE_LOG(LogTemp, Log, TEXT("Truck Repair Kit used. Repaired %.1f, truck health=%.1f/%.1f, remaining=%d"),
+		TruckRepairKitHealAmount,
+		CurrentTruck->GetTruckHealth(),
+		CurrentTruck->GetTruckMaxHealth(),
+		GetInventoryItemCount(EItemType::TruckRepairKit));
+	return true;
+}
+
 void AFPSBaseCharacter::RefreshStage2ItemUI()
 {
 	UFPSProjectGameInstance* GameInstance = Cast<UFPSProjectGameInstance>(GetGameInstance());

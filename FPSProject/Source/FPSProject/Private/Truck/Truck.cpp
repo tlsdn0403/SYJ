@@ -824,6 +824,14 @@ float ATruck::GetTruckMaxHealth() const
 	return HealthComponent ? HealthComponent->MaxGetHealth() : TruckMaxHealth;
 }
 
+void ATruck::RepairTruck(float RepairAmount)
+{
+	if (HealthComponent && RepairAmount > 0.0f && !bTruckDestroyed)
+	{
+		HealthComponent->Heal(RepairAmount);
+	}
+}
+
 void ATruck::UseDriverHealPack()
 {
 	if (DriverCharacter)

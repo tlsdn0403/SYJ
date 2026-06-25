@@ -85,6 +85,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Combat")
 	float GetTruckMaxHealth() const;
 
+	UFUNCTION(BlueprintCallable, Category = "Combat")
+	void RepairTruck(float RepairAmount);
+
 	UFUNCTION(BlueprintPure, Category = "Combat")
 	bool IsTruckDestroyed() const { return bTruckDestroyed; }
 
@@ -357,7 +360,7 @@ protected:
 	FVector VehiclePawnCollisionPadding = FVector(8.0f, 8.0f, 4.0f);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Health", meta = (ClampMin = "1.0"))
-	float TruckMaxHealth = 1000.0f;
+	float TruckMaxHealth = 500.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Fuel")
 	bool bUseFuel = true;

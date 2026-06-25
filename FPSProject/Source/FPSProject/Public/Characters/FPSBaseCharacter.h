@@ -72,6 +72,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "FPS|Inventory")
 	bool UseHealPack();
 
+	UFUNCTION(BlueprintCallable, Category = "FPS|Inventory")
+	bool UseFuelCan();
+
+	UFUNCTION(BlueprintCallable, Category = "FPS|Inventory")
+	bool UseTruckRepairKit();
+
 	UFUNCTION(BlueprintPure, Category = "FPS|State")
 	bool IsDead() const { return bIsDead; }
 
@@ -282,6 +288,12 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "FPS|Inventory", meta = (AllowPrivateAccess = "true", ClampMin = "0.0"))
 	float HealPackHealAmount = 50.0f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "FPS|Inventory", meta = (AllowPrivateAccess = "true", ClampMin = "0.0"))
+	float FuelCanRefuelAmount = 20.0f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "FPS|Inventory", meta = (AllowPrivateAccess = "true", ClampMin = "0.0"))
+	float TruckRepairKitHealAmount = 50.0f;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FPS|State", meta = (AllowPrivateAccess = "true"))
 	bool bIsDead = false;

@@ -77,6 +77,12 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Stage2")
 	bool AreInitialTilesReady() const;
 
+	bool TryBuildWorldTransformForTileLocalPoint(
+		EStage2TileType TileType,
+		const FVector& LocalLocation,
+		float LocalYaw,
+		FTransform& OutTransform) const;
+
 	UPROPERTY(BlueprintAssignable, Category = "Stage2")
 	FStage2InitialTilesReadySignature OnInitialTilesReady;
 

@@ -1,5 +1,6 @@
 #include "FPSSpawnManager.h"
 
+#include "ClientPacketHandler.h"
 #include "FPSProjectGameInstance.h"
 #include "FPSStage2WorldUtils.h"
 #include "FPSWorldObjectManager.h"
@@ -10,6 +11,7 @@
 #include "GameFramework/Pawn.h"
 #include "GameFramework/PlayerController.h"
 #include "Kismet/GameplayStatics.h"
+#include "Stage2/Stage2TileManager.h"
 #include "Zombie/BaseZombie.h"
 
 FFPSSpawnManager::FFPSSpawnManager(UFPSProjectGameInstance& InOwner)
@@ -60,6 +62,11 @@ void FFPSSpawnManager::ProcessSpawnObject(const Protocol::ObjectInfo& ObjectInfo
 	}
 }
 
+void FFPSSpawnManager::Tick(float DeltaTime)
+{
+	ProcessPendingTileZombiePlacements();
+}
+
 bool FFPSSpawnManager::TryBuildPlayerSpawnContext(
 	UWorld* World,
 	const Protocol::ObjectInfo& ObjectInfo,
@@ -101,6 +108,116 @@ bool FFPSSpawnManager::TryBuildPlayerSpawnContext(
 	return true;
 }
 
+bool FFPSSpawnManager::TryResolveTileZombieTransform(
+	UWorld* World,
+	int32 TileTypeCode,
+	const FVector& LocalLocation,
+	float LocalYaw,
+	FTransform& OutTransform) const
+{
+	if (World == nullptr || TileTypeCode == 0)
+	{
+		return false;
+	}
+
+	EStage2TileType TileType = EStage2TileType::Straight;
+	switch (TileTypeCode)
+	{
+	case 1:
+		TileType = EStage2TileType::Straight;
+		break;
+	case 2:
+		TileType = EStage2TileType::Left;
+		break;
+	case 3:
+		TileType = EStage2TileType::Right;
+		break;
+	default:
+		return false;
+	}
+
+	AStage2TileManager* TileManager = FPSStage2WorldUtils::FindStage2TileManager(World);
+	return TileManager && TileManager->TryBuildWorldTransformForTileLocalPoint(TileType, LocalLocation, LocalYaw, OutTransform);
+}
+
+void FFPSSpawnManager::QueuePendingTileZombiePlacement(
+	uint64 ObjectId,
+	ABaseZombie* Zombie,
+	const FVector& LocalLocation,
+	float LocalYaw,
+	int32 TileTypeCode)
+{
+	if (Zombie == nullptr)
+	{
+		return;
+	}
+
+	FPendingTileZombiePlacement& PendingPlacement = PendingTileZombiePlacements.AddDefaulted_GetRef();
+	PendingPlacement.ObjectId = ObjectId;
+	PendingPlacement.Zombie = Zombie;
+	PendingPlacement.LocalLocation = LocalLocation;
+	PendingPlacement.LocalYaw = LocalYaw;
+	PendingPlacement.TileTypeCode = TileTypeCode;
+	Zombie->SetActorHiddenInGame(true);
+	Zombie->SetActorEnableCollision(false);
+}
+
+void FFPSSpawnManager::ProcessPendingTileZombiePlacements()
+{
+	UWorld* World = Owner.GetWorld();
+	if (World == nullptr || PendingTileZombiePlacements.Num() == 0)
+	{
+		return;
+	}
+
+	for (int32 Index = PendingTileZombiePlacements.Num() - 1; Index >= 0; --Index)
+	{
+		FPendingTileZombiePlacement& PendingPlacement = PendingTileZombiePlacements[Index];
+		ABaseZombie* Zombie = PendingPlacement.Zombie.Get();
+		if (Zombie == nullptr)
+		{
+			PendingTileZombiePlacements.RemoveAtSwap(Index);
+			continue;
+		}
+
+		FTransform TileWorldTransform;
+		if (TryResolveTileZombieTransform(
+			World,
+			PendingPlacement.TileTypeCode,
+			PendingPlacement.LocalLocation,
+			PendingPlacement.LocalYaw,
+			TileWorldTransform))
+		{
+			Zombie->SetActorLocationAndRotation(TileWorldTransform.GetLocation(), TileWorldTransform.Rotator(), false, nullptr, ETeleportType::TeleportPhysics);
+			FPSStage2WorldUtils::SnapActorToGround(Zombie);
+			Zombie->SetActorHiddenInGame(false);
+			Zombie->SetActorEnableCollision(true);
+			SendZombiePlacementCorrection(PendingPlacement.ObjectId, Zombie->GetActorLocation(), Zombie->GetActorRotation());
+			PendingTileZombiePlacements.RemoveAtSwap(Index);
+			continue;
+		}
+	}
+}
+
+void FFPSSpawnManager::SendZombiePlacementCorrection(uint64 ObjectId, const FVector& WorldLocation, const FRotator& WorldRotation)
+{
+	if (!Owner.IsConnectedToGameServer() || ObjectId == 0)
+	{
+		return;
+	}
+
+	Protocol::C_MOVE MovePkt;
+	Protocol::PosInfo* Info = MovePkt.mutable_info();
+	Info->set_object_id(ObjectId);
+	Info->set_x(WorldLocation.X);
+	Info->set_y(WorldLocation.Y);
+	Info->set_z(WorldLocation.Z);
+	Info->set_yaw(WorldRotation.Yaw);
+	Info->set_state(Protocol::MOVE_STATE_IDLE);
+
+	Owner.SendPacket(ClientPacketHandler::MakeSendBuffer(MovePkt));
+}
+
 void FFPSSpawnManager::SpawnZombie(UWorld* World, const Protocol::ObjectInfo& ObjectInfo)
 {
 	if (World == nullptr || Owner.WorldObjects == nullptr)
@@ -114,19 +231,56 @@ void FFPSSpawnManager::SpawnZombie(UWorld* World, const Protocol::ObjectInfo& Ob
 		return;
 	}
 
-	if (Owner.NetworkZombieClass == nullptr)
+	const int32 EncodedSpawnType = ObjectInfo.weapon_type();
+	int32 TileTypeCode = 0;
+	int32 ZombieTypeValue = EncodedSpawnType;
+	if (EncodedSpawnType >= 10)
+	{
+		TileTypeCode = EncodedSpawnType / 10;
+		ZombieTypeValue = EncodedSpawnType % 10;
+	}
+
+	TSubclassOf<ABaseZombie> ZombieClass = Owner.NetworkZombieClass;
+	if (ZombieTypeValue > static_cast<int32>(Protocol::ZOMBIE_TYPE_NONE))
+	{
+		const int32 ZombieClassIndex = ZombieTypeValue - static_cast<int32>(Protocol::ZOMBIE_TYPE_MELEE);
+		if (Owner.NetworkZombieClasses.IsValidIndex(ZombieClassIndex) && Owner.NetworkZombieClasses[ZombieClassIndex])
+		{
+			ZombieClass = Owner.NetworkZombieClasses[ZombieClassIndex];
+		}
+	}
+
+	if (ZombieClass == nullptr)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[ZombieSync] NetworkZombieClass is not assigned."));
 		return;
 	}
 
 	FVector ZombieLocation(ObjectInfo.pos_info().x(), ObjectInfo.pos_info().y(), ObjectInfo.pos_info().z());
+	const FVector RequestedZombieLocation = ZombieLocation;
+	FRotator ZombieRotation(0.0f, ObjectInfo.pos_info().yaw(), 0.0f);
+	bool bResolvedTileTransform = TileTypeCode == 0;
+	if (TileTypeCode != 0)
+	{
+		FTransform TileWorldTransform;
+		if (TryResolveTileZombieTransform(
+			World,
+			TileTypeCode,
+			RequestedZombieLocation,
+			ObjectInfo.pos_info().yaw(),
+			TileWorldTransform))
+		{
+			ZombieLocation = TileWorldTransform.GetLocation();
+			ZombieRotation = TileWorldTransform.Rotator();
+			bResolvedTileTransform = true;
+		}
+	}
+
 	FPSStage2WorldUtils::TryProjectLocationToGround(World, ZombieLocation, 120.0f, ZombieLocation);
-	const FRotator ZombieRotation(0.0f, ObjectInfo.pos_info().yaw(), 0.0f);
 	FActorSpawnParameters SpawnParams;
 	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
 
-	ABaseZombie* SpawnedZombie = World->SpawnActor<ABaseZombie>(Owner.NetworkZombieClass, ZombieLocation, ZombieRotation, SpawnParams);
+	ABaseZombie* SpawnedZombie = World->SpawnActor<ABaseZombie>(ZombieClass, ZombieLocation, ZombieRotation, SpawnParams);
 	if (SpawnedZombie == nullptr)
 	{
 		return;
@@ -146,6 +300,14 @@ void FFPSSpawnManager::SpawnZombie(UWorld* World, const Protocol::ObjectInfo& Ob
 	}
 
 	Owner.WorldObjects->RegisterZombie(ObjectId, SpawnedZombie);
+	if (TileTypeCode != 0 && !bResolvedTileTransform)
+	{
+		QueuePendingTileZombiePlacement(ObjectId, SpawnedZombie, RequestedZombieLocation, ObjectInfo.pos_info().yaw(), TileTypeCode);
+	}
+	else if (TileTypeCode != 0)
+	{
+		SendZombiePlacementCorrection(ObjectId, SpawnedZombie->GetActorLocation(), SpawnedZombie->GetActorRotation());
+	}
 }
 
 void FFPSSpawnManager::SpawnLocalPlayer(UWorld* World, const FPlayerSpawnContext& SpawnContext)

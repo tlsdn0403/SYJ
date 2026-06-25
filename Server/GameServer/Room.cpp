@@ -505,22 +505,95 @@ namespace
 	constexpr float ZOMBIE_DESPAWN_DELAY_SECONDS = 3.0f;
 	constexpr float ZOMBIE_SEPARATION_RADIUS = 180.0f;
 	constexpr float ZOMBIE_SEPARATION_WEIGHT = 1.35f;
+	constexpr int32 STAGE2_ZOMBIE_TILE_WORLD = 0;
+	constexpr int32 STAGE2_ZOMBIE_TILE_RIGHT = 3;
 
-	struct ZombieSpawnInfo
+	constexpr int32 EncodeStage2ZombieSpawnType(Protocol::ZombieType zombieType, int32 tileTypeCode)
+	{
+		return tileTypeCode * 10 + static_cast<int32>(zombieType);
+	}
+
+	constexpr Protocol::ZombieType DecodeStage2ZombieType(int32 encodedSpawnType)
+	{
+		const int32 zombieTypeValue = encodedSpawnType >= 10 ? encodedSpawnType % 10 : encodedSpawnType;
+		switch (zombieTypeValue)
+		{
+		case Protocol::ZOMBIE_TYPE_MELEE:
+			return Protocol::ZOMBIE_TYPE_MELEE;
+		case Protocol::ZOMBIE_TYPE_RANGED:
+			return Protocol::ZOMBIE_TYPE_RANGED;
+		case Protocol::ZOMBIE_TYPE_TANKER:
+			return Protocol::ZOMBIE_TYPE_TANKER;
+		default:
+			return Protocol::ZOMBIE_TYPE_MELEE;
+		}
+	}
+
+	constexpr uint32 MixStage2ZombieSeed(uint32 seed, int32 index)
+	{
+		uint32 value = seed ^ (static_cast<uint32>(index) * 0x9E3779B9u);
+		value ^= value >> 16;
+		value *= 0x7FEB352Du;
+		value ^= value >> 15;
+		value *= 0x846CA68Bu;
+		value ^= value >> 16;
+		return value;
+	}
+
+	constexpr Protocol::ZombieType PickStage2ZombieType(uint32 seed, int32 index)
+	{
+		switch (MixStage2ZombieSeed(seed, index) % 3)
+		{
+		case 0:
+			return Protocol::ZOMBIE_TYPE_MELEE;
+		case 1:
+			return Protocol::ZOMBIE_TYPE_RANGED;
+		default:
+			return Protocol::ZOMBIE_TYPE_TANKER;
+		}
+	}
+
+	constexpr float PickStage2ZombieYaw(uint32 seed, int32 index)
+	{
+		return static_cast<float>(MixStage2ZombieSeed(seed, index) % 360);
+	}
+
+	struct FixedZombieSpawnInfo
 	{
 		float x;
 		float y;
 		float z;
 		float yaw;
+		Protocol::ZombieType zombieType;
+		int32 tileTypeCode;
 	};
 
-	constexpr ZombieSpawnInfo STAGE2_ZOMBIE_SPAWNS[] =
+	struct ZombieSpawnGroupInfo
 	{
-		{ 2200.0f, -450.0f, 588.0f, 180.0f },
-		{ 2450.0f, -150.0f, 588.0f, 180.0f },
-		{ 2350.0f, 250.0f, 588.0f, 180.0f },
-		{ 2600.0f, 550.0f, 588.0f, 180.0f },
-		{ 2850.0f, 100.0f, 588.0f, 180.0f },
+		float centerX;
+		float centerY;
+		float centerZ;
+		int32 columns;
+		int32 rows;
+		float spacingX;
+		float spacingY;
+		int32 tileTypeCode;
+		uint32 typeSeed;
+		uint32 yawSeed;
+	};
+
+	constexpr FixedZombieSpawnInfo STAGE2_FIXED_ZOMBIE_SPAWNS[] =
+	{
+		{ 2200.0f, -450.0f, 588.0f, 180.0f, Protocol::ZOMBIE_TYPE_MELEE, STAGE2_ZOMBIE_TILE_WORLD },
+		{ 2450.0f, -150.0f, 588.0f, 180.0f, Protocol::ZOMBIE_TYPE_RANGED, STAGE2_ZOMBIE_TILE_WORLD },
+		{ 2350.0f, 250.0f, 588.0f, 180.0f, Protocol::ZOMBIE_TYPE_TANKER, STAGE2_ZOMBIE_TILE_WORLD },
+		{ 2600.0f, 550.0f, 588.0f, 180.0f, Protocol::ZOMBIE_TYPE_MELEE, STAGE2_ZOMBIE_TILE_WORLD },
+		{ 2850.0f, 100.0f, 588.0f, 180.0f, Protocol::ZOMBIE_TYPE_RANGED, STAGE2_ZOMBIE_TILE_WORLD },
+	};
+
+	constexpr ZombieSpawnGroupInfo STAGE2_ZOMBIE_GROUPS[] =
+	{
+		{ 3508.3f, 4592.8f, 0.0f, 8, 5, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_RIGHT, 0x41C64E6Du, 0xA341316Cu },
 	};
 
 	struct Stage2WeaponSpawnInfo
@@ -604,17 +677,50 @@ void Room::SpawnStage2Zombies()
 	_bStage2ZombiesSpawned = true;
 
 	uint64 zombieId = ZOMBIE_OBJECT_ID_START;
-	for (const ZombieSpawnInfo& spawnInfo : STAGE2_ZOMBIE_SPAWNS)
+	auto spawnZombie = [this, &zombieId](
+		float x,
+		float y,
+		float z,
+		float yaw,
+		Protocol::ZombieType zombieType,
+		int32 tileTypeCode)
 	{
 		MonsterRef zombie = ObjectUtils::CreateMonster(zombieId++);
-		zombie->posInfo->set_x(spawnInfo.x);
-		zombie->posInfo->set_y(spawnInfo.y);
-		zombie->posInfo->set_z(spawnInfo.z);
-		zombie->posInfo->set_yaw(spawnInfo.yaw);
+		zombie->posInfo->set_x(x);
+		zombie->posInfo->set_y(y);
+		zombie->posInfo->set_z(z);
+		zombie->posInfo->set_yaw(yaw);
 		zombie->posInfo->set_state(Protocol::MOVE_STATE_IDLE);
 		zombie->objectInfo->mutable_pos_info()->CopyFrom(*zombie->posInfo);
+		zombie->objectInfo->set_weapon_type(EncodeStage2ZombieSpawnType(zombieType, tileTypeCode));
 
 		EnterRoom(zombie, false);
+	};
+
+	for (const FixedZombieSpawnInfo& spawnInfo : STAGE2_FIXED_ZOMBIE_SPAWNS)
+	{
+		spawnZombie(spawnInfo.x, spawnInfo.y, spawnInfo.z, spawnInfo.yaw, spawnInfo.zombieType, spawnInfo.tileTypeCode);
+	}
+
+	for (const ZombieSpawnGroupInfo& groupInfo : STAGE2_ZOMBIE_GROUPS)
+	{
+		const float startX = groupInfo.centerX - (static_cast<float>(groupInfo.columns - 1) * groupInfo.spacingX * 0.5f);
+		const float startY = groupInfo.centerY - (static_cast<float>(groupInfo.rows - 1) * groupInfo.spacingY * 0.5f);
+
+		for (int32 row = 0; row < groupInfo.rows; ++row)
+		{
+			for (int32 column = 0; column < groupInfo.columns; ++column)
+			{
+				const int32 spawnIndex = row * groupInfo.columns + column;
+				spawnZombie(
+					startX + static_cast<float>(column) * groupInfo.spacingX,
+					startY + static_cast<float>(row) * groupInfo.spacingY,
+					groupInfo.centerZ,
+					PickStage2ZombieYaw(groupInfo.yawSeed, spawnIndex),
+					PickStage2ZombieType(groupInfo.typeSeed, spawnIndex),
+					groupInfo.tileTypeCode);
+			}
+		}
 	}
 }
 
@@ -798,13 +904,42 @@ void Room::UpdateZombies()
 void Room::HandleMove(PlayerRef player, Protocol::C_MOVE pkt)
 {
 	const uint64 objectId = pkt.info().object_id();
-	if (player == nullptr || player->objectInfo == nullptr ||
-		objectId != player->objectInfo->object_id())
+	if (player == nullptr || player->objectInfo == nullptr)
 	{
 		return;
 	}
 
 	if (objectId >= ZOMBIE_OBJECT_ID_START)
+	{
+		auto findIt = _objects.find(objectId);
+		if (findIt == _objects.end())
+			return;
+
+		MonsterRef monster = dynamic_pointer_cast<Monster>(findIt->second);
+		if (monster == nullptr || monster->IsDead())
+			return;
+
+		const int32 encodedSpawnType = monster->objectInfo->weapon_type();
+		if (encodedSpawnType < 10)
+			return;
+
+		if (!std::isfinite(pkt.info().x()) ||
+			!std::isfinite(pkt.info().y()) ||
+			!std::isfinite(pkt.info().z()) ||
+			!std::isfinite(pkt.info().yaw()))
+		{
+			return;
+		}
+
+		monster->posInfo->CopyFrom(pkt.info());
+		monster->posInfo->set_state(Protocol::MOVE_STATE_IDLE);
+		monster->objectInfo->mutable_pos_info()->CopyFrom(*monster->posInfo);
+		monster->objectInfo->set_weapon_type(static_cast<int32>(DecodeStage2ZombieType(encodedSpawnType)));
+		BroadcastZombieMove(monster);
+		return;
+	}
+
+	if (objectId != player->objectInfo->object_id())
 	{
 		return;
 	}

@@ -157,6 +157,27 @@ bool AStage2TileManager::AreInitialTilesReady() const
 	return bInitialTilesReady;
 }
 
+bool AStage2TileManager::TryBuildWorldTransformForTileLocalPoint(
+	EStage2TileType TileType,
+	const FVector& LocalLocation,
+	float LocalYaw,
+	FTransform& OutTransform) const
+{
+	for (const FStage2LoadedTile& LoadedTile : ActiveTiles)
+	{
+		if (!LoadedTile.bInitialized || LoadedTile.TileType != TileType)
+		{
+			continue;
+		}
+
+		const FTransform LocalTransform(FRotator(0.0f, LocalYaw, 0.0f), LocalLocation);
+		OutTransform = LocalTransform * LoadedTile.AppliedLevelTransform;
+		return true;
+	}
+
+	return false;
+}
+
 void AStage2TileManager::PreloadTilePool()
 {
 	if (bTilePoolPreloadStarted)

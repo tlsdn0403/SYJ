@@ -14,9 +14,11 @@
 #include "LevelSequenceActor.h"
 #include "LevelSequencePlayer.h"
 #include "MovieScene.h"
+#include "Components/PrimitiveComponent.h"
 #include "GameFramework/PlayerController.h"
 #include "Kismet/GameplayStatics.h"
 #include "Stage2/Stage2TileManager.h"
+#include "Truck/Truck.h"
 #include "Algo/Sort.h"
 
 FFPSStageFlowManager::FFPSStageFlowManager(UFPSProjectGameInstance& InOwner)
@@ -437,6 +439,7 @@ bool FFPSStageFlowManager::TryPlayStageTransitionCinematic()
 	StageTransitionSequenceActor = SequenceActor;
 	StageTransitionSequencePlayer = SequencePlayer;
 	bStageTransitionCinematicPlaying = true;
+	PrepareStageTransitionCinematicActors();
 	SetStageTransitionCinematicMode(true);
 
 	float SequenceDurationSeconds = 0.0f;
@@ -508,6 +511,51 @@ void FFPSStageFlowManager::SetStageTransitionCinematicMode(bool bEnable)
 {
 	if (APlayerController* PlayerController = UGameplayStatics::GetPlayerController(&Owner, 0))
 	{
-		PlayerController->SetCinematicMode(bEnable, true, true, true, true);
+		PlayerController->SetCinematicMode(bEnable, false, true, true, true);
+	}
+}
+
+void FFPSStageFlowManager::PrepareStageTransitionCinematicActors()
+{
+	UWorld* World = Owner.GetWorld();
+	if (World == nullptr)
+	{
+		return;
+	}
+
+	for (TActorIterator<ATruck> It(World); It; ++It)
+	{
+		ATruck* Truck = *It;
+		if (!IsValid(Truck))
+		{
+			continue;
+		}
+
+		Truck->SetActorHiddenInGame(false);
+
+		TArray<UPrimitiveComponent*> PrimitiveComponents;
+		Truck->GetComponents<UPrimitiveComponent>(PrimitiveComponents);
+		for (UPrimitiveComponent* PrimitiveComponent : PrimitiveComponents)
+		{
+			if (!IsValid(PrimitiveComponent))
+			{
+				continue;
+			}
+
+			PrimitiveComponent->SetHiddenInGame(false, true);
+			PrimitiveComponent->SetVisibility(true, true);
+		}
+	}
+
+	if (AFPSBaseCharacter* LocalCharacter = Owner.MyPlayer)
+	{
+		FPSStage2WorldUtils::RestoreNetworkCharacterVisibility(LocalCharacter);
+	}
+
+	TArray<TPair<uint64, AFPSBaseCharacter*>> RegisteredPlayers;
+	Owner.GetValidRegisteredPlayers(RegisteredPlayers);
+	for (const TPair<uint64, AFPSBaseCharacter*>& PlayerEntry : RegisteredPlayers)
+	{
+		FPSStage2WorldUtils::RestoreNetworkCharacterVisibility(PlayerEntry.Value);
 	}
 }

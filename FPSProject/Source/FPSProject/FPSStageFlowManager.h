@@ -38,6 +38,7 @@ private:
 	void FinishStageTransitionCinematic();
 	void OpenPendingStageTransitionLevel();
 	void SetStageTransitionCinematicMode(bool bEnable);
+	void PrepareStageTransitionCinematicActors();
 
 	UFPSProjectGameInstance& Owner;
 	bool bPendingEnterGameRequest = false;

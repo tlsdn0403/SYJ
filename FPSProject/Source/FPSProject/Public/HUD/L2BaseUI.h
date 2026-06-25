@@ -63,6 +63,8 @@ public:
 
 	UPROPERTY(meta = (BindWidgetAnim), Transient)	//±ôºýÀÓ¾Ö´Ï
 	UWidgetAnimation* Ani_Oil_Icon;
+
+	void OilUpdate(int num);
 	
 	void ItemSetting(int oil, int heal, int box);
 	bool UsingItem(int num);

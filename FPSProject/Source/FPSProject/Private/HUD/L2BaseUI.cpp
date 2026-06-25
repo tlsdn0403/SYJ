@@ -55,3 +55,9 @@ bool UL2BaseUI::UsingItem(int num)
 	}
 	return success;
 }
+
+
+void UL2BaseUI::OilUpdate(int num) 
+{
+
+}

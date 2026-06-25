@@ -4,7 +4,7 @@
 #include "HUD/L2BaseUI.h"
 #include "Components/Image.h"
 #include "Components/TextBlock.h"
-
+#include "Components/RadialSlider.h"
 
 void UL2BaseUI::NativeConstruct()
 {

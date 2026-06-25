@@ -12,6 +12,7 @@
 
 class UImage;
 class UTextBlock;
+class URadialSlider;
 
 UCLASS()
 class FPSPROJECT_API UL2BaseUI : public UUserWidget
@@ -52,6 +53,16 @@ public:
 
 	UPROPERTY(meta = (BindWidgetAnim), Transient)
 	UWidgetAnimation* Ani_itemError;
+
+	//===================================주유파트
+	UPROPERTY(meta = (BindWidget))	//기름바 
+	URadialSlider* OilSlider;
+
+	UPROPERTY(meta = (BindWidget))	// 기름 부족시 깜빡임
+	UImage* Oil_Icon;
+
+	UPROPERTY(meta = (BindWidgetAnim), Transient)	//깜빡임애니
+	UWidgetAnimation* Ani_Oil_Icon;
 	
 	void ItemSetting(int oil, int heal, int box);
 	bool UsingItem(int num);

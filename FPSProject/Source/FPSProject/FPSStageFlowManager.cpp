@@ -10,6 +10,11 @@
 #include "HUD/LoadingUI.h"
 #include "Items/LootItemBase.h"
 #include "Items/Stage1ItemSpawnPoint.h"
+#include "LevelSequence.h"
+#include "LevelSequenceActor.h"
+#include "LevelSequencePlayer.h"
+#include "MovieScene.h"
+#include "GameFramework/PlayerController.h"
 #include "Kismet/GameplayStatics.h"
 #include "Stage2/Stage2TileManager.h"
 #include "Algo/Sort.h"
@@ -340,7 +345,13 @@ void FFPSStageFlowManager::HandleStageTransition(const Protocol::S_STAGE_TRANSIT
 
 	PendingStageTransitionLevelName = TargetLevelName;
 	bWaitingForStage2MapLoad = FPSStage2WorldUtils::IsStage2LevelName(TargetLevelName);
-	UGameplayStatics::OpenLevel(&Owner, FName(*TargetLevelName));
+
+	if (bWaitingForStage2MapLoad && TryPlayStageTransitionCinematic())
+	{
+		return;
+	}
+
+	OpenPendingStageTransitionLevel();
 }
 
 void FFPSStageFlowManager::TickStageFlow()
@@ -410,4 +421,117 @@ void FFPSStageFlowManager::ApplyStage1ItemSpawnSeed()
 	}
 
 	bHasAppliedStage1ItemSpawns = true;
+}
+
+bool FFPSStageFlowManager::TryPlayStageTransitionCinematic()
+{
+	if (bStageTransitionCinematicPlaying)
+	{
+		return true;
+	}
+
+	UWorld* World = Owner.GetWorld();
+	if (World == nullptr)
+	{
+		return false;
+	}
+
+	static const TCHAR* StageTransitionSequencePath =
+		TEXT("/Game/Maps/Map_Level1/LS_level1.LS_level1");
+	ULevelSequence* Sequence = LoadObject<ULevelSequence>(nullptr, StageTransitionSequencePath);
+	if (Sequence == nullptr)
+	{
+		UE_LOG(LogTemp, Warning,
+			TEXT("[StageTransition] Failed to load cinematic sequence: %s"),
+			StageTransitionSequencePath);
+		return false;
+	}
+
+	FMovieSceneSequencePlaybackSettings PlaybackSettings;
+	PlaybackSettings.bAutoPlay = false;
+
+	ALevelSequenceActor* SequenceActor = nullptr;
+	ULevelSequencePlayer* SequencePlayer =
+		ULevelSequencePlayer::CreateLevelSequencePlayer(World, Sequence, PlaybackSettings, SequenceActor);
+	if (SequencePlayer == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[StageTransition] Failed to create LS_level1 player."));
+		return false;
+	}
+
+	StageTransitionSequenceActor = SequenceActor;
+	StageTransitionSequencePlayer = SequencePlayer;
+	bStageTransitionCinematicPlaying = true;
+	SetStageTransitionCinematicMode(true);
+
+	float SequenceDurationSeconds = 0.0f;
+	if (const UMovieScene* MovieScene = Sequence->GetMovieScene())
+	{
+		const TRange<FFrameNumber> PlaybackRange = MovieScene->GetPlaybackRange();
+		if (PlaybackRange.HasLowerBound() && PlaybackRange.HasUpperBound())
+		{
+			const FFrameNumber DurationFrames =
+				PlaybackRange.GetUpperBoundValue() - PlaybackRange.GetLowerBoundValue();
+			SequenceDurationSeconds = static_cast<float>(
+				MovieScene->GetTickResolution().AsSeconds(DurationFrames));
+		}
+	}
+
+	SequencePlayer->Play();
+
+	const float SafeDurationSeconds = FMath::Max(SequenceDurationSeconds, 0.1f);
+	World->GetTimerManager().SetTimer(
+		StageTransitionCinematicTimerHandle,
+		FTimerDelegate::CreateRaw(this, &FFPSStageFlowManager::FinishStageTransitionCinematic),
+		SafeDurationSeconds,
+		false);
+
+	UE_LOG(LogTemp, Log,
+		TEXT("[StageTransition] Playing LS_level1 before opening level '%s' duration=%.2f"),
+		*PendingStageTransitionLevelName,
+		SafeDurationSeconds);
+	return true;
+}
+
+void FFPSStageFlowManager::FinishStageTransitionCinematic()
+{
+	if (!bStageTransitionCinematicPlaying)
+	{
+		return;
+	}
+
+	if (ULevelSequencePlayer* SequencePlayer = StageTransitionSequencePlayer.Get())
+	{
+		SequencePlayer->Stop();
+	}
+
+	if (ALevelSequenceActor* SequenceActor = StageTransitionSequenceActor.Get())
+	{
+		SequenceActor->Destroy();
+	}
+
+	StageTransitionSequencePlayer.Reset();
+	StageTransitionSequenceActor.Reset();
+	bStageTransitionCinematicPlaying = false;
+	SetStageTransitionCinematicMode(false);
+
+	OpenPendingStageTransitionLevel();
+}
+
+void FFPSStageFlowManager::OpenPendingStageTransitionLevel()
+{
+	if (PendingStageTransitionLevelName.IsEmpty())
+	{
+		return;
+	}
+
+	UGameplayStatics::OpenLevel(&Owner, FName(*PendingStageTransitionLevelName));
+}
+
+void FFPSStageFlowManager::SetStageTransitionCinematicMode(bool bEnable)
+{
+	if (APlayerController* PlayerController = UGameplayStatics::GetPlayerController(&Owner, 0))
+	{
+		PlayerController->SetCinematicMode(bEnable, true, true, true, true);
+	}
 }

@@ -5,6 +5,8 @@
 
 class UUserWidget;
 class UFPSProjectGameInstance;
+class ALevelSequenceActor;
+class ULevelSequencePlayer;
 
 class FFPSStageFlowManager
 {
@@ -33,13 +35,21 @@ public:
 private:
 	void ApplyStage1ItemSpawnSeed();
 	void RemoveStage1WidgetsForLocalPlayer();
+	bool TryPlayStageTransitionCinematic();
+	void FinishStageTransitionCinematic();
+	void OpenPendingStageTransitionLevel();
+	void SetStageTransitionCinematicMode(bool bEnable);
 
 	UFPSProjectGameInstance& Owner;
 	bool bPendingEnterGameRequest = false;
 	bool bEnterGamePacketSent = false;
 	bool bShouldShowEntryLoadingWidget = false;
 	bool bWaitingForStage2MapLoad = false;
+	bool bStageTransitionCinematicPlaying = false;
 	FString PendingStageTransitionLevelName;
+	FTimerHandle StageTransitionCinematicTimerHandle;
+	TWeakObjectPtr<ALevelSequenceActor> StageTransitionSequenceActor;
+	TWeakObjectPtr<ULevelSequencePlayer> StageTransitionSequencePlayer;
 	int32 CachedEntryLoadingReadyCount = 0;
 	int32 CachedStageTimerRemainingSeconds = INDEX_NONE;
 	uint32 CachedStage1ItemSpawnSeed = 0;

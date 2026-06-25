@@ -114,8 +114,6 @@ void AFPSPlayerController::Pressed1(const FInputActionValue& Value)
 			}
 		}
 	}
-
-	InventoryW->SelectSlot(0);
 }
 
 void AFPSPlayerController::Pressed2(const FInputActionValue& Value)

@@ -36,15 +36,11 @@ void UBaseUI::UpdateTimerText()
 	{
 		if (TotalTime > 0 && TotalTime <= 5)
 		{
-			if (ClockS)
-			{
-				UGameplayStatics::PlaySound2D(this, ClockS);
-			}
 			PlayAni_PopUp();
 		}
 		else if (TotalTime > 5 && TotalTime <= 20)
 		{
-			if (ClockS)
+			if (ClockS && TotalTime > 17 && TotalTime <= 20)
 			{
 				UGameplayStatics::PlaySound2D(this, ClockS);
 			}

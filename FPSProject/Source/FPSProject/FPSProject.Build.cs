@@ -15,8 +15,9 @@ public class FPSProject : ModuleRules
             "GameplayTasks",
             "NavigationSystem",
             "LevelSequence",
-            "MovieScene"
-		});
+            "MovieScene",
+            "AdvancedWidgets"
+        });
 
 		PrivateDependencyModuleNames.AddRange(new string[] { "ProtobufCore" });
         

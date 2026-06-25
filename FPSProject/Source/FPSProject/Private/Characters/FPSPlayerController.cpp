@@ -79,8 +79,6 @@ void AFPSPlayerController::Pressed1(const FInputActionValue& Value)
 			return;
 		}
 	}
-
-	InventoryW->SelectSlot(0);
 }
 
 void AFPSPlayerController::Pressed2(const FInputActionValue& Value)

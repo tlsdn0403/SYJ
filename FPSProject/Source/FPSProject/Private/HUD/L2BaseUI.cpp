@@ -70,10 +70,12 @@ void UL2BaseUI::OilUpdate(float CurrentFuel, float MaxFuel)
 		if (FuelRatio <= 0.2f)
 		{
 			OilSlider->SetSliderBarColor(FLinearColor(1.0f, 0.1f, 0.0f, 1.0f));
+			PlayAnimation(Ani_Oil_Icon);
 		}
 		else if (FuelRatio <= 0.4f)
 		{
 			OilSlider->SetSliderBarColor(FLinearColor(1.0f, 0.45f, 0.0f, 1.0f));
+			PlayAnimation(Ani_Oil_Icon);
 		}
 		else if (FuelRatio <= 0.6f)
 		{

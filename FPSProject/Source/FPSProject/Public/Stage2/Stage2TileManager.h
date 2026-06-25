@@ -33,6 +33,9 @@ struct FStage2LoadedTile
 	EStage2TileType TileType = EStage2TileType::Straight;
 
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "Stage2")
+	int32 TileOccurrenceIndex = 0;
+
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Stage2")
 	FTransform RequestedEntryTransform;
 
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "Stage2")
@@ -84,6 +87,7 @@ public:
 		EStage2TileType TileType,
 		const FVector& LocalLocation,
 		float LocalYaw,
+		int32 TileOccurrenceIndex,
 		FTransform& OutTransform) const;
 
 	UPROPERTY(BlueprintAssignable, Category = "Stage2")
@@ -197,6 +201,7 @@ private:
 	bool bTilePoolReady = false;
 	int32 ConsecutiveLeftTurns = 0;
 	int32 ConsecutiveRightTurns = 0;
+	int32 NextRightTileOccurrenceIndex = 0;
 	int32 NextPoolParkingIndex = 0;
 	FRandomStream RandomStream;
 	TMap<TObjectKey<UPrimitiveComponent>, ECollisionEnabled::Type> CachedTileCollisionStates;

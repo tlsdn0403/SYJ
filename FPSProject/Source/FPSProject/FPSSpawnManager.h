@@ -31,11 +31,12 @@ private:
 		FVector LocalLocation = FVector::ZeroVector;
 		float LocalYaw = 0.0f;
 		int32 TileTypeCode = 0;
+		int32 TileOccurrenceIndex = 0;
 	};
 
 	bool TryBuildPlayerSpawnContext(UWorld* World, const Protocol::ObjectInfo& ObjectInfo, FPlayerSpawnContext& OutContext) const;
-	bool TryResolveTileZombieTransform(UWorld* World, int32 TileTypeCode, const FVector& LocalLocation, float LocalYaw, FTransform& OutTransform) const;
-	void QueuePendingTileZombiePlacement(uint64 ObjectId, ABaseZombie* Zombie, const FVector& LocalLocation, float LocalYaw, int32 TileTypeCode);
+	bool TryResolveTileZombieTransform(UWorld* World, int32 TileTypeCode, int32 TileOccurrenceIndex, const FVector& LocalLocation, float LocalYaw, FTransform& OutTransform) const;
+	void QueuePendingTileZombiePlacement(uint64 ObjectId, ABaseZombie* Zombie, const FVector& LocalLocation, float LocalYaw, int32 TileTypeCode, int32 TileOccurrenceIndex);
 	void ProcessPendingTileZombiePlacements();
 	void SendZombiePlacementCorrection(uint64 ObjectId, const FVector& WorldLocation, const FRotator& WorldRotation);
 	void SpawnZombie(UWorld* World, const Protocol::ObjectInfo& ObjectInfo);

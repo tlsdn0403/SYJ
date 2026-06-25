@@ -111,6 +111,7 @@ bool FFPSSpawnManager::TryBuildPlayerSpawnContext(
 bool FFPSSpawnManager::TryResolveTileZombieTransform(
 	UWorld* World,
 	int32 TileTypeCode,
+	int32 TileOccurrenceIndex,
 	const FVector& LocalLocation,
 	float LocalYaw,
 	FTransform& OutTransform) const
@@ -137,7 +138,7 @@ bool FFPSSpawnManager::TryResolveTileZombieTransform(
 	}
 
 	AStage2TileManager* TileManager = FPSStage2WorldUtils::FindStage2TileManager(World);
-	return TileManager && TileManager->TryBuildWorldTransformForTileLocalPoint(TileType, LocalLocation, LocalYaw, OutTransform);
+	return TileManager && TileManager->TryBuildWorldTransformForTileLocalPoint(TileType, LocalLocation, LocalYaw, TileOccurrenceIndex, OutTransform);
 }
 
 void FFPSSpawnManager::QueuePendingTileZombiePlacement(
@@ -145,7 +146,8 @@ void FFPSSpawnManager::QueuePendingTileZombiePlacement(
 	ABaseZombie* Zombie,
 	const FVector& LocalLocation,
 	float LocalYaw,
-	int32 TileTypeCode)
+	int32 TileTypeCode,
+	int32 TileOccurrenceIndex)
 {
 	if (Zombie == nullptr)
 	{
@@ -158,6 +160,7 @@ void FFPSSpawnManager::QueuePendingTileZombiePlacement(
 	PendingPlacement.LocalLocation = LocalLocation;
 	PendingPlacement.LocalYaw = LocalYaw;
 	PendingPlacement.TileTypeCode = TileTypeCode;
+	PendingPlacement.TileOccurrenceIndex = TileOccurrenceIndex;
 	Zombie->SetActorHiddenInGame(true);
 	Zombie->SetActorEnableCollision(false);
 }
@@ -184,6 +187,7 @@ void FFPSSpawnManager::ProcessPendingTileZombiePlacements()
 		if (TryResolveTileZombieTransform(
 			World,
 			PendingPlacement.TileTypeCode,
+			PendingPlacement.TileOccurrenceIndex,
 			PendingPlacement.LocalLocation,
 			PendingPlacement.LocalYaw,
 			TileWorldTransform))
@@ -233,8 +237,15 @@ void FFPSSpawnManager::SpawnZombie(UWorld* World, const Protocol::ObjectInfo& Ob
 
 	const int32 EncodedSpawnType = ObjectInfo.weapon_type();
 	int32 TileTypeCode = 0;
+	int32 TileOccurrenceIndex = 0;
 	int32 ZombieTypeValue = EncodedSpawnType;
-	if (EncodedSpawnType >= 10)
+	if (EncodedSpawnType >= 100)
+	{
+		TileTypeCode = EncodedSpawnType / 100;
+		TileOccurrenceIndex = (EncodedSpawnType % 100) / 10;
+		ZombieTypeValue = EncodedSpawnType % 10;
+	}
+	else if (EncodedSpawnType >= 10)
 	{
 		TileTypeCode = EncodedSpawnType / 10;
 		ZombieTypeValue = EncodedSpawnType % 10;
@@ -266,6 +277,7 @@ void FFPSSpawnManager::SpawnZombie(UWorld* World, const Protocol::ObjectInfo& Ob
 		if (TryResolveTileZombieTransform(
 			World,
 			TileTypeCode,
+			TileOccurrenceIndex,
 			RequestedZombieLocation,
 			ObjectInfo.pos_info().yaw(),
 			TileWorldTransform))
@@ -302,7 +314,7 @@ void FFPSSpawnManager::SpawnZombie(UWorld* World, const Protocol::ObjectInfo& Ob
 	Owner.WorldObjects->RegisterZombie(ObjectId, SpawnedZombie);
 	if (TileTypeCode != 0 && !bResolvedTileTransform)
 	{
-		QueuePendingTileZombiePlacement(ObjectId, SpawnedZombie, RequestedZombieLocation, ObjectInfo.pos_info().yaw(), TileTypeCode);
+		QueuePendingTileZombiePlacement(ObjectId, SpawnedZombie, RequestedZombieLocation, ObjectInfo.pos_info().yaw(), TileTypeCode, TileOccurrenceIndex);
 	}
 	else if (TileTypeCode != 0)
 	{

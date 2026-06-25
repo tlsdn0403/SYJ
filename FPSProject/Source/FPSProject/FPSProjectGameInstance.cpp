@@ -643,6 +643,27 @@ void UFPSProjectGameInstance::HandleMove(const Protocol::S_MOVE& MovePkt)
 	if (Player->IsLocallyControlled())
 		return;
 
+	const bool bIsMountedAimPacket = !FMath::IsNearlyZero(Info.roll());
+	if (bIsMountedAimPacket)
+	{
+		AMountedMachineGun* MountedWeapon = Player->CurrentMountedWeapon;
+		if (MountedWeapon == nullptr && IsValid(Player->CurrentTruck))
+		{
+			MountedWeapon = Player->CurrentTruck->GetMountedWeapon();
+			if (MountedWeapon)
+			{
+				Player->CurrentMountedWeapon = MountedWeapon;
+				MountedWeapon->SetWeaponUser(Player);
+			}
+		}
+
+		if (MountedWeapon)
+		{
+			MountedWeapon->ApplyNetworkAim(FRotator(Info.pitch(), Info.yaw(), 0.0f));
+		}
+		return;
+	}
+
 	if (Player->IsUsingMountedWeapon() && Player->CurrentMountedWeapon)
 	{
 		Player->CurrentMountedWeapon->ApplyNetworkAim(

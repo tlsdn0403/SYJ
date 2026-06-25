@@ -206,7 +206,6 @@ void AFPSBaseCharacter::Tick(float DeltaTime)
 		!bIsHoldAiming &&
 		!bIsDrivingTruck &&
 		!bIsUsingMountedWeapon &&
-		!bIsOnTruckCargo &&
 		CurrentWeapon != nullptr;
 
 	UpdateIronSightFirstPersonView(bUseIronSightCamera && bUseFirstPersonWeaponIronSight);
@@ -998,7 +997,7 @@ void AFPSBaseCharacter::StopJump()
 
 void AFPSBaseCharacter::StartAim()
 {
-	if (bIsDrivingTruck || bIsUsingMountedWeapon || bIsOnTruckCargo || !CurrentWeapon)
+	if (bIsDrivingTruck || bIsUsingMountedWeapon || !CurrentWeapon)
 	{
 		return;
 	}
@@ -1399,7 +1398,6 @@ void AFPSBaseCharacter::UpdateIronSightFirstPersonView(bool bEnable)
 		IsLocallyControlled() &&
 		!bIsDrivingTruck &&
 		!bIsUsingMountedWeapon &&
-		!bIsOnTruckCargo &&
 		IsValid(CurrentWeapon) &&
 		IsValid(FPSCameraComponent);
 

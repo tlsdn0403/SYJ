@@ -139,7 +139,7 @@ void AMountedMachineGun::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	if (CurrentUser && !CurrentUser->IsLocallyControlled() && bHasNetworkAimTarget)
+	if (bHasNetworkAimTarget && (!CurrentUser || !CurrentUser->IsLocallyControlled()))
 	{
 		const FRotator CurrentAim(
 			PitchPivot ? PitchPivot->GetRelativeRotation().Pitch : 0.0f,

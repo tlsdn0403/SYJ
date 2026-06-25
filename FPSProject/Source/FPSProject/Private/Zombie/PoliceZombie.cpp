@@ -9,6 +9,79 @@
 #include "Engine/SkeletalMesh.h"
 #include "UObject/ConstructorHelpers.h"
 
+namespace
+{
+FName GetPoliceDismemberRootBone(FName HitBoneName)
+{
+	const FString Bone = HitBoneName.ToString();
+
+	if (Bone == TEXT("Head") ||
+		Bone == TEXT("HeadTop_End") ||
+		Bone == TEXT("Neck") ||
+		Bone == TEXT("LeftEye") ||
+		Bone == TEXT("RightEye"))
+	{
+		return TEXT("Head");
+	}
+
+	if (Bone == TEXT("LeftShoulder") || Bone == TEXT("LeftArm"))
+	{
+		return TEXT("LeftArm");
+	}
+
+	if (Bone == TEXT("LeftForeArm") || Bone.StartsWith(TEXT("LeftHand")))
+	{
+		return TEXT("LeftForeArm");
+	}
+
+	if (Bone == TEXT("RightShoulder") || Bone == TEXT("RightArm"))
+	{
+		return TEXT("RightArm");
+	}
+
+	if (Bone == TEXT("RightForeArm") || Bone.StartsWith(TEXT("RightHand")))
+	{
+		return TEXT("RightForeArm");
+	}
+
+	if (Bone == TEXT("LeftUpLeg"))
+	{
+		return TEXT("LeftUpLeg");
+	}
+
+	if (Bone == TEXT("LeftLeg") ||
+		Bone == TEXT("LeftFoot") ||
+		Bone == TEXT("LeftToeBase") ||
+		Bone == TEXT("LeftToe_End"))
+	{
+		return TEXT("LeftLeg");
+	}
+
+	if (Bone == TEXT("RightUpLeg"))
+	{
+		return TEXT("RightUpLeg");
+	}
+
+	if (Bone == TEXT("RightLeg") ||
+		Bone == TEXT("RightFoot") ||
+		Bone == TEXT("RightToeBase") ||
+		Bone == TEXT("RightToe_End"))
+	{
+		return TEXT("RightLeg");
+	}
+
+	if (Bone == TEXT("Hips") ||
+		Bone == TEXT("Spine") ||
+		Bone == TEXT("Spine1") ||
+		Bone == TEXT("Spine2"))
+	{
+		return TEXT("Spine");
+	}
+
+	return NAME_None;
+}
+}
+
 APoliceZombie::APoliceZombie()
 {
 	static ConstructorHelpers::FObjectFinder<USkeletalMesh> PoliceMesh(
@@ -81,17 +154,11 @@ void APoliceZombie::InitializeBoneDurability()
 
 FName APoliceZombie::GetParentBoneForDamage(FName HitBoneName) const
 {
-	const FString Bone = HitBoneName.ToString();
-	if (Bone.Contains(TEXT("Head")) || Bone.Contains(TEXT("Neck"))) return TEXT("Head");
-	if (Bone.Contains(TEXT("LeftUpLeg"))) return TEXT("LeftUpLeg");
-	if (Bone.Contains(TEXT("RightUpLeg"))) return TEXT("RightUpLeg");
-	if (Bone.Contains(TEXT("LeftLeg")) || Bone.Contains(TEXT("LeftFoot")) || Bone.Contains(TEXT("LeftToe"))) return TEXT("LeftLeg");
-	if (Bone.Contains(TEXT("RightLeg")) || Bone.Contains(TEXT("RightFoot")) || Bone.Contains(TEXT("RightToe"))) return TEXT("RightLeg");
-	if (Bone.Contains(TEXT("LeftForeArm")) || Bone.Contains(TEXT("LeftHand"))) return TEXT("LeftForeArm");
-	if (Bone.Contains(TEXT("RightForeArm")) || Bone.Contains(TEXT("RightHand"))) return TEXT("RightForeArm");
-	if (Bone.Contains(TEXT("LeftArm")) || Bone.Contains(TEXT("LeftShoulder"))) return TEXT("LeftArm");
-	if (Bone.Contains(TEXT("RightArm")) || Bone.Contains(TEXT("RightShoulder"))) return TEXT("RightArm");
-	if (Bone.Contains(TEXT("Spine")) || Bone.Contains(TEXT("Hips"))) return TEXT("Spine");
+	if (const FName MappedBone = GetPoliceDismemberRootBone(HitBoneName); MappedBone != NAME_None)
+	{
+		return MappedBone;
+	}
+
 	return HitBoneName;
 }
 

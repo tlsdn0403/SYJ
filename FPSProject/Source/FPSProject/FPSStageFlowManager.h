@@ -34,7 +34,6 @@ public:
 
 private:
 	void ApplyStage1ItemSpawnSeed();
-	void RemoveStage1WidgetsForLocalPlayer();
 	bool TryPlayStageTransitionCinematic();
 	void FinishStageTransitionCinematic();
 	void OpenPendingStageTransitionLevel();

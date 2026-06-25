@@ -337,6 +337,7 @@ void AStage2TileManager::FinalizePooledTile(int32 PoolIndex)
 	PooledTile.TileMarker->SetNextTileTriggerEnabled(false);
 	PooledTile.bInitialized = true;
 
+	ApplyTilePerformanceSettings(PooledTile);
 	SetTileRenderingEnabled(PooledTile, false);
 	SetTileCollisionEnabled(PooledTile, false);
 }
@@ -402,6 +403,7 @@ bool AStage2TileManager::TryActivatePooledTile(EStage2TileType TileType, const F
 	// 풀에서 꺼낸 타일은 이미 로드되어 있으므로, 활성화 단계에서는 위치 이동과 트리거 재연결만 다시 처리한다.
 	ActivatedTile.bInitialized = false;
 
+	ApplyTilePerformanceSettings(ActivatedTile);
 	SetTileRenderingEnabled(ActivatedTile, true);
 	SetTileCollisionEnabled(ActivatedTile, true);
 
@@ -466,6 +468,66 @@ bool AStage2TileManager::TryMoveTileTolocation(FStage2LoadedTile& LoadedTile, co
 	LoadedTile.AppliedLevelTransform = NewLevelTransform;
 	RefreshTilePhysicsState(LoadedTile);
 	return true;
+}
+
+void AStage2TileManager::ApplyTilePerformanceSettings(const FStage2LoadedTile& LoadedTile) const
+{
+	if (!LoadedTile.StreamingLevel)
+	{
+		return;
+	}
+
+	ULevel* LoadedLevel = LoadedTile.StreamingLevel->GetLoadedLevel();
+	if (!LoadedLevel)
+	{
+		return;
+	}
+
+	for (UModelComponent* ModelComponent : LoadedLevel->ModelComponents)
+	{
+		ApplyPrimitivePerformanceSettings(ModelComponent);
+	}
+
+	for (AActor* LevelActor : LoadedLevel->Actors)
+	{
+		if (!IsValid(LevelActor))
+		{
+			continue;
+		}
+
+		TInlineComponentArray<UPrimitiveComponent*> PrimitiveComponents(LevelActor);
+		LevelActor->GetComponents(PrimitiveComponents);
+
+		for (UPrimitiveComponent* PrimitiveComponent : PrimitiveComponents)
+		{
+			ApplyPrimitivePerformanceSettings(PrimitiveComponent);
+		}
+	}
+}
+
+void AStage2TileManager::ApplyPrimitivePerformanceSettings(UPrimitiveComponent* PrimitiveComponent) const
+{
+	if (!IsValid(PrimitiveComponent) || !PrimitiveComponent->IsRegistered())
+	{
+		return;
+	}
+
+	const float BoundsRadius = PrimitiveComponent->Bounds.SphereRadius;
+	const bool bSmallPrimitive = TileSmallPrimitiveBoundsRadius > 0.0f && BoundsRadius <= TileSmallPrimitiveBoundsRadius;
+
+	if (bApplyTileCullDistances)
+	{
+		const float CullDistance = bSmallPrimitive ? TileSmallPrimitiveCullDistance : TilePrimitiveCullDistance;
+		if (CullDistance > 0.0f)
+		{
+			PrimitiveComponent->SetCullDistance(CullDistance);
+		}
+	}
+
+	if (bDisableSmallTilePrimitiveShadows && bSmallPrimitive)
+	{
+		PrimitiveComponent->SetCastShadow(false);
+	}
 }
 
 void AStage2TileManager::SetTileRenderingEnabled(const FStage2LoadedTile& LoadedTile, bool bEnabled) const

@@ -592,6 +592,11 @@ void ATruck::SendTruckMovePacket()
 	SEND_PACKET(MovePkt);
 }
 
+void ATruck::SyncTruckStateToServer()
+{
+	SendTruckMovePacket();
+}
+
 void ATruck::SetLocallyDriven(bool bLocallyDriven)
 {
 	bIsLocallyDriven = bLocallyDriven;

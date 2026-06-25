@@ -106,6 +106,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Fuel")
 	void RefuelTruck(float FuelAmount);
 
+	void SyncTruckStateToServer();
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Driver")
 	USceneComponent* DriverSeatPoint;
 

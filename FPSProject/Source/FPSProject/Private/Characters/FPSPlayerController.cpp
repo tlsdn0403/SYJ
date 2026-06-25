@@ -8,6 +8,7 @@
 #include "HUD/BasicUI.h"
 #include "HUD/EffectUI.h"
 #include "HUD/L2BaseUI.h"
+#include "FPSStage2WorldUtils.h"
 #include "FPSProjectGameInstance.h"
 #include<algorithm>
 #include "EnhancedInputSubsystems.h"
@@ -24,6 +25,19 @@ void AFPSPlayerController::BeginPlay()
 	BasicW = CreateWidget<UBasicUI>(this, BasicWidgetClass);
 	EffectW = CreateWidget<UEffectUI>(this, EffectWidgetClass);
 	L2BaseW = CreateWidget<UL2BaseUI>(this, L2BaseWidgetClass);
+
+	if (AFPSBaseCharacter* ControlledCharacter = Cast<AFPSBaseCharacter>(GetPawn()))
+	{
+		if (FPSStage2WorldUtils::IsStage2World(GetWorld()))
+		{
+			ControlledCharacter->Delete_L1Widget(this);
+			ControlledCharacter->Add_L2_Widget(this);
+		}
+		else
+		{
+			ControlledCharacter->Add_L1_Widget(this);
+		}
+	}
 
 	UEnhancedInputLocalPlayerSubsystem* Subsystem =
 		ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer());

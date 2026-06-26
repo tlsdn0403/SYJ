@@ -10,6 +10,9 @@
 class ULevelStreamingDynamic;
 class UWorld;
 class ABaseZombie;
+class ALandscapeProxy;
+class ULandscapeComponent;
+class ULandscapeHeightfieldCollisionComponent;
 class UPrimitiveComponent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FStage2InitialTilesReadySignature);
@@ -234,6 +237,12 @@ private:
 	void SetTileCollisionEnabled(const FStage2LoadedTile& LoadedTile, bool bEnabled);
 	void ApplyTilePerformanceSettings(const FStage2LoadedTile& LoadedTile) const;
 	void ApplyPrimitivePerformanceSettings(UPrimitiveComponent* PrimitiveComponent) const;
+	void RefreshLandscapeState(const FStage2LoadedTile& LoadedTile, bool bRecreateCollision) const;
+	void RefreshLandscapeProxyState(ALandscapeProxy* LandscapeProxy, bool bRecreateCollision) const;
+	void RefreshLandscapeCollisionComponent(
+		ULandscapeHeightfieldCollisionComponent* CollisionComponent,
+		TSet<ULandscapeHeightfieldCollisionComponent*>& RefreshedCollisionComponents,
+		bool bRecreateCollision) const;
 	void RefreshTilePhysicsState(const FStage2LoadedTile& LoadedTile) const;
 	void ForgetTileCollisionStates(const FStage2LoadedTile& LoadedTile);
 	FTransform MakePoolParkingTransform();

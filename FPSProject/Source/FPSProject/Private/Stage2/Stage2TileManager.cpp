@@ -5,6 +5,9 @@
 #include "Components/ModelComponent.h"
 #include "Components/PrimitiveComponent.h"
 #include "Components/SceneComponent.h"
+#include "LandscapeComponent.h"
+#include "LandscapeHeightfieldCollisionComponent.h"
+#include "LandscapeProxy.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "LevelUtils.h"
 #include "Zombie/BaseZombie.h"
@@ -628,6 +631,10 @@ void AStage2TileManager::SetTileCollisionEnabled(const FStage2LoadedTile& Loaded
 				{
 					PrimitiveComponent->SetCollisionEnabled(*CachedCollision);
 				}
+				else if (Cast<ULandscapeHeightfieldCollisionComponent>(PrimitiveComponent))
+				{
+					PrimitiveComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+				}
 			}
 			else
 			{
@@ -639,7 +646,92 @@ void AStage2TileManager::SetTileCollisionEnabled(const FStage2LoadedTile& Loaded
 		}
 	}
 
+	RefreshLandscapeState(LoadedTile, bEnabled);
 	RefreshTilePhysicsState(LoadedTile);
+}
+
+void AStage2TileManager::RefreshLandscapeState(const FStage2LoadedTile& LoadedTile, bool bRecreateCollision) const
+{
+	if (!LoadedTile.StreamingLevel)
+	{
+		return;
+	}
+
+	ULevel* LoadedLevel = LoadedTile.StreamingLevel->GetLoadedLevel();
+	if (!LoadedLevel)
+	{
+		return;
+	}
+
+	for (AActor* LevelActor : LoadedLevel->Actors)
+	{
+		RefreshLandscapeProxyState(Cast<ALandscapeProxy>(LevelActor), bRecreateCollision);
+	}
+}
+
+void AStage2TileManager::RefreshLandscapeProxyState(ALandscapeProxy* LandscapeProxy, bool bRecreateCollision) const
+{
+	if (!IsValid(LandscapeProxy))
+	{
+		return;
+	}
+
+	TSet<ULandscapeHeightfieldCollisionComponent*> RefreshedCollisionComponents;
+
+	TInlineComponentArray<ULandscapeComponent*> LandscapeComponents;
+	LandscapeProxy->GetComponents(LandscapeComponents);
+	for (ULandscapeComponent* LandscapeComponent : LandscapeComponents)
+	{
+		if (!IsValid(LandscapeComponent) || !LandscapeComponent->IsRegistered())
+		{
+			continue;
+		}
+
+		LandscapeComponent->UpdateComponentToWorld(EUpdateTransformFlags::None, ETeleportType::TeleportPhysics);
+		LandscapeComponent->UpdateCachedBounds();
+
+		RefreshLandscapeCollisionComponent(
+			LandscapeComponent->GetCollisionComponent(),
+			RefreshedCollisionComponents,
+			bRecreateCollision);
+	}
+
+	TInlineComponentArray<ULandscapeHeightfieldCollisionComponent*> CollisionComponents;
+	LandscapeProxy->GetComponents(CollisionComponents);
+	for (ULandscapeHeightfieldCollisionComponent* CollisionComponent : CollisionComponents)
+	{
+		RefreshLandscapeCollisionComponent(CollisionComponent, RefreshedCollisionComponents, bRecreateCollision);
+	}
+}
+
+void AStage2TileManager::RefreshLandscapeCollisionComponent(
+	ULandscapeHeightfieldCollisionComponent* CollisionComponent,
+	TSet<ULandscapeHeightfieldCollisionComponent*>& RefreshedCollisionComponents,
+	bool bRecreateCollision) const
+{
+	if (!IsValid(CollisionComponent) ||
+		!CollisionComponent->IsRegistered() ||
+		RefreshedCollisionComponents.Contains(CollisionComponent))
+	{
+		return;
+	}
+
+	RefreshedCollisionComponents.Add(CollisionComponent);
+	CollisionComponent->UpdateComponentToWorld(EUpdateTransformFlags::None, ETeleportType::TeleportPhysics);
+
+	if (CollisionComponent->GetCollisionEnabled() == ECollisionEnabled::NoCollision)
+	{
+		return;
+	}
+
+	if (bRecreateCollision)
+	{
+		CollisionComponent->RecreateCollision();
+	}
+	else
+	{
+		CollisionComponent->RecreatePhysicsState();
+	}
 }
 
 void AStage2TileManager::RefreshTilePhysicsState(const FStage2LoadedTile& LoadedTile) const
@@ -693,6 +785,8 @@ void AStage2TileManager::RefreshTilePhysicsState(const FStage2LoadedTile& Loaded
 			}
 		}
 	}
+
+	RefreshLandscapeState(LoadedTile, true);
 }
 
 void AStage2TileManager::ForgetTileCollisionStates(const FStage2LoadedTile& LoadedTile)

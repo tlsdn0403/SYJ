@@ -177,6 +177,13 @@ void AFPSProjectile::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor
 	AActor* InstigatorActor = GetInstigator();
 	if (OtherActor && OtherActor != this && OtherActor != MyOwner && OtherActor != InstigatorActor)
 	{
+		AFPSBaseCharacter* InstigatorCharacter = Cast<AFPSBaseCharacter>(InstigatorActor);
+		if (InstigatorCharacter && Cast<AFPSBaseCharacter>(OtherActor))
+		{
+			ReturnToPool();
+			return;
+		}
+
 		ABaseZombie* HitZombie = Cast<ABaseZombie>(OtherActor);
 		const FHitResult DamageHit = BuildZombieDamageHit(Hit, HitZombie);
 		if (HitZombie && HitZombie->IsAlive() && IsZombieHeadHit(DamageHit.BoneName) && ZombieHeadHitSound)
@@ -184,7 +191,6 @@ void AFPSProjectile::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor
 			UGameplayStatics::PlaySoundAtLocation(this, ZombieHeadHitSound, DamageHit.ImpactPoint);
 		}
 
-		AFPSBaseCharacter* InstigatorCharacter = Cast<AFPSBaseCharacter>(InstigatorActor);
 		const bool bSentZombieHitPacket =
 			InstigatorCharacter &&
 			UFPSProjectGameInstance::SendZombieHitPacket(
@@ -323,4 +329,3 @@ void AFPSProjectile::ReturnToPool()
 	// 풀이 없으면 파괴
 	Destroy();
 }
-

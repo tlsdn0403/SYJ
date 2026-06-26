@@ -2,6 +2,7 @@
 
 
 #include "Components/HealthComponent.h"
+#include "Characters/FPSBaseCharacter.h"
 
 // Sets default values for this component's properties
 UHealthComponent::UHealthComponent()
@@ -36,6 +37,19 @@ void UHealthComponent::BeginPlay()
 void UHealthComponent::PointDamageTaken(AActor* DamagedActor, float Damage, AController* InstigatedBy, FVector HitLocation, UPrimitiveComponent* FHitComponent, FName BoneName, FVector ShotFromDirection, const UDamageType* DamageType, AActor* DamageCauser)
 {
 	if (Damage <= 0.f) return;
+
+	const AFPSBaseCharacter* DamagedPlayer = Cast<AFPSBaseCharacter>(DamagedActor);
+	const APawn* InstigatorPawn = InstigatedBy ? InstigatedBy->GetPawn() : nullptr;
+	if (InstigatorPawn == nullptr && DamageCauser)
+	{
+		InstigatorPawn = DamageCauser->GetInstigator();
+	}
+
+	if (DamagedPlayer && Cast<AFPSBaseCharacter>(InstigatorPawn))
+	{
+		return;
+	}
+
 	ApplyDamageInternal(Damage, true);
 
 
@@ -93,13 +107,13 @@ void UHealthComponent::ApplyDamageInternal(float Damage, bool bBroadcastHealthCh
 
 void UHealthComponent::Heal(float Amount)
 {
-    if (Amount <= 0.f) return;
+	if (Amount <= 0.f) return;
 
-    float OldHealth = Health;
+	float OldHealth = Health;
 
-    Health = FMath::Min(Health + Amount, MaxHealth);
+	Health = FMath::Min(Health + Amount, MaxHealth);
 
-    float HealAmount = Health - OldHealth;
+	float HealAmount = Health - OldHealth;
 
 	if (HealAmount > 0.0f)
 	{

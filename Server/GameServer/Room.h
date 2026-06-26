@@ -42,6 +42,25 @@ private:
 	void UpdateZombies();
 	PlayerRef FindNearestPlayer(const Protocol::PosInfo& origin, float maxRange) const;
 	void BroadcastZombieMove(const MonsterRef& monster);
+	struct ZombiePathPoint
+	{
+		float x = 0.0f;
+		float y = 0.0f;
+		float z = 0.0f;
+	};
+
+	struct ZombiePathState
+	{
+		uint64 targetPlayerId = 0;
+		vector<ZombiePathPoint> waypoints;
+		size_t waypointIndex = 0;
+		float repathRemainingSeconds = 0.0f;
+		float lastTargetX = 0.0f;
+		float lastTargetY = 0.0f;
+		float lastTargetZ = 0.0f;
+	};
+
+	vector<ZombiePathPoint> FindZombiePath(const Protocol::PosInfo& start, const Protocol::PosInfo& goal) const;
 	bool AddObject(ObjectRef object);
 	bool RemoveObject(uint64 objectId);
 
@@ -60,6 +79,10 @@ private:
 	{
 		Protocol::PosInfo posInfo;
 		bool hasTransform = false;
+		float fuel = -1.0f;
+		bool hasTurretAim = false;
+		float turretYaw = 0.0f;
+		float turretPitch = 0.0f;
 		uint64 driverPlayerId = 0;
 		//[신우] cargo 좌석은 1인 좌석이 아니라 여러 명이 동시에 탈 수 있어서 set으로 관리한다.
 		unordered_set<uint64> cargoPlayerIds;
@@ -110,6 +133,7 @@ private:
 	vector<PendingZombieDespawn> _pendingZombieDespawns;
 	vector<PendingLootItemRespawn> _pendingLootItemRespawns;
 	vector<Stage2WeaponState> _stage2Weapons;
+	unordered_map<uint64, ZombiePathState> _zombiePaths;
 	unordered_set<uint64> _inactiveLootItemIds;
 	unordered_set<uint64> _stageTransitionReadyPlayerIds;
 	bool _bTruckLoadingPhaseActive = false;

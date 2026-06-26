@@ -381,6 +381,10 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORIT
 PROTOBUF_CONSTEXPR C_TRUCK_MOVE::C_TRUCK_MOVE(
     ::_pbi::ConstantInitialized): _impl_{
     /*decltype(_impl_.info_)*/nullptr
+  , /*decltype(_impl_.fuel_)*/0
+  , /*decltype(_impl_.turret_yaw_)*/0
+  , /*decltype(_impl_.turret_pitch_)*/0
+  , /*decltype(_impl_.has_turret_aim_)*/false
   , /*decltype(_impl_._cached_size_)*/{}} {}
 struct C_TRUCK_MOVEDefaultTypeInternal {
   PROTOBUF_CONSTEXPR C_TRUCK_MOVEDefaultTypeInternal()
@@ -394,7 +398,11 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORIT
 PROTOBUF_CONSTEXPR S_TRUCK_MOVE::S_TRUCK_MOVE(
     ::_pbi::ConstantInitialized): _impl_{
     /*decltype(_impl_.info_)*/nullptr
+  , /*decltype(_impl_.fuel_)*/0
+  , /*decltype(_impl_.turret_yaw_)*/0
   , /*decltype(_impl_.is_correction_)*/false
+  , /*decltype(_impl_.has_turret_aim_)*/false
+  , /*decltype(_impl_.turret_pitch_)*/0
   , /*decltype(_impl_._cached_size_)*/{}} {}
 struct S_TRUCK_MOVEDefaultTypeInternal {
   PROTOBUF_CONSTEXPR S_TRUCK_MOVEDefaultTypeInternal()
@@ -782,6 +790,10 @@ const uint32_t TableStruct_Protocol_2eproto::offsets[] PROTOBUF_SECTION_VARIABLE
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
   PROTOBUF_FIELD_OFFSET(::Protocol::C_TRUCK_MOVE, _impl_.info_),
+  PROTOBUF_FIELD_OFFSET(::Protocol::C_TRUCK_MOVE, _impl_.fuel_),
+  PROTOBUF_FIELD_OFFSET(::Protocol::C_TRUCK_MOVE, _impl_.turret_yaw_),
+  PROTOBUF_FIELD_OFFSET(::Protocol::C_TRUCK_MOVE, _impl_.turret_pitch_),
+  PROTOBUF_FIELD_OFFSET(::Protocol::C_TRUCK_MOVE, _impl_.has_turret_aim_),
   ~0u,  // no _has_bits_
   PROTOBUF_FIELD_OFFSET(::Protocol::S_TRUCK_MOVE, _internal_metadata_),
   ~0u,  // no _extensions_
@@ -790,6 +802,10 @@ const uint32_t TableStruct_Protocol_2eproto::offsets[] PROTOBUF_SECTION_VARIABLE
   ~0u,  // no _inlined_string_donated_
   PROTOBUF_FIELD_OFFSET(::Protocol::S_TRUCK_MOVE, _impl_.info_),
   PROTOBUF_FIELD_OFFSET(::Protocol::S_TRUCK_MOVE, _impl_.is_correction_),
+  PROTOBUF_FIELD_OFFSET(::Protocol::S_TRUCK_MOVE, _impl_.fuel_),
+  PROTOBUF_FIELD_OFFSET(::Protocol::S_TRUCK_MOVE, _impl_.turret_yaw_),
+  PROTOBUF_FIELD_OFFSET(::Protocol::S_TRUCK_MOVE, _impl_.turret_pitch_),
+  PROTOBUF_FIELD_OFFSET(::Protocol::S_TRUCK_MOVE, _impl_.has_turret_aim_),
   ~0u,  // no _has_bits_
   PROTOBUF_FIELD_OFFSET(::Protocol::C_LOAD_TRUCK_ITEM, _internal_metadata_),
   ~0u,  // no _extensions_
@@ -910,18 +926,18 @@ static const ::_pbi::MigrationSchema schemas[] PROTOBUF_SECTION_VARIABLE(protode
   { 189, -1, -1, sizeof(::Protocol::C_EXIT_TRUCK)},
   { 195, -1, -1, sizeof(::Protocol::S_EXIT_TRUCK)},
   { 204, -1, -1, sizeof(::Protocol::C_TRUCK_MOVE)},
-  { 211, -1, -1, sizeof(::Protocol::S_TRUCK_MOVE)},
-  { 219, -1, -1, sizeof(::Protocol::C_LOAD_TRUCK_ITEM)},
-  { 227, -1, -1, sizeof(::Protocol::S_LOAD_TRUCK_ITEM)},
-  { 236, -1, -1, sizeof(::Protocol::C_TOGGLE_DOOR)},
-  { 243, -1, -1, sizeof(::Protocol::S_TOGGLE_DOOR)},
-  { 251, -1, -1, sizeof(::Protocol::S_ENTER_GAME_READY_COUNT)},
-  { 259, -1, -1, sizeof(::Protocol::S_STAGE_TIMER)},
-  { 267, -1, -1, sizeof(::Protocol::S_STAGE1_ITEM_SEED)},
-  { 274, -1, -1, sizeof(::Protocol::S_RESPAWN_LOOT_ITEM)},
-  { 281, -1, -1, sizeof(::Protocol::C_STAGE_TRANSITION_REQUEST)},
-  { 289, -1, -1, sizeof(::Protocol::S_STAGE_TRANSITION)},
-  { 296, -1, -1, sizeof(::Protocol::S_ZOMBIE_DISMEMBER)},
+  { 215, -1, -1, sizeof(::Protocol::S_TRUCK_MOVE)},
+  { 227, -1, -1, sizeof(::Protocol::C_LOAD_TRUCK_ITEM)},
+  { 235, -1, -1, sizeof(::Protocol::S_LOAD_TRUCK_ITEM)},
+  { 244, -1, -1, sizeof(::Protocol::C_TOGGLE_DOOR)},
+  { 251, -1, -1, sizeof(::Protocol::S_TOGGLE_DOOR)},
+  { 259, -1, -1, sizeof(::Protocol::S_ENTER_GAME_READY_COUNT)},
+  { 267, -1, -1, sizeof(::Protocol::S_STAGE_TIMER)},
+  { 275, -1, -1, sizeof(::Protocol::S_STAGE1_ITEM_SEED)},
+  { 282, -1, -1, sizeof(::Protocol::S_RESPAWN_LOOT_ITEM)},
+  { 289, -1, -1, sizeof(::Protocol::C_STAGE_TRANSITION_REQUEST)},
+  { 297, -1, -1, sizeof(::Protocol::S_STAGE_TRANSITION)},
+  { 304, -1, -1, sizeof(::Protocol::S_ZOMBIE_DISMEMBER)},
 };
 
 static const ::_pb::Message* const file_default_instances[] = {
@@ -1005,29 +1021,33 @@ const char descriptor_table_protodef_Protocol_2eproto[] PROTOBUF_SECTION_VARIABL
   "pe\030\003 \001(\0162\027.Protocol.TruckSeatType\"\016\n\014C_E"
   "XIT_TRUCK\"_\n\014S_EXIT_TRUCK\022\021\n\tplayer_id\030\001"
   " \001(\004\022\020\n\010truck_id\030\002 \001(\004\022*\n\tseat_type\030\003 \001("
-  "\0162\027.Protocol.TruckSeatType\"/\n\014C_TRUCK_MO"
-  "VE\022\037\n\004info\030\001 \001(\0132\021.Protocol.PosInfo\"F\n\014S"
-  "_TRUCK_MOVE\022\037\n\004info\030\001 \001(\0132\021.Protocol.Pos"
-  "Info\022\025\n\ris_correction\030\002 \001(\010\"9\n\021C_LOAD_TR"
-  "UCK_ITEM\022\020\n\010truck_id\030\001 \001(\004\022\022\n\nitem_types"
-  "\030\002 \003(\005\"L\n\021S_LOAD_TRUCK_ITEM\022\021\n\tplayer_id"
-  "\030\001 \001(\004\022\020\n\010truck_id\030\002 \001(\004\022\022\n\nitem_types\030\003"
-  " \003(\005\" \n\rC_TOGGLE_DOOR\022\017\n\007door_id\030\001 \001(\004\"1"
-  "\n\rS_TOGGLE_DOOR\022\017\n\007door_id\030\001 \001(\004\022\017\n\007is_o"
-  "pen\030\002 \001(\010\"G\n\030S_ENTER_GAME_READY_COUNT\022\023\n"
-  "\013ready_count\030\001 \001(\005\022\026\n\016required_count\030\002 \001"
-  "(\005\"D\n\rS_STAGE_TIMER\022\031\n\021remaining_seconds"
-  "\030\001 \001(\005\022\030\n\020is_loading_phase\030\002 \001(\010\"\"\n\022S_ST"
-  "AGE1_ITEM_SEED\022\014\n\004seed\030\001 \001(\r\".\n\023S_RESPAW"
-  "N_LOOT_ITEM\022\027\n\017item_object_ids\030\001 \003(\004\"D\n\032"
-  "C_STAGE_TRANSITION_REQUEST\022\020\n\010truck_id\030\001"
-  " \001(\004\022\024\n\014target_level\030\002 \001(\t\"*\n\022S_STAGE_TR"
-  "ANSITION\022\024\n\014target_level\030\001 \001(\t\"\240\001\n\022S_ZOM"
-  "BIE_DISMEMBER\022\021\n\tzombie_id\030\001 \001(\004\022\021\n\tbone"
-  "_name\030\002 \001(\t\022\r\n\005hit_x\030\003 \001(\002\022\r\n\005hit_y\030\004 \001("
-  "\002\022\r\n\005hit_z\030\005 \001(\002\022\021\n\timpulse_x\030\006 \001(\002\022\021\n\ti"
-  "mpulse_y\030\007 \001(\002\022\021\n\timpulse_z\030\010 \001(\002b\006proto"
-  "3"
+  "\0162\027.Protocol.TruckSeatType\"\177\n\014C_TRUCK_MO"
+  "VE\022\037\n\004info\030\001 \001(\0132\021.Protocol.PosInfo\022\014\n\004f"
+  "uel\030\003 \001(\002\022\022\n\nturret_yaw\030\004 \001(\002\022\024\n\014turret_"
+  "pitch\030\005 \001(\002\022\026\n\016has_turret_aim\030\006 \001(\010\"\226\001\n\014"
+  "S_TRUCK_MOVE\022\037\n\004info\030\001 \001(\0132\021.Protocol.Po"
+  "sInfo\022\025\n\ris_correction\030\002 \001(\010\022\014\n\004fuel\030\003 \001"
+  "(\002\022\022\n\nturret_yaw\030\004 \001(\002\022\024\n\014turret_pitch\030\005"
+  " \001(\002\022\026\n\016has_turret_aim\030\006 \001(\010\"9\n\021C_LOAD_T"
+  "RUCK_ITEM\022\020\n\010truck_id\030\001 \001(\004\022\022\n\nitem_type"
+  "s\030\002 \003(\005\"L\n\021S_LOAD_TRUCK_ITEM\022\021\n\tplayer_i"
+  "d\030\001 \001(\004\022\020\n\010truck_id\030\002 \001(\004\022\022\n\nitem_types\030"
+  "\003 \003(\005\" \n\rC_TOGGLE_DOOR\022\017\n\007door_id\030\001 \001(\004\""
+  "1\n\rS_TOGGLE_DOOR\022\017\n\007door_id\030\001 \001(\004\022\017\n\007is_"
+  "open\030\002 \001(\010\"G\n\030S_ENTER_GAME_READY_COUNT\022\023"
+  "\n\013ready_count\030\001 \001(\005\022\026\n\016required_count\030\002 "
+  "\001(\005\"D\n\rS_STAGE_TIMER\022\031\n\021remaining_second"
+  "s\030\001 \001(\005\022\030\n\020is_loading_phase\030\002 \001(\010\"\"\n\022S_S"
+  "TAGE1_ITEM_SEED\022\014\n\004seed\030\001 \001(\r\".\n\023S_RESPA"
+  "WN_LOOT_ITEM\022\027\n\017item_object_ids\030\001 \003(\004\"D\n"
+  "\032C_STAGE_TRANSITION_REQUEST\022\020\n\010truck_id\030"
+  "\001 \001(\004\022\024\n\014target_level\030\002 \001(\t\"*\n\022S_STAGE_T"
+  "RANSITION\022\024\n\014target_level\030\001 \001(\t\"\240\001\n\022S_ZO"
+  "MBIE_DISMEMBER\022\021\n\tzombie_id\030\001 \001(\004\022\021\n\tbon"
+  "e_name\030\002 \001(\t\022\r\n\005hit_x\030\003 \001(\002\022\r\n\005hit_y\030\004 \001"
+  "(\002\022\r\n\005hit_z\030\005 \001(\002\022\021\n\timpulse_x\030\006 \001(\002\022\021\n\t"
+  "impulse_y\030\007 \001(\002\022\021\n\timpulse_z\030\010 \001(\002b\006prot"
+  "o3"
   ;
 static const ::_pbi::DescriptorTable* const descriptor_table_Protocol_2eproto_deps[2] = {
   &::descriptor_table_Enum_2eproto,
@@ -1035,7 +1055,7 @@ static const ::_pbi::DescriptorTable* const descriptor_table_Protocol_2eproto_de
 };
 static ::_pbi::once_flag descriptor_table_Protocol_2eproto_once;
 const ::_pbi::DescriptorTable descriptor_table_Protocol_2eproto = {
-    false, false, 2401, descriptor_table_protodef_Protocol_2eproto,
+    false, false, 2562, descriptor_table_protodef_Protocol_2eproto,
     "Protocol.proto",
     &descriptor_table_Protocol_2eproto_once, descriptor_table_Protocol_2eproto_deps, 2, 39,
     schemas, file_default_instances, TableStruct_Protocol_2eproto::offsets,
@@ -6321,12 +6341,19 @@ C_TRUCK_MOVE::C_TRUCK_MOVE(const C_TRUCK_MOVE& from)
   C_TRUCK_MOVE* const _this = this; (void)_this;
   new (&_impl_) Impl_{
       decltype(_impl_.info_){nullptr}
+    , decltype(_impl_.fuel_){}
+    , decltype(_impl_.turret_yaw_){}
+    , decltype(_impl_.turret_pitch_){}
+    , decltype(_impl_.has_turret_aim_){}
     , /*decltype(_impl_._cached_size_)*/{}};
 
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
   if (from._internal_has_info()) {
     _this->_impl_.info_ = new ::Protocol::PosInfo(*from._impl_.info_);
   }
+  ::memcpy(&_impl_.fuel_, &from._impl_.fuel_,
+    static_cast<size_t>(reinterpret_cast<char*>(&_impl_.has_turret_aim_) -
+    reinterpret_cast<char*>(&_impl_.fuel_)) + sizeof(_impl_.has_turret_aim_));
   // @@protoc_insertion_point(copy_constructor:Protocol.C_TRUCK_MOVE)
 }
 
@@ -6336,6 +6363,10 @@ inline void C_TRUCK_MOVE::SharedCtor(
   (void)is_message_owned;
   new (&_impl_) Impl_{
       decltype(_impl_.info_){nullptr}
+    , decltype(_impl_.fuel_){0}
+    , decltype(_impl_.turret_yaw_){0}
+    , decltype(_impl_.turret_pitch_){0}
+    , decltype(_impl_.has_turret_aim_){false}
     , /*decltype(_impl_._cached_size_)*/{}
   };
 }
@@ -6368,6 +6399,9 @@ void C_TRUCK_MOVE::Clear() {
     delete _impl_.info_;
   }
   _impl_.info_ = nullptr;
+  ::memset(&_impl_.fuel_, 0, static_cast<size_t>(
+      reinterpret_cast<char*>(&_impl_.has_turret_aim_) -
+      reinterpret_cast<char*>(&_impl_.fuel_)) + sizeof(_impl_.has_turret_aim_));
   _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
 }
 
@@ -6381,6 +6415,38 @@ const char* C_TRUCK_MOVE::_InternalParse(const char* ptr, ::_pbi::ParseContext* 
       case 1:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
           ptr = ctx->ParseMessage(_internal_mutable_info(), ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // float fuel = 3;
+      case 3:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 29)) {
+          _impl_.fuel_ = ::PROTOBUF_NAMESPACE_ID::internal::UnalignedLoad<float>(ptr);
+          ptr += sizeof(float);
+        } else
+          goto handle_unusual;
+        continue;
+      // float turret_yaw = 4;
+      case 4:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 37)) {
+          _impl_.turret_yaw_ = ::PROTOBUF_NAMESPACE_ID::internal::UnalignedLoad<float>(ptr);
+          ptr += sizeof(float);
+        } else
+          goto handle_unusual;
+        continue;
+      // float turret_pitch = 5;
+      case 5:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 45)) {
+          _impl_.turret_pitch_ = ::PROTOBUF_NAMESPACE_ID::internal::UnalignedLoad<float>(ptr);
+          ptr += sizeof(float);
+        } else
+          goto handle_unusual;
+        continue;
+      // bool has_turret_aim = 6;
+      case 6:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 48)) {
+          _impl_.has_turret_aim_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
           CHK_(ptr);
         } else
           goto handle_unusual;
@@ -6421,6 +6487,42 @@ uint8_t* C_TRUCK_MOVE::_InternalSerialize(
         _Internal::info(this).GetCachedSize(), target, stream);
   }
 
+  // float fuel = 3;
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_fuel = this->_internal_fuel();
+  uint32_t raw_fuel;
+  memcpy(&raw_fuel, &tmp_fuel, sizeof(tmp_fuel));
+  if (raw_fuel != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteFloatToArray(3, this->_internal_fuel(), target);
+  }
+
+  // float turret_yaw = 4;
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_turret_yaw = this->_internal_turret_yaw();
+  uint32_t raw_turret_yaw;
+  memcpy(&raw_turret_yaw, &tmp_turret_yaw, sizeof(tmp_turret_yaw));
+  if (raw_turret_yaw != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteFloatToArray(4, this->_internal_turret_yaw(), target);
+  }
+
+  // float turret_pitch = 5;
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_turret_pitch = this->_internal_turret_pitch();
+  uint32_t raw_turret_pitch;
+  memcpy(&raw_turret_pitch, &tmp_turret_pitch, sizeof(tmp_turret_pitch));
+  if (raw_turret_pitch != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteFloatToArray(5, this->_internal_turret_pitch(), target);
+  }
+
+  // bool has_turret_aim = 6;
+  if (this->_internal_has_turret_aim() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteBoolToArray(6, this->_internal_has_turret_aim(), target);
+  }
+
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
@@ -6442,6 +6544,38 @@ size_t C_TRUCK_MOVE::ByteSizeLong() const {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
         *_impl_.info_);
+  }
+
+  // float fuel = 3;
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_fuel = this->_internal_fuel();
+  uint32_t raw_fuel;
+  memcpy(&raw_fuel, &tmp_fuel, sizeof(tmp_fuel));
+  if (raw_fuel != 0) {
+    total_size += 1 + 4;
+  }
+
+  // float turret_yaw = 4;
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_turret_yaw = this->_internal_turret_yaw();
+  uint32_t raw_turret_yaw;
+  memcpy(&raw_turret_yaw, &tmp_turret_yaw, sizeof(tmp_turret_yaw));
+  if (raw_turret_yaw != 0) {
+    total_size += 1 + 4;
+  }
+
+  // float turret_pitch = 5;
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_turret_pitch = this->_internal_turret_pitch();
+  uint32_t raw_turret_pitch;
+  memcpy(&raw_turret_pitch, &tmp_turret_pitch, sizeof(tmp_turret_pitch));
+  if (raw_turret_pitch != 0) {
+    total_size += 1 + 4;
+  }
+
+  // bool has_turret_aim = 6;
+  if (this->_internal_has_turret_aim() != 0) {
+    total_size += 1 + 1;
   }
 
   return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
@@ -6466,6 +6600,30 @@ void C_TRUCK_MOVE::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::P
     _this->_internal_mutable_info()->::Protocol::PosInfo::MergeFrom(
         from._internal_info());
   }
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_fuel = from._internal_fuel();
+  uint32_t raw_fuel;
+  memcpy(&raw_fuel, &tmp_fuel, sizeof(tmp_fuel));
+  if (raw_fuel != 0) {
+    _this->_internal_set_fuel(from._internal_fuel());
+  }
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_turret_yaw = from._internal_turret_yaw();
+  uint32_t raw_turret_yaw;
+  memcpy(&raw_turret_yaw, &tmp_turret_yaw, sizeof(tmp_turret_yaw));
+  if (raw_turret_yaw != 0) {
+    _this->_internal_set_turret_yaw(from._internal_turret_yaw());
+  }
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_turret_pitch = from._internal_turret_pitch();
+  uint32_t raw_turret_pitch;
+  memcpy(&raw_turret_pitch, &tmp_turret_pitch, sizeof(tmp_turret_pitch));
+  if (raw_turret_pitch != 0) {
+    _this->_internal_set_turret_pitch(from._internal_turret_pitch());
+  }
+  if (from._internal_has_turret_aim() != 0) {
+    _this->_internal_set_has_turret_aim(from._internal_has_turret_aim());
+  }
   _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
 }
 
@@ -6483,7 +6641,12 @@ bool C_TRUCK_MOVE::IsInitialized() const {
 void C_TRUCK_MOVE::InternalSwap(C_TRUCK_MOVE* other) {
   using std::swap;
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
-  swap(_impl_.info_, other->_impl_.info_);
+  ::PROTOBUF_NAMESPACE_ID::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(C_TRUCK_MOVE, _impl_.has_turret_aim_)
+      + sizeof(C_TRUCK_MOVE::_impl_.has_turret_aim_)
+      - PROTOBUF_FIELD_OFFSET(C_TRUCK_MOVE, _impl_.info_)>(
+          reinterpret_cast<char*>(&_impl_.info_),
+          reinterpret_cast<char*>(&other->_impl_.info_));
 }
 
 ::PROTOBUF_NAMESPACE_ID::Metadata C_TRUCK_MOVE::GetMetadata() const {
@@ -6520,14 +6683,20 @@ S_TRUCK_MOVE::S_TRUCK_MOVE(const S_TRUCK_MOVE& from)
   S_TRUCK_MOVE* const _this = this; (void)_this;
   new (&_impl_) Impl_{
       decltype(_impl_.info_){nullptr}
+    , decltype(_impl_.fuel_){}
+    , decltype(_impl_.turret_yaw_){}
     , decltype(_impl_.is_correction_){}
+    , decltype(_impl_.has_turret_aim_){}
+    , decltype(_impl_.turret_pitch_){}
     , /*decltype(_impl_._cached_size_)*/{}};
 
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
   if (from._internal_has_info()) {
     _this->_impl_.info_ = new ::Protocol::PosInfo(*from._impl_.info_);
   }
-  _this->_impl_.is_correction_ = from._impl_.is_correction_;
+  ::memcpy(&_impl_.fuel_, &from._impl_.fuel_,
+    static_cast<size_t>(reinterpret_cast<char*>(&_impl_.turret_pitch_) -
+    reinterpret_cast<char*>(&_impl_.fuel_)) + sizeof(_impl_.turret_pitch_));
   // @@protoc_insertion_point(copy_constructor:Protocol.S_TRUCK_MOVE)
 }
 
@@ -6537,7 +6706,11 @@ inline void S_TRUCK_MOVE::SharedCtor(
   (void)is_message_owned;
   new (&_impl_) Impl_{
       decltype(_impl_.info_){nullptr}
+    , decltype(_impl_.fuel_){0}
+    , decltype(_impl_.turret_yaw_){0}
     , decltype(_impl_.is_correction_){false}
+    , decltype(_impl_.has_turret_aim_){false}
+    , decltype(_impl_.turret_pitch_){0}
     , /*decltype(_impl_._cached_size_)*/{}
   };
 }
@@ -6570,7 +6743,9 @@ void S_TRUCK_MOVE::Clear() {
     delete _impl_.info_;
   }
   _impl_.info_ = nullptr;
-  _impl_.is_correction_ = false;
+  ::memset(&_impl_.fuel_, 0, static_cast<size_t>(
+      reinterpret_cast<char*>(&_impl_.turret_pitch_) -
+      reinterpret_cast<char*>(&_impl_.fuel_)) + sizeof(_impl_.turret_pitch_));
   _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
 }
 
@@ -6592,6 +6767,38 @@ const char* S_TRUCK_MOVE::_InternalParse(const char* ptr, ::_pbi::ParseContext* 
       case 2:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 16)) {
           _impl_.is_correction_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // float fuel = 3;
+      case 3:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 29)) {
+          _impl_.fuel_ = ::PROTOBUF_NAMESPACE_ID::internal::UnalignedLoad<float>(ptr);
+          ptr += sizeof(float);
+        } else
+          goto handle_unusual;
+        continue;
+      // float turret_yaw = 4;
+      case 4:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 37)) {
+          _impl_.turret_yaw_ = ::PROTOBUF_NAMESPACE_ID::internal::UnalignedLoad<float>(ptr);
+          ptr += sizeof(float);
+        } else
+          goto handle_unusual;
+        continue;
+      // float turret_pitch = 5;
+      case 5:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 45)) {
+          _impl_.turret_pitch_ = ::PROTOBUF_NAMESPACE_ID::internal::UnalignedLoad<float>(ptr);
+          ptr += sizeof(float);
+        } else
+          goto handle_unusual;
+        continue;
+      // bool has_turret_aim = 6;
+      case 6:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 48)) {
+          _impl_.has_turret_aim_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
           CHK_(ptr);
         } else
           goto handle_unusual;
@@ -6638,6 +6845,42 @@ uint8_t* S_TRUCK_MOVE::_InternalSerialize(
     target = ::_pbi::WireFormatLite::WriteBoolToArray(2, this->_internal_is_correction(), target);
   }
 
+  // float fuel = 3;
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_fuel = this->_internal_fuel();
+  uint32_t raw_fuel;
+  memcpy(&raw_fuel, &tmp_fuel, sizeof(tmp_fuel));
+  if (raw_fuel != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteFloatToArray(3, this->_internal_fuel(), target);
+  }
+
+  // float turret_yaw = 4;
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_turret_yaw = this->_internal_turret_yaw();
+  uint32_t raw_turret_yaw;
+  memcpy(&raw_turret_yaw, &tmp_turret_yaw, sizeof(tmp_turret_yaw));
+  if (raw_turret_yaw != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteFloatToArray(4, this->_internal_turret_yaw(), target);
+  }
+
+  // float turret_pitch = 5;
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_turret_pitch = this->_internal_turret_pitch();
+  uint32_t raw_turret_pitch;
+  memcpy(&raw_turret_pitch, &tmp_turret_pitch, sizeof(tmp_turret_pitch));
+  if (raw_turret_pitch != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteFloatToArray(5, this->_internal_turret_pitch(), target);
+  }
+
+  // bool has_turret_aim = 6;
+  if (this->_internal_has_turret_aim() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteBoolToArray(6, this->_internal_has_turret_aim(), target);
+  }
+
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
@@ -6661,9 +6904,41 @@ size_t S_TRUCK_MOVE::ByteSizeLong() const {
         *_impl_.info_);
   }
 
+  // float fuel = 3;
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_fuel = this->_internal_fuel();
+  uint32_t raw_fuel;
+  memcpy(&raw_fuel, &tmp_fuel, sizeof(tmp_fuel));
+  if (raw_fuel != 0) {
+    total_size += 1 + 4;
+  }
+
+  // float turret_yaw = 4;
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_turret_yaw = this->_internal_turret_yaw();
+  uint32_t raw_turret_yaw;
+  memcpy(&raw_turret_yaw, &tmp_turret_yaw, sizeof(tmp_turret_yaw));
+  if (raw_turret_yaw != 0) {
+    total_size += 1 + 4;
+  }
+
   // bool is_correction = 2;
   if (this->_internal_is_correction() != 0) {
     total_size += 1 + 1;
+  }
+
+  // bool has_turret_aim = 6;
+  if (this->_internal_has_turret_aim() != 0) {
+    total_size += 1 + 1;
+  }
+
+  // float turret_pitch = 5;
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_turret_pitch = this->_internal_turret_pitch();
+  uint32_t raw_turret_pitch;
+  memcpy(&raw_turret_pitch, &tmp_turret_pitch, sizeof(tmp_turret_pitch));
+  if (raw_turret_pitch != 0) {
+    total_size += 1 + 4;
   }
 
   return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
@@ -6688,8 +6963,32 @@ void S_TRUCK_MOVE::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::P
     _this->_internal_mutable_info()->::Protocol::PosInfo::MergeFrom(
         from._internal_info());
   }
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_fuel = from._internal_fuel();
+  uint32_t raw_fuel;
+  memcpy(&raw_fuel, &tmp_fuel, sizeof(tmp_fuel));
+  if (raw_fuel != 0) {
+    _this->_internal_set_fuel(from._internal_fuel());
+  }
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_turret_yaw = from._internal_turret_yaw();
+  uint32_t raw_turret_yaw;
+  memcpy(&raw_turret_yaw, &tmp_turret_yaw, sizeof(tmp_turret_yaw));
+  if (raw_turret_yaw != 0) {
+    _this->_internal_set_turret_yaw(from._internal_turret_yaw());
+  }
   if (from._internal_is_correction() != 0) {
     _this->_internal_set_is_correction(from._internal_is_correction());
+  }
+  if (from._internal_has_turret_aim() != 0) {
+    _this->_internal_set_has_turret_aim(from._internal_has_turret_aim());
+  }
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_turret_pitch = from._internal_turret_pitch();
+  uint32_t raw_turret_pitch;
+  memcpy(&raw_turret_pitch, &tmp_turret_pitch, sizeof(tmp_turret_pitch));
+  if (raw_turret_pitch != 0) {
+    _this->_internal_set_turret_pitch(from._internal_turret_pitch());
   }
   _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
 }
@@ -6709,8 +7008,8 @@ void S_TRUCK_MOVE::InternalSwap(S_TRUCK_MOVE* other) {
   using std::swap;
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
   ::PROTOBUF_NAMESPACE_ID::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(S_TRUCK_MOVE, _impl_.is_correction_)
-      + sizeof(S_TRUCK_MOVE::_impl_.is_correction_)
+      PROTOBUF_FIELD_OFFSET(S_TRUCK_MOVE, _impl_.turret_pitch_)
+      + sizeof(S_TRUCK_MOVE::_impl_.turret_pitch_)
       - PROTOBUF_FIELD_OFFSET(S_TRUCK_MOVE, _impl_.info_)>(
           reinterpret_cast<char*>(&_impl_.info_),
           reinterpret_cast<char*>(&other->_impl_.info_));

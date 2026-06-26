@@ -5,6 +5,9 @@
 #include "Components/ModelComponent.h"
 #include "Components/PrimitiveComponent.h"
 #include "Components/SceneComponent.h"
+#include "LandscapeComponent.h"
+#include "LandscapeHeightfieldCollisionComponent.h"
+#include "LandscapeProxy.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "LevelUtils.h"
 #include "Zombie/BaseZombie.h"
@@ -14,14 +17,22 @@ AStage2TileManager::AStage2TileManager()
 	PrimaryActorTick.bCanEverTick = true;
 	PrimaryActorTick.bStartWithTickEnabled = false;
 
-	NextSpawnTransform = GetActorTransform();
+	NextSpawnTransform = GetManagerTileTransform();
 }
 
 void AStage2TileManager::BeginPlay()
 {
 	Super::BeginPlay();
 
-	NextSpawnTransform = GetActorTransform();
+	NextSpawnTransform = GetManagerTileTransform();
+
+	if (!GetActorScale3D().Equals(FVector::OneVector))
+	{
+		UE_LOG(LogTemp, Warning,
+			TEXT("Stage2TileManager '%s' has non-identity scale %s. Tile streaming ignores manager scale to keep landscape geometry stable."),
+			*GetNameSafe(this),
+			*GetActorScale3D().ToString());
+	}
 
 	if (bSpawnOnBeginPlay)
 	{
@@ -52,7 +63,7 @@ void AStage2TileManager::StartGeneration()
 	bGenerationStarted = true;
 
 	// 타일이 배치 될 위치는 매니저 액터의 위치
-	NextSpawnTransform = GetActorTransform();
+	NextSpawnTransform = GetManagerTileTransform();
 
 	// 시드값이 고정되어 있으면 랜덤 스트림을 초기화된 시드값으로 초기화, 그렇지 않으면 새로운 시드값 생성
 	if (bUseDeterministicSeed)
@@ -338,6 +349,7 @@ void AStage2TileManager::FinalizePooledTile(int32 PoolIndex)
 	PooledTile.EntryLocalTransform = PooledTile.TileMarker->GetEntryTransform().GetRelativeTransform(PooledTile.AppliedLevelTransform);
 	PooledTile.bHasEntryLocalTransform = true;
 
+	EnsureUniqueLandscapeGuids(PooledTile);
 	PooledTile.TileMarker->OnNextTileTriggerEntered.RemoveAll(this);
 	PooledTile.TileMarker->ResetNextTileTrigger();
 	PooledTile.TileMarker->SetNextTileTriggerEnabled(false);
@@ -536,6 +548,68 @@ void AStage2TileManager::ApplyPrimitivePerformanceSettings(UPrimitiveComponent* 
 	}
 }
 
+void AStage2TileManager::EnsureUniqueLandscapeGuids(const FStage2LoadedTile& LoadedTile) const
+{
+	if (!LoadedTile.StreamingLevel)
+	{
+		return;
+	}
+
+	ULevel* LoadedLevel = LoadedTile.StreamingLevel->GetLoadedLevel();
+	if (!LoadedLevel)
+	{
+		return;
+	}
+
+	TMap<FGuid, FGuid> RemappedGuids;
+	for (AActor* LevelActor : LoadedLevel->Actors)
+	{
+		if (!IsValid(LevelActor))
+		{
+			continue;
+		}
+
+		EnsureLandscapeProxyHasUniqueGuid(Cast<ALandscapeProxy>(LevelActor), LoadedTile, RemappedGuids);
+	}
+}
+
+void AStage2TileManager::EnsureLandscapeProxyHasUniqueGuid(
+	ALandscapeProxy* LandscapeProxy,
+	const FStage2LoadedTile& LoadedTile,
+	TMap<FGuid, FGuid>& RemappedGuids) const
+{
+	if (!IsValid(LandscapeProxy))
+	{
+		return;
+	}
+
+	const FGuid OriginalGuid = LandscapeProxy->GetLandscapeGuid();
+	FGuid& RemappedGuid = RemappedGuids.FindOrAdd(OriginalGuid);
+	if (!RemappedGuid.IsValid())
+	{
+		RemappedGuid = FGuid::NewGuid();
+		while (RemappedGuid == OriginalGuid)
+		{
+			RemappedGuid = FGuid::NewGuid();
+		}
+	}
+
+	LandscapeProxy->SetLandscapeGuid(RemappedGuid, false);
+	LandscapeProxy->CreateLandscapeInfo(false, true);
+	LandscapeProxy->ReregisterAllComponents();
+	RefreshLandscapeProxyState(LandscapeProxy, true);
+
+	if (bVerboseLog)
+	{
+		UE_LOG(LogTemp, Log,
+			TEXT("Stage2TileManager: Remapped landscape guid for %s in %s from %s to %s"),
+			*GetNameSafe(LandscapeProxy),
+			*LoadedTile.SourceLevel.ToSoftObjectPath().ToString(),
+			*OriginalGuid.ToString(),
+			*RemappedGuid.ToString());
+	}
+}
+
 void AStage2TileManager::SetTileRenderingEnabled(const FStage2LoadedTile& LoadedTile, bool bEnabled) const
 {
 	if (!bHidePooledTiles || !LoadedTile.StreamingLevel)
@@ -628,6 +702,10 @@ void AStage2TileManager::SetTileCollisionEnabled(const FStage2LoadedTile& Loaded
 				{
 					PrimitiveComponent->SetCollisionEnabled(*CachedCollision);
 				}
+				else if (Cast<ULandscapeHeightfieldCollisionComponent>(PrimitiveComponent))
+				{
+					PrimitiveComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+				}
 			}
 			else
 			{
@@ -639,7 +717,92 @@ void AStage2TileManager::SetTileCollisionEnabled(const FStage2LoadedTile& Loaded
 		}
 	}
 
+	RefreshLandscapeState(LoadedTile, bEnabled);
 	RefreshTilePhysicsState(LoadedTile);
+}
+
+void AStage2TileManager::RefreshLandscapeState(const FStage2LoadedTile& LoadedTile, bool bRecreateCollision) const
+{
+	if (!LoadedTile.StreamingLevel)
+	{
+		return;
+	}
+
+	ULevel* LoadedLevel = LoadedTile.StreamingLevel->GetLoadedLevel();
+	if (!LoadedLevel)
+	{
+		return;
+	}
+
+	for (AActor* LevelActor : LoadedLevel->Actors)
+	{
+		RefreshLandscapeProxyState(Cast<ALandscapeProxy>(LevelActor), bRecreateCollision);
+	}
+}
+
+void AStage2TileManager::RefreshLandscapeProxyState(ALandscapeProxy* LandscapeProxy, bool bRecreateCollision) const
+{
+	if (!IsValid(LandscapeProxy))
+	{
+		return;
+	}
+
+	TSet<ULandscapeHeightfieldCollisionComponent*> RefreshedCollisionComponents;
+
+	TInlineComponentArray<ULandscapeComponent*> LandscapeComponents;
+	LandscapeProxy->GetComponents(LandscapeComponents);
+	for (ULandscapeComponent* LandscapeComponent : LandscapeComponents)
+	{
+		if (!IsValid(LandscapeComponent) || !LandscapeComponent->IsRegistered())
+		{
+			continue;
+		}
+
+		LandscapeComponent->UpdateComponentToWorld(EUpdateTransformFlags::None, ETeleportType::TeleportPhysics);
+		LandscapeComponent->UpdateCachedBounds();
+
+		RefreshLandscapeCollisionComponent(
+			LandscapeComponent->GetCollisionComponent(),
+			RefreshedCollisionComponents,
+			bRecreateCollision);
+	}
+
+	TInlineComponentArray<ULandscapeHeightfieldCollisionComponent*> CollisionComponents;
+	LandscapeProxy->GetComponents(CollisionComponents);
+	for (ULandscapeHeightfieldCollisionComponent* CollisionComponent : CollisionComponents)
+	{
+		RefreshLandscapeCollisionComponent(CollisionComponent, RefreshedCollisionComponents, bRecreateCollision);
+	}
+}
+
+void AStage2TileManager::RefreshLandscapeCollisionComponent(
+	ULandscapeHeightfieldCollisionComponent* CollisionComponent,
+	TSet<ULandscapeHeightfieldCollisionComponent*>& RefreshedCollisionComponents,
+	bool bRecreateCollision) const
+{
+	if (!IsValid(CollisionComponent) ||
+		!CollisionComponent->IsRegistered() ||
+		RefreshedCollisionComponents.Contains(CollisionComponent))
+	{
+		return;
+	}
+
+	RefreshedCollisionComponents.Add(CollisionComponent);
+	CollisionComponent->UpdateComponentToWorld(EUpdateTransformFlags::None, ETeleportType::TeleportPhysics);
+
+	if (CollisionComponent->GetCollisionEnabled() == ECollisionEnabled::NoCollision)
+	{
+		return;
+	}
+
+	if (bRecreateCollision)
+	{
+		CollisionComponent->RecreateCollision();
+	}
+	else
+	{
+		CollisionComponent->RecreatePhysicsState();
+	}
 }
 
 void AStage2TileManager::RefreshTilePhysicsState(const FStage2LoadedTile& LoadedTile) const
@@ -693,6 +856,8 @@ void AStage2TileManager::RefreshTilePhysicsState(const FStage2LoadedTile& Loaded
 			}
 		}
 	}
+
+	RefreshLandscapeState(LoadedTile, true);
 }
 
 void AStage2TileManager::ForgetTileCollisionStates(const FStage2LoadedTile& LoadedTile)
@@ -736,6 +901,11 @@ void AStage2TileManager::ForgetTileCollisionStates(const FStage2LoadedTile& Load
 	}
 }
 
+FTransform AStage2TileManager::GetManagerTileTransform() const
+{
+	return FTransform(GetActorRotation(), GetActorLocation(), FVector::OneVector);
+}
+
 FTransform AStage2TileManager::MakePoolParkingTransform()
 {
 	
@@ -745,7 +915,7 @@ FTransform AStage2TileManager::MakePoolParkingTransform()
 		FVector(NextPoolParkingIndex * PoolParkingSpacing, 0.0f, 0.0f);
 
 	++NextPoolParkingIndex;
-	return FTransform(GetActorRotation(), ParkingLocation, GetActorScale3D());
+	return FTransform(GetActorRotation(), ParkingLocation, FVector::OneVector);
 }
 
 void AStage2TileManager::FinalizeLoadedTile(int32 TileIndex)
@@ -909,7 +1079,7 @@ void AStage2TileManager::ResetGenerationState()
 	NextRightTileOccurrenceIndex = 0;
 	NextPoolParkingIndex = 0;
 	SpawnedPlayableTileCount = 0;
-	NextSpawnTransform = GetActorTransform();
+	NextSpawnTransform = GetManagerTileTransform();
 	SetActorTickEnabled(false);
 }
 
@@ -958,9 +1128,43 @@ void AStage2TileManager::SpawnZombiesForTile(FStage2LoadedTile& LoadedTile)
 	OverlapObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECC_Pawn));
 	OverlapObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECC_WorldDynamic));
 
+	TArray<FVector> UsedZombieSpawnLocations;
+	const float ZombieSpawnMinSpacingSq = ZombieSpawnMinSpacing * ZombieSpawnMinSpacing;
+
 	for (int32 SpawnIteration = 0; SpawnIteration < DesiredSpawnCount && CandidateSpawnTransforms.Num() > 0; ++SpawnIteration)
 	{
-		const int32 SpawnTransformIndex = RandomStream.RandRange(0, CandidateSpawnTransforms.Num() - 1);
+		int32 SpawnTransformIndex = INDEX_NONE;
+		if (ZombieSpawnMinSpacing > 0.0f && UsedZombieSpawnLocations.Num() > 0)
+		{
+			const int32 StartIndex = RandomStream.RandRange(0, CandidateSpawnTransforms.Num() - 1);
+			for (int32 CandidateOffset = 0; CandidateOffset < CandidateSpawnTransforms.Num(); ++CandidateOffset)
+			{
+				const int32 CandidateIndex = (StartIndex + CandidateOffset) % CandidateSpawnTransforms.Num();
+				const FVector CandidateLocation = CandidateSpawnTransforms[CandidateIndex].GetLocation();
+
+				bool bTooClose = false;
+				for (const FVector& UsedLocation : UsedZombieSpawnLocations)
+				{
+					if (FVector::DistSquared2D(CandidateLocation, UsedLocation) < ZombieSpawnMinSpacingSq)
+					{
+						bTooClose = true;
+						break;
+					}
+				}
+
+				if (!bTooClose)
+				{
+					SpawnTransformIndex = CandidateIndex;
+					break;
+				}
+			}
+		}
+
+		if (SpawnTransformIndex == INDEX_NONE)
+		{
+			SpawnTransformIndex = RandomStream.RandRange(0, CandidateSpawnTransforms.Num() - 1);
+		}
+
 		const FTransform SpawnTransform = CandidateSpawnTransforms[SpawnTransformIndex];
 		CandidateSpawnTransforms.RemoveAtSwap(SpawnTransformIndex);
 
@@ -992,6 +1196,7 @@ void AStage2TileManager::SpawnZombiesForTile(FStage2LoadedTile& LoadedTile)
 		if (ABaseZombie* SpawnedZombie = GetWorld()->SpawnActor<ABaseZombie>(ZombieClass, SpawnTransform, SpawnParameters))
 		{
 			LoadedTile.SpawnedZombies.Add(SpawnedZombie);
+			UsedZombieSpawnLocations.Add(SpawnedZombie->GetActorLocation());
 		}
 	}
 

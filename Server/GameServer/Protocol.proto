@@ -160,12 +160,20 @@ message S_EXIT_TRUCK
 message C_TRUCK_MOVE
 {
 	PosInfo info = 1;
+	float fuel = 3;
+	float turret_yaw = 4;
+	float turret_pitch = 5;
+	bool has_turret_aim = 6;
 }
 
 message S_TRUCK_MOVE
 {
 	PosInfo info = 1;
 	bool is_correction = 2;
+	float fuel = 3;
+	float turret_yaw = 4;
+	float turret_pitch = 5;
+	bool has_turret_aim = 6;
 }
 
 message C_LOAD_TRUCK_ITEM

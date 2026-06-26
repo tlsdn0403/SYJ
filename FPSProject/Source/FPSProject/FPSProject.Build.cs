@@ -19,7 +19,7 @@ public class FPSProject : ModuleRules
             "AdvancedWidgets"
         });
 
-		PrivateDependencyModuleNames.AddRange(new string[] { "ProtobufCore", "AdvancedWidgets" });
+		PrivateDependencyModuleNames.AddRange(new string[] { "ProtobufCore", "AdvancedWidgets", "Landscape" });
         
 		PrivateIncludePaths.AddRange(new string[]
 		{

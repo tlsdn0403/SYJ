@@ -588,6 +588,7 @@ void ATruck::SendTruckMovePacket()
 	Info->set_pitch(TruckRotation.Pitch);
 	Info->set_roll(TruckRotation.Roll);
 	Info->set_state(GetVelocity().SizeSquared() > KINDA_SMALL_NUMBER ? Protocol::MOVE_STATE_RUN : Protocol::MOVE_STATE_IDLE);
+	MovePkt.set_fuel(CurrentTruckFuel);
 
 	SEND_PACKET(MovePkt);
 }
@@ -906,6 +907,7 @@ void ATruck::RefuelTruck(float FuelAmount)
 	if (FuelAmount > 0.0f)
 	{
 		SetTruckFuel(CurrentTruckFuel + FuelAmount);
+		SyncTruckStateToServer();
 	}
 }
 

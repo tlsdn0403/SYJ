@@ -10,6 +10,9 @@
 class ULevelStreamingDynamic;
 class UWorld;
 class ABaseZombie;
+class ALandscapeProxy;
+class ULandscapeComponent;
+class ULandscapeHeightfieldCollisionComponent;
 class UPrimitiveComponent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FStage2InitialTilesReadySignature);
@@ -193,6 +196,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stage2|Zombie", meta = (ClampMin = "0.0"))
 	float ZombieSpawnCollisionRadius = 120.0f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stage2|Zombie", meta = (ClampMin = "0.0"))
+	float ZombieSpawnMinSpacing = 300.0f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stage2|Debug")
 	bool bVerboseLog = true;
 
@@ -234,8 +240,20 @@ private:
 	void SetTileCollisionEnabled(const FStage2LoadedTile& LoadedTile, bool bEnabled);
 	void ApplyTilePerformanceSettings(const FStage2LoadedTile& LoadedTile) const;
 	void ApplyPrimitivePerformanceSettings(UPrimitiveComponent* PrimitiveComponent) const;
+	void EnsureUniqueLandscapeGuids(const FStage2LoadedTile& LoadedTile) const;
+	void EnsureLandscapeProxyHasUniqueGuid(
+		ALandscapeProxy* LandscapeProxy,
+		const FStage2LoadedTile& LoadedTile,
+		TMap<FGuid, FGuid>& RemappedGuids) const;
+	void RefreshLandscapeState(const FStage2LoadedTile& LoadedTile, bool bRecreateCollision) const;
+	void RefreshLandscapeProxyState(ALandscapeProxy* LandscapeProxy, bool bRecreateCollision) const;
+	void RefreshLandscapeCollisionComponent(
+		ULandscapeHeightfieldCollisionComponent* CollisionComponent,
+		TSet<ULandscapeHeightfieldCollisionComponent*>& RefreshedCollisionComponents,
+		bool bRecreateCollision) const;
 	void RefreshTilePhysicsState(const FStage2LoadedTile& LoadedTile) const;
 	void ForgetTileCollisionStates(const FStage2LoadedTile& LoadedTile);
+	FTransform GetManagerTileTransform() const;
 	FTransform MakePoolParkingTransform();
 	void FinalizeLoadedTile(int32 TileIndex);
 	void UpdateNextSpawnTransformFromTile(const AStage2TileMarker* TileMarker);

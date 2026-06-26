@@ -157,6 +157,7 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
+	void ConfigureNavigationRuntimeCost();
 	void MoveForward(float Value);
 	void MoveRight(float Value);
 	FRotator GetMovementViewRotation() const;

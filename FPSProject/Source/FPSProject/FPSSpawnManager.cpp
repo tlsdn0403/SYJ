@@ -292,6 +292,9 @@ bool FFPSSpawnManager::TryResolveTileZombieTransform(
 	case 3:
 		TileType = EStage2TileType::Right;
 		break;
+	case 4:
+		TileType = EStage2TileType::Start;
+		break;
 	default:
 		return false;
 	}

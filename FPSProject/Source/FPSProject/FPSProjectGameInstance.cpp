@@ -692,6 +692,11 @@ void UFPSProjectGameInstance::HandleZombieAttack(const Protocol::S_ZOMBIE_ATTACK
 		return;
 	}
 
+	if (Zombie->IsHidden() || !Zombie->GetActorEnableCollision())
+	{
+		return;
+	}
+
 	AFPSBaseCharacter* TargetPlayer = ResolvePlayerById(pkt.target_player_id());
 	AActor* TargetActor = TargetPlayer;
 	if (TargetPlayer &&
@@ -969,7 +974,18 @@ void UFPSProjectGameInstance::HandleTruckMove(const Protocol::S_TRUCK_MOVE& pkt)
 
 	FVector TargetLocation(pkt.info().x(), pkt.info().y(), pkt.info().z());
 	const FRotator TargetRotation(pkt.info().pitch(), pkt.info().yaw(), pkt.info().roll());
+	if (pkt.fuel() >= 0.0f)
+	{
+		Truck->SetTruckFuel(pkt.fuel());
+	}
 	Truck->ApplyNetworkTransform(TargetLocation, TargetRotation, pkt.is_correction());
+	if (pkt.has_turret_aim())
+	{
+		if (AMountedMachineGun* MountedWeapon = Truck->GetMountedWeapon())
+		{
+			MountedWeapon->ApplyNetworkAim(FRotator(pkt.turret_pitch(), pkt.turret_yaw(), 0.0f));
+		}
+	}
 }
 
 void UFPSProjectGameInstance::HandleLoadTruckItem(const Protocol::S_LOAD_TRUCK_ITEM& pkt)

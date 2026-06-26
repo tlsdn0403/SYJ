@@ -122,7 +122,7 @@ protected:
 	int32 PreloadedTilesPerType = 3;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stage2|Pool")
-	FVector PoolParkingOffset = FVector(0.0f, 0.0f, -1000000.0f);
+	FVector PoolParkingOffset = FVector::ZeroVector;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stage2|Pool", meta = (ClampMin = "1000.0"))
 	float PoolParkingSpacing = 20000.0f;

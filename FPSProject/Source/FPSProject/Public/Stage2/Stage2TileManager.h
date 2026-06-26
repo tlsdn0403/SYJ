@@ -18,6 +18,24 @@ class UPrimitiveComponent;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FStage2InitialTilesReadySignature);
 
 USTRUCT(BlueprintType)
+struct FStage2LoadedLandscapeLevel
+{
+	GENERATED_BODY()
+
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Stage2")
+	TSoftObjectPtr<UWorld> SourceLevel = nullptr;
+
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Stage2")
+	TObjectPtr<ULevelStreamingDynamic> StreamingLevel = nullptr;
+
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Stage2")
+	FTransform AppliedLevelTransform;
+
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Stage2")
+	bool bInitialized = false;
+};
+
+USTRUCT(BlueprintType)
 struct FStage2LoadedTile
 {
 	GENERATED_BODY()
@@ -52,6 +70,9 @@ struct FStage2LoadedTile
 
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "Stage2")
 	bool bInitialized = false;
+
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Stage2")
+	TArray<FStage2LoadedLandscapeLevel> LandscapeLevels;
 
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "Stage2|Zombie")
 	TArray<TObjectPtr<ABaseZombie>> SpawnedZombies;
@@ -111,6 +132,21 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stage2|Tiles")
 	TArray<TSoftObjectPtr<UWorld>> GoalTileLevels;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stage2|Landscape Tiles")
+	TArray<TSoftObjectPtr<UWorld>> StartLandscapeLevels;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stage2|Landscape Tiles")
+	TArray<TSoftObjectPtr<UWorld>> StraightLandscapeLevels;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stage2|Landscape Tiles")
+	TArray<TSoftObjectPtr<UWorld>> LeftLandscapeLevels;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stage2|Landscape Tiles")
+	TArray<TSoftObjectPtr<UWorld>> RightLandscapeLevels;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stage2|Landscape Tiles")
+	TArray<TSoftObjectPtr<UWorld>> GoalLandscapeLevels;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stage2|Rules", meta = (ClampMin = "1"))
 	int32 InitialTilesToSpawn = 3;
@@ -235,6 +271,13 @@ private:
 	bool IsTilePoolReady() const;
 	bool IsPoolTileAvailable(EStage2TileType TileType) const;
 	bool TryActivatePooledTile(EStage2TileType TileType, const FTransform& EntryTransform);
+	const TArray<TSoftObjectPtr<UWorld>>& GetLandscapeLevelsForTileType(EStage2TileType TileType) const;
+	void LoadLandscapeLevelsForTile(FStage2LoadedTile& LoadedTile, const FTransform& LevelTransform);
+	void TryFinalizeLandscapeLevels();
+	void FinalizeLandscapeLevel(FStage2LoadedLandscapeLevel& LandscapeLevel);
+	bool HasPendingLandscapeLevels() const;
+	bool AreLandscapeLevelsReady(const FStage2LoadedTile& LoadedTile) const;
+	void UnloadLandscapeLevelsForTile(FStage2LoadedTile& LoadedTile);
 	bool TryMoveTileTolocation(FStage2LoadedTile& LoadedTile, const FTransform& NewLevelTransform);
 	void SetTileRenderingEnabled(const FStage2LoadedTile& LoadedTile, bool bEnabled) const;
 	void SetTileCollisionEnabled(const FStage2LoadedTile& LoadedTile, bool bEnabled);

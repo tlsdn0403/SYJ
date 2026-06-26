@@ -1,6 +1,5 @@
 ﻿#include "Weapon/WeaponBase.h"
 #include "FPSProjectGameInstance.h" 
-#include "Weapon/WeaponBase.h"
 #include "Projectiles/FPSProjectile.h"
 #include "Characters/FPSBaseCharacter.h"
 #include "Kismet/GameplayStatics.h"
@@ -99,7 +98,7 @@ namespace
 		}
 	}
 
-	ABaseZombie* ResolveHitZombie(AActor* HitActor, UPrimitiveComponent* HitComponent)
+	ABaseZombie* ResolveWeaponHitZombie(AActor* HitActor, UPrimitiveComponent* HitComponent)
 	{
 		if (ABaseZombie* Zombie = Cast<ABaseZombie>(HitActor))
 		{
@@ -122,7 +121,7 @@ namespace
 		return nullptr;
 	}
 
-	bool FindZombieTraceHit(UWorld* World, const FVector& TraceStart, const FVector& TraceEnd, const FCollisionQueryParams& QueryParams, FHitResult& OutHit)
+	bool FindWeaponZombieTraceHit(UWorld* World, const FVector& TraceStart, const FVector& TraceEnd, const FCollisionQueryParams& QueryParams, FHitResult& OutHit)
 	{
 		if (World == nullptr)
 		{
@@ -134,7 +133,7 @@ namespace
 		float BlockingDistance = TNumericLimits<float>::Max();
 		for (const FHitResult& Hit : VisibilityHits)
 		{
-			if (ResolveHitZombie(Hit.GetActor(), Hit.GetComponent()))
+			if (ResolveWeaponHitZombie(Hit.GetActor(), Hit.GetComponent()))
 			{
 				OutHit = Hit;
 				return true;
@@ -156,7 +155,7 @@ namespace
 				break;
 			}
 
-			if (ResolveHitZombie(Hit.GetActor(), Hit.GetComponent()))
+			if (ResolveWeaponHitZombie(Hit.GetActor(), Hit.GetComponent()))
 			{
 				OutHit = Hit;
 				return true;
@@ -490,7 +489,7 @@ void AWeaponBase::Fire()
 
 			bool bHit = World->LineTraceSingleByChannel(HitResult, TraceStart, TraceEnd, ECC_Visibility, QueryParams);
 			FHitResult ZombieHitResult;
-			const bool bHitZombie = FindZombieTraceHit(World, TraceStart, TraceEnd, QueryParams, ZombieHitResult);
+			const bool bHitZombie = FindWeaponZombieTraceHit(World, TraceStart, TraceEnd, QueryParams, ZombieHitResult);
 			if (bHitZombie)
 			{
 				HitResult = ZombieHitResult;
@@ -500,7 +499,7 @@ void AWeaponBase::Fire()
 			AActor* AimHitActor = bHit ? HitResult.GetActor() : nullptr;
 			if (bHitZombie)
 			{
-				if (ABaseZombie* HitZombie = ResolveHitZombie(AimHitActor, HitResult.GetComponent()))
+				if (ABaseZombie* HitZombie = ResolveWeaponHitZombie(AimHitActor, HitResult.GetComponent()))
 				{
 					UFPSProjectGameInstance::SendZombieHitPacket(
 						Character,

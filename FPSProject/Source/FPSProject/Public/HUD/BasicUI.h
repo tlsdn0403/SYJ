@@ -13,6 +13,7 @@ class UImage;
 class UTextBlock;
 class UProgressBar;
 class UButton;
+class UWidgetAnimation;
 
 UCLASS()
 class FPSPROJECT_API UBasicUI : public UUserWidget
@@ -53,5 +54,5 @@ public:
 	void SetAmmoCount(int32 AmmoCount);
 
 
-	int Play_ESC();
+	void Play_ESC();
 };

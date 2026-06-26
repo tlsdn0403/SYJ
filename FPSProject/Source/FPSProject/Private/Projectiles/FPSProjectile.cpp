@@ -16,7 +16,7 @@
 
 namespace
 {
-FHitResult BuildZombieDamageHit(const FHitResult& Hit, ABaseZombie* HitZombie)
+FHitResult BuildProjectileZombieDamageHit(const FHitResult& Hit, ABaseZombie* HitZombie)
 {
 	FHitResult DamageHit = Hit;
 
@@ -55,7 +55,7 @@ bool IsZombieHeadHit(FName BoneName)
 		BoneString.Contains(TEXT("eye"), ESearchCase::IgnoreCase);
 }
 
-ABaseZombie* ResolveHitZombie(AActor* OtherActor, UPrimitiveComponent* OtherComponent)
+ABaseZombie* ResolveProjectileHitZombie(AActor* OtherActor, UPrimitiveComponent* OtherComponent)
 {
 	if (ABaseZombie* Zombie = Cast<ABaseZombie>(OtherActor))
 	{
@@ -210,8 +210,8 @@ void AFPSProjectile::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor
 			return;
 		}
 
-		ABaseZombie* HitZombie = ResolveHitZombie(OtherActor, OtherComponent);
-		const FHitResult DamageHit = BuildZombieDamageHit(Hit, HitZombie);
+		ABaseZombie* HitZombie = ResolveProjectileHitZombie(OtherActor, OtherComponent);
+		const FHitResult DamageHit = BuildProjectileZombieDamageHit(Hit, HitZombie);
 		if (HitZombie && HitZombie->IsAlive() && IsZombieHeadHit(DamageHit.BoneName) && ZombieHeadHitSound)
 		{
 			UGameplayStatics::PlaySoundAtLocation(this, ZombieHeadHitSound, DamageHit.ImpactPoint);

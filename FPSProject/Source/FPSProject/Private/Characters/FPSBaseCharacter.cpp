@@ -108,6 +108,8 @@ void AFPSBaseCharacter::BeginPlay()
 		ZombieStimuliSource->RegisterWithPerceptionSystem();
 	}
 
+	ConfigureNavigationRuntimeCost();
+
 	if (HealthComponent)
 	{
 		HealthComponent->OnHealthChanged.AddDynamic(this, &AFPSBaseCharacter::HandleHealthChanged);
@@ -146,6 +148,32 @@ void AFPSBaseCharacter::BeginPlay()
 		}
 	}
 }
+
+void AFPSBaseCharacter::ConfigureNavigationRuntimeCost()
+{
+	if (UCapsuleComponent* Capsule = GetCapsuleComponent())
+	{
+		Capsule->SetCanEverAffectNavigation(false);
+	}
+
+	if (USkeletalMeshComponent* CharacterMesh = GetMesh())
+	{
+		CharacterMesh->SetCanEverAffectNavigation(false);
+	}
+
+	if (FPSMesh)
+	{
+		FPSMesh->SetCanEverAffectNavigation(false);
+	}
+
+	const bool bClientOnlyProxy = GetNetMode() == NM_Client;
+	if (bClientOnlyProxy && NavigationInvokerComponent)
+	{
+		NavigationInvokerComponent->Deactivate();
+		NavigationInvokerComponent->SetComponentTickEnabled(false);
+	}
+}
+
 void AFPSBaseCharacter::Delete_L1Widget(AFPSPlayerController* PC) {
 	if (!PC) return;
 

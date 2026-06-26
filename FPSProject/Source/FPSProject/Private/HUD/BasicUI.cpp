@@ -58,10 +58,9 @@ void UBasicUI::SetAmmoCount(int32 AmmoCount)
 	}
 }
 
-int UBasicUI:: Play_ESC()
+void UBasicUI:: Play_ESC()
 { 
 	PlayAnimation(Ani_ESC); 
 
-	if()
 
 }

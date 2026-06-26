@@ -26,7 +26,7 @@
 
 namespace
 {
-	ABaseZombie* ResolveHitZombie(AActor* HitActor, UPrimitiveComponent* HitComponent)
+	ABaseZombie* ResolveMountedGunHitZombie(AActor* HitActor, UPrimitiveComponent* HitComponent)
 	{
 		if (ABaseZombie* Zombie = Cast<ABaseZombie>(HitActor))
 		{
@@ -49,7 +49,7 @@ namespace
 		return nullptr;
 	}
 
-	FName FindClosestZombieBoneToTrace(USkeletalMeshComponent* ZombieMesh, const FVector& TraceStart, const FVector& TraceEnd)
+	FName FindClosestMountedGunZombieBoneToTrace(USkeletalMeshComponent* ZombieMesh, const FVector& TraceStart, const FVector& TraceEnd)
 	{
 		if (ZombieMesh == nullptr)
 		{
@@ -75,7 +75,7 @@ namespace
 		return ClosestBoneName;
 	}
 
-	FHitResult BuildZombieDamageHit(const FHitResult& Hit, ABaseZombie* HitZombie, const FVector& TraceStart, const FVector& TraceEnd)
+	FHitResult BuildMountedGunZombieDamageHit(const FHitResult& Hit, ABaseZombie* HitZombie, const FVector& TraceStart, const FVector& TraceEnd)
 	{
 		FHitResult DamageHit = Hit;
 		if (HitZombie == nullptr || DamageHit.BoneName != NAME_None)
@@ -90,7 +90,7 @@ namespace
 		}
 
 		FVector ClosestBoneLocation = FVector::ZeroVector;
-		FName ClosestBoneName = FindClosestZombieBoneToTrace(ZombieMesh, TraceStart, TraceEnd);
+		FName ClosestBoneName = FindClosestMountedGunZombieBoneToTrace(ZombieMesh, TraceStart, TraceEnd);
 		if (ClosestBoneName == NAME_None)
 		{
 			ClosestBoneName = ZombieMesh->FindClosestBone(Hit.ImpactPoint, &ClosestBoneLocation);
@@ -106,7 +106,7 @@ namespace
 		return DamageHit;
 	}
 
-	bool FindZombieTraceHit(UWorld* World, const FVector& TraceStart, const FVector& TraceEnd, const FCollisionQueryParams& QueryParams, FHitResult& OutHit)
+	bool FindMountedGunZombieTraceHit(UWorld* World, const FVector& TraceStart, const FVector& TraceEnd, const FCollisionQueryParams& QueryParams, FHitResult& OutHit)
 	{
 		if (World == nullptr)
 		{
@@ -120,7 +120,7 @@ namespace
 		bool bHasFallbackZombieHit = false;
 		for (const FHitResult& Hit : VisibilityHits)
 		{
-			if (ResolveHitZombie(Hit.GetActor(), Hit.GetComponent()))
+			if (ResolveMountedGunHitZombie(Hit.GetActor(), Hit.GetComponent()))
 			{
 				if (Hit.BoneName != NAME_None)
 				{
@@ -151,7 +151,7 @@ namespace
 				break;
 			}
 
-			if (ResolveHitZombie(Hit.GetActor(), Hit.GetComponent()))
+			if (ResolveMountedGunHitZombie(Hit.GetActor(), Hit.GetComponent()))
 			{
 				if (Hit.BoneName != NAME_None)
 				{
@@ -462,7 +462,7 @@ void AMountedMachineGun::Fire()
 			}
 
 			FHitResult ZombieHitResult;
-			const bool bHitZombie = FindZombieTraceHit(
+			const bool bHitZombie = FindMountedGunZombieTraceHit(
 				GetWorld(),
 				ViewLocation,
 				TraceEnd,
@@ -471,9 +471,9 @@ void AMountedMachineGun::Fire()
 			if (bHitZombie)
 			{
 				HitResult = ZombieHitResult;
-				if (ABaseZombie* HitZombie = ResolveHitZombie(HitResult.GetActor(), HitResult.GetComponent()))
+				if (ABaseZombie* HitZombie = ResolveMountedGunHitZombie(HitResult.GetActor(), HitResult.GetComponent()))
 				{
-					const FHitResult DamageHit = BuildZombieDamageHit(HitResult, HitZombie, ViewLocation, TraceEnd);
+					const FHitResult DamageHit = BuildMountedGunZombieDamageHit(HitResult, HitZombie, ViewLocation, TraceEnd);
 					UFPSProjectGameInstance::SendZombieHitPacket(
 						CurrentUser,
 						HitZombie,

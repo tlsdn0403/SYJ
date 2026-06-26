@@ -692,6 +692,11 @@ void UFPSProjectGameInstance::HandleZombieAttack(const Protocol::S_ZOMBIE_ATTACK
 		return;
 	}
 
+	if (Zombie->IsHidden() || !Zombie->GetActorEnableCollision())
+	{
+		return;
+	}
+
 	AFPSBaseCharacter* TargetPlayer = ResolvePlayerById(pkt.target_player_id());
 	AActor* TargetActor = TargetPlayer;
 	if (TargetPlayer &&

@@ -12,6 +12,7 @@
 class UImage;
 class UTextBlock;
 class UProgressBar;
+class UButton;
 
 UCLASS()
 class FPSPROJECT_API UBasicUI : public UUserWidget
@@ -20,7 +21,15 @@ class FPSPROJECT_API UBasicUI : public UUserWidget
 
 protected:
 	virtual void NativeConstruct() override;
+	//
+	UPROPERTY(meta = (BindWidgetAnim, AllowPrivateAccess), Transient)
+	UWidgetAnimation* Ani_ESC;
 
+	UPROPERTY(meta = (BindWidget))
+	UButton* EndB;		//나가기 버튼
+
+	UPROPERTY(meta = (BindWidget))
+	UButton* ReB;		//계속하기 버튼
 
 public:
 
@@ -42,5 +51,7 @@ public:
 	void GetGunAR4();
 	void SetHealth(float CurrentHP, float MaxHP);
 	void SetAmmoCount(int32 AmmoCount);
-	
+
+
+	int Play_ESC();
 };

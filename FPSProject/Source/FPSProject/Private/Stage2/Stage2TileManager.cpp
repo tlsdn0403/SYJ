@@ -452,6 +452,8 @@ bool AStage2TileManager::TryMoveTileTolocation(FStage2LoadedTile& LoadedTile, co
 		//타일의 위치를 옮길 때 얼마나 위치를 옮겨야 하는지
 		const FTransform DeltaTransform = OldLevelTransform.Inverse() * NewLevelTransform;
 		FLevelUtils::FApplyLevelTransformParams TransformParams(LoadedLevel, DeltaTransform);
+		TransformParams.bSetRelativeTransformDirectly = true;
+
 #if WITH_EDITOR
 		TransformParams.bDoPostEditMove = false;
 #endif
@@ -906,21 +908,10 @@ FTransform AStage2TileManager::GetManagerTileTransform() const
 
 FTransform AStage2TileManager::MakePoolParkingTransform()
 {
-	FVector SanitizedParkingOffset = PoolParkingOffset;
-	if (!FMath::IsNearlyZero(SanitizedParkingOffset.Z))
-	{
-		if (bVerboseLog)
-		{
-			UE_LOG(LogTemp, Warning,
-				TEXT("Stage2TileManager: Ignoring PoolParkingOffset.Z %.2f because large vertical moves can corrupt streamed landscape state."),
-				SanitizedParkingOffset.Z);
-		}
-		SanitizedParkingOffset.Z = 0.0f;
-	}
-
+	
 	const FVector ParkingLocation =
 		GetActorLocation() +
-		SanitizedParkingOffset +
+		PoolParkingOffset +
 		FVector(NextPoolParkingIndex * PoolParkingSpacing, 0.0f, 0.0f);
 
 	++NextPoolParkingIndex;

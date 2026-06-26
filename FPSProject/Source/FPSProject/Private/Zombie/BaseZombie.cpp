@@ -68,6 +68,12 @@ ABaseZombie::ABaseZombie()
 	ZombieMesh->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
 	ZombieMesh->SetCollisionResponseToChannel(ECC_GameTraceChannel1, ECR_Block);
 
+	if (UCapsuleComponent* Capsule = GetCapsuleComponent())
+	{
+		Capsule->SetCollisionResponseToChannel(ECC_GameTraceChannel1, ECR_Block);
+		Capsule->SetCollisionResponseToChannel(ECC_Vehicle, ECR_Ignore);
+	}
+
 	static ConstructorHelpers::FObjectFinder<UNiagaraSystem> DefaultHitEffect(
 		TEXT("/Script/Niagara.NiagaraSystem'/Game/Niagara/NS_BloodEffect.NS_BloodEffect'"));
 	if (DefaultHitEffect.Succeeded())
@@ -112,6 +118,12 @@ void ABaseZombie::BeginPlay()
 			ZombieMesh->SetAnimationMode(EAnimationMode::AnimationBlueprint);
 			ZombieMesh->SetAnimInstanceClass(ZombieAnimClass);
 		}
+	}
+
+	if (UCapsuleComponent* Capsule = GetCapsuleComponent())
+	{
+		Capsule->SetCollisionResponseToChannel(ECC_GameTraceChannel1, ECR_Block);
+		Capsule->SetCollisionResponseToChannel(ECC_Vehicle, ECR_Ignore);
 	}
 
 	if (HealthComponent)

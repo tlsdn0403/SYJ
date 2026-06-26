@@ -508,16 +508,22 @@ namespace
 	constexpr float ZOMBIE_SERVER_TICK_SECONDS = 0.1f;
 	constexpr float ZOMBIE_MOVE_SPEED = 180.0f;
 	constexpr float ZOMBIE_AGGRO_RANGE = 5000.0f;
+	constexpr float ZOMBIE_AI_ACTIVE_RANGE = 5200.0f;
 	constexpr float ZOMBIE_ATTACK_RANGE = 140.0f;
 	constexpr float ZOMBIE_ATTACK_COOLDOWN_SECONDS = 1.0f;
 	constexpr float ZOMBIE_DESPAWN_DELAY_SECONDS = 3.0f;
 	constexpr float ZOMBIE_SEPARATION_RADIUS = 180.0f;
+	constexpr float ZOMBIE_SEPARATION_GRID_CELL_SIZE = ZOMBIE_SEPARATION_RADIUS;
 	constexpr float ZOMBIE_SEPARATION_WEIGHT = 1.35f;
 	constexpr float ZOMBIE_PATH_RECALC_SECONDS = 0.75f;
 	constexpr float ZOMBIE_PATH_TARGET_REPATH_DISTANCE = 300.0f;
 	constexpr float ZOMBIE_WAYPOINT_REACHED_DISTANCE = 80.0f;
 	constexpr float ZOMBIE_NAV_GRID_CELL_SIZE = 300.0f;
 	constexpr int32 ZOMBIE_NAV_MAX_SEARCH_NODES = 512;
+	constexpr int32 STAGE2_ZOMBIES_TO_SPAWN_PER_TICK = 40;
+	constexpr float ZOMBIE_MOVE_BROADCAST_INTERVAL = 0.25f;
+	constexpr float ZOMBIE_MOVE_BROADCAST_DISTANCE = 80.0f;
+	constexpr float ZOMBIE_MOVE_BROADCAST_YAW_DELTA = 20.0f;
 	constexpr int32 STAGE2_ZOMBIE_TILE_WORLD = 0;
 	constexpr int32 STAGE2_ZOMBIE_TILE_STRAIGHT = 1;
 	constexpr int32 STAGE2_ZOMBIE_TILE_LEFT = 2;
@@ -566,6 +572,15 @@ namespace
 		{
 			static_cast<int32>(floorf(x / ZOMBIE_NAV_GRID_CELL_SIZE)),
 			static_cast<int32>(floorf(y / ZOMBIE_NAV_GRID_CELL_SIZE))
+		};
+	}
+
+	ZombieNavCell WorldToZombieSeparationCell(float x, float y)
+	{
+		return
+		{
+			static_cast<int32>(floorf(x / ZOMBIE_SEPARATION_GRID_CELL_SIZE)),
+			static_cast<int32>(floorf(y / ZOMBIE_SEPARATION_GRID_CELL_SIZE))
 		};
 	}
 
@@ -665,11 +680,11 @@ namespace
 
 	constexpr ZombieSpawnGroupInfo STAGE2_ZOMBIE_GROUPS[] =
 	{
-		{ -1810.0f, 16720.0f, 240.0f, 8, 5, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_START, STAGE2_START_TILE_OCCURRENCE_COUNT, 0x6A09E667u, 0xBB67AE85u },
-		{ -2010.0f, 9730.0f, 300.0f, 8, 5, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_START, STAGE2_START_TILE_OCCURRENCE_COUNT, 0x3C6EF372u, 0xA54FF53Au },
-		{ -4840.0f, 10210.0f, 310.0f, 8, 5, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_START, STAGE2_START_TILE_OCCURRENCE_COUNT, 0x510E527Fu, 0x9B05688Cu },
-		{ -1770.0f, 1060.0f, 170.0f, 8, 5, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_START, STAGE2_START_TILE_OCCURRENCE_COUNT, 0x1F83D9ABu, 0x5BE0CD19u },
-		{ -4570.0f, -19510.0f, 240.0f, 8, 5, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_START, STAGE2_START_TILE_OCCURRENCE_COUNT, 0x8C3D37C9u, 0x243F6A88u },
+		{ -1810.0f, 16720.0f, 240.0f, 4, 5, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_START, STAGE2_START_TILE_OCCURRENCE_COUNT, 0x6A09E667u, 0xBB67AE85u },
+		{ -2010.0f, 9730.0f, 300.0f, 4, 5, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_START, STAGE2_START_TILE_OCCURRENCE_COUNT, 0x3C6EF372u, 0xA54FF53Au },
+		{ -4840.0f, 10210.0f, 310.0f, 4, 5, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_START, STAGE2_START_TILE_OCCURRENCE_COUNT, 0x510E527Fu, 0x9B05688Cu },
+		{ -1770.0f, 1060.0f, 170.0f, 4, 5, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_START, STAGE2_START_TILE_OCCURRENCE_COUNT, 0x1F83D9ABu, 0x5BE0CD19u },
+		{ -4570.0f, -19510.0f, 240.0f, 4, 5, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_START, STAGE2_START_TILE_OCCURRENCE_COUNT, 0x8C3D37C9u, 0x243F6A88u },
 		{ -1810.0f, 16720.0f, 240.0f, 8, 5, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_STRAIGHT, STAGE2_STRAIGHT_TILE_OCCURRENCE_COUNT, 0xA24BAED5u, 0x9FB21C63u },
 		{ -2010.0f, 9730.0f, 300.0f, 8, 5, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_STRAIGHT, STAGE2_STRAIGHT_TILE_OCCURRENCE_COUNT, 0xC13FA9A9u, 0x5D588B65u },
 		{ -4840.0f, 10210.0f, 310.0f, 8, 5, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_STRAIGHT, STAGE2_STRAIGHT_TILE_OCCURRENCE_COUNT, 0x91E10DA5u, 0xB7E15162u },
@@ -768,28 +783,8 @@ void Room::SpawnStage2Zombies()
 		return;
 
 	_bStage2ZombiesSpawned = true;
-
-	uint64 zombieId = ZOMBIE_OBJECT_ID_START;
-	auto spawnZombie = [this, &zombieId](
-		float x,
-		float y,
-		float z,
-		float yaw,
-		Protocol::ZombieType zombieType,
-		int32 tileTypeCode,
-		int32 tileOccurrenceIndex)
-	{
-		MonsterRef zombie = ObjectUtils::CreateMonster(zombieId++);
-		zombie->posInfo->set_x(x);
-		zombie->posInfo->set_y(y);
-		zombie->posInfo->set_z(z);
-		zombie->posInfo->set_yaw(yaw);
-		zombie->posInfo->set_state(Protocol::MOVE_STATE_IDLE);
-		zombie->objectInfo->mutable_pos_info()->CopyFrom(*zombie->posInfo);
-		zombie->objectInfo->set_weapon_type(EncodeStage2ZombieSpawnType(zombieType, tileTypeCode, tileOccurrenceIndex));
-
-		EnterRoom(zombie, false);
-	};
+	_nextStage2ZombieId = ZOMBIE_OBJECT_ID_START;
+	_pendingStage2ZombieSpawns.clear();
 
 	for (const ZombieSpawnGroupInfo& groupInfo : STAGE2_ZOMBIE_GROUPS)
 	{
@@ -803,7 +798,7 @@ void Room::SpawnStage2Zombies()
 				for (int32 column = 0; column < groupInfo.columns; ++column)
 				{
 					const int32 spawnIndex = occurrenceIndex * groupInfo.rows * groupInfo.columns + row * groupInfo.columns + column;
-					spawnZombie(
+					QueueStage2ZombieSpawn(
 						startX + static_cast<float>(column) * groupInfo.spacingX,
 						startY + static_cast<float>(row) * groupInfo.spacingY,
 						groupInfo.centerZ,
@@ -814,6 +809,49 @@ void Room::SpawnStage2Zombies()
 				}
 			}
 		}
+	}
+
+	reverse(_pendingStage2ZombieSpawns.begin(), _pendingStage2ZombieSpawns.end());
+	ProcessPendingStage2ZombieSpawns();
+	cout << "[Stage2Zombie] queued=" << _pendingStage2ZombieSpawns.size() << endl;
+}
+
+void Room::QueueStage2ZombieSpawn(
+	float x,
+	float y,
+	float z,
+	float yaw,
+	Protocol::ZombieType zombieType,
+	int32 tileTypeCode,
+	int32 tileOccurrenceIndex)
+{
+	PendingStage2ZombieSpawn& pendingSpawn = _pendingStage2ZombieSpawns.emplace_back();
+	pendingSpawn.zombieId = _nextStage2ZombieId++;
+	pendingSpawn.x = x;
+	pendingSpawn.y = y;
+	pendingSpawn.z = z;
+	pendingSpawn.yaw = yaw;
+	pendingSpawn.encodedSpawnType = EncodeStage2ZombieSpawnType(zombieType, tileTypeCode, tileOccurrenceIndex);
+}
+
+void Room::ProcessPendingStage2ZombieSpawns()
+{
+	const int32 spawnCount = std::min<int32>(STAGE2_ZOMBIES_TO_SPAWN_PER_TICK, static_cast<int32>(_pendingStage2ZombieSpawns.size()));
+	for (int32 index = 0; index < spawnCount; ++index)
+	{
+		const PendingStage2ZombieSpawn pendingSpawn = _pendingStage2ZombieSpawns.back();
+		_pendingStage2ZombieSpawns.pop_back();
+
+		MonsterRef zombie = ObjectUtils::CreateMonster(pendingSpawn.zombieId);
+		zombie->posInfo->set_x(pendingSpawn.x);
+		zombie->posInfo->set_y(pendingSpawn.y);
+		zombie->posInfo->set_z(pendingSpawn.z);
+		zombie->posInfo->set_yaw(pendingSpawn.yaw);
+		zombie->posInfo->set_state(Protocol::MOVE_STATE_IDLE);
+		zombie->objectInfo->mutable_pos_info()->CopyFrom(*zombie->posInfo);
+		zombie->objectInfo->set_weapon_type(pendingSpawn.encodedSpawnType);
+
+		EnterRoom(zombie, false);
 	}
 }
 
@@ -856,9 +894,48 @@ PlayerRef Room::FindNearestPlayer(const Protocol::PosInfo& origin, float maxRang
 	return nearestPlayer;
 }
 
-void Room::BroadcastZombieMove(const MonsterRef& monster)
+bool Room::ShouldBroadcastZombieMove(const MonsterRef& monster, bool force)
 {
 	if (monster == nullptr)
+		return false;
+
+	if (force)
+		return true;
+
+	const uint64 zombieId = monster->objectInfo->object_id();
+	ZombieMoveBroadcastState& state = _zombieMoveBroadcastStates[zombieId];
+	state.elapsedSeconds += ZOMBIE_SERVER_TICK_SECONDS;
+
+	const float currentX = monster->posInfo->x();
+	const float currentY = monster->posInfo->y();
+	const float currentZ = monster->posInfo->z();
+	const float currentYaw = monster->posInfo->yaw();
+	if (!state.hasLastMove)
+		return true;
+
+	const float dx = currentX - state.lastX;
+	const float dy = currentY - state.lastY;
+	const float dz = currentZ - state.lastZ;
+	const float distSq = dx * dx + dy * dy + dz * dz;
+	const float yawDelta = fabsf(currentYaw - state.lastYaw);
+	if (distSq >= ZOMBIE_MOVE_BROADCAST_DISTANCE * ZOMBIE_MOVE_BROADCAST_DISTANCE)
+		return true;
+
+	if (yawDelta >= ZOMBIE_MOVE_BROADCAST_YAW_DELTA &&
+		state.elapsedSeconds >= ZOMBIE_SERVER_TICK_SECONDS)
+	{
+		return true;
+	}
+
+	return state.elapsedSeconds >= ZOMBIE_MOVE_BROADCAST_INTERVAL;
+}
+
+void Room::BroadcastZombieMove(const MonsterRef& monster, bool force)
+{
+	if (monster == nullptr)
+		return;
+
+	if (!ShouldBroadcastZombieMove(monster, force))
 		return;
 
 	Protocol::S_MOVE movePkt;
@@ -866,6 +943,14 @@ void Room::BroadcastZombieMove(const MonsterRef& monster)
 
 	SendBufferRef sendBuffer = ServerPacketHandler::MakeSendBuffer(movePkt);
 	Broadcast(sendBuffer);
+
+	ZombieMoveBroadcastState& state = _zombieMoveBroadcastStates[monster->objectInfo->object_id()];
+	state.lastX = monster->posInfo->x();
+	state.lastY = monster->posInfo->y();
+	state.lastZ = monster->posInfo->z();
+	state.lastYaw = monster->posInfo->yaw();
+	state.elapsedSeconds = 0.0f;
+	state.hasLastMove = true;
 }
 
 vector<Room::ZombiePathPoint> Room::FindZombiePath(const Protocol::PosInfo& start, const Protocol::PosInfo& goal) const
@@ -1006,6 +1091,22 @@ vector<Room::ZombiePathPoint> Room::FindZombiePath(const Protocol::PosInfo& star
 
 void Room::UpdateZombies()
 {
+	unordered_map<int64, vector<MonsterRef>> separationGrid;
+	separationGrid.reserve(_objects.size());
+
+	for (auto& item : _objects)
+	{
+		MonsterRef monster = dynamic_pointer_cast<Monster>(item.second);
+		if (monster == nullptr || monster->IsDead())
+			continue;
+
+		if (monster->objectInfo->weapon_type() >= 10)
+			continue;
+
+		const ZombieNavCell cell = WorldToZombieSeparationCell(monster->posInfo->x(), monster->posInfo->y());
+		separationGrid[MakeZombieNavCellKey(cell.x, cell.y)].push_back(monster);
+	}
+
 	for (auto& item : _objects)
 	{
 		MonsterRef monster = dynamic_pointer_cast<Monster>(item.second);
@@ -1027,7 +1128,7 @@ void Room::UpdateZombies()
 
 		monster->TickCooldown(ZOMBIE_SERVER_TICK_SECONDS);
 
-		PlayerRef targetPlayer = FindNearestPlayer(*monster->posInfo, ZOMBIE_AGGRO_RANGE);
+		PlayerRef targetPlayer = FindNearestPlayer(*monster->posInfo, ZOMBIE_AI_ACTIVE_RANGE);
 		if (targetPlayer == nullptr)
 		{
 			_zombiePaths.erase(item.first);
@@ -1035,7 +1136,7 @@ void Room::UpdateZombies()
 			{
 				monster->posInfo->set_state(Protocol::MOVE_STATE_IDLE);
 				monster->objectInfo->mutable_pos_info()->CopyFrom(*monster->posInfo);
-				BroadcastZombieMove(monster);
+				BroadcastZombieMove(monster, true);
 			}
 			continue;
 		}
@@ -1049,33 +1150,56 @@ void Room::UpdateZombies()
 		float separationY = 0.0f;
 		const float separationRadiusSq = ZOMBIE_SEPARATION_RADIUS * ZOMBIE_SEPARATION_RADIUS;
 
-		for (const auto& otherItem : _objects)
+		const ZombieNavCell separationCell = WorldToZombieSeparationCell(monster->posInfo->x(), monster->posInfo->y());
+		for (int32 cellY = separationCell.y - 1; cellY <= separationCell.y + 1; ++cellY)
 		{
-			if (otherItem.first == item.first)
-				continue;
-
-			MonsterRef otherMonster = dynamic_pointer_cast<Monster>(otherItem.second);
-			if (otherMonster == nullptr || otherMonster->IsDead())
-				continue;
-
-			const float awayX = monster->posInfo->x() - otherMonster->posInfo->x();
-			const float awayY = monster->posInfo->y() - otherMonster->posInfo->y();
-			const float otherDistSq = awayX * awayX + awayY * awayY;
-			if (otherDistSq >= separationRadiusSq)
-				continue;
-
-			if (otherDistSq <= 0.001f)
+			for (int32 cellX = separationCell.x - 1; cellX <= separationCell.x + 1; ++cellX)
 			{
-				const float fallbackAngle = static_cast<float>((item.first * 37 + otherItem.first * 17) % 360) * (3.1415926535f / 180.0f);
-				separationX += cosf(fallbackAngle);
-				separationY += sinf(fallbackAngle);
-				continue;
+				auto gridIt = separationGrid.find(MakeZombieNavCellKey(cellX, cellY));
+				if (gridIt == separationGrid.end())
+					continue;
+
+				for (const MonsterRef& otherMonster : gridIt->second)
+				{
+					if (otherMonster == nullptr ||
+						otherMonster->objectInfo->object_id() == monster->objectInfo->object_id())
+					{
+						continue;
+					}
+
+					const float awayX = monster->posInfo->x() - otherMonster->posInfo->x();
+					const float awayY = monster->posInfo->y() - otherMonster->posInfo->y();
+					const float otherDistSq = awayX * awayX + awayY * awayY;
+					if (otherDistSq >= separationRadiusSq)
+						continue;
+
+					if (otherDistSq <= 0.001f)
+					{
+						const float fallbackAngle = static_cast<float>((item.first * 37 + otherMonster->objectInfo->object_id() * 17) % 360) * (3.1415926535f / 180.0f);
+						separationX += cosf(fallbackAngle);
+						separationY += sinf(fallbackAngle);
+						continue;
+					}
+
+					const float otherDist = sqrtf(otherDistSq);
+					const float strength = (ZOMBIE_SEPARATION_RADIUS - otherDist) / ZOMBIE_SEPARATION_RADIUS;
+					separationX += (awayX / otherDist) * strength;
+					separationY += (awayY / otherDist) * strength;
+				}
+			}
+		}
+
+		if (distSq > ZOMBIE_AGGRO_RANGE * ZOMBIE_AGGRO_RANGE)
+		{
+			_zombiePaths.erase(item.first);
+			if (monster->posInfo->state() != Protocol::MOVE_STATE_IDLE)
+			{
+				monster->posInfo->set_state(Protocol::MOVE_STATE_IDLE);
+				monster->objectInfo->mutable_pos_info()->CopyFrom(*monster->posInfo);
+				BroadcastZombieMove(monster, true);
 			}
 
-			const float otherDist = sqrtf(otherDistSq);
-			const float strength = (ZOMBIE_SEPARATION_RADIUS - otherDist) / ZOMBIE_SEPARATION_RADIUS;
-			separationX += (awayX / otherDist) * strength;
-			separationY += (awayY / otherDist) * strength;
+			continue;
 		}
 
 		if (distSq <= attackRangeSq)
@@ -1221,7 +1345,7 @@ void Room::HandleMove(PlayerRef player, Protocol::C_MOVE pkt)
 		monster->posInfo->set_state(Protocol::MOVE_STATE_IDLE);
 		monster->objectInfo->mutable_pos_info()->CopyFrom(*monster->posInfo);
 		monster->objectInfo->set_weapon_type(static_cast<int32>(DecodeStage2ZombieType(encodedSpawnType)));
-		BroadcastZombieMove(monster);
+		BroadcastZombieMove(monster, true);
 		return;
 	}
 
@@ -1748,6 +1872,7 @@ void Room::HandleStageTransitionRequest(PlayerRef player, Protocol::C_STAGE_TRAN
 
 void Room::UpdateTick()
 {
+	ProcessPendingStage2ZombieSpawns();
 	UpdateZombies();
 	BroadcastStageTimer();
 
@@ -1827,7 +1952,10 @@ bool Room::RemoveObject(uint64 objectId)
 	}
 
 	if (objectId >= ZOMBIE_OBJECT_ID_START)
+	{
 		_zombiePaths.erase(objectId);
+		_zombieMoveBroadcastStates.erase(objectId);
+	}
 
 	_objects.erase(objectId);
 

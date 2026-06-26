@@ -108,6 +108,15 @@ APoliceZombie::APoliceZombie()
 		GetMesh()->SetSkeletalMesh(PoliceMesh.Object);
 		GetMesh()->SetRelativeLocation(FVector(-2.0f, 0.0f, -65.0f));
 		GetMesh()->SetRelativeRotation(FRotator(0.0f, -90.0f, 0.0f));
+		GetMesh()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+		GetMesh()->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
+		GetMesh()->SetCollisionResponseToChannel(ECC_GameTraceChannel1, ECR_Block);
+	}
+
+	if (UCapsuleComponent* Capsule = GetCapsuleComponent())
+	{
+		Capsule->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
+		Capsule->SetCollisionResponseToChannel(ECC_GameTraceChannel1, ECR_Block);
 	}
 
 	IdleAnimation = PoliceIdle.Object;

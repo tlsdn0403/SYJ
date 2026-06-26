@@ -54,6 +54,29 @@ bool IsZombieHeadHit(FName BoneName)
 		BoneString.Contains(TEXT("neck"), ESearchCase::IgnoreCase) ||
 		BoneString.Contains(TEXT("eye"), ESearchCase::IgnoreCase);
 }
+
+ABaseZombie* ResolveHitZombie(AActor* OtherActor, UPrimitiveComponent* OtherComponent)
+{
+	if (ABaseZombie* Zombie = Cast<ABaseZombie>(OtherActor))
+	{
+		return Zombie;
+	}
+
+	if (OtherComponent)
+	{
+		if (ABaseZombie* Zombie = Cast<ABaseZombie>(OtherComponent->GetOwner()))
+		{
+			return Zombie;
+		}
+
+		if (ABaseZombie* Zombie = OtherComponent->GetTypedOuter<ABaseZombie>())
+		{
+			return Zombie;
+		}
+	}
+
+	return nullptr;
+}
 }
 
 // Sets default values
@@ -78,7 +101,10 @@ AFPSProjectile::AFPSProjectile()
 
 		// 충돌 처리 채널 등록
 		CollisionComponent->BodyInstance.SetCollisionProfileName(TEXT("Projectile")); // 콜리전 프로파일 설정
+		CollisionComponent->SetCollisionResponseToChannel(ECC_Pawn, ECR_Block);
+		CollisionComponent->SetCollisionResponseToChannel(ECC_GameTraceChannel1, ECR_Block);
 		CollisionComponent->SetCollisionResponseToChannel(ECC_Vehicle, ECR_Ignore);
+		CollisionComponent->SetNotifyRigidBodyCollision(true);
 
 		// 컴포넌트가 다른 물체에 부딪히면 호출되는 이벤트
 		CollisionComponent->OnComponentHit.AddDynamic(this, &AFPSProjectile::OnHit);
@@ -184,7 +210,7 @@ void AFPSProjectile::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor
 			return;
 		}
 
-		ABaseZombie* HitZombie = Cast<ABaseZombie>(OtherActor);
+		ABaseZombie* HitZombie = ResolveHitZombie(OtherActor, OtherComponent);
 		const FHitResult DamageHit = BuildZombieDamageHit(Hit, HitZombie);
 		if (HitZombie && HitZombie->IsAlive() && IsZombieHeadHit(DamageHit.BoneName) && ZombieHeadHitSound)
 		{

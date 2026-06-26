@@ -41,7 +41,17 @@ public:
 private:
 	void UpdateZombies();
 	PlayerRef FindNearestPlayer(const Protocol::PosInfo& origin, float maxRange) const;
-	void BroadcastZombieMove(const MonsterRef& monster);
+	void BroadcastZombieMove(const MonsterRef& monster, bool force = false);
+	bool ShouldBroadcastZombieMove(const MonsterRef& monster, bool force);
+	void QueueStage2ZombieSpawn(
+		float x,
+		float y,
+		float z,
+		float yaw,
+		Protocol::ZombieType zombieType,
+		int32 tileTypeCode,
+		int32 tileOccurrenceIndex);
+	void ProcessPendingStage2ZombieSpawns();
 	struct ZombiePathPoint
 	{
 		float x = 0.0f;
@@ -58,6 +68,26 @@ private:
 		float lastTargetX = 0.0f;
 		float lastTargetY = 0.0f;
 		float lastTargetZ = 0.0f;
+	};
+
+	struct PendingStage2ZombieSpawn
+	{
+		uint64 zombieId = 0;
+		float x = 0.0f;
+		float y = 0.0f;
+		float z = 0.0f;
+		float yaw = 0.0f;
+		int32 encodedSpawnType = 0;
+	};
+
+	struct ZombieMoveBroadcastState
+	{
+		float lastX = 0.0f;
+		float lastY = 0.0f;
+		float lastZ = 0.0f;
+		float lastYaw = 0.0f;
+		float elapsedSeconds = 0.0f;
+		bool hasLastMove = false;
 	};
 
 	vector<ZombiePathPoint> FindZombiePath(const Protocol::PosInfo& start, const Protocol::PosInfo& goal) const;
@@ -132,10 +162,13 @@ private:
 	vector<weak_ptr<GameSession>> _pendingReadySessions;
 	vector<PendingZombieDespawn> _pendingZombieDespawns;
 	vector<PendingLootItemRespawn> _pendingLootItemRespawns;
+	vector<PendingStage2ZombieSpawn> _pendingStage2ZombieSpawns;
 	vector<Stage2WeaponState> _stage2Weapons;
 	unordered_map<uint64, ZombiePathState> _zombiePaths;
+	unordered_map<uint64, ZombieMoveBroadcastState> _zombieMoveBroadcastStates;
 	unordered_set<uint64> _inactiveLootItemIds;
 	unordered_set<uint64> _stageTransitionReadyPlayerIds;
+	uint64 _nextStage2ZombieId = 0;
 	bool _bTruckLoadingPhaseActive = false;
 	bool _bStageTransitionStarted = false;
 	bool _bStage2ZombiesSpawned = false;

@@ -16,6 +16,7 @@
 #include "Animation/Skeleton.h"
 #include "Math/UnrealMathUtility.h"
 #include "UObject/ConstructorHelpers.h"
+#include "Zombie/BaseZombie.h"
 
 bool bDebug = false;
 
@@ -96,6 +97,73 @@ namespace
 			TargetWeaponMesh->SetRelativeScale3D(CharacterTwoWeaponMeshRelativeScale);
 			return;
 		}
+	}
+
+	ABaseZombie* ResolveHitZombie(AActor* HitActor, UPrimitiveComponent* HitComponent)
+	{
+		if (ABaseZombie* Zombie = Cast<ABaseZombie>(HitActor))
+		{
+			return Zombie;
+		}
+
+		if (HitComponent)
+		{
+			if (ABaseZombie* Zombie = Cast<ABaseZombie>(HitComponent->GetOwner()))
+			{
+				return Zombie;
+			}
+
+			if (ABaseZombie* Zombie = HitComponent->GetTypedOuter<ABaseZombie>())
+			{
+				return Zombie;
+			}
+		}
+
+		return nullptr;
+	}
+
+	bool FindZombieTraceHit(UWorld* World, const FVector& TraceStart, const FVector& TraceEnd, const FCollisionQueryParams& QueryParams, FHitResult& OutHit)
+	{
+		if (World == nullptr)
+		{
+			return false;
+		}
+
+		TArray<FHitResult> VisibilityHits;
+		World->LineTraceMultiByChannel(VisibilityHits, TraceStart, TraceEnd, ECC_Visibility, QueryParams);
+		float BlockingDistance = TNumericLimits<float>::Max();
+		for (const FHitResult& Hit : VisibilityHits)
+		{
+			if (ResolveHitZombie(Hit.GetActor(), Hit.GetComponent()))
+			{
+				OutHit = Hit;
+				return true;
+			}
+
+			if (Hit.bBlockingHit)
+			{
+				BlockingDistance = Hit.Distance;
+				break;
+			}
+		}
+
+		TArray<FHitResult> ZombieChannelHits;
+		World->LineTraceMultiByChannel(ZombieChannelHits, TraceStart, TraceEnd, ECC_GameTraceChannel1, QueryParams);
+		for (const FHitResult& Hit : ZombieChannelHits)
+		{
+			if (Hit.Distance > BlockingDistance + 1.0f)
+			{
+				break;
+			}
+
+			if (ResolveHitZombie(Hit.GetActor(), Hit.GetComponent()))
+			{
+				OutHit = Hit;
+				return true;
+			}
+		}
+
+		return false;
 	}
 }
 
@@ -420,9 +488,29 @@ void AWeaponBase::Fire()
 			QueryParams.AddIgnoredActor(this);
 			QueryParams.AddIgnoredActor(Character);
 
-			const bool bHit = World->LineTraceSingleByChannel(HitResult, TraceStart, TraceEnd, ECC_Visibility, QueryParams);
+			bool bHit = World->LineTraceSingleByChannel(HitResult, TraceStart, TraceEnd, ECC_Visibility, QueryParams);
+			FHitResult ZombieHitResult;
+			const bool bHitZombie = FindZombieTraceHit(World, TraceStart, TraceEnd, QueryParams, ZombieHitResult);
+			if (bHitZombie)
+			{
+				HitResult = ZombieHitResult;
+				bHit = true;
+			}
 			FVector TargetLocation = bHit ? HitResult.ImpactPoint : TraceEnd;
 			AActor* AimHitActor = bHit ? HitResult.GetActor() : nullptr;
+			if (bHitZombie)
+			{
+				if (ABaseZombie* HitZombie = ResolveHitZombie(AimHitActor, HitResult.GetComponent()))
+				{
+					UFPSProjectGameInstance::SendZombieHitPacket(
+						Character,
+						HitZombie,
+						20.0f,
+						HitResult.ImpactPoint,
+						HitResult.BoneName,
+						HitResult.ImpactNormal);
+				}
+			}
 
 			FHitResult MuzzleHitResult;
 			FCollisionQueryParams MuzzleQueryParams;

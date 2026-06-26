@@ -112,8 +112,62 @@ std::string Monster::GetParentBoneForDamage(const std::string& hitBoneName) cons
 		ch = static_cast<char>(tolower(static_cast<unsigned char>(ch)));
 	}
 
-	if (boneName.find("neck") != std::string::npos || boneName.find("head") != std::string::npos)
+	if (boneName.find("neck") != std::string::npos ||
+		boneName.find("head") != std::string::npos ||
+		boneName.find("eye") != std::string::npos)
+	{
 		return "head";
+	}
+
+	if (boneName.find("left") != std::string::npos)
+	{
+		if (boneName.find("forearm") != std::string::npos ||
+			boneName.find("hand") != std::string::npos ||
+			boneName.find("finger") != std::string::npos ||
+			boneName.find("thumb") != std::string::npos ||
+			boneName.find("index") != std::string::npos ||
+			boneName.find("middle") != std::string::npos ||
+			boneName.find("pinky") != std::string::npos ||
+			boneName.find("ring") != std::string::npos)
+		{
+			return "lowerarm_l";
+		}
+		if (boneName.find("arm") != std::string::npos || boneName.find("shoulder") != std::string::npos)
+			return "upperarm_l";
+		if (boneName.find("upleg") != std::string::npos)
+			return "thigh_l";
+		if (boneName.find("leg") != std::string::npos ||
+			boneName.find("foot") != std::string::npos ||
+			boneName.find("toe") != std::string::npos)
+		{
+			return "calf_l";
+		}
+	}
+
+	if (boneName.find("right") != std::string::npos)
+	{
+		if (boneName.find("forearm") != std::string::npos ||
+			boneName.find("hand") != std::string::npos ||
+			boneName.find("finger") != std::string::npos ||
+			boneName.find("thumb") != std::string::npos ||
+			boneName.find("index") != std::string::npos ||
+			boneName.find("middle") != std::string::npos ||
+			boneName.find("pinky") != std::string::npos ||
+			boneName.find("ring") != std::string::npos)
+		{
+			return "lowerarm_r";
+		}
+		if (boneName.find("arm") != std::string::npos || boneName.find("shoulder") != std::string::npos)
+			return "upperarm_r";
+		if (boneName.find("upleg") != std::string::npos)
+			return "thigh_r";
+		if (boneName.find("leg") != std::string::npos ||
+			boneName.find("foot") != std::string::npos ||
+			boneName.find("toe") != std::string::npos)
+		{
+			return "calf_r";
+		}
+	}
 
 	if (boneName.find("_l") != std::string::npos)
 	{
@@ -159,8 +213,12 @@ std::string Monster::GetParentBoneForDamage(const std::string& hitBoneName) cons
 			return "thigh_r";
 	}
 
-	if (boneName.find("spine") != std::string::npos || boneName.find("pelvis") != std::string::npos)
+	if (boneName.find("spine") != std::string::npos ||
+		boneName.find("pelvis") != std::string::npos ||
+		boneName.find("hips") != std::string::npos)
+	{
 		return "spine_01";
+	}
 
 	return boneName;
 }

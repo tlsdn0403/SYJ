@@ -974,6 +974,13 @@ void UFPSProjectGameInstance::HandleTruckMove(const Protocol::S_TRUCK_MOVE& pkt)
 		Truck->SetTruckFuel(pkt.fuel());
 	}
 	Truck->ApplyNetworkTransform(TargetLocation, TargetRotation, pkt.is_correction());
+	if (pkt.has_turret_aim())
+	{
+		if (AMountedMachineGun* MountedWeapon = Truck->GetMountedWeapon())
+		{
+			MountedWeapon->ApplyNetworkAim(FRotator(pkt.turret_pitch(), pkt.turret_yaw(), 0.0f));
+		}
+	}
 }
 
 void UFPSProjectGameInstance::HandleLoadTruckItem(const Protocol::S_LOAD_TRUCK_ITEM& pkt)

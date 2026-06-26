@@ -328,7 +328,7 @@ void AFPSBaseCharacter::Tick(float DeltaTime)
 
 		RecoilRecoveryRemaining -= RecoveryStep;
 	}
-	if (bIsUsingMountedWeapon && CurrentMountedWeapon)
+	if (bIsUsingMountedWeapon && CurrentMountedWeapon && IsLocallyControlled())
 	{
 		CurrentMountedWeapon->UpdateAim(GetControlRotation());
 

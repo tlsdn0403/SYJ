@@ -4450,6 +4450,9 @@ class C_TRUCK_MOVE final :
   enum : int {
     kInfoFieldNumber = 1,
     kFuelFieldNumber = 3,
+    kTurretYawFieldNumber = 4,
+    kTurretPitchFieldNumber = 5,
+    kHasTurretAimFieldNumber = 6,
   };
   // .Protocol.PosInfo info = 1;
   bool has_info() const;
@@ -4478,6 +4481,33 @@ class C_TRUCK_MOVE final :
   void _internal_set_fuel(float value);
   public:
 
+  // float turret_yaw = 4;
+  void clear_turret_yaw();
+  float turret_yaw() const;
+  void set_turret_yaw(float value);
+  private:
+  float _internal_turret_yaw() const;
+  void _internal_set_turret_yaw(float value);
+  public:
+
+  // float turret_pitch = 5;
+  void clear_turret_pitch();
+  float turret_pitch() const;
+  void set_turret_pitch(float value);
+  private:
+  float _internal_turret_pitch() const;
+  void _internal_set_turret_pitch(float value);
+  public:
+
+  // bool has_turret_aim = 6;
+  void clear_has_turret_aim();
+  bool has_turret_aim() const;
+  void set_has_turret_aim(bool value);
+  private:
+  bool _internal_has_turret_aim() const;
+  void _internal_set_has_turret_aim(bool value);
+  public:
+
   // @@protoc_insertion_point(class_scope:Protocol.C_TRUCK_MOVE)
  private:
   class _Internal;
@@ -4488,6 +4518,9 @@ class C_TRUCK_MOVE final :
   struct Impl_ {
     ::Protocol::PosInfo* info_;
     float fuel_;
+    float turret_yaw_;
+    float turret_pitch_;
+    bool has_turret_aim_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   };
   union { Impl_ _impl_; };
@@ -4617,8 +4650,11 @@ class S_TRUCK_MOVE final :
 
   enum : int {
     kInfoFieldNumber = 1,
-    kIsCorrectionFieldNumber = 2,
     kFuelFieldNumber = 3,
+    kTurretYawFieldNumber = 4,
+    kIsCorrectionFieldNumber = 2,
+    kHasTurretAimFieldNumber = 6,
+    kTurretPitchFieldNumber = 5,
   };
   // .Protocol.PosInfo info = 1;
   bool has_info() const;
@@ -4638,6 +4674,24 @@ class S_TRUCK_MOVE final :
       ::Protocol::PosInfo* info);
   ::Protocol::PosInfo* unsafe_arena_release_info();
 
+  // float fuel = 3;
+  void clear_fuel();
+  float fuel() const;
+  void set_fuel(float value);
+  private:
+  float _internal_fuel() const;
+  void _internal_set_fuel(float value);
+  public:
+
+  // float turret_yaw = 4;
+  void clear_turret_yaw();
+  float turret_yaw() const;
+  void set_turret_yaw(float value);
+  private:
+  float _internal_turret_yaw() const;
+  void _internal_set_turret_yaw(float value);
+  public:
+
   // bool is_correction = 2;
   void clear_is_correction();
   bool is_correction() const;
@@ -4647,13 +4701,22 @@ class S_TRUCK_MOVE final :
   void _internal_set_is_correction(bool value);
   public:
 
-  // float fuel = 3;
-  void clear_fuel();
-  float fuel() const;
-  void set_fuel(float value);
+  // bool has_turret_aim = 6;
+  void clear_has_turret_aim();
+  bool has_turret_aim() const;
+  void set_has_turret_aim(bool value);
   private:
-  float _internal_fuel() const;
-  void _internal_set_fuel(float value);
+  bool _internal_has_turret_aim() const;
+  void _internal_set_has_turret_aim(bool value);
+  public:
+
+  // float turret_pitch = 5;
+  void clear_turret_pitch();
+  float turret_pitch() const;
+  void set_turret_pitch(float value);
+  private:
+  float _internal_turret_pitch() const;
+  void _internal_set_turret_pitch(float value);
   public:
 
   // @@protoc_insertion_point(class_scope:Protocol.S_TRUCK_MOVE)
@@ -4665,8 +4728,11 @@ class S_TRUCK_MOVE final :
   typedef void DestructorSkippable_;
   struct Impl_ {
     ::Protocol::PosInfo* info_;
-    bool is_correction_;
     float fuel_;
+    float turret_yaw_;
+    bool is_correction_;
+    bool has_turret_aim_;
+    float turret_pitch_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   };
   union { Impl_ _impl_; };
@@ -8074,6 +8140,66 @@ inline void C_TRUCK_MOVE::set_fuel(float value) {
   // @@protoc_insertion_point(field_set:Protocol.C_TRUCK_MOVE.fuel)
 }
 
+// float turret_yaw = 4;
+inline void C_TRUCK_MOVE::clear_turret_yaw() {
+  _impl_.turret_yaw_ = 0;
+}
+inline float C_TRUCK_MOVE::_internal_turret_yaw() const {
+  return _impl_.turret_yaw_;
+}
+inline float C_TRUCK_MOVE::turret_yaw() const {
+  // @@protoc_insertion_point(field_get:Protocol.C_TRUCK_MOVE.turret_yaw)
+  return _internal_turret_yaw();
+}
+inline void C_TRUCK_MOVE::_internal_set_turret_yaw(float value) {
+  
+  _impl_.turret_yaw_ = value;
+}
+inline void C_TRUCK_MOVE::set_turret_yaw(float value) {
+  _internal_set_turret_yaw(value);
+  // @@protoc_insertion_point(field_set:Protocol.C_TRUCK_MOVE.turret_yaw)
+}
+
+// float turret_pitch = 5;
+inline void C_TRUCK_MOVE::clear_turret_pitch() {
+  _impl_.turret_pitch_ = 0;
+}
+inline float C_TRUCK_MOVE::_internal_turret_pitch() const {
+  return _impl_.turret_pitch_;
+}
+inline float C_TRUCK_MOVE::turret_pitch() const {
+  // @@protoc_insertion_point(field_get:Protocol.C_TRUCK_MOVE.turret_pitch)
+  return _internal_turret_pitch();
+}
+inline void C_TRUCK_MOVE::_internal_set_turret_pitch(float value) {
+  
+  _impl_.turret_pitch_ = value;
+}
+inline void C_TRUCK_MOVE::set_turret_pitch(float value) {
+  _internal_set_turret_pitch(value);
+  // @@protoc_insertion_point(field_set:Protocol.C_TRUCK_MOVE.turret_pitch)
+}
+
+// bool has_turret_aim = 6;
+inline void C_TRUCK_MOVE::clear_has_turret_aim() {
+  _impl_.has_turret_aim_ = false;
+}
+inline bool C_TRUCK_MOVE::_internal_has_turret_aim() const {
+  return _impl_.has_turret_aim_;
+}
+inline bool C_TRUCK_MOVE::has_turret_aim() const {
+  // @@protoc_insertion_point(field_get:Protocol.C_TRUCK_MOVE.has_turret_aim)
+  return _internal_has_turret_aim();
+}
+inline void C_TRUCK_MOVE::_internal_set_has_turret_aim(bool value) {
+  
+  _impl_.has_turret_aim_ = value;
+}
+inline void C_TRUCK_MOVE::set_has_turret_aim(bool value) {
+  _internal_set_has_turret_aim(value);
+  // @@protoc_insertion_point(field_set:Protocol.C_TRUCK_MOVE.has_turret_aim)
+}
+
 // -------------------------------------------------------------------
 
 // S_TRUCK_MOVE
@@ -8201,6 +8327,66 @@ inline void S_TRUCK_MOVE::_internal_set_fuel(float value) {
 inline void S_TRUCK_MOVE::set_fuel(float value) {
   _internal_set_fuel(value);
   // @@protoc_insertion_point(field_set:Protocol.S_TRUCK_MOVE.fuel)
+}
+
+// float turret_yaw = 4;
+inline void S_TRUCK_MOVE::clear_turret_yaw() {
+  _impl_.turret_yaw_ = 0;
+}
+inline float S_TRUCK_MOVE::_internal_turret_yaw() const {
+  return _impl_.turret_yaw_;
+}
+inline float S_TRUCK_MOVE::turret_yaw() const {
+  // @@protoc_insertion_point(field_get:Protocol.S_TRUCK_MOVE.turret_yaw)
+  return _internal_turret_yaw();
+}
+inline void S_TRUCK_MOVE::_internal_set_turret_yaw(float value) {
+  
+  _impl_.turret_yaw_ = value;
+}
+inline void S_TRUCK_MOVE::set_turret_yaw(float value) {
+  _internal_set_turret_yaw(value);
+  // @@protoc_insertion_point(field_set:Protocol.S_TRUCK_MOVE.turret_yaw)
+}
+
+// float turret_pitch = 5;
+inline void S_TRUCK_MOVE::clear_turret_pitch() {
+  _impl_.turret_pitch_ = 0;
+}
+inline float S_TRUCK_MOVE::_internal_turret_pitch() const {
+  return _impl_.turret_pitch_;
+}
+inline float S_TRUCK_MOVE::turret_pitch() const {
+  // @@protoc_insertion_point(field_get:Protocol.S_TRUCK_MOVE.turret_pitch)
+  return _internal_turret_pitch();
+}
+inline void S_TRUCK_MOVE::_internal_set_turret_pitch(float value) {
+  
+  _impl_.turret_pitch_ = value;
+}
+inline void S_TRUCK_MOVE::set_turret_pitch(float value) {
+  _internal_set_turret_pitch(value);
+  // @@protoc_insertion_point(field_set:Protocol.S_TRUCK_MOVE.turret_pitch)
+}
+
+// bool has_turret_aim = 6;
+inline void S_TRUCK_MOVE::clear_has_turret_aim() {
+  _impl_.has_turret_aim_ = false;
+}
+inline bool S_TRUCK_MOVE::_internal_has_turret_aim() const {
+  return _impl_.has_turret_aim_;
+}
+inline bool S_TRUCK_MOVE::has_turret_aim() const {
+  // @@protoc_insertion_point(field_get:Protocol.S_TRUCK_MOVE.has_turret_aim)
+  return _internal_has_turret_aim();
+}
+inline void S_TRUCK_MOVE::_internal_set_has_turret_aim(bool value) {
+  
+  _impl_.has_turret_aim_ = value;
+}
+inline void S_TRUCK_MOVE::set_has_turret_aim(bool value) {
+  _internal_set_has_turret_aim(value);
+  // @@protoc_insertion_point(field_set:Protocol.S_TRUCK_MOVE.has_turret_aim)
 }
 
 // -------------------------------------------------------------------

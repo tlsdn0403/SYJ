@@ -148,6 +148,12 @@ void Room::BroadcastTruckState(const TruckState& truckState, bool isCorrection)
 	movePkt.mutable_info()->CopyFrom(truckState.posInfo);
 	movePkt.set_is_correction(isCorrection);
 	movePkt.set_fuel(truckState.fuel);
+	if (truckState.hasTurretAim)
+	{
+		movePkt.set_has_turret_aim(true);
+		movePkt.set_turret_yaw(truckState.turretYaw);
+		movePkt.set_turret_pitch(truckState.turretPitch);
+	}
 	SendBufferRef sendBuffer = ServerPacketHandler::MakeSendBuffer(movePkt);
 	Broadcast(sendBuffer);
 }
@@ -1560,6 +1566,20 @@ void Room::HandleTruckMove(PlayerRef player, Protocol::C_TRUCK_MOVE pkt)
 
 	if (std::isfinite(pkt.fuel()) && pkt.fuel() >= 0.0f)
 		truckState->fuel = pkt.fuel();
+
+	const uint64 playerId = player->objectInfo->object_id();
+	const bool bIsTurretUser =
+		player->currentTruckSeatType == Protocol::TRUCK_SEAT_TURRET &&
+		truckState->turretPlayerId == playerId;
+	if (bIsTurretUser &&
+		pkt.has_turret_aim() &&
+		std::isfinite(pkt.turret_yaw()) &&
+		std::isfinite(pkt.turret_pitch()))
+	{
+		truckState->hasTurretAim = true;
+		truckState->turretYaw = pkt.turret_yaw();
+		truckState->turretPitch = pkt.turret_pitch();
+	}
 
 	const bool bIsDriver = player->currentTruckSeatType == Protocol::TRUCK_SEAT_DRIVER;
 	if (bIsDriver == false)

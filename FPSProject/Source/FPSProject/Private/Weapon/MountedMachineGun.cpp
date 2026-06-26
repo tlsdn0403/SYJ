@@ -430,6 +430,21 @@ void AMountedMachineGun::SendAimToServer(const FRotator& AimRotation)
 	Info->set_state(Protocol::MOVE_STATE_IDLE);
 
 	SEND_PACKET(AimPacket);
+
+	if (ATruck* Truck = CurrentUser->CurrentTruck)
+	{
+		if (Truck->NetworkTruckId != 0)
+		{
+			Protocol::C_TRUCK_MOVE TruckAimPacket;
+			Protocol::PosInfo* TruckInfo = TruckAimPacket.mutable_info();
+			TruckInfo->set_object_id(Truck->NetworkTruckId);
+			TruckAimPacket.set_has_turret_aim(true);
+			TruckAimPacket.set_turret_yaw(AimRotation.Yaw);
+			TruckAimPacket.set_turret_pitch(AimRotation.Pitch);
+			TruckAimPacket.set_fuel(Truck->GetTruckFuel());
+			SEND_PACKET(TruckAimPacket);
+		}
+	}
 }
 
 FVector AMountedMachineGun::GetIronSightAimTarget(const FVector& MuzzleLocation) const
@@ -826,4 +841,3 @@ void AMountedMachineGun::ReturnEmptyShellToPool(AActor* ShellActor) const
 		PoolSubsystem->ReturnToPool(ShellActor);
 	}
 }
-

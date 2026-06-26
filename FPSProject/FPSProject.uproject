@@ -55,6 +55,10 @@
 		{
 			"Name": "AudioWidgets",
 			"Enabled": true
+		},
+		{
+			"Name": "ApexDestruction",
+			"Enabled": true
 		}
 	],
 	"TargetPlatforms": [

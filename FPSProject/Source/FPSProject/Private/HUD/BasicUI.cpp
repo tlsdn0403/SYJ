@@ -6,10 +6,21 @@
 #include "Components/TextBlock.h"
 #include "Components/ProgressBar.h"
 #include "Components/Button.h"
+#include "Kismet/KismetSystemLibrary.h"
+#include "Characters/FPSPlayerController.h"
 
 void UBasicUI::NativeConstruct()
 {
 	Super::NativeConstruct();
+	if (ReB)
+	{
+		ReB->OnClicked.AddDynamic(this, &UBasicUI::OnResumeClicked);
+	}
+
+	if (EndB)
+	{
+		EndB->OnClicked.AddDynamic(this, &UBasicUI::OnExitClicked);
+	}
 }
 
 void UBasicUI::GetGunAR4() {
@@ -63,6 +74,14 @@ void UBasicUI:: Play_ESC()
 	if (Ani_ESC)
 	{
 		PlayAnimation(Ani_ESC);
+	}
+	if (AFPSPlayerController* PC = Cast<AFPSPlayerController>(GetOwningPlayer()))
+	{
+		PC->bShowMouseCursor = true;
+
+		FInputModeUIOnly InputMode;
+		InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+		PC->SetInputMode(InputMode);
 	}
 }
 

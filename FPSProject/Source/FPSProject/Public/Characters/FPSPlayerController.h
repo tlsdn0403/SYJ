@@ -114,5 +114,4 @@ public:
 	bool PickUp_Item(UTexture2D* image,int32 handw);
 
 
-	void ESC_Choice();	//ESC눌렸을 때
 };

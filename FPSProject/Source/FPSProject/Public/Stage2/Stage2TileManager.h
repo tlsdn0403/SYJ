@@ -196,6 +196,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stage2|Zombie", meta = (ClampMin = "0.0"))
 	float ZombieSpawnCollisionRadius = 120.0f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stage2|Zombie", meta = (ClampMin = "0.0"))
+	float ZombieSpawnMinSpacing = 300.0f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stage2|Debug")
 	bool bVerboseLog = true;
 

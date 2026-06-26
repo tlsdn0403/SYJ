@@ -79,6 +79,7 @@ private:
 	{
 		Protocol::PosInfo posInfo;
 		bool hasTransform = false;
+		float fuel = -1.0f;
 		uint64 driverPlayerId = 0;
 		//[신우] cargo 좌석은 1인 좌석이 아니라 여러 명이 동시에 탈 수 있어서 set으로 관리한다.
 		unordered_set<uint64> cargoPlayerIds;

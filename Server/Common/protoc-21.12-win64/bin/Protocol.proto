@@ -160,12 +160,14 @@ message S_EXIT_TRUCK
 message C_TRUCK_MOVE
 {
 	PosInfo info = 1;
+	float fuel = 3;
 }
 
 message S_TRUCK_MOVE
 {
 	PosInfo info = 1;
 	bool is_correction = 2;
+	float fuel = 3;
 }
 
 message C_LOAD_TRUCK_ITEM

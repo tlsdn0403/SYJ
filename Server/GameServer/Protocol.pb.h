@@ -4449,6 +4449,7 @@ class C_TRUCK_MOVE final :
 
   enum : int {
     kInfoFieldNumber = 1,
+    kFuelFieldNumber = 3,
   };
   // .Protocol.PosInfo info = 1;
   bool has_info() const;
@@ -4468,6 +4469,15 @@ class C_TRUCK_MOVE final :
       ::Protocol::PosInfo* info);
   ::Protocol::PosInfo* unsafe_arena_release_info();
 
+  // float fuel = 3;
+  void clear_fuel();
+  float fuel() const;
+  void set_fuel(float value);
+  private:
+  float _internal_fuel() const;
+  void _internal_set_fuel(float value);
+  public:
+
   // @@protoc_insertion_point(class_scope:Protocol.C_TRUCK_MOVE)
  private:
   class _Internal;
@@ -4477,6 +4487,7 @@ class C_TRUCK_MOVE final :
   typedef void DestructorSkippable_;
   struct Impl_ {
     ::Protocol::PosInfo* info_;
+    float fuel_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   };
   union { Impl_ _impl_; };
@@ -4607,6 +4618,7 @@ class S_TRUCK_MOVE final :
   enum : int {
     kInfoFieldNumber = 1,
     kIsCorrectionFieldNumber = 2,
+    kFuelFieldNumber = 3,
   };
   // .Protocol.PosInfo info = 1;
   bool has_info() const;
@@ -4635,6 +4647,15 @@ class S_TRUCK_MOVE final :
   void _internal_set_is_correction(bool value);
   public:
 
+  // float fuel = 3;
+  void clear_fuel();
+  float fuel() const;
+  void set_fuel(float value);
+  private:
+  float _internal_fuel() const;
+  void _internal_set_fuel(float value);
+  public:
+
   // @@protoc_insertion_point(class_scope:Protocol.S_TRUCK_MOVE)
  private:
   class _Internal;
@@ -4645,6 +4666,7 @@ class S_TRUCK_MOVE final :
   struct Impl_ {
     ::Protocol::PosInfo* info_;
     bool is_correction_;
+    float fuel_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   };
   union { Impl_ _impl_; };
@@ -8032,6 +8054,26 @@ inline void C_TRUCK_MOVE::set_allocated_info(::Protocol::PosInfo* info) {
   // @@protoc_insertion_point(field_set_allocated:Protocol.C_TRUCK_MOVE.info)
 }
 
+// float fuel = 3;
+inline void C_TRUCK_MOVE::clear_fuel() {
+  _impl_.fuel_ = 0;
+}
+inline float C_TRUCK_MOVE::_internal_fuel() const {
+  return _impl_.fuel_;
+}
+inline float C_TRUCK_MOVE::fuel() const {
+  // @@protoc_insertion_point(field_get:Protocol.C_TRUCK_MOVE.fuel)
+  return _internal_fuel();
+}
+inline void C_TRUCK_MOVE::_internal_set_fuel(float value) {
+  
+  _impl_.fuel_ = value;
+}
+inline void C_TRUCK_MOVE::set_fuel(float value) {
+  _internal_set_fuel(value);
+  // @@protoc_insertion_point(field_set:Protocol.C_TRUCK_MOVE.fuel)
+}
+
 // -------------------------------------------------------------------
 
 // S_TRUCK_MOVE
@@ -8139,6 +8181,26 @@ inline void S_TRUCK_MOVE::_internal_set_is_correction(bool value) {
 inline void S_TRUCK_MOVE::set_is_correction(bool value) {
   _internal_set_is_correction(value);
   // @@protoc_insertion_point(field_set:Protocol.S_TRUCK_MOVE.is_correction)
+}
+
+// float fuel = 3;
+inline void S_TRUCK_MOVE::clear_fuel() {
+  _impl_.fuel_ = 0;
+}
+inline float S_TRUCK_MOVE::_internal_fuel() const {
+  return _impl_.fuel_;
+}
+inline float S_TRUCK_MOVE::fuel() const {
+  // @@protoc_insertion_point(field_get:Protocol.S_TRUCK_MOVE.fuel)
+  return _internal_fuel();
+}
+inline void S_TRUCK_MOVE::_internal_set_fuel(float value) {
+  
+  _impl_.fuel_ = value;
+}
+inline void S_TRUCK_MOVE::set_fuel(float value) {
+  _internal_set_fuel(value);
+  // @@protoc_insertion_point(field_set:Protocol.S_TRUCK_MOVE.fuel)
 }
 
 // -------------------------------------------------------------------

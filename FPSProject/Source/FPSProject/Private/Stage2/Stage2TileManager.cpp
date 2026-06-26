@@ -1128,9 +1128,43 @@ void AStage2TileManager::SpawnZombiesForTile(FStage2LoadedTile& LoadedTile)
 	OverlapObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECC_Pawn));
 	OverlapObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECC_WorldDynamic));
 
+	TArray<FVector> UsedZombieSpawnLocations;
+	const float ZombieSpawnMinSpacingSq = ZombieSpawnMinSpacing * ZombieSpawnMinSpacing;
+
 	for (int32 SpawnIteration = 0; SpawnIteration < DesiredSpawnCount && CandidateSpawnTransforms.Num() > 0; ++SpawnIteration)
 	{
-		const int32 SpawnTransformIndex = RandomStream.RandRange(0, CandidateSpawnTransforms.Num() - 1);
+		int32 SpawnTransformIndex = INDEX_NONE;
+		if (ZombieSpawnMinSpacing > 0.0f && UsedZombieSpawnLocations.Num() > 0)
+		{
+			const int32 StartIndex = RandomStream.RandRange(0, CandidateSpawnTransforms.Num() - 1);
+			for (int32 CandidateOffset = 0; CandidateOffset < CandidateSpawnTransforms.Num(); ++CandidateOffset)
+			{
+				const int32 CandidateIndex = (StartIndex + CandidateOffset) % CandidateSpawnTransforms.Num();
+				const FVector CandidateLocation = CandidateSpawnTransforms[CandidateIndex].GetLocation();
+
+				bool bTooClose = false;
+				for (const FVector& UsedLocation : UsedZombieSpawnLocations)
+				{
+					if (FVector::DistSquared2D(CandidateLocation, UsedLocation) < ZombieSpawnMinSpacingSq)
+					{
+						bTooClose = true;
+						break;
+					}
+				}
+
+				if (!bTooClose)
+				{
+					SpawnTransformIndex = CandidateIndex;
+					break;
+				}
+			}
+		}
+
+		if (SpawnTransformIndex == INDEX_NONE)
+		{
+			SpawnTransformIndex = RandomStream.RandRange(0, CandidateSpawnTransforms.Num() - 1);
+		}
+
 		const FTransform SpawnTransform = CandidateSpawnTransforms[SpawnTransformIndex];
 		CandidateSpawnTransforms.RemoveAtSwap(SpawnTransformIndex);
 
@@ -1162,6 +1196,7 @@ void AStage2TileManager::SpawnZombiesForTile(FStage2LoadedTile& LoadedTile)
 		if (ABaseZombie* SpawnedZombie = GetWorld()->SpawnActor<ABaseZombie>(ZombieClass, SpawnTransform, SpawnParameters))
 		{
 			LoadedTile.SpawnedZombies.Add(SpawnedZombie);
+			UsedZombieSpawnLocations.Add(SpawnedZombie->GetActorLocation());
 		}
 	}
 

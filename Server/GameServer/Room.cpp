@@ -147,6 +147,7 @@ void Room::BroadcastTruckState(const TruckState& truckState, bool isCorrection)
 	Protocol::S_TRUCK_MOVE movePkt;
 	movePkt.mutable_info()->CopyFrom(truckState.posInfo);
 	movePkt.set_is_correction(isCorrection);
+	movePkt.set_fuel(truckState.fuel);
 	SendBufferRef sendBuffer = ServerPacketHandler::MakeSendBuffer(movePkt);
 	Broadcast(sendBuffer);
 }
@@ -1548,19 +1549,26 @@ void Room::HandleTruckMove(PlayerRef player, Protocol::C_TRUCK_MOVE pkt)
 	if (player == nullptr || player->bIsInTruck == false)
 		return;
 
-	if (player->currentTruckSeatType != Protocol::TRUCK_SEAT_DRIVER)
-		return;
-
 	const uint64 truckId = player->currentTruckId;
 	TruckState* truckState = FindTruckState(truckId);
 	if (truckState == nullptr)
 		return;
 
-	if (truckState->driverPlayerId != player->objectInfo->object_id())
-		return;
-
 	const Protocol::PosInfo& incoming = pkt.info();
 	if (incoming.object_id() != 0 && incoming.object_id() != truckId)
+		return;
+
+	if (std::isfinite(pkt.fuel()) && pkt.fuel() >= 0.0f)
+		truckState->fuel = pkt.fuel();
+
+	const bool bIsDriver = player->currentTruckSeatType == Protocol::TRUCK_SEAT_DRIVER;
+	if (bIsDriver == false)
+	{
+		BroadcastTruckState(*truckState);
+		return;
+	}
+
+	if (truckState->driverPlayerId != player->objectInfo->object_id())
 		return;
 
 	const bool bFiniteTransform =

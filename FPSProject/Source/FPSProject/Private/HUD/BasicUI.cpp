@@ -5,7 +5,7 @@
 #include "Components/Image.h"
 #include "Components/TextBlock.h"
 #include "Components/ProgressBar.h"
-
+#include "Components/Button.h"
 
 void UBasicUI::NativeConstruct()
 {
@@ -56,4 +56,12 @@ void UBasicUI::SetAmmoCount(int32 AmmoCount)
 	{
 		GunText->SetText(FText::FromString(FString::FromInt(AmmoCount)));
 	}
+}
+
+int UBasicUI:: Play_ESC()
+{ 
+	PlayAnimation(Ani_ESC); 
+
+	if()
+
 }

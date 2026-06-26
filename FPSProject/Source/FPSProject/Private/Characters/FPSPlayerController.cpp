@@ -225,3 +225,14 @@ bool AFPSPlayerController::PickUp_Item(UTexture2D* image, int32 handw)
 	}
 	return t;
 }
+
+void AFPSPlayerController::ESC_Choice() {	// esc 눌렸을 때 
+	FInputModeUIOnly InputMode;
+	SetInputMode(InputMode);
+	bShowMouseCursor = true;	//마우스 커서 키고
+
+	//애니메이션 실행 ( 버튼 보임 )
+	BasicW->Play_ESC();
+
+
+}

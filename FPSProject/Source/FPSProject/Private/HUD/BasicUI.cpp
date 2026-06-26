@@ -86,7 +86,15 @@ void UBasicUI:: Play_ESC()
 
 void UBasicUI::OnResumeClicked()
 {
-	// ESC UI 닫기 애니메이션이 있으면 여기서 재생
+
+	if (AFPSPlayerController* PC = Cast<AFPSPlayerController>(GetOwningPlayer()))
+	{
+		UKismetSystemLibrary::QuitGame(this, PC, EQuitPreference::Quit, false);
+	}
+}
+
+void UBasicUI::OnExitClicked()
+{
 	PlayAnimationReverse(Ani_ESC);
 
 	if (AFPSPlayerController* PC = Cast<AFPSPlayerController>(GetOwningPlayer()))
@@ -94,14 +102,6 @@ void UBasicUI::OnResumeClicked()
 		FInputModeGameOnly InputMode;
 		PC->SetInputMode(InputMode);
 		PC->bShowMouseCursor = false;
-	}
-}
-
-void UBasicUI::OnExitClicked()
-{
-	if (AFPSPlayerController* PC = Cast<AFPSPlayerController>(GetOwningPlayer()))
-	{
-		UKismetSystemLibrary::QuitGame(this, PC, EQuitPreference::Quit, false);
 	}
 }
 

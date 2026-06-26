@@ -49,6 +49,63 @@ namespace
 		return nullptr;
 	}
 
+	FName FindClosestZombieBoneToTrace(USkeletalMeshComponent* ZombieMesh, const FVector& TraceStart, const FVector& TraceEnd)
+	{
+		if (ZombieMesh == nullptr)
+		{
+			return NAME_None;
+		}
+
+		FName ClosestBoneName = NAME_None;
+		float ClosestDistanceSq = TNumericLimits<float>::Max();
+		const int32 BoneCount = ZombieMesh->GetNumBones();
+		for (int32 BoneIndex = 0; BoneIndex < BoneCount; ++BoneIndex)
+		{
+			const FName BoneName = ZombieMesh->GetBoneName(BoneIndex);
+			const FVector BoneLocation = ZombieMesh->GetBoneLocation(BoneName);
+			const FVector ClosestPoint = FMath::ClosestPointOnSegment(BoneLocation, TraceStart, TraceEnd);
+			const float DistanceSq = FVector::DistSquared(BoneLocation, ClosestPoint);
+			if (DistanceSq < ClosestDistanceSq)
+			{
+				ClosestDistanceSq = DistanceSq;
+				ClosestBoneName = BoneName;
+			}
+		}
+
+		return ClosestBoneName;
+	}
+
+	FHitResult BuildZombieDamageHit(const FHitResult& Hit, ABaseZombie* HitZombie, const FVector& TraceStart, const FVector& TraceEnd)
+	{
+		FHitResult DamageHit = Hit;
+		if (HitZombie == nullptr || DamageHit.BoneName != NAME_None)
+		{
+			return DamageHit;
+		}
+
+		USkeletalMeshComponent* ZombieMesh = HitZombie->GetMesh();
+		if (ZombieMesh == nullptr)
+		{
+			return DamageHit;
+		}
+
+		FVector ClosestBoneLocation = FVector::ZeroVector;
+		FName ClosestBoneName = FindClosestZombieBoneToTrace(ZombieMesh, TraceStart, TraceEnd);
+		if (ClosestBoneName == NAME_None)
+		{
+			ClosestBoneName = ZombieMesh->FindClosestBone(Hit.ImpactPoint, &ClosestBoneLocation);
+		}
+		if (ClosestBoneName != NAME_None)
+		{
+			DamageHit.BoneName = ClosestBoneName;
+			DamageHit.Component = ZombieMesh;
+			DamageHit.Location = Hit.ImpactPoint;
+			DamageHit.ImpactPoint = Hit.ImpactPoint;
+		}
+
+		return DamageHit;
+	}
+
 	bool FindZombieTraceHit(UWorld* World, const FVector& TraceStart, const FVector& TraceEnd, const FCollisionQueryParams& QueryParams, FHitResult& OutHit)
 	{
 		if (World == nullptr)
@@ -59,12 +116,23 @@ namespace
 		TArray<FHitResult> VisibilityHits;
 		World->LineTraceMultiByChannel(VisibilityHits, TraceStart, TraceEnd, ECC_Visibility, QueryParams);
 		float BlockingDistance = TNumericLimits<float>::Max();
+		FHitResult FallbackZombieHit;
+		bool bHasFallbackZombieHit = false;
 		for (const FHitResult& Hit : VisibilityHits)
 		{
 			if (ResolveHitZombie(Hit.GetActor(), Hit.GetComponent()))
 			{
-				OutHit = Hit;
-				return true;
+				if (Hit.BoneName != NAME_None)
+				{
+					OutHit = Hit;
+					return true;
+				}
+
+				if (!bHasFallbackZombieHit)
+				{
+					FallbackZombieHit = Hit;
+					bHasFallbackZombieHit = true;
+				}
 			}
 
 			if (Hit.bBlockingHit)
@@ -85,9 +153,24 @@ namespace
 
 			if (ResolveHitZombie(Hit.GetActor(), Hit.GetComponent()))
 			{
-				OutHit = Hit;
-				return true;
+				if (Hit.BoneName != NAME_None)
+				{
+					OutHit = Hit;
+					return true;
+				}
+
+				if (!bHasFallbackZombieHit)
+				{
+					FallbackZombieHit = Hit;
+					bHasFallbackZombieHit = true;
+				}
 			}
+		}
+
+		if (bHasFallbackZombieHit)
+		{
+			OutHit = FallbackZombieHit;
+			return true;
 		}
 
 		return false;
@@ -366,6 +449,7 @@ void AMountedMachineGun::Fire()
 		FRotator AimRotation = GetCameraRotation();
 		AimRotation.Pitch += IronSightAimPitchOffset;
 		const FVector ViewDirection = AimRotation.Vector().GetSafeNormal();
+		const FVector TraceEnd = ViewLocation + ViewDirection * IronSightAimDistance;
 		if (!ViewDirection.IsNearlyZero())
 		{
 			FHitResult HitResult;
@@ -381,7 +465,7 @@ void AMountedMachineGun::Fire()
 			const bool bHitZombie = FindZombieTraceHit(
 				GetWorld(),
 				ViewLocation,
-				ViewLocation + ViewDirection * IronSightAimDistance,
+				TraceEnd,
 				QueryParams,
 				ZombieHitResult);
 			if (bHitZombie)
@@ -389,13 +473,14 @@ void AMountedMachineGun::Fire()
 				HitResult = ZombieHitResult;
 				if (ABaseZombie* HitZombie = ResolveHitZombie(HitResult.GetActor(), HitResult.GetComponent()))
 				{
+					const FHitResult DamageHit = BuildZombieDamageHit(HitResult, HitZombie, ViewLocation, TraceEnd);
 					UFPSProjectGameInstance::SendZombieHitPacket(
 						CurrentUser,
 						HitZombie,
 						20.0f,
-						HitResult.ImpactPoint,
-						HitResult.BoneName,
-						HitResult.ImpactNormal);
+						DamageHit.ImpactPoint,
+						DamageHit.BoneName,
+						DamageHit.ImpactNormal);
 				}
 			}
 		}

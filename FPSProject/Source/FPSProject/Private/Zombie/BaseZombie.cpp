@@ -238,8 +238,9 @@ void ABaseZombie::HandleNetworkDismember(FName BoneName, const FVector& Impulse,
 		return;
 	}
 
-	DismemberLimb(BoneName, Impulse, HitLocation);
-	if (IsLegBone(BoneName) && MovementState == EZombieMovementState::Normal)
+	const FName VisualBoneName = GetParentBoneForDamage(BoneName);
+	DismemberLimb(VisualBoneName, Impulse, HitLocation);
+	if (IsLegBone(VisualBoneName) && MovementState == EZombieMovementState::Normal)
 	{
 		StartCrawling();
 	}

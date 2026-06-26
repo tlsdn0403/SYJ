@@ -34,9 +34,9 @@ public:
 
 private:
 	void ApplyStage1ItemSpawnSeed();
-	void RequestStageTransitionAfterFarmingTimer();
-	FName ResolveStageTransitionTargetLevelName() const;
-	bool TryPlayStageTransitionCinematic();
+	void HandleFarmingTimerExpired();
+	void ApplyFarmingTimerExpiredToTrucks();
+	bool TryPlayStageTransitionCinematic(const TCHAR* SequencePath, const TCHAR* SequenceLogName, bool bOpenLevelAfterCinematic);
 	void FinishStageTransitionCinematic();
 	void OpenPendingStageTransitionLevel();
 	void SetStageTransitionCinematicMode(bool bEnable);
@@ -48,13 +48,14 @@ private:
 	bool bShouldShowEntryLoadingWidget = false;
 	bool bWaitingForStage2MapLoad = false;
 	bool bStageTransitionCinematicPlaying = false;
+	bool bOpenLevelAfterStageTransitionCinematic = true;
 	FString PendingStageTransitionLevelName;
 	FTimerHandle StageTransitionCinematicTimerHandle;
 	TWeakObjectPtr<ALevelSequenceActor> StageTransitionSequenceActor;
 	TWeakObjectPtr<ULevelSequencePlayer> StageTransitionSequencePlayer;
 	int32 CachedEntryLoadingReadyCount = 0;
 	int32 CachedStageTimerRemainingSeconds = INDEX_NONE;
-	bool bStageTimerExpiredTransitionRequested = false;
+	bool bStageTimerExpiredCinematicPlayed = false;
 	uint32 CachedStage1ItemSpawnSeed = 0;
 	bool bHasStage1ItemSpawnSeed = false;
 	bool bHasAppliedStage1ItemSpawns = false;

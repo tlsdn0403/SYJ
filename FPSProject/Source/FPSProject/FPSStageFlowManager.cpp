@@ -17,7 +17,6 @@
 #include "Components/PrimitiveComponent.h"
 #include "GameFramework/PlayerController.h"
 #include "Kismet/GameplayStatics.h"
-#include "Stage/StageTransitionZone.h"
 #include "Stage2/Stage2TileManager.h"
 #include "Truck/Truck.h"
 #include "Algo/Sort.h"
@@ -52,7 +51,7 @@ void FFPSStageFlowManager::RequestEnterGameWhenReady()
 	bPendingEnterGameRequest = true;
 	bEnterGamePacketSent = false;
 	bShouldShowEntryLoadingWidget = true;
-	bStageTimerExpiredTransitionRequested = false;
+	bStageTimerExpiredCinematicPlayed = false;
 	CachedEntryLoadingReadyCount = 0;
 	CachedStage1ItemSpawnSeed = 0;
 	bHasStage1ItemSpawnSeed = false;
@@ -155,7 +154,7 @@ void FFPSStageFlowManager::HandlePostLoadMap(UWorld* LoadedWorld)
 
 	if (!FPSStage2WorldUtils::IsStage2World(LoadedWorld))
 	{
-		bStageTimerExpiredTransitionRequested = false;
+		bStageTimerExpiredCinematicPlayed = false;
 	}
 
 	if (Owner.EntryLoadingWidget)
@@ -306,15 +305,17 @@ void FFPSStageFlowManager::TryDistributeStage1CargoItemsToPlayers()
 
 void FFPSStageFlowManager::HandleStageTimer(const Protocol::S_STAGE_TIMER& Pkt)
 {
+	const bool bHadStageTimer = CachedStageTimerRemainingSeconds != INDEX_NONE;
 	const bool bWasCountingDown = CachedStageTimerRemainingSeconds > 0;
+	const bool bLoadingPhaseEnded = !Pkt.is_loading_phase();
 	CachedStageTimerRemainingSeconds = Pkt.is_loading_phase() ? Pkt.remaining_seconds() : 0;
 	ApplyStageTimerToLocalUI();
 
-	if (!bStageTimerExpiredTransitionRequested &&
-		(bWasCountingDown || Pkt.is_loading_phase()) &&
+	if (!bStageTimerExpiredCinematicPlayed &&
+		(bWasCountingDown || Pkt.is_loading_phase() || (bHadStageTimer && bLoadingPhaseEnded)) &&
 		CachedStageTimerRemainingSeconds <= 0)
 	{
-		RequestStageTransitionAfterFarmingTimer();
+		HandleFarmingTimerExpired();
 	}
 }
 
@@ -335,11 +336,14 @@ void FFPSStageFlowManager::HandleStageTransition(const Protocol::S_STAGE_TRANSIT
 	}
 
 	PendingStageTransitionLevelName = TargetLevelName;
-	bStageTimerExpiredTransitionRequested = true;
 	const bool bTargetIsStage2 = FPSStage2WorldUtils::IsStage2LevelName(TargetLevelName);
 	bWaitingForStage2MapLoad = false;
 
-	if (bTargetIsStage2 && TryPlayStageTransitionCinematic())
+	if (bTargetIsStage2 &&
+		TryPlayStageTransitionCinematic(
+			TEXT("/Game/Maps/Map_Level1/LS_level1.LS_level1"),
+			TEXT("LS_level1"),
+			true))
 	{
 		return;
 	}
@@ -416,75 +420,43 @@ void FFPSStageFlowManager::ApplyStage1ItemSpawnSeed()
 	bHasAppliedStage1ItemSpawns = true;
 }
 
-void FFPSStageFlowManager::RequestStageTransitionAfterFarmingTimer()
+void FFPSStageFlowManager::HandleFarmingTimerExpired()
 {
-	if (bStageTransitionCinematicPlaying || FPSStage2WorldUtils::IsStage2World(Owner.GetWorld()))
+	ApplyFarmingTimerExpiredToTrucks();
+	bStageTimerExpiredCinematicPlayed = true;
+
+	if (FPSStage2WorldUtils::IsStage2World(Owner.GetWorld()))
 	{
 		return;
 	}
 
-	const FName TargetLevelName = ResolveStageTransitionTargetLevelName();
-	if (TargetLevelName.IsNone())
+	TryPlayStageTransitionCinematic(
+		TEXT("/Game/Maps/Map_Level1/LS_Zombie.LS_Zombie"),
+		TEXT("LS_Zombie"),
+		false);
+}
+
+void FFPSStageFlowManager::ApplyFarmingTimerExpiredToTrucks()
+{
+	UWorld* World = Owner.GetWorld();
+	if (World == nullptr)
 	{
 		return;
 	}
 
-	bStageTimerExpiredTransitionRequested = true;
-
-	if (Owner.IsConnectedToGameServer())
+	for (TActorIterator<ATruck> It(World); It; ++It)
 	{
-		uint64 TruckId = 0;
-		if (UWorld* World = Owner.GetWorld())
+		if (ATruck* Truck = *It)
 		{
-			for (TActorIterator<ATruck> It(World); It; ++It)
-			{
-				if (ATruck* Truck = *It)
-				{
-					TruckId = Truck->NetworkTruckId;
-					break;
-				}
-			}
+			Truck->SetLoadingPhase(false);
 		}
-
-		Protocol::C_STAGE_TRANSITION_REQUEST RequestPkt;
-		RequestPkt.set_truck_id(TruckId);
-		RequestPkt.set_target_level(TCHAR_TO_UTF8(*TargetLevelName.ToString()));
-		Owner.SendPacket(ClientPacketHandler::MakeSendBuffer(RequestPkt));
-
-		UE_LOG(LogTemp, Log,
-			TEXT("[StageTransition] Farming timer expired. Requested server transition to '%s' truckId=%llu"),
-			*TargetLevelName.ToString(),
-			TruckId);
-		return;
-	}
-
-	PendingStageTransitionLevelName = TargetLevelName.ToString();
-	if (!TryPlayStageTransitionCinematic())
-	{
-		OpenPendingStageTransitionLevel();
 	}
 }
 
-FName FFPSStageFlowManager::ResolveStageTransitionTargetLevelName() const
-{
-	if (UWorld* World = Owner.GetWorld())
-	{
-		for (TActorIterator<AStageTransitionZone> It(World); It; ++It)
-		{
-			if (const AStageTransitionZone* TransitionZone = *It)
-			{
-				if (!TransitionZone->TargetLevelName.IsNone())
-				{
-					return TransitionZone->TargetLevelName;
-				}
-			}
-		}
-	}
-
-	return TEXT("map_level2_test");
-}
-
-bool FFPSStageFlowManager::TryPlayStageTransitionCinematic()
+bool FFPSStageFlowManager::TryPlayStageTransitionCinematic(
+	const TCHAR* SequencePath,
+	const TCHAR* SequenceLogName,
+	bool bOpenLevelAfterCinematic)
 {
 	if (bStageTransitionCinematicPlaying)
 	{
@@ -497,14 +469,12 @@ bool FFPSStageFlowManager::TryPlayStageTransitionCinematic()
 		return false;
 	}
 
-	static const TCHAR* StageTransitionSequencePath =
-		TEXT("/Game/Maps/Map_Level1/LS_Zombie.LS_Zombie");
-	ULevelSequence* Sequence = LoadObject<ULevelSequence>(nullptr, StageTransitionSequencePath);
+	ULevelSequence* Sequence = LoadObject<ULevelSequence>(nullptr, SequencePath);
 	if (Sequence == nullptr)
 	{
 		UE_LOG(LogTemp, Warning,
 			TEXT("[StageTransition] Failed to load cinematic sequence: %s"),
-			StageTransitionSequencePath);
+			SequencePath);
 		return false;
 	}
 
@@ -516,13 +486,14 @@ bool FFPSStageFlowManager::TryPlayStageTransitionCinematic()
 		ULevelSequencePlayer::CreateLevelSequencePlayer(World, Sequence, PlaybackSettings, SequenceActor);
 	if (SequencePlayer == nullptr)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[StageTransition] Failed to create LS_level1 player."));
+		UE_LOG(LogTemp, Warning, TEXT("[StageTransition] Failed to create %s player."), SequenceLogName);
 		return false;
 	}
 
 	StageTransitionSequenceActor = SequenceActor;
 	StageTransitionSequencePlayer = SequencePlayer;
 	bStageTransitionCinematicPlaying = true;
+	bOpenLevelAfterStageTransitionCinematic = bOpenLevelAfterCinematic;
 	PrepareStageTransitionCinematicActors();
 	SetStageTransitionCinematicMode(true);
 
@@ -549,9 +520,11 @@ bool FFPSStageFlowManager::TryPlayStageTransitionCinematic()
 		false);
 
 	UE_LOG(LogTemp, Log,
-		TEXT("[StageTransition] Playing LS_Zombie before opening level '%s' duration=%.2f"),
-		*PendingStageTransitionLevelName,
-		SafeDurationSeconds);
+		TEXT("[StageTransition] Playing %s duration=%.2f openLevelAfter=%d targetLevel='%s'"),
+		SequenceLogName,
+		SafeDurationSeconds,
+		bOpenLevelAfterStageTransitionCinematic ? 1 : 0,
+		*PendingStageTransitionLevelName);
 	return true;
 }
 
@@ -577,7 +550,12 @@ void FFPSStageFlowManager::FinishStageTransitionCinematic()
 	bStageTransitionCinematicPlaying = false;
 	SetStageTransitionCinematicMode(false);
 
-	OpenPendingStageTransitionLevel();
+	if (bOpenLevelAfterStageTransitionCinematic)
+	{
+		OpenPendingStageTransitionLevel();
+	}
+
+	bOpenLevelAfterStageTransitionCinematic = true;
 }
 
 void FFPSStageFlowManager::OpenPendingStageTransitionLevel()

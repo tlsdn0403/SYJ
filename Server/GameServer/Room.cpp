@@ -4,6 +4,7 @@
 #include "GameSession.h"
 #include "Monster.h"
 #include "ObjectUtils.h"
+#include <algorithm>
 #include <cmath>
 #include <limits>
 
@@ -499,15 +500,85 @@ namespace
 	constexpr uint64 ZOMBIE_OBJECT_ID_START = 1000000;
 	constexpr float ZOMBIE_SERVER_TICK_SECONDS = 0.1f;
 	constexpr float ZOMBIE_MOVE_SPEED = 180.0f;
-	constexpr float ZOMBIE_AGGRO_RANGE = 1500.0f;
+	constexpr float ZOMBIE_AGGRO_RANGE = 2500.0f;
 	constexpr float ZOMBIE_ATTACK_RANGE = 140.0f;
 	constexpr float ZOMBIE_ATTACK_COOLDOWN_SECONDS = 1.0f;
 	constexpr float ZOMBIE_DESPAWN_DELAY_SECONDS = 3.0f;
 	constexpr float ZOMBIE_SEPARATION_RADIUS = 180.0f;
 	constexpr float ZOMBIE_SEPARATION_WEIGHT = 1.35f;
+	constexpr float ZOMBIE_PATH_RECALC_SECONDS = 0.75f;
+	constexpr float ZOMBIE_PATH_TARGET_REPATH_DISTANCE = 300.0f;
+	constexpr float ZOMBIE_WAYPOINT_REACHED_DISTANCE = 80.0f;
+	constexpr float ZOMBIE_NAV_GRID_CELL_SIZE = 300.0f;
+	constexpr int32 ZOMBIE_NAV_MAX_SEARCH_NODES = 512;
 	constexpr int32 STAGE2_ZOMBIE_TILE_WORLD = 0;
 	constexpr int32 STAGE2_ZOMBIE_TILE_RIGHT = 3;
 	constexpr int32 STAGE2_RIGHT_TILE_OCCURRENCE_COUNT = 3;
+
+	struct ZombieNavCell
+	{
+		int32 x = 0;
+		int32 y = 0;
+	};
+
+	struct ZombieAStarNode
+	{
+		ZombieNavCell cell;
+		float gCost = 0.0f;
+		float fCost = 0.0f;
+		int64 parentKey = 0;
+		bool hasParent = false;
+		bool closed = false;
+	};
+
+	struct ZombieAStarOpenNode
+	{
+		int64 key = 0;
+		float fCost = 0.0f;
+
+		bool operator<(const ZombieAStarOpenNode& other) const
+		{
+			return fCost > other.fCost;
+		}
+	};
+
+	int64 MakeZombieNavCellKey(int32 x, int32 y)
+	{
+		return (static_cast<int64>(x) << 32) ^ static_cast<uint32>(y);
+	}
+
+	ZombieNavCell WorldToZombieNavCell(float x, float y)
+	{
+		return
+		{
+			static_cast<int32>(floorf(x / ZOMBIE_NAV_GRID_CELL_SIZE)),
+			static_cast<int32>(floorf(y / ZOMBIE_NAV_GRID_CELL_SIZE))
+		};
+	}
+
+	float ZombieNavCellCenterX(int32 cellX)
+	{
+		return (static_cast<float>(cellX) + 0.5f) * ZOMBIE_NAV_GRID_CELL_SIZE;
+	}
+
+	float ZombieNavCellCenterY(int32 cellY)
+	{
+		return (static_cast<float>(cellY) + 0.5f) * ZOMBIE_NAV_GRID_CELL_SIZE;
+	}
+
+	float GetZombieNavHeuristic(const ZombieNavCell& from, const ZombieNavCell& to)
+	{
+		const float dx = static_cast<float>(from.x - to.x);
+		const float dy = static_cast<float>(from.y - to.y);
+		return sqrtf(dx * dx + dy * dy);
+	}
+
+	bool IsStage2ZombieNavCellBlocked(const ZombieNavCell& cell)
+	{
+		// Hook exported map collision or hand-authored blocked cells here.
+		(void)cell;
+		return false;
+	}
 
 	constexpr int32 EncodeStage2ZombieSpawnType(Protocol::ZombieType zombieType, int32 tileTypeCode, int32 tileOccurrenceIndex)
 	{
@@ -768,6 +839,142 @@ void Room::BroadcastZombieMove(const MonsterRef& monster)
 	Broadcast(sendBuffer);
 }
 
+vector<Room::ZombiePathPoint> Room::FindZombiePath(const Protocol::PosInfo& start, const Protocol::PosInfo& goal) const
+{
+	vector<ZombiePathPoint> fallbackPath;
+	fallbackPath.push_back({ goal.x(), goal.y(), goal.z() });
+
+	const ZombieNavCell startCell = WorldToZombieNavCell(start.x(), start.y());
+	const ZombieNavCell goalCell = WorldToZombieNavCell(goal.x(), goal.y());
+	if (startCell.x == goalCell.x && startCell.y == goalCell.y)
+		return fallbackPath;
+
+	priority_queue<ZombieAStarOpenNode> openList;
+	unordered_map<int64, ZombieAStarNode> nodes;
+
+	const int64 startKey = MakeZombieNavCellKey(startCell.x, startCell.y);
+	ZombieAStarNode& startNode = nodes[startKey];
+	startNode.cell = startCell;
+	startNode.gCost = 0.0f;
+	startNode.fCost = GetZombieNavHeuristic(startCell, goalCell);
+	openList.push({ startKey, startNode.fCost });
+
+	constexpr int32 neighborCount = 8;
+	const int32 neighborX[neighborCount] = { 1, -1, 0, 0, 1, 1, -1, -1 };
+	const int32 neighborY[neighborCount] = { 0, 0, 1, -1, 1, -1, 1, -1 };
+
+	int32 searchedNodeCount = 0;
+	int64 goalKey = 0;
+	bool foundGoal = false;
+
+	while (openList.empty() == false && searchedNodeCount < ZOMBIE_NAV_MAX_SEARCH_NODES)
+	{
+		const ZombieAStarOpenNode openNode = openList.top();
+		openList.pop();
+
+		auto nodeIt = nodes.find(openNode.key);
+		if (nodeIt == nodes.end())
+			continue;
+
+		ZombieAStarNode& currentNode = nodeIt->second;
+		if (currentNode.closed)
+			continue;
+
+		currentNode.closed = true;
+		++searchedNodeCount;
+
+		if (currentNode.cell.x == goalCell.x && currentNode.cell.y == goalCell.y)
+		{
+			goalKey = openNode.key;
+			foundGoal = true;
+			break;
+		}
+
+		for (int32 index = 0; index < neighborCount; ++index)
+		{
+			const ZombieNavCell neighborCell =
+			{
+				currentNode.cell.x + neighborX[index],
+				currentNode.cell.y + neighborY[index]
+			};
+
+			if (IsStage2ZombieNavCellBlocked(neighborCell))
+				continue;
+
+			const bool diagonal = neighborX[index] != 0 && neighborY[index] != 0;
+			const float moveCost = diagonal ? 1.41421356f : 1.0f;
+			const float nextGCost = currentNode.gCost + moveCost;
+			const int64 neighborKey = MakeZombieNavCellKey(neighborCell.x, neighborCell.y);
+
+			ZombieAStarNode& neighborNode = nodes[neighborKey];
+			if (neighborNode.closed)
+				continue;
+
+			if (neighborNode.hasParent == false && neighborKey != startKey)
+			{
+				neighborNode.cell = neighborCell;
+				neighborNode.gCost = nextGCost;
+				neighborNode.fCost = nextGCost + GetZombieNavHeuristic(neighborCell, goalCell);
+				neighborNode.parentKey = openNode.key;
+				neighborNode.hasParent = true;
+				openList.push({ neighborKey, neighborNode.fCost });
+				continue;
+			}
+
+			if (nextGCost >= neighborNode.gCost)
+				continue;
+
+			neighborNode.cell = neighborCell;
+			neighborNode.gCost = nextGCost;
+			neighborNode.fCost = nextGCost + GetZombieNavHeuristic(neighborCell, goalCell);
+			neighborNode.parentKey = openNode.key;
+			neighborNode.hasParent = true;
+			openList.push({ neighborKey, neighborNode.fCost });
+		}
+	}
+
+	if (foundGoal == false)
+		return fallbackPath;
+
+	vector<ZombieNavCell> cells;
+	int64 currentKey = goalKey;
+	while (true)
+	{
+		auto nodeIt = nodes.find(currentKey);
+		if (nodeIt == nodes.end())
+			return fallbackPath;
+
+		cells.push_back(nodeIt->second.cell);
+		if (currentKey == startKey)
+			break;
+
+		if (nodeIt->second.hasParent == false)
+			return fallbackPath;
+
+		currentKey = nodeIt->second.parentKey;
+	}
+
+	reverse(cells.begin(), cells.end());
+	if (cells.size() <= 1)
+		return fallbackPath;
+
+	vector<ZombiePathPoint> path;
+	path.reserve(cells.size());
+	for (size_t index = 1; index < cells.size(); ++index)
+	{
+		const float alpha = static_cast<float>(index) / static_cast<float>(cells.size() - 1);
+		path.push_back(
+		{
+			ZombieNavCellCenterX(cells[index].x),
+			ZombieNavCellCenterY(cells[index].y),
+			start.z() + (goal.z() - start.z()) * alpha
+		});
+	}
+
+	path.back() = { goal.x(), goal.y(), goal.z() };
+	return path;
+}
+
 void Room::UpdateZombies()
 {
 	for (auto& item : _objects)
@@ -777,13 +984,17 @@ void Room::UpdateZombies()
 			continue;
 
 		if (monster->IsDead())
+		{
+			_zombiePaths.erase(item.first);
 			continue;
+		}
 
 		monster->TickCooldown(ZOMBIE_SERVER_TICK_SECONDS);
 
 		PlayerRef targetPlayer = FindNearestPlayer(*monster->posInfo, ZOMBIE_AGGRO_RANGE);
 		if (targetPlayer == nullptr)
 		{
+			_zombiePaths.erase(item.first);
 			if (monster->posInfo->state() != Protocol::MOVE_STATE_IDLE)
 			{
 				monster->posInfo->set_state(Protocol::MOVE_STATE_IDLE);
@@ -856,12 +1067,58 @@ void Room::UpdateZombies()
 		}
 		else
 		{
-			const float distance = sqrtf(distSq);
+			ZombiePathState& pathState = _zombiePaths[item.first];
+			pathState.repathRemainingSeconds -= ZOMBIE_SERVER_TICK_SECONDS;
+
+			const float targetMoveX = targetPlayer->posInfo->x() - pathState.lastTargetX;
+			const float targetMoveY = targetPlayer->posInfo->y() - pathState.lastTargetY;
+			const float targetMoveZ = targetPlayer->posInfo->z() - pathState.lastTargetZ;
+			const float targetMoveDistSq = targetMoveX * targetMoveX + targetMoveY * targetMoveY + targetMoveZ * targetMoveZ;
+			const bool shouldRepath =
+				pathState.targetPlayerId != targetPlayer->objectInfo->object_id() ||
+				pathState.waypoints.empty() ||
+				pathState.waypointIndex >= pathState.waypoints.size() ||
+				pathState.repathRemainingSeconds <= 0.0f ||
+				targetMoveDistSq >= ZOMBIE_PATH_TARGET_REPATH_DISTANCE * ZOMBIE_PATH_TARGET_REPATH_DISTANCE;
+
+			if (shouldRepath)
+			{
+				pathState.targetPlayerId = targetPlayer->objectInfo->object_id();
+				pathState.waypoints = FindZombiePath(*monster->posInfo, *targetPlayer->posInfo);
+				pathState.waypointIndex = 0;
+				pathState.repathRemainingSeconds = ZOMBIE_PATH_RECALC_SECONDS;
+				pathState.lastTargetX = targetPlayer->posInfo->x();
+				pathState.lastTargetY = targetPlayer->posInfo->y();
+				pathState.lastTargetZ = targetPlayer->posInfo->z();
+			}
+
+			while (pathState.waypointIndex < pathState.waypoints.size())
+			{
+				const ZombiePathPoint& waypoint = pathState.waypoints[pathState.waypointIndex];
+				const float waypointDx = waypoint.x - monster->posInfo->x();
+				const float waypointDy = waypoint.y - monster->posInfo->y();
+				const float waypointDz = waypoint.z - monster->posInfo->z();
+				const float waypointDistSq = waypointDx * waypointDx + waypointDy * waypointDy + waypointDz * waypointDz;
+				if (waypointDistSq > ZOMBIE_WAYPOINT_REACHED_DISTANCE * ZOMBIE_WAYPOINT_REACHED_DISTANCE)
+					break;
+
+				++pathState.waypointIndex;
+			}
+
+			ZombiePathPoint moveTarget = { targetPlayer->posInfo->x(), targetPlayer->posInfo->y(), targetPlayer->posInfo->z() };
+			if (pathState.waypointIndex < pathState.waypoints.size())
+				moveTarget = pathState.waypoints[pathState.waypointIndex];
+
+			const float pathDx = moveTarget.x - monster->posInfo->x();
+			const float pathDy = moveTarget.y - monster->posInfo->y();
+			const float pathDz = moveTarget.z - monster->posInfo->z();
+			const float pathDistSq = pathDx * pathDx + pathDy * pathDy + pathDz * pathDz;
+			const float distance = sqrtf(pathDistSq);
 			if (distance > 0.001f)
 			{
 				const float moveStep = ZOMBIE_MOVE_SPEED * monster->GetMoveSpeedScale() * ZOMBIE_SERVER_TICK_SECONDS;
-				float moveX = dx / distance;
-				float moveY = dy / distance;
+				float moveX = pathDx / distance;
+				float moveY = pathDy / distance;
 				const float separationSq = separationX * separationX + separationY * separationY;
 				if (separationSq > 0.001f)
 				{
@@ -882,8 +1139,8 @@ void Room::UpdateZombies()
 
 				monster->posInfo->set_x(monster->posInfo->x() + moveX * moveAlpha);
 				monster->posInfo->set_y(monster->posInfo->y() + moveY * moveAlpha);
-				monster->posInfo->set_z(monster->posInfo->z() + dz * ((moveAlpha < distance) ? (moveAlpha / distance) : 1.0f));
-				monster->posInfo->set_yaw(atan2f(dy, dx) * (180.0f / 3.1415926535f));
+				monster->posInfo->set_z(monster->posInfo->z() + pathDz * ((moveAlpha < distance) ? (moveAlpha / distance) : 1.0f));
+				monster->posInfo->set_yaw(atan2f(moveY, moveX) * (180.0f / 3.1415926535f));
 			}
 
 			monster->posInfo->set_state(Protocol::MOVE_STATE_RUN);
@@ -1063,6 +1320,7 @@ void Room::HandleHitZombie(PlayerRef player, Protocol::C_HIT_ZOMBIE pkt)
 	if (monster->IsDead() == false)
 		return;
 
+	_zombiePaths.erase(zombieId);
 	monster->posInfo->set_state(Protocol::MOVE_STATE_DEAD);
 	monster->objectInfo->mutable_pos_info()->CopyFrom(*monster->posInfo);
 
@@ -1510,6 +1768,9 @@ bool Room::RemoveObject(uint64 objectId)
 		player->room.store(weak_ptr<Room>());
 		ClearPlayerTruckState(player);
 	}
+
+	if (objectId >= ZOMBIE_OBJECT_ID_START)
+		_zombiePaths.erase(objectId);
 
 	_objects.erase(objectId);
 

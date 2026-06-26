@@ -42,6 +42,25 @@ private:
 	void UpdateZombies();
 	PlayerRef FindNearestPlayer(const Protocol::PosInfo& origin, float maxRange) const;
 	void BroadcastZombieMove(const MonsterRef& monster);
+	struct ZombiePathPoint
+	{
+		float x = 0.0f;
+		float y = 0.0f;
+		float z = 0.0f;
+	};
+
+	struct ZombiePathState
+	{
+		uint64 targetPlayerId = 0;
+		vector<ZombiePathPoint> waypoints;
+		size_t waypointIndex = 0;
+		float repathRemainingSeconds = 0.0f;
+		float lastTargetX = 0.0f;
+		float lastTargetY = 0.0f;
+		float lastTargetZ = 0.0f;
+	};
+
+	vector<ZombiePathPoint> FindZombiePath(const Protocol::PosInfo& start, const Protocol::PosInfo& goal) const;
 	bool AddObject(ObjectRef object);
 	bool RemoveObject(uint64 objectId);
 
@@ -110,6 +129,7 @@ private:
 	vector<PendingZombieDespawn> _pendingZombieDespawns;
 	vector<PendingLootItemRespawn> _pendingLootItemRespawns;
 	vector<Stage2WeaponState> _stage2Weapons;
+	unordered_map<uint64, ZombiePathState> _zombiePaths;
 	unordered_set<uint64> _inactiveLootItemIds;
 	unordered_set<uint64> _stageTransitionReadyPlayerIds;
 	bool _bTruckLoadingPhaseActive = false;

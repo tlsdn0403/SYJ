@@ -271,6 +271,9 @@ private:
 	bool IsTilePoolReady() const;
 	bool IsPoolTileAvailable(EStage2TileType TileType) const;
 	bool TryActivatePooledTile(EStage2TileType TileType, const FTransform& EntryTransform);
+	void EnsureDefaultLandscapeLevelSettings();
+	void EnsureDefaultLandscapeLevel(TArray<TSoftObjectPtr<UWorld>>& LandscapeLevelArray, const TCHAR* LandscapeLevelPath) const;
+	void RemoveLandscapeLevel(TArray<TSoftObjectPtr<UWorld>>& LandscapeLevelArray, const TCHAR* LandscapeLevelPath) const;
 	const TArray<TSoftObjectPtr<UWorld>>& GetLandscapeLevelsForTileType(EStage2TileType TileType) const;
 	void LoadLandscapeLevelsForTile(FStage2LoadedTile& LoadedTile, const FTransform& LevelTransform);
 	void TryFinalizeLandscapeLevels();

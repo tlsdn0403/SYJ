@@ -34,6 +34,8 @@ public:
 
 private:
 	void ApplyStage1ItemSpawnSeed();
+	void RequestStageTransitionAfterFarmingTimer();
+	FName ResolveStageTransitionTargetLevelName() const;
 	bool TryPlayStageTransitionCinematic();
 	void FinishStageTransitionCinematic();
 	void OpenPendingStageTransitionLevel();
@@ -52,6 +54,7 @@ private:
 	TWeakObjectPtr<ULevelSequencePlayer> StageTransitionSequencePlayer;
 	int32 CachedEntryLoadingReadyCount = 0;
 	int32 CachedStageTimerRemainingSeconds = INDEX_NONE;
+	bool bStageTimerExpiredTransitionRequested = false;
 	uint32 CachedStage1ItemSpawnSeed = 0;
 	bool bHasStage1ItemSpawnSeed = false;
 	bool bHasAppliedStage1ItemSpawns = false;

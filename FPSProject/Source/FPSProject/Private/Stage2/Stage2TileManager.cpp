@@ -18,8 +18,8 @@ namespace
 constexpr EStage2TileType PlayableTileSequence[] =
 {
 	EStage2TileType::Left,
-	EStage2TileType::Straight,
-	EStage2TileType::Right
+	EStage2TileType::Right,
+	EStage2TileType::Straight
 };
 }
 
@@ -29,7 +29,9 @@ AStage2TileManager::AStage2TileManager()
 	PrimaryActorTick.bStartWithTickEnabled = false;
 
 	LeftLandscapeLevels.Add(TSoftObjectPtr<UWorld>(
-		FSoftObjectPath(TEXT("/Game/Maps/map_level2/L2_leftLandScape.L2_leftLandScape"))));
+		FSoftObjectPath(TEXT("/Game/Maps/map_level2/L2_LEFTlandscape.L2_LEFTlandscape"))));
+	RightLandscapeLevels.Add(TSoftObjectPtr<UWorld>(
+		FSoftObjectPath(TEXT("/Game/Maps/map_level2/L2_right_Land.L2_right_Land"))));
 
 	NextSpawnTransform = GetManagerTileTransform();
 }
@@ -39,6 +41,7 @@ void AStage2TileManager::BeginPlay()
 	Super::BeginPlay();
 
 	NextSpawnTransform = GetManagerTileTransform();
+	EnsureDefaultLandscapeLevelSettings();
 
 	if (!GetActorScale3D().Equals(FVector::OneVector))
 	{
@@ -452,6 +455,40 @@ bool AStage2TileManager::TryActivatePooledTile(EStage2TileType TileType, const F
 	const int32 ActiveTileIndex = ActiveTiles.Add(ActivatedTile);
 	FinalizeLoadedTile(ActiveTileIndex);
 	return true;
+}
+
+void AStage2TileManager::EnsureDefaultLandscapeLevelSettings()
+{
+	RemoveLandscapeLevel(LeftLandscapeLevels, TEXT("/Game/Maps/map_level2/L2_leftLandScape.L2_leftLandScape"));
+	EnsureDefaultLandscapeLevel(LeftLandscapeLevels, TEXT("/Game/Maps/map_level2/L2_LEFTlandscape.L2_LEFTlandscape"));
+	EnsureDefaultLandscapeLevel(RightLandscapeLevels, TEXT("/Game/Maps/map_level2/L2_right_Land.L2_right_Land"));
+}
+
+void AStage2TileManager::EnsureDefaultLandscapeLevel(
+	TArray<TSoftObjectPtr<UWorld>>& LandscapeLevelArray,
+	const TCHAR* LandscapeLevelPath) const
+{
+	const FSoftObjectPath DefaultPath(LandscapeLevelPath);
+	for (const TSoftObjectPtr<UWorld>& LandscapeLevel : LandscapeLevelArray)
+	{
+		if (LandscapeLevel.ToSoftObjectPath() == DefaultPath)
+		{
+			return;
+		}
+	}
+
+	LandscapeLevelArray.Add(TSoftObjectPtr<UWorld>(DefaultPath));
+}
+
+void AStage2TileManager::RemoveLandscapeLevel(
+	TArray<TSoftObjectPtr<UWorld>>& LandscapeLevelArray,
+	const TCHAR* LandscapeLevelPath) const
+{
+	const FSoftObjectPath RemovedPath(LandscapeLevelPath);
+	LandscapeLevelArray.RemoveAll([&RemovedPath](const TSoftObjectPtr<UWorld>& LandscapeLevel)
+	{
+		return LandscapeLevel.ToSoftObjectPath() == RemovedPath;
+	});
 }
 
 const TArray<TSoftObjectPtr<UWorld>>& AStage2TileManager::GetLandscapeLevelsForTileType(EStage2TileType TileType) const

@@ -1068,11 +1068,13 @@ void AFPSBaseCharacter::LeaveGame()
 	if (IsLocallyControlled())
 	{
 		// 내 게임 인스턴스를 찾아와서 접속 끊기 함수 실행!
-		if (UFPSProjectGameInstance* GI = Cast<UFPSProjectGameInstance>(GetGameInstance()))
+		/*if (UFPSProjectGameInstance* GI = Cast<UFPSProjectGameInstance>(GetGameInstance()))
 		{
 			GI->DisconnectFromGameServer();
 			GI->QuitGame();
-		}
+		}*/
+		AFPSPlayerController* PC = Cast<AFPSPlayerController>(GetController());
+		PC->BasicW->Play_ESC();
 	}
 }
 

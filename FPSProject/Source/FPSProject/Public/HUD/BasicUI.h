@@ -52,6 +52,10 @@ public:
 	void SetHealth(float CurrentHP, float MaxHP);
 	void SetAmmoCount(int32 AmmoCount);
 
+	UFUNCTION()
+	void OnResumeClicked();
 
-	int Play_ESC();
+	UFUNCTION()
+	void OnExitClicked();
+	void Play_ESC();
 };

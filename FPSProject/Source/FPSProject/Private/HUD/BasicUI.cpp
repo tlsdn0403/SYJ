@@ -6,10 +6,22 @@
 #include "Components/TextBlock.h"
 #include "Components/ProgressBar.h"
 #include "Components/Button.h"
+#include "Kismet/KismetSystemLibrary.h"
+#include "Characters/FPSPlayerController.h"
 
 void UBasicUI::NativeConstruct()
 {
 	Super::NativeConstruct();
+
+	if (ReB)
+	{
+		ReB->OnClicked.AddDynamic(this, &UBasicUI::OnResumeClicked);
+	}
+
+	if (EndB)
+	{
+		EndB->OnClicked.AddDynamic(this, &UBasicUI::OnExitClicked);
+	}
 }
 
 void UBasicUI::GetGunAR4() {
@@ -58,10 +70,38 @@ void UBasicUI::SetAmmoCount(int32 AmmoCount)
 	}
 }
 
-int UBasicUI:: Play_ESC()
+void UBasicUI:: Play_ESC()
 { 
-	PlayAnimation(Ani_ESC); 
+	PlayAnimation(Ani_ESC);
 
-	if()
+	if (AFPSPlayerController* PC = Cast<AFPSPlayerController>(GetOwningPlayer()))
+	{
+		PC->bShowMouseCursor = true;
 
+		FInputModeUIOnly InputMode;
+		InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+		PC->SetInputMode(InputMode);
+	}
 }
+
+void UBasicUI::OnResumeClicked()
+{
+	// ESC UI 닫기 애니메이션이 있으면 여기서 재생
+	PlayAnimationReverse(Ani_ESC);
+
+	if (AFPSPlayerController* PC = Cast<AFPSPlayerController>(GetOwningPlayer()))
+	{
+		FInputModeGameOnly InputMode;
+		PC->SetInputMode(InputMode);
+		PC->bShowMouseCursor = false;
+	}
+}
+
+void UBasicUI::OnExitClicked()
+{
+	if (AFPSPlayerController* PC = Cast<AFPSPlayerController>(GetOwningPlayer()))
+	{
+		UKismetSystemLibrary::QuitGame(this, PC, EQuitPreference::Quit, false);
+	}
+}
+

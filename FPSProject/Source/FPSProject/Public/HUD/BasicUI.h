@@ -13,6 +13,7 @@ class UImage;
 class UTextBlock;
 class UProgressBar;
 class UButton;
+class UWidgetAnimation;
 
 UCLASS()
 class FPSPROJECT_API UBasicUI : public UUserWidget
@@ -57,5 +58,6 @@ public:
 
 	UFUNCTION()
 	void OnExitClicked();
+
 	void Play_ESC();
 };

@@ -14,6 +14,57 @@ namespace
 FName GetPoliceDismemberRootBone(FName HitBoneName)
 {
 	const FString Bone = HitBoneName.ToString();
+	const FString LowerBone = Bone.ToLower();
+
+	if (LowerBone == TEXT("head"))
+	{
+		return TEXT("Head");
+	}
+
+	if (LowerBone == TEXT("upperarm_l"))
+	{
+		return TEXT("LeftArm");
+	}
+
+	if (LowerBone == TEXT("lowerarm_l"))
+	{
+		return TEXT("LeftForeArm");
+	}
+
+	if (LowerBone == TEXT("upperarm_r"))
+	{
+		return TEXT("RightArm");
+	}
+
+	if (LowerBone == TEXT("lowerarm_r"))
+	{
+		return TEXT("RightForeArm");
+	}
+
+	if (LowerBone == TEXT("thigh_l"))
+	{
+		return TEXT("LeftUpLeg");
+	}
+
+	if (LowerBone == TEXT("calf_l"))
+	{
+		return TEXT("LeftLeg");
+	}
+
+	if (LowerBone == TEXT("thigh_r"))
+	{
+		return TEXT("RightUpLeg");
+	}
+
+	if (LowerBone == TEXT("calf_r"))
+	{
+		return TEXT("RightLeg");
+	}
+
+	if (LowerBone == TEXT("spine_01"))
+	{
+		return TEXT("Spine");
+	}
 
 	if (Bone == TEXT("Head") ||
 		Bone == TEXT("HeadTop_End") ||
@@ -131,6 +182,24 @@ APoliceZombie::APoliceZombie()
 	DeathAnimations.Reset();
 	if (PoliceDeathOne.Succeeded()) DeathAnimations.Add(PoliceDeathOne.Object);
 	if (PoliceDeathTwo.Succeeded()) DeathAnimations.Add(PoliceDeathTwo.Object);
+}
+
+void APoliceZombie::BeginPlay()
+{
+	Super::BeginPlay();
+
+	if (UCapsuleComponent* Capsule = GetCapsuleComponent())
+	{
+		Capsule->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
+		Capsule->SetCollisionResponseToChannel(ECC_GameTraceChannel1, ECR_Block);
+	}
+
+	if (USkeletalMeshComponent* MeshComp = GetMesh())
+	{
+		MeshComp->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+		MeshComp->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
+		MeshComp->SetCollisionResponseToChannel(ECC_GameTraceChannel1, ECR_Block);
+	}
 }
 
 FVector APoliceZombie::GetCrawlingMeshRelativeLocation(const FVector& CurrentStandingMeshRelativeLocation) const

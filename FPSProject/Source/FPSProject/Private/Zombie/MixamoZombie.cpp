@@ -300,6 +300,18 @@ void AMixamoZombie::InitializeBoneDurability()
 FName AMixamoZombie::GetParentBoneForDamage(FName HitBoneName) const
 {
 	const FString Bone = HitBoneName.ToString();
+	const FString LowerBone = Bone.ToLower();
+	if (LowerBone == TEXT("head")) return TEXT("Head");
+	if (LowerBone == TEXT("upperarm_l")) return TEXT("LeftArm");
+	if (LowerBone == TEXT("lowerarm_l")) return TEXT("LeftForeArm");
+	if (LowerBone == TEXT("upperarm_r")) return TEXT("RightArm");
+	if (LowerBone == TEXT("lowerarm_r")) return TEXT("RightForeArm");
+	if (LowerBone == TEXT("thigh_l")) return TEXT("LeftUpLeg");
+	if (LowerBone == TEXT("calf_l")) return TEXT("LeftLeg");
+	if (LowerBone == TEXT("thigh_r")) return TEXT("RightUpLeg");
+	if (LowerBone == TEXT("calf_r")) return TEXT("RightLeg");
+	if (LowerBone == TEXT("spine_01")) return TEXT("Spine");
+
 	if (Bone.Contains(TEXT("Head")) || Bone.Contains(TEXT("Neck"))) return TEXT("Head");
 	if (Bone.Contains(TEXT("LeftUpLeg"))) return TEXT("LeftUpLeg");
 	if (Bone.Contains(TEXT("RightUpLeg"))) return TEXT("RightUpLeg");

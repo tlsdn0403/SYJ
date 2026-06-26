@@ -17,14 +17,22 @@ AStage2TileManager::AStage2TileManager()
 	PrimaryActorTick.bCanEverTick = true;
 	PrimaryActorTick.bStartWithTickEnabled = false;
 
-	NextSpawnTransform = GetActorTransform();
+	NextSpawnTransform = GetManagerTileTransform();
 }
 
 void AStage2TileManager::BeginPlay()
 {
 	Super::BeginPlay();
 
-	NextSpawnTransform = GetActorTransform();
+	NextSpawnTransform = GetManagerTileTransform();
+
+	if (!GetActorScale3D().Equals(FVector::OneVector))
+	{
+		UE_LOG(LogTemp, Warning,
+			TEXT("Stage2TileManager '%s' has non-identity scale %s. Tile streaming ignores manager scale to keep landscape geometry stable."),
+			*GetNameSafe(this),
+			*GetActorScale3D().ToString());
+	}
 
 	if (bSpawnOnBeginPlay)
 	{
@@ -55,7 +63,7 @@ void AStage2TileManager::StartGeneration()
 	bGenerationStarted = true;
 
 	// 타일이 배치 될 위치는 매니저 액터의 위치
-	NextSpawnTransform = GetActorTransform();
+	NextSpawnTransform = GetManagerTileTransform();
 
 	// 시드값이 고정되어 있으면 랜덤 스트림을 초기화된 시드값으로 초기화, 그렇지 않으면 새로운 시드값 생성
 	if (bUseDeterministicSeed)
@@ -341,6 +349,7 @@ void AStage2TileManager::FinalizePooledTile(int32 PoolIndex)
 	PooledTile.EntryLocalTransform = PooledTile.TileMarker->GetEntryTransform().GetRelativeTransform(PooledTile.AppliedLevelTransform);
 	PooledTile.bHasEntryLocalTransform = true;
 
+	EnsureUniqueLandscapeGuids(PooledTile);
 	PooledTile.TileMarker->OnNextTileTriggerEntered.RemoveAll(this);
 	PooledTile.TileMarker->ResetNextTileTrigger();
 	PooledTile.TileMarker->SetNextTileTriggerEnabled(false);
@@ -536,6 +545,68 @@ void AStage2TileManager::ApplyPrimitivePerformanceSettings(UPrimitiveComponent* 
 	if (bDisableSmallTilePrimitiveShadows && bSmallPrimitive)
 	{
 		PrimitiveComponent->SetCastShadow(false);
+	}
+}
+
+void AStage2TileManager::EnsureUniqueLandscapeGuids(const FStage2LoadedTile& LoadedTile) const
+{
+	if (!LoadedTile.StreamingLevel)
+	{
+		return;
+	}
+
+	ULevel* LoadedLevel = LoadedTile.StreamingLevel->GetLoadedLevel();
+	if (!LoadedLevel)
+	{
+		return;
+	}
+
+	TMap<FGuid, FGuid> RemappedGuids;
+	for (AActor* LevelActor : LoadedLevel->Actors)
+	{
+		if (!IsValid(LevelActor))
+		{
+			continue;
+		}
+
+		EnsureLandscapeProxyHasUniqueGuid(Cast<ALandscapeProxy>(LevelActor), LoadedTile, RemappedGuids);
+	}
+}
+
+void AStage2TileManager::EnsureLandscapeProxyHasUniqueGuid(
+	ALandscapeProxy* LandscapeProxy,
+	const FStage2LoadedTile& LoadedTile,
+	TMap<FGuid, FGuid>& RemappedGuids) const
+{
+	if (!IsValid(LandscapeProxy))
+	{
+		return;
+	}
+
+	const FGuid OriginalGuid = LandscapeProxy->GetLandscapeGuid();
+	FGuid& RemappedGuid = RemappedGuids.FindOrAdd(OriginalGuid);
+	if (!RemappedGuid.IsValid())
+	{
+		RemappedGuid = FGuid::NewGuid();
+		while (RemappedGuid == OriginalGuid)
+		{
+			RemappedGuid = FGuid::NewGuid();
+		}
+	}
+
+	LandscapeProxy->SetLandscapeGuid(RemappedGuid, false);
+	LandscapeProxy->CreateLandscapeInfo(false, true);
+	LandscapeProxy->ReregisterAllComponents();
+	RefreshLandscapeProxyState(LandscapeProxy, true);
+
+	if (bVerboseLog)
+	{
+		UE_LOG(LogTemp, Log,
+			TEXT("Stage2TileManager: Remapped landscape guid for %s in %s from %s to %s"),
+			*GetNameSafe(LandscapeProxy),
+			*LoadedTile.SourceLevel.ToSoftObjectPath().ToString(),
+			*OriginalGuid.ToString(),
+			*RemappedGuid.ToString());
 	}
 }
 
@@ -830,6 +901,11 @@ void AStage2TileManager::ForgetTileCollisionStates(const FStage2LoadedTile& Load
 	}
 }
 
+FTransform AStage2TileManager::GetManagerTileTransform() const
+{
+	return FTransform(GetActorRotation(), GetActorLocation(), FVector::OneVector);
+}
+
 FTransform AStage2TileManager::MakePoolParkingTransform()
 {
 	
@@ -839,7 +915,7 @@ FTransform AStage2TileManager::MakePoolParkingTransform()
 		FVector(NextPoolParkingIndex * PoolParkingSpacing, 0.0f, 0.0f);
 
 	++NextPoolParkingIndex;
-	return FTransform(GetActorRotation(), ParkingLocation, GetActorScale3D());
+	return FTransform(GetActorRotation(), ParkingLocation, FVector::OneVector);
 }
 
 void AStage2TileManager::FinalizeLoadedTile(int32 TileIndex)
@@ -1003,7 +1079,7 @@ void AStage2TileManager::ResetGenerationState()
 	NextRightTileOccurrenceIndex = 0;
 	NextPoolParkingIndex = 0;
 	SpawnedPlayableTileCount = 0;
-	NextSpawnTransform = GetActorTransform();
+	NextSpawnTransform = GetManagerTileTransform();
 	SetActorTickEnabled(false);
 }
 

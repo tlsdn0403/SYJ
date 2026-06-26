@@ -237,6 +237,11 @@ private:
 	void SetTileCollisionEnabled(const FStage2LoadedTile& LoadedTile, bool bEnabled);
 	void ApplyTilePerformanceSettings(const FStage2LoadedTile& LoadedTile) const;
 	void ApplyPrimitivePerformanceSettings(UPrimitiveComponent* PrimitiveComponent) const;
+	void EnsureUniqueLandscapeGuids(const FStage2LoadedTile& LoadedTile) const;
+	void EnsureLandscapeProxyHasUniqueGuid(
+		ALandscapeProxy* LandscapeProxy,
+		const FStage2LoadedTile& LoadedTile,
+		TMap<FGuid, FGuid>& RemappedGuids) const;
 	void RefreshLandscapeState(const FStage2LoadedTile& LoadedTile, bool bRecreateCollision) const;
 	void RefreshLandscapeProxyState(ALandscapeProxy* LandscapeProxy, bool bRecreateCollision) const;
 	void RefreshLandscapeCollisionComponent(
@@ -245,6 +250,7 @@ private:
 		bool bRecreateCollision) const;
 	void RefreshTilePhysicsState(const FStage2LoadedTile& LoadedTile) const;
 	void ForgetTileCollisionStates(const FStage2LoadedTile& LoadedTile);
+	FTransform GetManagerTileTransform() const;
 	FTransform MakePoolParkingTransform();
 	void FinalizeLoadedTile(int32 TileIndex);
 	void UpdateNextSpawnTransformFromTile(const AStage2TileMarker* TileMarker);

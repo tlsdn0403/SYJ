@@ -507,7 +507,7 @@ namespace
 	constexpr uint64 ZOMBIE_OBJECT_ID_START = 1000000;
 	constexpr float ZOMBIE_SERVER_TICK_SECONDS = 0.1f;
 	constexpr float ZOMBIE_MOVE_SPEED = 180.0f;
-	constexpr float ZOMBIE_AGGRO_RANGE = 2500.0f;
+	constexpr float ZOMBIE_AGGRO_RANGE = 5000.0f;
 	constexpr float ZOMBIE_ATTACK_RANGE = 140.0f;
 	constexpr float ZOMBIE_ATTACK_COOLDOWN_SECONDS = 1.0f;
 	constexpr float ZOMBIE_DESPAWN_DELAY_SECONDS = 3.0f;
@@ -519,7 +519,9 @@ namespace
 	constexpr float ZOMBIE_NAV_GRID_CELL_SIZE = 300.0f;
 	constexpr int32 ZOMBIE_NAV_MAX_SEARCH_NODES = 512;
 	constexpr int32 STAGE2_ZOMBIE_TILE_WORLD = 0;
+	constexpr int32 STAGE2_ZOMBIE_TILE_STRAIGHT = 1;
 	constexpr int32 STAGE2_ZOMBIE_TILE_RIGHT = 3;
+	constexpr int32 STAGE2_STRAIGHT_TILE_OCCURRENCE_COUNT = 3;
 	constexpr int32 STAGE2_RIGHT_TILE_OCCURRENCE_COUNT = 3;
 
 	struct ZombieNavCell
@@ -659,6 +661,11 @@ namespace
 
 	constexpr ZombieSpawnGroupInfo STAGE2_ZOMBIE_GROUPS[] =
 	{
+		{ -1810.0f, 16720.0f, 240.0f, 8, 5, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_STRAIGHT, STAGE2_STRAIGHT_TILE_OCCURRENCE_COUNT, 0xA24BAED5u, 0x9FB21C63u },
+		{ -2010.0f, 9730.0f, 300.0f, 8, 5, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_STRAIGHT, STAGE2_STRAIGHT_TILE_OCCURRENCE_COUNT, 0xC13FA9A9u, 0x5D588B65u },
+		{ -4840.0f, 10210.0f, 310.0f, 8, 5, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_STRAIGHT, STAGE2_STRAIGHT_TILE_OCCURRENCE_COUNT, 0x91E10DA5u, 0xB7E15162u },
+		{ -1770.0f, 1060.0f, 170.0f, 8, 5, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_STRAIGHT, STAGE2_STRAIGHT_TILE_OCCURRENCE_COUNT, 0x7F4A7C15u, 0xD1B54A32u },
+		{ -4570.0f, -19510.0f, 240.0f, 8, 5, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_STRAIGHT, STAGE2_STRAIGHT_TILE_OCCURRENCE_COUNT, 0x3C6EF372u, 0xBB67AE85u },
 		{ 4770.0f, 5360.0f, 50.0f, 8, 5, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_RIGHT, STAGE2_RIGHT_TILE_OCCURRENCE_COUNT, 0x41C64E6Du, 0xA341316Cu },
 		{ 15280.0f, 2310.0f, 230.0, 8, 5, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_RIGHT, STAGE2_RIGHT_TILE_OCCURRENCE_COUNT, 0x6D2B79F5u, 0x13A5C89Bu },
 		{ 21570.8f, 5466.7f, -367.0f, 5, 4, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_RIGHT, STAGE2_RIGHT_TILE_OCCURRENCE_COUNT, 0x9E3779B9u, 0xC2B2AE35u },
@@ -993,6 +1000,13 @@ void Room::UpdateZombies()
 		if (monster->IsDead())
 		{
 			_zombiePaths.erase(item.first);
+			continue;
+		}
+
+		if (monster->objectInfo->weapon_type() >= 10)
+		{
+			// Tile-local zombies become real world zombies after a client resolves
+			// their tile transform and sends a placement correction.
 			continue;
 		}
 

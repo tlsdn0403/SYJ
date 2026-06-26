@@ -10,12 +10,26 @@
 #include "LandscapeProxy.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "LevelUtils.h"
+#include "UObject/SoftObjectPath.h"
 #include "Zombie/BaseZombie.h"
+
+namespace
+{
+constexpr EStage2TileType PlayableTileSequence[] =
+{
+	EStage2TileType::Left,
+	EStage2TileType::Straight,
+	EStage2TileType::Right
+};
+}
 
 AStage2TileManager::AStage2TileManager()
 {
 	PrimaryActorTick.bCanEverTick = true;
 	PrimaryActorTick.bStartWithTickEnabled = false;
+
+	LeftLandscapeLevels.Add(TSoftObjectPtr<UWorld>(
+		FSoftObjectPath(TEXT("/Game/Maps/map_level2/L2_leftLandScape.L2_leftLandScape"))));
 
 	NextSpawnTransform = GetManagerTileTransform();
 }
@@ -45,10 +59,16 @@ void AStage2TileManager::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 
 	TryFinalizePooledTiles();
+	TryFinalizeLandscapeLevels();
 
 	if (bGenerationStarted && IsTilePoolReady() && ActiveTiles.Num() == 0)
 	{
 		SpawnNextTile();
+	}
+
+	if (bTilePoolReady && !HasPendingLandscapeLevels())
+	{
+		SetActorTickEnabled(false);
 	}
 }
 
@@ -102,7 +122,9 @@ void AStage2TileManager::SpawnNextTile()
 	}
 
 	// start 타일이 필요하다면 다음 타일 타입을 start tile로
-	const EStage2TileType NextTileType = bNeedsStartTile ? EStage2TileType::Start : ChooseNextTileType();
+	const EStage2TileType NextTileType = (bNeedsStartTile && IsPoolTileAvailable(EStage2TileType::Start))
+		? EStage2TileType::Start
+		: ChooseNextTileType();
 	if (!TryActivatePooledTile(NextTileType, NextSpawnTransform))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Stage2TileManager: No preloaded pooled tile is available for type %d"), static_cast<int32>(NextTileType));
@@ -418,6 +440,8 @@ bool AStage2TileManager::TryActivatePooledTile(EStage2TileType TileType, const F
 	ActivatedTile.RequestedEntryTransform = EntryTransform;
 	ActivatedTile.TileType = TileType;
 	ActivatedTile.TileOccurrenceIndex = 0;
+	ActivatedTile.LandscapeLevels.Empty();
+	LoadLandscapeLevelsForTile(ActivatedTile, LevelTransformToApply);
 	// 풀에서 꺼낸 타일은 이미 로드되어 있으므로, 활성화 단계에서는 위치 이동과 트리거 재연결만 다시 처리한다.
 	ActivatedTile.bInitialized = false;
 
@@ -428,6 +452,171 @@ bool AStage2TileManager::TryActivatePooledTile(EStage2TileType TileType, const F
 	const int32 ActiveTileIndex = ActiveTiles.Add(ActivatedTile);
 	FinalizeLoadedTile(ActiveTileIndex);
 	return true;
+}
+
+const TArray<TSoftObjectPtr<UWorld>>& AStage2TileManager::GetLandscapeLevelsForTileType(EStage2TileType TileType) const
+{
+	switch (TileType)
+	{
+	case EStage2TileType::Start:
+		return StartLandscapeLevels;
+	case EStage2TileType::Straight:
+		return StraightLandscapeLevels;
+	case EStage2TileType::Left:
+		return LeftLandscapeLevels;
+	case EStage2TileType::Right:
+		return RightLandscapeLevels;
+	case EStage2TileType::Goal:
+		return GoalLandscapeLevels;
+	default:
+		return StraightLandscapeLevels;
+	}
+}
+
+void AStage2TileManager::LoadLandscapeLevelsForTile(FStage2LoadedTile& LoadedTile, const FTransform& LevelTransform)
+{
+	const TArray<TSoftObjectPtr<UWorld>>& LandscapeLevelsToLoad = GetLandscapeLevelsForTileType(LoadedTile.TileType);
+	if (LandscapeLevelsToLoad.Num() == 0)
+	{
+		return;
+	}
+
+	for (const TSoftObjectPtr<UWorld>& LandscapeLevel : LandscapeLevelsToLoad)
+	{
+		if (LandscapeLevel.IsNull())
+		{
+			continue;
+		}
+
+		bool bLoadSucceeded = false;
+		ULevelStreamingDynamic* StreamingLevel = ULevelStreamingDynamic::LoadLevelInstanceBySoftObjectPtr(
+			this,
+			LandscapeLevel,
+			LevelTransform,
+			bLoadSucceeded);
+
+		if (!bLoadSucceeded || !StreamingLevel)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Stage2TileManager: Failed to load landscape tile %s"),
+				*LandscapeLevel.ToSoftObjectPath().ToString());
+			continue;
+		}
+
+		FStage2LoadedLandscapeLevel& LoadedLandscape = LoadedTile.LandscapeLevels.AddDefaulted_GetRef();
+		LoadedLandscape.SourceLevel = LandscapeLevel;
+		LoadedLandscape.StreamingLevel = StreamingLevel;
+		LoadedLandscape.AppliedLevelTransform = LevelTransform;
+		LoadedLandscape.bInitialized = false;
+
+		if (bVerboseLog)
+		{
+			UE_LOG(LogTemp, Log, TEXT("Stage2TileManager: Requested landscape load for %s at %s"),
+				*LandscapeLevel.ToSoftObjectPath().ToString(),
+				*LevelTransform.GetLocation().ToString());
+		}
+	}
+
+	if (LoadedTile.LandscapeLevels.Num() > 0)
+	{
+		SetActorTickEnabled(true);
+	}
+}
+
+void AStage2TileManager::TryFinalizeLandscapeLevels()
+{
+	bool bFinalizedAnyLandscape = false;
+
+	for (FStage2LoadedTile& LoadedTile : ActiveTiles)
+	{
+		for (FStage2LoadedLandscapeLevel& LandscapeLevel : LoadedTile.LandscapeLevels)
+		{
+			if (LandscapeLevel.bInitialized || !LandscapeLevel.StreamingLevel)
+			{
+				continue;
+			}
+
+			if (!LandscapeLevel.StreamingLevel->IsLevelLoaded() ||
+				!LandscapeLevel.StreamingLevel->IsLevelVisible())
+			{
+				continue;
+			}
+
+			FinalizeLandscapeLevel(LandscapeLevel);
+			bFinalizedAnyLandscape = true;
+		}
+	}
+
+	if (bFinalizedAnyLandscape)
+	{
+		MarkInitialTilesReadyIfNeeded();
+	}
+}
+
+void AStage2TileManager::FinalizeLandscapeLevel(FStage2LoadedLandscapeLevel& LandscapeLevel)
+{
+	if (LandscapeLevel.bInitialized || !LandscapeLevel.StreamingLevel)
+	{
+		return;
+	}
+
+	FStage2LoadedTile LandscapeTile;
+	LandscapeTile.SourceLevel = LandscapeLevel.SourceLevel;
+	LandscapeTile.StreamingLevel = LandscapeLevel.StreamingLevel;
+	LandscapeTile.AppliedLevelTransform = LandscapeLevel.AppliedLevelTransform;
+
+	EnsureUniqueLandscapeGuids(LandscapeTile);
+	RefreshLandscapeState(LandscapeTile, true);
+	LandscapeLevel.bInitialized = true;
+
+	if (bVerboseLog)
+	{
+		UE_LOG(LogTemp, Log, TEXT("Stage2TileManager: Finalized landscape level %s"),
+			*LandscapeLevel.SourceLevel.ToSoftObjectPath().ToString());
+	}
+}
+
+bool AStage2TileManager::HasPendingLandscapeLevels() const
+{
+	for (const FStage2LoadedTile& LoadedTile : ActiveTiles)
+	{
+		for (const FStage2LoadedLandscapeLevel& LandscapeLevel : LoadedTile.LandscapeLevels)
+		{
+			if (!LandscapeLevel.bInitialized)
+			{
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
+bool AStage2TileManager::AreLandscapeLevelsReady(const FStage2LoadedTile& LoadedTile) const
+{
+	for (const FStage2LoadedLandscapeLevel& LandscapeLevel : LoadedTile.LandscapeLevels)
+	{
+		if (!LandscapeLevel.bInitialized)
+		{
+			return false;
+		}
+	}
+
+	return true;
+}
+
+void AStage2TileManager::UnloadLandscapeLevelsForTile(FStage2LoadedTile& LoadedTile)
+{
+	for (FStage2LoadedLandscapeLevel& LandscapeLevel : LoadedTile.LandscapeLevels)
+	{
+		if (LandscapeLevel.StreamingLevel)
+		{
+			LandscapeLevel.StreamingLevel->SetShouldBeLoaded(false);
+			LandscapeLevel.StreamingLevel->SetShouldBeVisible(false);
+			LandscapeLevel.StreamingLevel->SetIsRequestingUnloadAndRemoval(true);
+		}
+	}
+
+	LoadedTile.LandscapeLevels.Empty();
 }
 
 bool AStage2TileManager::TryMoveTileTolocation(FStage2LoadedTile& LoadedTile, const FTransform& NewLevelTransform)
@@ -1042,6 +1231,7 @@ void AStage2TileManager::RecycleActiveTileAt(int32 TileIndex)
 
 	SetTileRenderingEnabled(RecycledTile, false);
 	SetTileCollisionEnabled(RecycledTile, false);
+	UnloadLandscapeLevelsForTile(RecycledTile);
 	TryMoveTileTolocation(RecycledTile, MakePoolParkingTransform());
 	RecycledTile.RequestedEntryTransform = RecycledTile.AppliedLevelTransform;
 	RecycledTile.bInitialized = true;
@@ -1065,6 +1255,8 @@ void AStage2TileManager::UnloadTile(FStage2LoadedTile& LoadedTile)
 		LoadedTile.StreamingLevel->SetShouldBeVisible(false);
 		LoadedTile.StreamingLevel->SetIsRequestingUnloadAndRemoval(true);
 	}
+
+	UnloadLandscapeLevelsForTile(LoadedTile);
 }
 
 void AStage2TileManager::ResetGenerationState()
@@ -1255,20 +1447,18 @@ EStage2TileType AStage2TileManager::ChooseNextTileType()
 		return EStage2TileType::Goal;
 	}
 
-	// Repeat the fixed playable route after the Start tile. The count advances
-	// only after activation succeeds, so a pool failure cannot skip an item.
-	static constexpr EStage2TileType PlayableTileSequence[] =
-	{
-		EStage2TileType::Straight,
-		EStage2TileType::Right,
-		EStage2TileType::Left,
-		EStage2TileType::Right,
-		EStage2TileType::Straight,
-		EStage2TileType::Left
-	};
-
 	const int32 SequenceIndex = SpawnedPlayableTileCount % UE_ARRAY_COUNT(PlayableTileSequence);
-	return PlayableTileSequence[SequenceIndex];
+	for (int32 Offset = 0; Offset < UE_ARRAY_COUNT(PlayableTileSequence); ++Offset)
+	{
+		const EStage2TileType CandidateTileType =
+			PlayableTileSequence[(SequenceIndex + Offset) % UE_ARRAY_COUNT(PlayableTileSequence)];
+		if (IsPoolTileAvailable(CandidateTileType))
+		{
+			return CandidateTileType;
+		}
+	}
+
+	return EStage2TileType::Straight;
 }
 
 AStage2TileMarker* AStage2TileManager::FindTileMarkerFromStreamingLevel(ULevelStreamingDynamic* StreamingLevel) const
@@ -1318,6 +1508,25 @@ void AStage2TileManager::MarkInitialTilesReadyIfNeeded()
 
 	const int32 RequiredInitialTileCount = FMath::Max(1, InitialTilesToSpawn);
 	if (GetInitializedTileCount() < RequiredInitialTileCount)
+	{
+		return;
+	}
+
+	int32 ReadyInitialTileCount = 0;
+	for (const FStage2LoadedTile& LoadedTile : ActiveTiles)
+	{
+		if (LoadedTile.bInitialized && AreLandscapeLevelsReady(LoadedTile))
+		{
+			++ReadyInitialTileCount;
+		}
+
+		if (ReadyInitialTileCount >= RequiredInitialTileCount)
+		{
+			break;
+		}
+	}
+
+	if (ReadyInitialTileCount < RequiredInitialTileCount)
 	{
 		return;
 	}

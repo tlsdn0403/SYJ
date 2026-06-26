@@ -86,50 +86,8 @@ void ABP_Zombiegirl::InitializeBoneDurability()
 FName ABP_Zombiegirl::GetParentBoneForDamage(FName HitBoneName) const
 {
 	const FString BoneString = HitBoneName.ToString();
-	const FString LowerBoneString = BoneString.ToLower();
 
 	UE_LOG(LogTemp, Verbose, TEXT("ZombieGirl Hit Bone: %s"), *BoneString);
-
-	if (LowerBoneString == TEXT("head"))
-	{
-		return FName("Head");
-	}
-	if (LowerBoneString == TEXT("upperarm_l"))
-	{
-		return FName("LeftArm");
-	}
-	if (LowerBoneString == TEXT("lowerarm_l"))
-	{
-		return FName("LeftForeArm");
-	}
-	if (LowerBoneString == TEXT("upperarm_r"))
-	{
-		return FName("RightArm");
-	}
-	if (LowerBoneString == TEXT("lowerarm_r"))
-	{
-		return FName("RightForeArm");
-	}
-	if (LowerBoneString == TEXT("thigh_l"))
-	{
-		return FName("LeftUpLeg");
-	}
-	if (LowerBoneString == TEXT("calf_l"))
-	{
-		return FName("LeftLeg");
-	}
-	if (LowerBoneString == TEXT("thigh_r"))
-	{
-		return FName("RightUpLeg");
-	}
-	if (LowerBoneString == TEXT("calf_r"))
-	{
-		return FName("RightLeg");
-	}
-	if (LowerBoneString == TEXT("spine_01"))
-	{
-		return FName("Spine");
-	}
 
 	if (BoneString.Contains("Head") ||
 		BoneString.Contains("HeadTop") ||

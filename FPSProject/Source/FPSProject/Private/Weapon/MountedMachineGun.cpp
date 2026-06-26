@@ -95,6 +95,7 @@ namespace
 		{
 			ClosestBoneName = ZombieMesh->FindClosestBone(Hit.ImpactPoint, &ClosestBoneLocation);
 		}
+
 		if (ClosestBoneName != NAME_None)
 		{
 			DamageHit.BoneName = ClosestBoneName;

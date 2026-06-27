@@ -271,7 +271,8 @@ ATruck::ATruck()
 	VehiclePawnCollision->SetCollisionObjectType(ECC_Vehicle);
 	VehiclePawnCollision->SetCollisionResponseToAllChannels(ECR_Ignore);
 	VehiclePawnCollision->SetCollisionResponseToChannel(ECC_Pawn, ECR_Block);
-	VehiclePawnCollision->SetGenerateOverlapEvents(false);
+	VehiclePawnCollision->SetCollisionResponseToChannel(ECC_WorldDynamic, ECR_Overlap);
+	VehiclePawnCollision->SetGenerateOverlapEvents(true);
 	VehiclePawnCollision->SetNotifyRigidBodyCollision(true);
 
 	auto SetupCargoCollision = [](UBoxComponent* Box)
@@ -391,6 +392,12 @@ void ATruck::BeginPlay()
 
 	if (VehiclePawnCollision)
 	{
+		VehiclePawnCollision->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+		VehiclePawnCollision->SetCollisionObjectType(ECC_Vehicle);
+		VehiclePawnCollision->SetCollisionResponseToAllChannels(ECR_Ignore);
+		VehiclePawnCollision->SetCollisionResponseToChannel(ECC_Pawn, ECR_Block);
+		VehiclePawnCollision->SetCollisionResponseToChannel(ECC_WorldDynamic, ECR_Overlap);
+		VehiclePawnCollision->SetGenerateOverlapEvents(true);
 		VehiclePawnCollision->OnComponentHit.AddDynamic(this, &ATruck::OnTruckMeshHit);
 	}
 
@@ -485,6 +492,19 @@ void ATruck::Tick(float DeltaTime)
 
 	if (bIsLocallyDriven)
 	{
+		if (bCinematicControlLocked)
+		{
+			ClearDrivingInput(true);
+			TruckMovePacketSendTimer = 0.0f;
+			DebugTransformLogTimer = 0.0f;
+
+			if (EngineAudioComponent && EngineAudioComponent->IsPlaying())
+			{
+				EngineAudioComponent->Stop();
+			}
+			return;
+		}
+
 		UpdateFuelConsumption(DeltaTime);
 
 		DebugTransformLogTimer += DeltaTime;
@@ -533,7 +553,7 @@ void ATruck::Tick(float DeltaTime)
 	}
 	else
 	{
-		if (EngineAudioComponent->IsPlaying())
+		if (EngineAudioComponent && EngineAudioComponent->IsPlaying())
 		{
 			EngineAudioComponent->Stop();
 		}
@@ -611,7 +631,6 @@ void ATruck::SyncTruckStateToServer(bool bAllowHealthIncrease)
 void ATruck::SetLocallyDriven(bool bLocallyDriven)
 {
 	bIsLocallyDriven = bLocallyDriven;
-	CurrentThrottleInput = 0.0f;
 	ApplyStageVehicleTuning();
 
 	UE_LOG(LogTemp, Verbose,
@@ -624,20 +643,9 @@ void ATruck::SetLocallyDriven(bool bLocallyDriven)
 	if (auto* MoveComp = Cast<UChaosWheeledVehicleMovementComponent>(GetVehicleMovement()))
 	{
 		MoveComp->SetComponentTickEnabled(bLocallyDriven);
-
-		if (bLocallyDriven)
-		{
-			MoveComp->SetThrottleInput(0.0f);
-			MoveComp->SetSteeringInput(0.0f);
-			MoveComp->SetBrakeInput(0.0f);
-		}
-		else
-		{
-			MoveComp->SetThrottleInput(0.0f);
-			MoveComp->SetSteeringInput(0.0f);
-			MoveComp->SetBrakeInput(1.0f);
-		}
 	}
+
+	ClearDrivingInput(!bLocallyDriven || bCinematicControlLocked);
 
 	if (USkeletalMeshComponent* TruckMesh = GetMesh())
 	{
@@ -650,6 +658,19 @@ void ATruck::SetLocallyDriven(bool bLocallyDriven)
 			MakeVehicleMeshKinematic(TruckMesh);
 		}
 	}
+}
+
+void ATruck::SetCinematicControlLocked(bool bLocked)
+{
+	if (bCinematicControlLocked == bLocked)
+	{
+		return;
+	}
+
+	bCinematicControlLocked = bLocked;
+	TruckMovePacketSendTimer = 0.0f;
+	DebugTransformLogTimer = 0.0f;
+	ClearDrivingInput(bCinematicControlLocked || !bIsLocallyDriven);
 }
 
 void ATruck::SetDriverCharacter(AFPSBaseCharacter* Character)
@@ -959,6 +980,12 @@ void ATruck::HandleTruckHealthChanged(float NewHealth, float Damage)
 void ATruck::MoveForward(float Value)
 {
 	/*UE_LOG(LogTemp, Warning, TEXT("Throttle Input: %f"), Value);*/
+	if (bCinematicControlLocked)
+	{
+		ClearDrivingInput(true);
+		return;
+	}
+
 	const bool bCanAccelerate = !bTruckDestroyed && HasTruckFuel();
 	CurrentThrottleInput = bCanAccelerate ? FMath::Clamp(Value, -1.0f, 1.0f) : 0.0f;
 
@@ -1011,8 +1038,27 @@ void ATruck::UpdateFuelConsumption(float DeltaTime)
 	SetTruckFuel(CurrentTruckFuel - FuelUsed);
 }
 
+void ATruck::ClearDrivingInput(bool bHoldBrake)
+{
+	CurrentThrottleInput = 0.0f;
+	bBrakePressedLastFrame = false;
+
+	if (auto* MoveComp = Cast<UChaosWheeledVehicleMovementComponent>(GetVehicleMovement()))
+	{
+		MoveComp->SetThrottleInput(0.0f);
+		MoveComp->SetSteeringInput(0.0f);
+		MoveComp->SetBrakeInput(bHoldBrake ? 1.0f : 0.0f);
+	}
+}
+
 void ATruck::MoveRight(float Value)
 {
+	if (bCinematicControlLocked)
+	{
+		ClearDrivingInput(true);
+		return;
+	}
+
 	if (auto* MoveComp = Cast<UChaosWheeledVehicleMovementComponent>(GetVehicleMovement()))
 	{
 		MoveComp->SetSteeringInput(bTruckDestroyed ? 0.0f : Value);
@@ -1021,6 +1067,12 @@ void ATruck::MoveRight(float Value)
 
 void ATruck::Brake(float Value)
 {
+	if (bCinematicControlLocked)
+	{
+		ClearDrivingInput(true);
+		return;
+	}
+
 	if (auto* MoveComp = Cast<UChaosWheeledVehicleMovementComponent>(GetVehicleMovement()))
 	{
 		MoveComp->SetBrakeInput(bTruckDestroyed ? 1.0f : Value);
@@ -1307,7 +1359,7 @@ void ATruck::Interact_Implementation(AFPSBaseCharacter* Character)
 			*GetNameSafe(Character),
 			Character->IsLocallyControlled() ? 1 : 0);
 
-		if (DriverCharacter && DriverCharacter != Character)
+		if (IsValid(DriverCharacter) && DriverCharacter != Character)
 		{
 			UE_LOG(LogTemp, Warning, TEXT("Driver seat already occupied by %s"), *GetNameSafe(DriverCharacter));
 			return;
@@ -1372,7 +1424,7 @@ bool ATruck::TryEnterMountedWeapon(AFPSBaseCharacter* Character)
 		return false;
 	}
 
-	if (MountedWeaponUser && MountedWeaponUser != Character)
+	if (IsValid(MountedWeaponUser) && MountedWeaponUser != Character)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Mounted weapon already in use by %s"), *GetNameSafe(MountedWeaponUser));
 		return false;
@@ -1631,10 +1683,12 @@ void ATruck::RefreshInteractionWidgetsForCharacter(AFPSBaseCharacter* Character)
 		return;
 	}
 
-	const bool bCharacterIsFree =
-		!Character->IsOnTruckCargo() &&
-		!Character->IsDrivingTruck() &&
-		!Character->IsUsingMountedWeapon();
+	const bool bCharacterIsAnyTruckOccupant =
+		Character->CurrentTruck != nullptr ||
+		Character->IsOnTruckCargo() ||
+		Character->IsDrivingTruck() ||
+		Character->IsUsingMountedWeapon();
+	const bool bCharacterIsFree = !bCharacterIsAnyTruckOccupant;
 
 	const bool bCanUseDriverSeat =
 		!bIsLoadingPhase &&

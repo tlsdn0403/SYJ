@@ -970,7 +970,8 @@ bool AFPSBaseCharacter::CanInteractWithMountedWeapon() const
 	return bIsOnTruckCargo &&
 		CurrentTruck != nullptr &&
 		CurrentInteractableActor == CurrentTruck &&
-		CurrentTruckInteractType == ETruckInteractType::TurretSeat;
+		CurrentTruckInteractType == ETruckInteractType::TurretSeat &&
+		!IsValid(CurrentTruck->GetMountedWeaponUser());
 }
 
 void AFPSBaseCharacter::MoveForward(float Value)
@@ -1475,11 +1476,17 @@ void AFPSBaseCharacter::RefreshTruckInteractionState(ATruck* Truck)
 	}
 
 	if (bIsOnTruckCargo && CurrentTruck == Truck &&
+		!IsValid(Truck->GetMountedWeaponUser()) &&
 		Truck->TurretSeatInteractTrigger &&
 		Truck->TurretSeatInteractTrigger->IsOverlappingActor(this))
 	{
 		CurrentInteractableActor = Truck;
 		CurrentTruckInteractType = ETruckInteractType::TurretSeat;
+		return;
+	}
+
+	if (CurrentTruck != nullptr || bIsOnTruckCargo || bIsDrivingTruck || bIsUsingMountedWeapon)
+	{
 		return;
 	}
 

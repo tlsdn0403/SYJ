@@ -639,7 +639,6 @@ void AMountedMachineGun::SendAimToServer(const FRotator& AimRotation)
 			TruckAimPacket.set_has_turret_aim(true);
 			TruckAimPacket.set_turret_yaw(AimRotation.Yaw);
 			TruckAimPacket.set_turret_pitch(AimRotation.Pitch);
-			TruckAimPacket.set_fuel(Truck->GetTruckFuel());
 			SEND_PACKET(TruckAimPacket);
 		}
 	}

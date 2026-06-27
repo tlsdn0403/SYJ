@@ -5,6 +5,7 @@
 #include "Characters/FPSBaseCharacter.h"
 #include "Characters/FPSPlayerController.h"
 #include "Blueprint/UserWidget.h"
+#include "Camera/CameraActor.h"
 #include "EngineUtils.h"
 #include "HUD/BaseUI.h"
 #include "HUD/LoadingUI.h"
@@ -14,12 +15,34 @@
 #include "LevelSequenceActor.h"
 #include "LevelSequencePlayer.h"
 #include "MovieScene.h"
+#include "Components/BillboardComponent.h"
+#include "Components/MeshComponent.h"
 #include "Components/PrimitiveComponent.h"
+#include "Components/ShapeComponent.h"
+#include "Components/WidgetComponent.h"
 #include "GameFramework/PlayerController.h"
 #include "Kismet/GameplayStatics.h"
 #include "Stage2/Stage2TileManager.h"
 #include "Truck/Truck.h"
 #include "Algo/Sort.h"
+
+namespace
+{
+bool ShouldShowComponentForStageTransitionCinematic(const UPrimitiveComponent* PrimitiveComponent)
+{
+	if (!PrimitiveComponent)
+	{
+		return false;
+	}
+
+	if (PrimitiveComponent->IsA<UShapeComponent>() || PrimitiveComponent->IsA<UBillboardComponent>())
+	{
+		return false;
+	}
+
+	return PrimitiveComponent->IsA<UMeshComponent>() || PrimitiveComponent->IsA<UWidgetComponent>();
+}
+}
 
 FFPSStageFlowManager::FFPSStageFlowManager(UFPSProjectGameInstance& InOwner)
 	: Owner(InOwner)
@@ -511,6 +534,7 @@ bool FFPSStageFlowManager::TryPlayStageTransitionCinematic(
 	}
 
 	SequencePlayer->Play();
+	HideStageTransitionCameraActors();
 
 	const float SafeDurationSeconds = FMath::Max(SequenceDurationSeconds, 0.1f);
 	World->GetTimerManager().SetTimer(
@@ -544,6 +568,7 @@ void FFPSStageFlowManager::FinishStageTransitionCinematic()
 	{
 		SequenceActor->Destroy();
 	}
+	HideStageTransitionCameraActors();
 
 	StageTransitionSequencePlayer.Reset();
 	StageTransitionSequenceActor.Reset();
@@ -575,6 +600,17 @@ void FFPSStageFlowManager::SetStageTransitionCinematicMode(bool bEnable)
 	{
 		PlayerController->SetCinematicMode(bEnable, false, true, true, true);
 	}
+
+	if (UWorld* World = Owner.GetWorld())
+	{
+		for (TActorIterator<ATruck> It(World); It; ++It)
+		{
+			if (ATruck* Truck = *It)
+			{
+				Truck->SetCinematicControlLocked(bEnable);
+			}
+		}
+	}
 }
 
 void FFPSStageFlowManager::PrepareStageTransitionCinematicActors()
@@ -604,10 +640,13 @@ void FFPSStageFlowManager::PrepareStageTransitionCinematicActors()
 				continue;
 			}
 
-			PrimitiveComponent->SetHiddenInGame(false, true);
-			PrimitiveComponent->SetVisibility(true, true);
+			const bool bShouldShow = ShouldShowComponentForStageTransitionCinematic(PrimitiveComponent);
+			PrimitiveComponent->SetHiddenInGame(!bShouldShow, false);
+			PrimitiveComponent->SetVisibility(bShouldShow, false);
 		}
 	}
+
+	HideStageTransitionCameraActors();
 
 	if (AFPSBaseCharacter* LocalCharacter = Owner.MyPlayer)
 	{
@@ -619,5 +658,38 @@ void FFPSStageFlowManager::PrepareStageTransitionCinematicActors()
 	for (const TPair<uint64, AFPSBaseCharacter*>& PlayerEntry : RegisteredPlayers)
 	{
 		FPSStage2WorldUtils::RestoreNetworkCharacterVisibility(PlayerEntry.Value);
+	}
+}
+
+void FFPSStageFlowManager::HideStageTransitionCameraActors()
+{
+	UWorld* World = Owner.GetWorld();
+	if (World == nullptr)
+	{
+		return;
+	}
+
+	for (TActorIterator<ACameraActor> It(World); It; ++It)
+	{
+		ACameraActor* CameraActor = *It;
+		if (!IsValid(CameraActor))
+		{
+			continue;
+		}
+
+		CameraActor->SetActorHiddenInGame(true);
+
+		TArray<UPrimitiveComponent*> PrimitiveComponents;
+		CameraActor->GetComponents<UPrimitiveComponent>(PrimitiveComponents);
+		for (UPrimitiveComponent* PrimitiveComponent : PrimitiveComponents)
+		{
+			if (!IsValid(PrimitiveComponent))
+			{
+				continue;
+			}
+
+			PrimitiveComponent->SetHiddenInGame(true, false);
+			PrimitiveComponent->SetVisibility(false, false);
+		}
 	}
 }

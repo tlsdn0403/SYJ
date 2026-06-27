@@ -63,8 +63,10 @@ protected:
 	virtual void BeginPlay() override;
 	virtual float GetDirectAttackAnimationDuration();
 	virtual float PlayDeathAnimationBeforeRagdoll();
+	virtual void OnNetworkMoveAnimationUpdated();
 	virtual FVector GetCrawlingMeshRelativeLocation(const FVector& CurrentStandingMeshRelativeLocation) const;
 	AActor* GetCurrentAttackTarget() const { return CurrentAttackTarget; }
+	float GetNetworkAnimationMoveSpeed2D() const { return NetworkAnimationMoveSpeed2D; }
 
 	/** 좀비 대미지 처리 내부 로직 */
 	UFUNCTION()
@@ -222,11 +224,15 @@ private:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zombie|Movement", meta = (AllowPrivateAccess = "true"))
 	float NetworkMoveSnapDistance = 200.0f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zombie|Animation", meta = (AllowPrivateAccess = "true", ClampMin = "0.1"))
+	float NetworkAnimBlueprintVelocityScale = 2.5f;
+
 	float AnimationRateScale = 1.0f;
 	FVector StandingMeshRelativeLocation = FVector::ZeroVector;
 	bool bHasStandingMeshRelativeLocation = false;
 	bool bHasNetworkMoveTarget = false;
 	bool bNetworkTargetIsMoving = false;
+	float NetworkAnimationMoveSpeed2D = 0.0f;
 	FVector NetworkTargetLocation = FVector::ZeroVector;
 	FRotator NetworkTargetRotation = FRotator::ZeroRotator;
 	FTimerHandle AttackDamageTimerHandle;

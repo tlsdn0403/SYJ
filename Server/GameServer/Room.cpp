@@ -147,7 +147,17 @@ void Room::BroadcastTruckState(const TruckState& truckState, bool isCorrection)
 	Protocol::S_TRUCK_MOVE movePkt;
 	movePkt.mutable_info()->CopyFrom(truckState.posInfo);
 	movePkt.set_is_correction(isCorrection);
-	movePkt.set_fuel(truckState.fuel);
+	if (truckState.hasFuel)
+	{
+		movePkt.set_has_truck_fuel(true);
+		movePkt.set_fuel(truckState.fuel);
+	}
+	if (truckState.hasHealth)
+	{
+		movePkt.set_has_truck_health(true);
+		movePkt.set_truck_hp(truckState.hp);
+		movePkt.set_truck_max_hp(truckState.maxHp);
+	}
 	if (truckState.hasTurretAim)
 	{
 		movePkt.set_has_turret_aim(true);
@@ -506,7 +516,7 @@ namespace
 	constexpr uint64 STAGE2_WEAPON_OBJECT_ID_START = 200001;
 	constexpr uint64 ZOMBIE_OBJECT_ID_START = 1000000;
 	constexpr float ZOMBIE_SERVER_TICK_SECONDS = 0.1f;
-	constexpr float ZOMBIE_MOVE_SPEED = 180.0f;
+	constexpr float ZOMBIE_MOVE_SPEED = 210.0f;
 	constexpr float ZOMBIE_AGGRO_RANGE = 5000.0f;
 	constexpr float ZOMBIE_AI_ACTIVE_RANGE = 5200.0f;
 	constexpr float ZOMBIE_ATTACK_RANGE = 140.0f;
@@ -1463,7 +1473,10 @@ void Room::HandleHitZombie(PlayerRef player, Protocol::C_HIT_ZOMBIE pkt)
 		SendBufferRef dismemberBuffer = ServerPacketHandler::MakeSendBuffer(dismemberPkt);
 		Broadcast(dismemberBuffer);
 
-		if (brokenBoneName == "head" || brokenBoneName == "spine_01")
+		if (brokenBoneName == "head" ||
+			brokenBoneName == "Head" ||
+			brokenBoneName == "spine_01" ||
+			brokenBoneName == "Spine")
 		{
 			monster->ApplyDamage(monster->GetMaxHp());
 		}
@@ -1705,20 +1718,46 @@ void Room::HandleExitTruck(PlayerRef player, Protocol::C_EXIT_TRUCK pkt)
 
 void Room::HandleTruckMove(PlayerRef player, Protocol::C_TRUCK_MOVE pkt)
 {
-	if (player == nullptr || player->bIsInTruck == false)
+	if (player == nullptr)
 		return;
 
-	const uint64 truckId = player->currentTruckId;
+	const Protocol::PosInfo& incoming = pkt.info();
+	const bool bPlayerInThisTruck =
+		player->bIsInTruck &&
+		player->currentTruckId != 0 &&
+		(incoming.object_id() == 0 || incoming.object_id() == player->currentTruckId);
+	const uint64 truckId = bPlayerInThisTruck ? player->currentTruckId : incoming.object_id();
+	if (truckId == 0)
+		return;
+
 	TruckState* truckState = FindTruckState(truckId);
 	if (truckState == nullptr)
 		return;
 
-	const Protocol::PosInfo& incoming = pkt.info();
-	if (incoming.object_id() != 0 && incoming.object_id() != truckId)
-		return;
+	if (pkt.has_truck_health() &&
+		std::isfinite(pkt.truck_hp()) &&
+		std::isfinite(pkt.truck_max_hp()) &&
+		pkt.truck_max_hp() > 0.0f)
+	{
+		const float incomingMaxHp = pkt.truck_max_hp();
+		const float incomingHp = (std::max)(0.0f, (std::min)(pkt.truck_hp(), incomingMaxHp));
+		constexpr float HEALTH_EPSILON = 0.01f;
+		const bool bIsHealthDecrease = truckState->hasHealth == false || incomingHp <= truckState->hp + HEALTH_EPSILON;
+		const bool bIsExplicitRepair = pkt.has_truck_health_repair();
 
-	if (std::isfinite(pkt.fuel()) && pkt.fuel() >= 0.0f)
-		truckState->fuel = pkt.fuel();
+		if (bIsHealthDecrease || bIsExplicitRepair)
+		{
+			truckState->hasHealth = true;
+			truckState->hp = incomingHp;
+			truckState->maxHp = incomingMaxHp;
+		}
+	}
+
+	if (bPlayerInThisTruck == false)
+	{
+		BroadcastTruckState(*truckState);
+		return;
+	}
 
 	const uint64 playerId = player->objectInfo->object_id();
 	const bool bIsTurretUser =
@@ -1737,12 +1776,26 @@ void Room::HandleTruckMove(PlayerRef player, Protocol::C_TRUCK_MOVE pkt)
 	const bool bIsDriver = player->currentTruckSeatType == Protocol::TRUCK_SEAT_DRIVER;
 	if (bIsDriver == false)
 	{
+		if (pkt.has_truck_fuel() &&
+			std::isfinite(pkt.fuel()) &&
+			pkt.fuel() >= 0.0f &&
+			(truckState->hasFuel == false || pkt.fuel() > truckState->fuel))
+		{
+			truckState->hasFuel = true;
+			truckState->fuel = pkt.fuel();
+		}
 		BroadcastTruckState(*truckState);
 		return;
 	}
 
 	if (truckState->driverPlayerId != player->objectInfo->object_id())
 		return;
+
+	if (pkt.has_truck_fuel() && std::isfinite(pkt.fuel()) && pkt.fuel() >= 0.0f)
+	{
+		truckState->hasFuel = true;
+		truckState->fuel = pkt.fuel();
+	}
 
 	const bool bFiniteTransform =
 		std::isfinite(incoming.x()) &&

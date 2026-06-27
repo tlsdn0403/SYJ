@@ -24,6 +24,7 @@
 #include "Perception/AISense_Sight.h"
 #include "HUD/InventoryWidget.h"
 #include "Characters/FPSPlayerController.h"
+#include "FPSStage2WorldUtils.h"
 #include "Stage2/Stage2TileManager.h"
 #include "EngineUtils.h"
 
@@ -270,7 +271,8 @@ ATruck::ATruck()
 	VehiclePawnCollision->SetCollisionObjectType(ECC_Vehicle);
 	VehiclePawnCollision->SetCollisionResponseToAllChannels(ECR_Ignore);
 	VehiclePawnCollision->SetCollisionResponseToChannel(ECC_Pawn, ECR_Block);
-	VehiclePawnCollision->SetGenerateOverlapEvents(false);
+	VehiclePawnCollision->SetCollisionResponseToChannel(ECC_WorldDynamic, ECR_Overlap);
+	VehiclePawnCollision->SetGenerateOverlapEvents(true);
 	VehiclePawnCollision->SetNotifyRigidBodyCollision(true);
 
 	auto SetupCargoCollision = [](UBoxComponent* Box)
@@ -363,6 +365,7 @@ void ATruck::BeginPlay()
 		HealthComponent->OnHealthChanged.AddDynamic(this, &ATruck::HandleTruckHealthChanged);
 		HealthComponent->SetMaxHealth(TruckMaxHealth, true);
 	}
+	ApplyStageVehicleTuning();
 
 	TruckMaxFuel = FMath::Max(1.0f, TruckMaxFuel);
 	CurrentTruckFuel = bUseFuel
@@ -389,6 +392,12 @@ void ATruck::BeginPlay()
 
 	if (VehiclePawnCollision)
 	{
+		VehiclePawnCollision->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+		VehiclePawnCollision->SetCollisionObjectType(ECC_Vehicle);
+		VehiclePawnCollision->SetCollisionResponseToAllChannels(ECR_Ignore);
+		VehiclePawnCollision->SetCollisionResponseToChannel(ECC_Pawn, ECR_Block);
+		VehiclePawnCollision->SetCollisionResponseToChannel(ECC_WorldDynamic, ECR_Overlap);
+		VehiclePawnCollision->SetGenerateOverlapEvents(true);
 		VehiclePawnCollision->OnComponentHit.AddDynamic(this, &ATruck::OnTruckMeshHit);
 	}
 
@@ -483,6 +492,19 @@ void ATruck::Tick(float DeltaTime)
 
 	if (bIsLocallyDriven)
 	{
+		if (bCinematicControlLocked)
+		{
+			ClearDrivingInput(true);
+			TruckMovePacketSendTimer = 0.0f;
+			DebugTransformLogTimer = 0.0f;
+
+			if (EngineAudioComponent && EngineAudioComponent->IsPlaying())
+			{
+				EngineAudioComponent->Stop();
+			}
+			return;
+		}
+
 		UpdateFuelConsumption(DeltaTime);
 
 		DebugTransformLogTimer += DeltaTime;
@@ -531,7 +553,7 @@ void ATruck::Tick(float DeltaTime)
 	}
 	else
 	{
-		if (EngineAudioComponent->IsPlaying())
+		if (EngineAudioComponent && EngineAudioComponent->IsPlaying())
 		{
 			EngineAudioComponent->Stop();
 		}
@@ -570,7 +592,7 @@ void ATruck::ReportZombieAwarenessNoise(float DeltaTime)
 		FName(TEXT("TruckNoise")));
 }
 
-void ATruck::SendTruckMovePacket()
+void ATruck::SendTruckMovePacket(bool bAllowHealthIncrease)
 {
 	if (NetworkTruckId == 0)
 	{
@@ -588,20 +610,28 @@ void ATruck::SendTruckMovePacket()
 	Info->set_pitch(TruckRotation.Pitch);
 	Info->set_roll(TruckRotation.Roll);
 	Info->set_state(GetVelocity().SizeSquared() > KINDA_SMALL_NUMBER ? Protocol::MOVE_STATE_RUN : Protocol::MOVE_STATE_IDLE);
+	MovePkt.set_has_truck_fuel(true);
 	MovePkt.set_fuel(CurrentTruckFuel);
+	MovePkt.set_has_truck_health(true);
+	MovePkt.set_truck_hp(GetTruckHealth());
+	MovePkt.set_truck_max_hp(GetTruckMaxHealth());
+	if (bAllowHealthIncrease)
+	{
+		MovePkt.set_has_truck_health_repair(true);
+	}
 
 	SEND_PACKET(MovePkt);
 }
 
-void ATruck::SyncTruckStateToServer()
+void ATruck::SyncTruckStateToServer(bool bAllowHealthIncrease)
 {
-	SendTruckMovePacket();
+	SendTruckMovePacket(bAllowHealthIncrease);
 }
 
 void ATruck::SetLocallyDriven(bool bLocallyDriven)
 {
 	bIsLocallyDriven = bLocallyDriven;
-	CurrentThrottleInput = 0.0f;
+	ApplyStageVehicleTuning();
 
 	UE_LOG(LogTemp, Verbose,
 		TEXT("[TruckDebug] SetLocallyDriven Truck=%s bLocallyDriven=%d Controller=%s IsPlayerControlled=%d"),
@@ -613,20 +643,9 @@ void ATruck::SetLocallyDriven(bool bLocallyDriven)
 	if (auto* MoveComp = Cast<UChaosWheeledVehicleMovementComponent>(GetVehicleMovement()))
 	{
 		MoveComp->SetComponentTickEnabled(bLocallyDriven);
-
-		if (bLocallyDriven)
-		{
-			MoveComp->SetThrottleInput(0.0f);
-			MoveComp->SetSteeringInput(0.0f);
-			MoveComp->SetBrakeInput(0.0f);
-		}
-		else
-		{
-			MoveComp->SetThrottleInput(0.0f);
-			MoveComp->SetSteeringInput(0.0f);
-			MoveComp->SetBrakeInput(1.0f);
-		}
 	}
+
+	ClearDrivingInput(!bLocallyDriven || bCinematicControlLocked);
 
 	if (USkeletalMeshComponent* TruckMesh = GetMesh())
 	{
@@ -639,6 +658,19 @@ void ATruck::SetLocallyDriven(bool bLocallyDriven)
 			MakeVehicleMeshKinematic(TruckMesh);
 		}
 	}
+}
+
+void ATruck::SetCinematicControlLocked(bool bLocked)
+{
+	if (bCinematicControlLocked == bLocked)
+	{
+		return;
+	}
+
+	bCinematicControlLocked = bLocked;
+	TruckMovePacketSendTimer = 0.0f;
+	DebugTransformLogTimer = 0.0f;
+	ClearDrivingInput(bCinematicControlLocked || !bIsLocallyDriven);
 }
 
 void ATruck::SetDriverCharacter(AFPSBaseCharacter* Character)
@@ -838,6 +870,73 @@ void ATruck::RepairTruck(float RepairAmount)
 	}
 }
 
+void ATruck::ApplyNetworkHealth(float CurrentHealth, float MaxHealth)
+{
+	if (!HealthComponent || MaxHealth <= 0.0f)
+	{
+		return;
+	}
+
+	const float ClampedMaxHealth = FMath::Max(MaxHealth, 1.0f);
+	const float ClampedCurrentHealth = FMath::Clamp(CurrentHealth, 0.0f, ClampedMaxHealth);
+	bApplyingNetworkHealth = true;
+	if (!FMath::IsNearlyEqual(HealthComponent->MaxGetHealth(), ClampedMaxHealth))
+	{
+		HealthComponent->SetMaxHealth(ClampedMaxHealth, false);
+	}
+	if (!FMath::IsNearlyEqual(HealthComponent->GetHealth(), ClampedCurrentHealth))
+	{
+		HealthComponent->SetCurrentHealth(ClampedCurrentHealth);
+	}
+	bApplyingNetworkHealth = false;
+}
+
+void ATruck::ResetVehiclePhysicsState(bool bReleaseBrake)
+{
+	CurrentThrottleInput = 0.0f;
+	bBrakePressedLastFrame = false;
+
+	if (UChaosWheeledVehicleMovementComponent* MoveComp = Cast<UChaosWheeledVehicleMovementComponent>(GetVehicleMovement()))
+	{
+		MoveComp->SetThrottleInput(0.0f);
+		MoveComp->SetSteeringInput(0.0f);
+		MoveComp->SetBrakeInput(bReleaseBrake ? 0.0f : 1.0f);
+	}
+
+	if (USkeletalMeshComponent* TruckMesh = GetMesh())
+	{
+		EnsureVehicleMeshPhysicsReady(TruckMesh, true);
+		TruckMesh->SetPhysicsLinearVelocity(FVector::ZeroVector);
+		TruckMesh->SetPhysicsAngularVelocityInDegrees(FVector::ZeroVector);
+		TruckMesh->WakeAllRigidBodies();
+		RefreshVehicleMeshRenderState(TruckMesh);
+	}
+
+	ApplyStageVehicleTuning();
+}
+
+void ATruck::ApplyStageVehicleTuning()
+{
+	UChaosWheeledVehicleMovementComponent* MoveComp = Cast<UChaosWheeledVehicleMovementComponent>(GetVehicleMovement());
+	if (!MoveComp)
+	{
+		return;
+	}
+
+	if (!bHasOriginalEngineMaxTorque)
+	{
+		OriginalEngineMaxTorque = MoveComp->EngineSetup.MaxTorque;
+		bHasOriginalEngineMaxTorque = true;
+	}
+
+	const bool bStage2World = FPSStage2WorldUtils::IsStage2World(GetWorld());
+	const float TargetTorque = bStage2World
+		? OriginalEngineMaxTorque * FMath::Max(1.0f, Stage2EngineTorqueMultiplier)
+		: OriginalEngineMaxTorque;
+
+	MoveComp->SetMaxEngineTorque(TargetTorque);
+}
+
 void ATruck::UseDriverHealPack()
 {
 	if (DriverCharacter)
@@ -849,8 +948,18 @@ void ATruck::UseDriverHealPack()
 void ATruck::HandleTruckHealthChanged(float NewHealth, float Damage)
 {
 	OnTruckHealthChanged.Broadcast(NewHealth, GetTruckMaxHealth());
+	if (!bApplyingNetworkHealth && NetworkTruckId != 0)
+	{
+		SyncTruckStateToServer(Damage < 0.0f);
+	}
 
-	if (NewHealth > 0.0f || bTruckDestroyed)
+	if (NewHealth > 0.0f)
+	{
+		bTruckDestroyed = false;
+		return;
+	}
+
+	if (bTruckDestroyed)
 	{
 		return;
 	}
@@ -871,6 +980,12 @@ void ATruck::HandleTruckHealthChanged(float NewHealth, float Damage)
 void ATruck::MoveForward(float Value)
 {
 	/*UE_LOG(LogTemp, Warning, TEXT("Throttle Input: %f"), Value);*/
+	if (bCinematicControlLocked)
+	{
+		ClearDrivingInput(true);
+		return;
+	}
+
 	const bool bCanAccelerate = !bTruckDestroyed && HasTruckFuel();
 	CurrentThrottleInput = bCanAccelerate ? FMath::Clamp(Value, -1.0f, 1.0f) : 0.0f;
 
@@ -923,8 +1038,27 @@ void ATruck::UpdateFuelConsumption(float DeltaTime)
 	SetTruckFuel(CurrentTruckFuel - FuelUsed);
 }
 
+void ATruck::ClearDrivingInput(bool bHoldBrake)
+{
+	CurrentThrottleInput = 0.0f;
+	bBrakePressedLastFrame = false;
+
+	if (auto* MoveComp = Cast<UChaosWheeledVehicleMovementComponent>(GetVehicleMovement()))
+	{
+		MoveComp->SetThrottleInput(0.0f);
+		MoveComp->SetSteeringInput(0.0f);
+		MoveComp->SetBrakeInput(bHoldBrake ? 1.0f : 0.0f);
+	}
+}
+
 void ATruck::MoveRight(float Value)
 {
+	if (bCinematicControlLocked)
+	{
+		ClearDrivingInput(true);
+		return;
+	}
+
 	if (auto* MoveComp = Cast<UChaosWheeledVehicleMovementComponent>(GetVehicleMovement()))
 	{
 		MoveComp->SetSteeringInput(bTruckDestroyed ? 0.0f : Value);
@@ -933,6 +1067,12 @@ void ATruck::MoveRight(float Value)
 
 void ATruck::Brake(float Value)
 {
+	if (bCinematicControlLocked)
+	{
+		ClearDrivingInput(true);
+		return;
+	}
+
 	if (auto* MoveComp = Cast<UChaosWheeledVehicleMovementComponent>(GetVehicleMovement()))
 	{
 		MoveComp->SetBrakeInput(bTruckDestroyed ? 1.0f : Value);
@@ -1219,7 +1359,7 @@ void ATruck::Interact_Implementation(AFPSBaseCharacter* Character)
 			*GetNameSafe(Character),
 			Character->IsLocallyControlled() ? 1 : 0);
 
-		if (DriverCharacter && DriverCharacter != Character)
+		if (IsValid(DriverCharacter) && DriverCharacter != Character)
 		{
 			UE_LOG(LogTemp, Warning, TEXT("Driver seat already occupied by %s"), *GetNameSafe(DriverCharacter));
 			return;
@@ -1284,7 +1424,7 @@ bool ATruck::TryEnterMountedWeapon(AFPSBaseCharacter* Character)
 		return false;
 	}
 
-	if (MountedWeaponUser && MountedWeaponUser != Character)
+	if (IsValid(MountedWeaponUser) && MountedWeaponUser != Character)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Mounted weapon already in use by %s"), *GetNameSafe(MountedWeaponUser));
 		return false;
@@ -1543,10 +1683,12 @@ void ATruck::RefreshInteractionWidgetsForCharacter(AFPSBaseCharacter* Character)
 		return;
 	}
 
-	const bool bCharacterIsFree =
-		!Character->IsOnTruckCargo() &&
-		!Character->IsDrivingTruck() &&
-		!Character->IsUsingMountedWeapon();
+	const bool bCharacterIsAnyTruckOccupant =
+		Character->CurrentTruck != nullptr ||
+		Character->IsOnTruckCargo() ||
+		Character->IsDrivingTruck() ||
+		Character->IsUsingMountedWeapon();
+	const bool bCharacterIsFree = !bCharacterIsAnyTruckOccupant;
 
 	const bool bCanUseDriverSeat =
 		!bIsLoadingPhase &&

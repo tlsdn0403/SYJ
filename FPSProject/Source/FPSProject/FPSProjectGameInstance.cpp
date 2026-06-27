@@ -276,7 +276,7 @@ bool UFPSProjectGameInstance::TryEnterTruckLocally(AFPSBaseCharacter* Character,
 	switch (SeatType)
 	{
 	case Protocol::TRUCK_SEAT_DRIVER:
-		if (Truck->GetDriverCharacter() && Truck->GetDriverCharacter() != Character)
+		if (IsValid(Truck->GetDriverCharacter()) && Truck->GetDriverCharacter() != Character)
 		{
 			return true;
 		}
@@ -624,7 +624,8 @@ void UFPSProjectGameInstance::HandleMove(const Protocol::S_MOVE& MovePkt)
 		const float ZombieGroundOffset = ZombieCapsule ? ZombieCapsule->GetScaledCapsuleHalfHeight() + 2.0f : 90.0f;
 		FPSStage2WorldUtils::TryProjectLocationToGround(World, ZombieLocation, ZombieGroundOffset, ZombieLocation, Zombie);
 		const FRotator ZombieRotation(0.0f, MovePkt.info().yaw(), 0.0f);
-		const bool bZombieIsMoving = MovePkt.info().state() != Protocol::MOVE_STATE_IDLE;
+		const bool bZombieMovedByPacket = FVector::DistSquared2D(ZombieLocation, Zombie->GetActorLocation()) > FMath::Square(1.0f);
+		const bool bZombieIsMoving = MovePkt.info().state() != Protocol::MOVE_STATE_IDLE || bZombieMovedByPacket;
 		Zombie->SetNetworkMoveTarget(ZombieLocation, ZombieRotation, bZombieIsMoving);
 		return;
 	}
@@ -974,9 +975,13 @@ void UFPSProjectGameInstance::HandleTruckMove(const Protocol::S_TRUCK_MOVE& pkt)
 
 	FVector TargetLocation(pkt.info().x(), pkt.info().y(), pkt.info().z());
 	const FRotator TargetRotation(pkt.info().pitch(), pkt.info().yaw(), pkt.info().roll());
-	if (pkt.fuel() >= 0.0f)
+	if (pkt.has_truck_fuel() && pkt.fuel() >= 0.0f)
 	{
 		Truck->SetTruckFuel(pkt.fuel());
+	}
+	if (pkt.has_truck_health())
+	{
+		Truck->ApplyNetworkHealth(pkt.truck_hp(), pkt.truck_max_hp());
 	}
 	Truck->ApplyNetworkTransform(TargetLocation, TargetRotation, pkt.is_correction());
 	if (pkt.has_turret_aim())

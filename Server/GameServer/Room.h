@@ -109,7 +109,11 @@ private:
 	{
 		Protocol::PosInfo posInfo;
 		bool hasTransform = false;
+		bool hasFuel = false;
 		float fuel = -1.0f;
+		bool hasHealth = false;
+		float hp = 0.0f;
+		float maxHp = 0.0f;
 		bool hasTurretAim = false;
 		float turretYaw = 0.0f;
 		float turretPitch = 0.0f;

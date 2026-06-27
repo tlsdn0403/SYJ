@@ -63,8 +63,10 @@ protected:
 	virtual void BeginPlay() override;
 	virtual float GetDirectAttackAnimationDuration();
 	virtual float PlayDeathAnimationBeforeRagdoll();
+	virtual void OnNetworkMoveAnimationUpdated();
 	virtual FVector GetCrawlingMeshRelativeLocation(const FVector& CurrentStandingMeshRelativeLocation) const;
 	AActor* GetCurrentAttackTarget() const { return CurrentAttackTarget; }
+	float GetNetworkAnimationMoveSpeed2D() const { return NetworkAnimationMoveSpeed2D; }
 
 	/** 좀비 대미지 처리 내부 로직 */
 	UFUNCTION()
@@ -227,6 +229,7 @@ private:
 	bool bHasStandingMeshRelativeLocation = false;
 	bool bHasNetworkMoveTarget = false;
 	bool bNetworkTargetIsMoving = false;
+	float NetworkAnimationMoveSpeed2D = 0.0f;
 	FVector NetworkTargetLocation = FVector::ZeroVector;
 	FRotator NetworkTargetRotation = FRotator::ZeroRotator;
 	FTimerHandle AttackDamageTimerHandle;

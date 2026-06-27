@@ -254,10 +254,12 @@ void ABaseZombie::SetNetworkMoveTarget(const FVector& TargetLocation, const FRot
 	}
 
 	const FVector PreviousLocation = GetActorLocation();
+	const bool bMovedByPacket = FVector::DistSquared2D(TargetLocation, PreviousLocation) > FMath::Square(1.0f);
+	const bool bShouldAnimateMoving = bInIsMoving || bMovedByPacket;
 
 	NetworkTargetLocation = TargetLocation;
 	NetworkTargetRotation = TargetRotation;
-	bNetworkTargetIsMoving = bInIsMoving;
+	bNetworkTargetIsMoving = bShouldAnimateMoving;
 	bHasNetworkMoveTarget = false;
 
 	if (!SetActorLocationAndRotation(TargetLocation, TargetRotation, false, nullptr, ETeleportType::TeleportPhysics))
@@ -273,7 +275,7 @@ void ABaseZombie::SetNetworkMoveTarget(const FVector& TargetLocation, const FRot
 
 	float AnimSpeed = 0.0f;
 
-	if (!bInIsMoving)
+	if (!bShouldAnimateMoving)
 	{
 		MoveComp->Velocity = FVector::ZeroVector;
 	}
@@ -282,15 +284,16 @@ void ABaseZombie::SetNetworkMoveTarget(const FVector& TargetLocation, const FRot
 		constexpr float ZombieServerTickSeconds = 0.1f;
 		constexpr float NetworkZombieFallbackMaxSpeed = 180.0f;
 		FVector PacketVelocity = (TargetLocation - PreviousLocation) / ZombieServerTickSeconds;
-		const float MaxAnimSpeed = MoveComp->GetMaxSpeed() > 0.0f
-			? MoveComp->GetMaxSpeed()
-			: NetworkZombieFallbackMaxSpeed;
-		PacketVelocity = PacketVelocity.GetClampedToMaxSize(MaxAnimSpeed);
-		MoveComp->Velocity = PacketVelocity;
-		AnimSpeed = PacketVelocity.Size2D();
+		const FVector AnimationVelocity = PacketVelocity.GetClampedToMaxSize(NetworkZombieFallbackMaxSpeed);
+		AnimSpeed = AnimationVelocity.Size2D();
+		MoveComp->Velocity = MoveComp->GetMaxSpeed() > 0.0f
+			? PacketVelocity.GetClampedToMaxSize(MoveComp->GetMaxSpeed())
+			: AnimationVelocity;
 	}
 
+	NetworkAnimationMoveSpeed2D = AnimSpeed;
 	MoveComp->UpdateComponentVelocity();
+	OnNetworkMoveAnimationUpdated();
 
 	USkeletalMeshComponent* MeshComp = GetMesh();
 	if (!IsValid(MeshComp) || MeshComp->IsSimulatingPhysics())
@@ -306,10 +309,14 @@ void ABaseZombie::SetNetworkMoveTarget(const FVector& TargetLocation, const FRot
 
 	SetAnimFloatIfPresent(AnimInstance, TEXT("Speed"), AnimSpeed);
 	SetAnimFloatIfPresent(AnimInstance, TEXT("GroundSpeed"), AnimSpeed);
-	SetAnimBoolIfPresent(AnimInstance, TEXT("IsMoving"), bInIsMoving);
-	SetAnimBoolIfPresent(AnimInstance, TEXT("bIsMoving"), bInIsMoving);
-	SetAnimBoolIfPresent(AnimInstance, TEXT("HasAcceleration"), bInIsMoving);
-	SetAnimBoolIfPresent(AnimInstance, TEXT("bHasAcceleration"), bInIsMoving);
+	SetAnimBoolIfPresent(AnimInstance, TEXT("IsMoving"), bShouldAnimateMoving);
+	SetAnimBoolIfPresent(AnimInstance, TEXT("bIsMoving"), bShouldAnimateMoving);
+	SetAnimBoolIfPresent(AnimInstance, TEXT("HasAcceleration"), bShouldAnimateMoving);
+	SetAnimBoolIfPresent(AnimInstance, TEXT("bHasAcceleration"), bShouldAnimateMoving);
+}
+
+void ABaseZombie::OnNetworkMoveAnimationUpdated()
+{
 }
 
 FVector ABaseZombie::GetAttackPointForTarget(AActor* TargetActor) const

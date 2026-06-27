@@ -18,6 +18,7 @@ public:
 	ABP_Zombiegirl();
 
 protected:
+	virtual void BeginPlay() override;
 	virtual FVector GetCrawlingMeshRelativeLocation(const FVector& CurrentStandingMeshRelativeLocation) const override;
 	virtual void InitializeBoneDurability() override;
 	virtual FName GetParentBoneForDamage(FName HitBoneName) const override;

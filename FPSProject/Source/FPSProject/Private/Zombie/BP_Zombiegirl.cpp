@@ -14,9 +14,11 @@ ABP_Zombiegirl::ABP_Zombiegirl()
 	static ConstructorHelpers::FObjectFinder<USkeletalMesh> GirlMesh(
 		TEXT("/Script/Engine.SkeletalMesh'/Game/Zombie/mixamo/ch/zom_girl/Zombiegirl_W_Kurniawan.Zombiegirl_W_Kurniawan'"));
 	static ConstructorHelpers::FObjectFinder<UAnimSequenceBase> GirlIdle(
-		TEXT("/Script/Engine.AnimSequence'/Game/Zombie/mixamo/Ani/NewFolder/ayjstart_Anim.ayjstart_Anim'"));
+		TEXT("/Script/Engine.AnimSequence'/Game/Zombie/mixamo/Ani/NewFolder/Idle.Idle'"));
 	static ConstructorHelpers::FObjectFinder<UAnimSequenceBase> GirlWalk(
-		TEXT("/Script/Engine.AnimSequence'/Game/Zombie/mixamo/Ani/NewFolder/Zombie_Walk.Zombie_Walk'"));
+		TEXT("/Script/Engine.AnimSequence'/Game/Zombie/mixamo/Ani/NewFolder/Walking__2_.Walking__2_'"));
+	static ConstructorHelpers::FObjectFinder<UAnimSequenceBase> GirlRun(
+		TEXT("/Script/Engine.AnimSequence'/Game/Zombie/mixamo/Ani/NewFolder/Zombie_Run.Zombie_Run'"));
 	static ConstructorHelpers::FObjectFinder<UAnimSequenceBase> GirlAttackOne(
 		TEXT("/Script/Engine.AnimSequence'/Game/Zombie/mixamo/Ani/NewFolder/attack.attack'"));
 	static ConstructorHelpers::FObjectFinder<UAnimSequenceBase> GirlAttackTwo(
@@ -37,8 +39,9 @@ ABP_Zombiegirl::ABP_Zombiegirl()
 		GetMesh()->SetRelativeRotation(FRotator(0.0f, -90.0f, 0.0f));
 	}
 
-	IdleAnimation = GirlIdle.Object;
-	WalkAnimation = GirlWalk.Object;
+	if (GirlIdle.Succeeded()) IdleAnimation = GirlIdle.Object;
+	if (GirlWalk.Succeeded()) WalkAnimation = GirlWalk.Object;
+	if (GirlRun.Succeeded()) RunAnimation = GirlRun.Object;
 	AttackAnimations.Reset();
 	if (GirlAttackOne.Succeeded()) AttackAnimations.Add(GirlAttackOne.Object);
 	if (GirlAttackTwo.Succeeded()) AttackAnimations.Add(GirlAttackTwo.Object);
@@ -49,6 +52,27 @@ ABP_Zombiegirl::ABP_Zombiegirl()
 	DeathAnimations.Reset();
 	if (GirlDeathOne.Succeeded()) DeathAnimations.Add(GirlDeathOne.Object);
 	if (GirlDeathTwo.Succeeded()) DeathAnimations.Add(GirlDeathTwo.Object);
+}
+
+void ABP_Zombiegirl::BeginPlay()
+{
+	if (UAnimSequenceBase* GirlIdle = LoadObject<UAnimSequenceBase>(nullptr,
+		TEXT("/Script/Engine.AnimSequence'/Game/Zombie/mixamo/Ani/NewFolder/Idle.Idle'")))
+	{
+		IdleAnimation = GirlIdle;
+	}
+	if (UAnimSequenceBase* GirlWalk = LoadObject<UAnimSequenceBase>(nullptr,
+		TEXT("/Script/Engine.AnimSequence'/Game/Zombie/mixamo/Ani/NewFolder/Walking__2_.Walking__2_'")))
+	{
+		WalkAnimation = GirlWalk;
+	}
+	if (UAnimSequenceBase* GirlRun = LoadObject<UAnimSequenceBase>(nullptr,
+		TEXT("/Script/Engine.AnimSequence'/Game/Zombie/mixamo/Ani/NewFolder/Zombie_Run.Zombie_Run'")))
+	{
+		RunAnimation = GirlRun;
+	}
+
+	Super::BeginPlay();
 }
 
 FVector ABP_Zombiegirl::GetCrawlingMeshRelativeLocation(const FVector& CurrentStandingMeshRelativeLocation) const

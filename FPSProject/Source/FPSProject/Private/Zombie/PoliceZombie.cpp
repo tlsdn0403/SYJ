@@ -138,9 +138,11 @@ APoliceZombie::APoliceZombie()
 	static ConstructorHelpers::FObjectFinder<USkeletalMesh> PoliceMesh(
 		TEXT("/Script/Engine.SkeletalMesh'/Game/Zombie/mixamo/ch/zoM_police/copzombie_l_actisdato.copzombie_l_actisdato'"));
 	static ConstructorHelpers::FObjectFinder<UAnimSequenceBase> PoliceIdle(
-		TEXT("/Script/Engine.AnimSequence'/Game/Zombie/mixamo/ch/zoM_police/copzombie_l_actisdato_Anim_Take_001.copzombie_l_actisdato_Anim_Take_001'"));
+		TEXT("/Script/Engine.AnimSequence'/Game/Zombie/mixamo/Ani/police/Idle.Idle'"));
 	static ConstructorHelpers::FObjectFinder<UAnimSequenceBase> PoliceWalk(
-		TEXT("/Script/Engine.AnimSequence'/Game/Zombie/mixamo/Ani/police/Zombie_Walk.Zombie_Walk'"));
+		TEXT("/Script/Engine.AnimSequence'/Game/Zombie/mixamo/Ani/police/Walking__2_.Walking__2_'"));
+	static ConstructorHelpers::FObjectFinder<UAnimSequenceBase> PoliceRun(
+		TEXT("/Script/Engine.AnimSequence'/Game/Zombie/mixamo/Ani/police/Zombie_Run.Zombie_Run'"));
 	static ConstructorHelpers::FObjectFinder<UAnimSequenceBase> PoliceAttackOne(
 		TEXT("/Script/Engine.AnimSequence'/Game/Zombie/mixamo/Ani/police/attack.attack'"));
 	static ConstructorHelpers::FObjectFinder<UAnimSequenceBase> PoliceAttackTwo(
@@ -170,8 +172,9 @@ APoliceZombie::APoliceZombie()
 		Capsule->SetCollisionResponseToChannel(ECC_GameTraceChannel1, ECR_Block);
 	}
 
-	IdleAnimation = PoliceIdle.Object;
-	WalkAnimation = PoliceWalk.Object;
+	if (PoliceIdle.Succeeded()) IdleAnimation = PoliceIdle.Object;
+	if (PoliceWalk.Succeeded()) WalkAnimation = PoliceWalk.Object;
+	if (PoliceRun.Succeeded()) RunAnimation = PoliceRun.Object;
 	AttackAnimations.Reset();
 	if (PoliceAttackOne.Succeeded()) AttackAnimations.Add(PoliceAttackOne.Object);
 	if (PoliceAttackTwo.Succeeded()) AttackAnimations.Add(PoliceAttackTwo.Object);
@@ -186,6 +189,22 @@ APoliceZombie::APoliceZombie()
 
 void APoliceZombie::BeginPlay()
 {
+	if (UAnimSequenceBase* PoliceIdle = LoadObject<UAnimSequenceBase>(nullptr,
+		TEXT("/Script/Engine.AnimSequence'/Game/Zombie/mixamo/Ani/police/Idle.Idle'")))
+	{
+		IdleAnimation = PoliceIdle;
+	}
+	if (UAnimSequenceBase* PoliceWalk = LoadObject<UAnimSequenceBase>(nullptr,
+		TEXT("/Script/Engine.AnimSequence'/Game/Zombie/mixamo/Ani/police/Walking__2_.Walking__2_'")))
+	{
+		WalkAnimation = PoliceWalk;
+	}
+	if (UAnimSequenceBase* PoliceRun = LoadObject<UAnimSequenceBase>(nullptr,
+		TEXT("/Script/Engine.AnimSequence'/Game/Zombie/mixamo/Ani/police/Zombie_Run.Zombie_Run'")))
+	{
+		RunAnimation = PoliceRun;
+	}
+
 	Super::BeginPlay();
 
 	if (UCapsuleComponent* Capsule = GetCapsuleComponent())

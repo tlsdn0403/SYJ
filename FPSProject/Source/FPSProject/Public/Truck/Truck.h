@@ -88,6 +88,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	void RepairTruck(float RepairAmount);
 
+	void ApplyNetworkHealth(float CurrentHealth, float MaxHealth);
+	void ResetVehiclePhysicsState(bool bReleaseBrake);
+
 	UFUNCTION(BlueprintPure, Category = "Combat")
 	bool IsTruckDestroyed() const { return bTruckDestroyed; }
 
@@ -106,7 +109,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Fuel")
 	void RefuelTruck(float FuelAmount);
 
-	void SyncTruckStateToServer();
+	void SyncTruckStateToServer(bool bAllowHealthIncrease = false);
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Driver")
 	USceneComponent* DriverSeatPoint;
@@ -262,7 +265,7 @@ protected:
 	void MoveRight(float Value);
 	void Brake(float Value);
 	void UseDriverHealPack();
-	void SendTruckMovePacket();
+	void SendTruckMovePacket(bool bAllowHealthIncrease = false);
 	void CheckZombieImpactSweep();
 	void ProcessZombieImpact(ABaseZombie* Zombie, const FVector& ImpactPoint, const FVector& ImpactDirection, float ImpactSpeed);
 
@@ -379,6 +382,9 @@ protected:
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Fuel")
 	float CurrentTruckFuel = 0.0f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Vehicle|Stage2", meta = (ClampMin = "1.0"))
+	float Stage2EngineTorqueMultiplier = 1.5f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
 	float BrakeSoundMinSpeed = 300.0f;
 
@@ -395,6 +401,7 @@ protected:
 	float ZombieNoiseInterval = 0.35f;
 private:
 	bool bIsLocallyDriven = false;
+	bool bApplyingNetworkHealth = false;
 	bool bIsBrakingSoundPlaying = false;
 	bool bBrakePressedLastFrame = false;
 	bool bTruckDestroyed = false;
@@ -402,8 +409,11 @@ private:
 	float DebugTransformLogTimer = 0.0f;
 	float ZombieNoiseTimer = 0.0f;
 	float CurrentThrottleInput = 0.0f;
+	float OriginalEngineMaxTorque = 0.0f;
+	bool bHasOriginalEngineMaxTorque = false;
 	static constexpr float TRUCK_MOVE_PACKET_SEND_DELAY = 0.05f;
 
+	void ApplyStageVehicleTuning();
 	void ReportZombieAwarenessNoise(float DeltaTime);
 	void UpdateFuelConsumption(float DeltaTime);
 	void ConfigureVehiclePawnCollision();

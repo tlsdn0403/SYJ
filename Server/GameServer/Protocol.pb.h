@@ -4452,7 +4452,12 @@ class C_TRUCK_MOVE final :
     kFuelFieldNumber = 3,
     kTurretYawFieldNumber = 4,
     kTurretPitchFieldNumber = 5,
+    kTruckHpFieldNumber = 8,
     kHasTurretAimFieldNumber = 6,
+    kHasTruckHealthFieldNumber = 7,
+    kHasTruckFuelFieldNumber = 10,
+    kHasTruckHealthRepairFieldNumber = 11,
+    kTruckMaxHpFieldNumber = 9,
   };
   // .Protocol.PosInfo info = 1;
   bool has_info() const;
@@ -4499,6 +4504,15 @@ class C_TRUCK_MOVE final :
   void _internal_set_turret_pitch(float value);
   public:
 
+  // float truck_hp = 8;
+  void clear_truck_hp();
+  float truck_hp() const;
+  void set_truck_hp(float value);
+  private:
+  float _internal_truck_hp() const;
+  void _internal_set_truck_hp(float value);
+  public:
+
   // bool has_turret_aim = 6;
   void clear_has_turret_aim();
   bool has_turret_aim() const;
@@ -4506,6 +4520,42 @@ class C_TRUCK_MOVE final :
   private:
   bool _internal_has_turret_aim() const;
   void _internal_set_has_turret_aim(bool value);
+  public:
+
+  // bool has_truck_health = 7;
+  void clear_has_truck_health();
+  bool has_truck_health() const;
+  void set_has_truck_health(bool value);
+  private:
+  bool _internal_has_truck_health() const;
+  void _internal_set_has_truck_health(bool value);
+  public:
+
+  // bool has_truck_fuel = 10;
+  void clear_has_truck_fuel();
+  bool has_truck_fuel() const;
+  void set_has_truck_fuel(bool value);
+  private:
+  bool _internal_has_truck_fuel() const;
+  void _internal_set_has_truck_fuel(bool value);
+  public:
+
+  // bool has_truck_health_repair = 11;
+  void clear_has_truck_health_repair();
+  bool has_truck_health_repair() const;
+  void set_has_truck_health_repair(bool value);
+  private:
+  bool _internal_has_truck_health_repair() const;
+  void _internal_set_has_truck_health_repair(bool value);
+  public:
+
+  // float truck_max_hp = 9;
+  void clear_truck_max_hp();
+  float truck_max_hp() const;
+  void set_truck_max_hp(float value);
+  private:
+  float _internal_truck_max_hp() const;
+  void _internal_set_truck_max_hp(float value);
   public:
 
   // @@protoc_insertion_point(class_scope:Protocol.C_TRUCK_MOVE)
@@ -4520,7 +4570,12 @@ class C_TRUCK_MOVE final :
     float fuel_;
     float turret_yaw_;
     float turret_pitch_;
+    float truck_hp_;
     bool has_turret_aim_;
+    bool has_truck_health_;
+    bool has_truck_fuel_;
+    bool has_truck_health_repair_;
+    float truck_max_hp_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   };
   union { Impl_ _impl_; };
@@ -4652,9 +4707,13 @@ class S_TRUCK_MOVE final :
     kInfoFieldNumber = 1,
     kFuelFieldNumber = 3,
     kTurretYawFieldNumber = 4,
+    kTurretPitchFieldNumber = 5,
     kIsCorrectionFieldNumber = 2,
     kHasTurretAimFieldNumber = 6,
-    kTurretPitchFieldNumber = 5,
+    kHasTruckHealthFieldNumber = 7,
+    kHasTruckFuelFieldNumber = 10,
+    kTruckHpFieldNumber = 8,
+    kTruckMaxHpFieldNumber = 9,
   };
   // .Protocol.PosInfo info = 1;
   bool has_info() const;
@@ -4692,6 +4751,15 @@ class S_TRUCK_MOVE final :
   void _internal_set_turret_yaw(float value);
   public:
 
+  // float turret_pitch = 5;
+  void clear_turret_pitch();
+  float turret_pitch() const;
+  void set_turret_pitch(float value);
+  private:
+  float _internal_turret_pitch() const;
+  void _internal_set_turret_pitch(float value);
+  public:
+
   // bool is_correction = 2;
   void clear_is_correction();
   bool is_correction() const;
@@ -4710,13 +4778,40 @@ class S_TRUCK_MOVE final :
   void _internal_set_has_turret_aim(bool value);
   public:
 
-  // float turret_pitch = 5;
-  void clear_turret_pitch();
-  float turret_pitch() const;
-  void set_turret_pitch(float value);
+  // bool has_truck_health = 7;
+  void clear_has_truck_health();
+  bool has_truck_health() const;
+  void set_has_truck_health(bool value);
   private:
-  float _internal_turret_pitch() const;
-  void _internal_set_turret_pitch(float value);
+  bool _internal_has_truck_health() const;
+  void _internal_set_has_truck_health(bool value);
+  public:
+
+  // bool has_truck_fuel = 10;
+  void clear_has_truck_fuel();
+  bool has_truck_fuel() const;
+  void set_has_truck_fuel(bool value);
+  private:
+  bool _internal_has_truck_fuel() const;
+  void _internal_set_has_truck_fuel(bool value);
+  public:
+
+  // float truck_hp = 8;
+  void clear_truck_hp();
+  float truck_hp() const;
+  void set_truck_hp(float value);
+  private:
+  float _internal_truck_hp() const;
+  void _internal_set_truck_hp(float value);
+  public:
+
+  // float truck_max_hp = 9;
+  void clear_truck_max_hp();
+  float truck_max_hp() const;
+  void set_truck_max_hp(float value);
+  private:
+  float _internal_truck_max_hp() const;
+  void _internal_set_truck_max_hp(float value);
   public:
 
   // @@protoc_insertion_point(class_scope:Protocol.S_TRUCK_MOVE)
@@ -4730,9 +4825,13 @@ class S_TRUCK_MOVE final :
     ::Protocol::PosInfo* info_;
     float fuel_;
     float turret_yaw_;
+    float turret_pitch_;
     bool is_correction_;
     bool has_turret_aim_;
-    float turret_pitch_;
+    bool has_truck_health_;
+    bool has_truck_fuel_;
+    float truck_hp_;
+    float truck_max_hp_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   };
   union { Impl_ _impl_; };
@@ -8200,6 +8299,106 @@ inline void C_TRUCK_MOVE::set_has_turret_aim(bool value) {
   // @@protoc_insertion_point(field_set:Protocol.C_TRUCK_MOVE.has_turret_aim)
 }
 
+// bool has_truck_health = 7;
+inline void C_TRUCK_MOVE::clear_has_truck_health() {
+  _impl_.has_truck_health_ = false;
+}
+inline bool C_TRUCK_MOVE::_internal_has_truck_health() const {
+  return _impl_.has_truck_health_;
+}
+inline bool C_TRUCK_MOVE::has_truck_health() const {
+  // @@protoc_insertion_point(field_get:Protocol.C_TRUCK_MOVE.has_truck_health)
+  return _internal_has_truck_health();
+}
+inline void C_TRUCK_MOVE::_internal_set_has_truck_health(bool value) {
+  
+  _impl_.has_truck_health_ = value;
+}
+inline void C_TRUCK_MOVE::set_has_truck_health(bool value) {
+  _internal_set_has_truck_health(value);
+  // @@protoc_insertion_point(field_set:Protocol.C_TRUCK_MOVE.has_truck_health)
+}
+
+// float truck_hp = 8;
+inline void C_TRUCK_MOVE::clear_truck_hp() {
+  _impl_.truck_hp_ = 0;
+}
+inline float C_TRUCK_MOVE::_internal_truck_hp() const {
+  return _impl_.truck_hp_;
+}
+inline float C_TRUCK_MOVE::truck_hp() const {
+  // @@protoc_insertion_point(field_get:Protocol.C_TRUCK_MOVE.truck_hp)
+  return _internal_truck_hp();
+}
+inline void C_TRUCK_MOVE::_internal_set_truck_hp(float value) {
+  
+  _impl_.truck_hp_ = value;
+}
+inline void C_TRUCK_MOVE::set_truck_hp(float value) {
+  _internal_set_truck_hp(value);
+  // @@protoc_insertion_point(field_set:Protocol.C_TRUCK_MOVE.truck_hp)
+}
+
+// float truck_max_hp = 9;
+inline void C_TRUCK_MOVE::clear_truck_max_hp() {
+  _impl_.truck_max_hp_ = 0;
+}
+inline float C_TRUCK_MOVE::_internal_truck_max_hp() const {
+  return _impl_.truck_max_hp_;
+}
+inline float C_TRUCK_MOVE::truck_max_hp() const {
+  // @@protoc_insertion_point(field_get:Protocol.C_TRUCK_MOVE.truck_max_hp)
+  return _internal_truck_max_hp();
+}
+inline void C_TRUCK_MOVE::_internal_set_truck_max_hp(float value) {
+  
+  _impl_.truck_max_hp_ = value;
+}
+inline void C_TRUCK_MOVE::set_truck_max_hp(float value) {
+  _internal_set_truck_max_hp(value);
+  // @@protoc_insertion_point(field_set:Protocol.C_TRUCK_MOVE.truck_max_hp)
+}
+
+// bool has_truck_fuel = 10;
+inline void C_TRUCK_MOVE::clear_has_truck_fuel() {
+  _impl_.has_truck_fuel_ = false;
+}
+inline bool C_TRUCK_MOVE::_internal_has_truck_fuel() const {
+  return _impl_.has_truck_fuel_;
+}
+inline bool C_TRUCK_MOVE::has_truck_fuel() const {
+  // @@protoc_insertion_point(field_get:Protocol.C_TRUCK_MOVE.has_truck_fuel)
+  return _internal_has_truck_fuel();
+}
+inline void C_TRUCK_MOVE::_internal_set_has_truck_fuel(bool value) {
+  
+  _impl_.has_truck_fuel_ = value;
+}
+inline void C_TRUCK_MOVE::set_has_truck_fuel(bool value) {
+  _internal_set_has_truck_fuel(value);
+  // @@protoc_insertion_point(field_set:Protocol.C_TRUCK_MOVE.has_truck_fuel)
+}
+
+// bool has_truck_health_repair = 11;
+inline void C_TRUCK_MOVE::clear_has_truck_health_repair() {
+  _impl_.has_truck_health_repair_ = false;
+}
+inline bool C_TRUCK_MOVE::_internal_has_truck_health_repair() const {
+  return _impl_.has_truck_health_repair_;
+}
+inline bool C_TRUCK_MOVE::has_truck_health_repair() const {
+  // @@protoc_insertion_point(field_get:Protocol.C_TRUCK_MOVE.has_truck_health_repair)
+  return _internal_has_truck_health_repair();
+}
+inline void C_TRUCK_MOVE::_internal_set_has_truck_health_repair(bool value) {
+  
+  _impl_.has_truck_health_repair_ = value;
+}
+inline void C_TRUCK_MOVE::set_has_truck_health_repair(bool value) {
+  _internal_set_has_truck_health_repair(value);
+  // @@protoc_insertion_point(field_set:Protocol.C_TRUCK_MOVE.has_truck_health_repair)
+}
+
 // -------------------------------------------------------------------
 
 // S_TRUCK_MOVE
@@ -8387,6 +8586,86 @@ inline void S_TRUCK_MOVE::_internal_set_has_turret_aim(bool value) {
 inline void S_TRUCK_MOVE::set_has_turret_aim(bool value) {
   _internal_set_has_turret_aim(value);
   // @@protoc_insertion_point(field_set:Protocol.S_TRUCK_MOVE.has_turret_aim)
+}
+
+// bool has_truck_health = 7;
+inline void S_TRUCK_MOVE::clear_has_truck_health() {
+  _impl_.has_truck_health_ = false;
+}
+inline bool S_TRUCK_MOVE::_internal_has_truck_health() const {
+  return _impl_.has_truck_health_;
+}
+inline bool S_TRUCK_MOVE::has_truck_health() const {
+  // @@protoc_insertion_point(field_get:Protocol.S_TRUCK_MOVE.has_truck_health)
+  return _internal_has_truck_health();
+}
+inline void S_TRUCK_MOVE::_internal_set_has_truck_health(bool value) {
+  
+  _impl_.has_truck_health_ = value;
+}
+inline void S_TRUCK_MOVE::set_has_truck_health(bool value) {
+  _internal_set_has_truck_health(value);
+  // @@protoc_insertion_point(field_set:Protocol.S_TRUCK_MOVE.has_truck_health)
+}
+
+// float truck_hp = 8;
+inline void S_TRUCK_MOVE::clear_truck_hp() {
+  _impl_.truck_hp_ = 0;
+}
+inline float S_TRUCK_MOVE::_internal_truck_hp() const {
+  return _impl_.truck_hp_;
+}
+inline float S_TRUCK_MOVE::truck_hp() const {
+  // @@protoc_insertion_point(field_get:Protocol.S_TRUCK_MOVE.truck_hp)
+  return _internal_truck_hp();
+}
+inline void S_TRUCK_MOVE::_internal_set_truck_hp(float value) {
+  
+  _impl_.truck_hp_ = value;
+}
+inline void S_TRUCK_MOVE::set_truck_hp(float value) {
+  _internal_set_truck_hp(value);
+  // @@protoc_insertion_point(field_set:Protocol.S_TRUCK_MOVE.truck_hp)
+}
+
+// float truck_max_hp = 9;
+inline void S_TRUCK_MOVE::clear_truck_max_hp() {
+  _impl_.truck_max_hp_ = 0;
+}
+inline float S_TRUCK_MOVE::_internal_truck_max_hp() const {
+  return _impl_.truck_max_hp_;
+}
+inline float S_TRUCK_MOVE::truck_max_hp() const {
+  // @@protoc_insertion_point(field_get:Protocol.S_TRUCK_MOVE.truck_max_hp)
+  return _internal_truck_max_hp();
+}
+inline void S_TRUCK_MOVE::_internal_set_truck_max_hp(float value) {
+  
+  _impl_.truck_max_hp_ = value;
+}
+inline void S_TRUCK_MOVE::set_truck_max_hp(float value) {
+  _internal_set_truck_max_hp(value);
+  // @@protoc_insertion_point(field_set:Protocol.S_TRUCK_MOVE.truck_max_hp)
+}
+
+// bool has_truck_fuel = 10;
+inline void S_TRUCK_MOVE::clear_has_truck_fuel() {
+  _impl_.has_truck_fuel_ = false;
+}
+inline bool S_TRUCK_MOVE::_internal_has_truck_fuel() const {
+  return _impl_.has_truck_fuel_;
+}
+inline bool S_TRUCK_MOVE::has_truck_fuel() const {
+  // @@protoc_insertion_point(field_get:Protocol.S_TRUCK_MOVE.has_truck_fuel)
+  return _internal_has_truck_fuel();
+}
+inline void S_TRUCK_MOVE::_internal_set_has_truck_fuel(bool value) {
+  
+  _impl_.has_truck_fuel_ = value;
+}
+inline void S_TRUCK_MOVE::set_has_truck_fuel(bool value) {
+  _internal_set_has_truck_fuel(value);
+  // @@protoc_insertion_point(field_set:Protocol.S_TRUCK_MOVE.has_truck_fuel)
 }
 
 // -------------------------------------------------------------------

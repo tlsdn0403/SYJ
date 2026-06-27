@@ -24,6 +24,7 @@
 #include "Perception/AISense_Sight.h"
 #include "HUD/InventoryWidget.h"
 #include "Characters/FPSPlayerController.h"
+#include "FPSStage2WorldUtils.h"
 #include "Stage2/Stage2TileManager.h"
 #include "EngineUtils.h"
 
@@ -363,6 +364,7 @@ void ATruck::BeginPlay()
 		HealthComponent->OnHealthChanged.AddDynamic(this, &ATruck::HandleTruckHealthChanged);
 		HealthComponent->SetMaxHealth(TruckMaxHealth, true);
 	}
+	ApplyStageVehicleTuning();
 
 	TruckMaxFuel = FMath::Max(1.0f, TruckMaxFuel);
 	CurrentTruckFuel = bUseFuel
@@ -570,7 +572,7 @@ void ATruck::ReportZombieAwarenessNoise(float DeltaTime)
 		FName(TEXT("TruckNoise")));
 }
 
-void ATruck::SendTruckMovePacket()
+void ATruck::SendTruckMovePacket(bool bAllowHealthIncrease)
 {
 	if (NetworkTruckId == 0)
 	{
@@ -588,20 +590,29 @@ void ATruck::SendTruckMovePacket()
 	Info->set_pitch(TruckRotation.Pitch);
 	Info->set_roll(TruckRotation.Roll);
 	Info->set_state(GetVelocity().SizeSquared() > KINDA_SMALL_NUMBER ? Protocol::MOVE_STATE_RUN : Protocol::MOVE_STATE_IDLE);
+	MovePkt.set_has_truck_fuel(true);
 	MovePkt.set_fuel(CurrentTruckFuel);
+	MovePkt.set_has_truck_health(true);
+	MovePkt.set_truck_hp(GetTruckHealth());
+	MovePkt.set_truck_max_hp(GetTruckMaxHealth());
+	if (bAllowHealthIncrease)
+	{
+		MovePkt.set_has_truck_health_repair(true);
+	}
 
 	SEND_PACKET(MovePkt);
 }
 
-void ATruck::SyncTruckStateToServer()
+void ATruck::SyncTruckStateToServer(bool bAllowHealthIncrease)
 {
-	SendTruckMovePacket();
+	SendTruckMovePacket(bAllowHealthIncrease);
 }
 
 void ATruck::SetLocallyDriven(bool bLocallyDriven)
 {
 	bIsLocallyDriven = bLocallyDriven;
 	CurrentThrottleInput = 0.0f;
+	ApplyStageVehicleTuning();
 
 	UE_LOG(LogTemp, Verbose,
 		TEXT("[TruckDebug] SetLocallyDriven Truck=%s bLocallyDriven=%d Controller=%s IsPlayerControlled=%d"),
@@ -838,6 +849,73 @@ void ATruck::RepairTruck(float RepairAmount)
 	}
 }
 
+void ATruck::ApplyNetworkHealth(float CurrentHealth, float MaxHealth)
+{
+	if (!HealthComponent || MaxHealth <= 0.0f)
+	{
+		return;
+	}
+
+	const float ClampedMaxHealth = FMath::Max(MaxHealth, 1.0f);
+	const float ClampedCurrentHealth = FMath::Clamp(CurrentHealth, 0.0f, ClampedMaxHealth);
+	bApplyingNetworkHealth = true;
+	if (!FMath::IsNearlyEqual(HealthComponent->MaxGetHealth(), ClampedMaxHealth))
+	{
+		HealthComponent->SetMaxHealth(ClampedMaxHealth, false);
+	}
+	if (!FMath::IsNearlyEqual(HealthComponent->GetHealth(), ClampedCurrentHealth))
+	{
+		HealthComponent->SetCurrentHealth(ClampedCurrentHealth);
+	}
+	bApplyingNetworkHealth = false;
+}
+
+void ATruck::ResetVehiclePhysicsState(bool bReleaseBrake)
+{
+	CurrentThrottleInput = 0.0f;
+	bBrakePressedLastFrame = false;
+
+	if (UChaosWheeledVehicleMovementComponent* MoveComp = Cast<UChaosWheeledVehicleMovementComponent>(GetVehicleMovement()))
+	{
+		MoveComp->SetThrottleInput(0.0f);
+		MoveComp->SetSteeringInput(0.0f);
+		MoveComp->SetBrakeInput(bReleaseBrake ? 0.0f : 1.0f);
+	}
+
+	if (USkeletalMeshComponent* TruckMesh = GetMesh())
+	{
+		EnsureVehicleMeshPhysicsReady(TruckMesh, true);
+		TruckMesh->SetPhysicsLinearVelocity(FVector::ZeroVector);
+		TruckMesh->SetPhysicsAngularVelocityInDegrees(FVector::ZeroVector);
+		TruckMesh->WakeAllRigidBodies();
+		RefreshVehicleMeshRenderState(TruckMesh);
+	}
+
+	ApplyStageVehicleTuning();
+}
+
+void ATruck::ApplyStageVehicleTuning()
+{
+	UChaosWheeledVehicleMovementComponent* MoveComp = Cast<UChaosWheeledVehicleMovementComponent>(GetVehicleMovement());
+	if (!MoveComp)
+	{
+		return;
+	}
+
+	if (!bHasOriginalEngineMaxTorque)
+	{
+		OriginalEngineMaxTorque = MoveComp->EngineSetup.MaxTorque;
+		bHasOriginalEngineMaxTorque = true;
+	}
+
+	const bool bStage2World = FPSStage2WorldUtils::IsStage2World(GetWorld());
+	const float TargetTorque = bStage2World
+		? OriginalEngineMaxTorque * FMath::Max(1.0f, Stage2EngineTorqueMultiplier)
+		: OriginalEngineMaxTorque;
+
+	MoveComp->SetMaxEngineTorque(TargetTorque);
+}
+
 void ATruck::UseDriverHealPack()
 {
 	if (DriverCharacter)
@@ -849,8 +927,18 @@ void ATruck::UseDriverHealPack()
 void ATruck::HandleTruckHealthChanged(float NewHealth, float Damage)
 {
 	OnTruckHealthChanged.Broadcast(NewHealth, GetTruckMaxHealth());
+	if (!bApplyingNetworkHealth && NetworkTruckId != 0)
+	{
+		SyncTruckStateToServer(Damage < 0.0f);
+	}
 
-	if (NewHealth > 0.0f || bTruckDestroyed)
+	if (NewHealth > 0.0f)
+	{
+		bTruckDestroyed = false;
+		return;
+	}
+
+	if (bTruckDestroyed)
 	{
 		return;
 	}

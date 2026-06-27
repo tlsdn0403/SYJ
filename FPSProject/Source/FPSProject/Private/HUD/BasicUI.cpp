@@ -71,6 +71,9 @@ void UBasicUI::SetAmmoCount(int32 AmmoCount)
 
 void UBasicUI:: Play_ESC()
 { 
+	RemoveFromParent();
+	AddToViewport(1000);
+
 	if (Ani_ESC)
 	{
 		PlayAnimation(Ani_ESC);
@@ -80,6 +83,7 @@ void UBasicUI:: Play_ESC()
 		PC->bShowMouseCursor = true;
 
 		FInputModeUIOnly InputMode;
+		InputMode.SetWidgetToFocus(TakeWidget());
 		InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
 		PC->SetInputMode(InputMode);
 	}

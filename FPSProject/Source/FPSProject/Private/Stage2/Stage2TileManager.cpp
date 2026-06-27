@@ -303,7 +303,7 @@ void AStage2TileManager::PreloadTilePool()
 	QueueTilePoolLevels(StraightTileLevels, EStage2TileType::Straight);
 	QueueTilePoolLevels(LeftTileLevels, EStage2TileType::Left);
 	QueueTilePoolLevels(RightTileLevels, EStage2TileType::Right);
-	QueueTilePoolLevels(GoalTileLevels, EStage2TileType::Goal);
+	QueueTilePoolLevels(GoalTileLevels, EStage2TileType::Goal, 1);
 
 	if (TilePool.Num() == 0)
 	{
@@ -312,14 +312,19 @@ void AStage2TileManager::PreloadTilePool()
 	}
 }
 
-void AStage2TileManager::QueueTilePoolLevels(const TArray<TSoftObjectPtr<UWorld>>& LevelArray, EStage2TileType TileType)
+void AStage2TileManager::QueueTilePoolLevels(
+	const TArray<TSoftObjectPtr<UWorld>>& LevelArray,
+	EStage2TileType TileType,
+	int32 OverridePoolCount)
 {
 	if (LevelArray.Num() == 0)
 	{
 		return;
 	}
 
-	const int32 PoolCount = FMath::Max(1, PreloadedTilesPerType);
+	const int32 PoolCount = OverridePoolCount == INDEX_NONE
+		? FMath::Max(1, PreloadedTilesPerType)
+		: FMath::Max(1, OverridePoolCount);
 	for (int32 PoolIndex = 0; PoolIndex < PoolCount; ++PoolIndex)
 	{
 		const TSoftObjectPtr<UWorld>& TileLevel = LevelArray[PoolIndex % LevelArray.Num()];

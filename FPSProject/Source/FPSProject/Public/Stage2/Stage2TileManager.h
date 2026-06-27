@@ -271,7 +271,10 @@ private:
 	TMap<TObjectKey<UPrimitiveComponent>, ECollisionEnabled::Type> CachedTileCollisionStates;
 
 	void PreloadTilePool();
-	void QueueTilePoolLevels(const TArray<TSoftObjectPtr<UWorld>>& LevelArray, EStage2TileType TileType);
+	void QueueTilePoolLevels(
+		const TArray<TSoftObjectPtr<UWorld>>& LevelArray,
+		EStage2TileType TileType,
+		int32 OverridePoolCount = INDEX_NONE);
 	void LoadPooledTileLevel(const TSoftObjectPtr<UWorld>& TileLevel, EStage2TileType TileType);
 	void TryFinalizePooledTiles();
 	void FinalizePooledTile(int32 PoolIndex);

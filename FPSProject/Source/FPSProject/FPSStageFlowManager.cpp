@@ -14,12 +14,34 @@
 #include "LevelSequenceActor.h"
 #include "LevelSequencePlayer.h"
 #include "MovieScene.h"
+#include "Components/BillboardComponent.h"
+#include "Components/MeshComponent.h"
 #include "Components/PrimitiveComponent.h"
+#include "Components/ShapeComponent.h"
+#include "Components/WidgetComponent.h"
 #include "GameFramework/PlayerController.h"
 #include "Kismet/GameplayStatics.h"
 #include "Stage2/Stage2TileManager.h"
 #include "Truck/Truck.h"
 #include "Algo/Sort.h"
+
+namespace
+{
+bool ShouldShowComponentForStageTransitionCinematic(const UPrimitiveComponent* PrimitiveComponent)
+{
+	if (!PrimitiveComponent)
+	{
+		return false;
+	}
+
+	if (PrimitiveComponent->IsA<UShapeComponent>() || PrimitiveComponent->IsA<UBillboardComponent>())
+	{
+		return false;
+	}
+
+	return PrimitiveComponent->IsA<UMeshComponent>() || PrimitiveComponent->IsA<UWidgetComponent>();
+}
+}
 
 FFPSStageFlowManager::FFPSStageFlowManager(UFPSProjectGameInstance& InOwner)
 	: Owner(InOwner)
@@ -604,8 +626,9 @@ void FFPSStageFlowManager::PrepareStageTransitionCinematicActors()
 				continue;
 			}
 
-			PrimitiveComponent->SetHiddenInGame(false, true);
-			PrimitiveComponent->SetVisibility(true, true);
+			const bool bShouldShow = ShouldShowComponentForStageTransitionCinematic(PrimitiveComponent);
+			PrimitiveComponent->SetHiddenInGame(!bShouldShow, false);
+			PrimitiveComponent->SetVisibility(bShouldShow, false);
 		}
 	}
 

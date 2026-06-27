@@ -13,6 +13,37 @@ bool UInteractTriggerComponent::IsAvailableForCharacter(const AFPSBaseCharacter*
 		return false;
 	}
 
+	if (ATruck* OwnerTruck = Cast<ATruck>(GetOwner()))
+	{
+		const bool bIsTruckOccupant =
+			Character->CurrentTruck != nullptr ||
+			Character->IsOnTruckCargo() ||
+			Character->IsDrivingTruck() ||
+			Character->IsUsingMountedWeapon();
+		const bool bIsOnThisTruck = Character->CurrentTruck == OwnerTruck;
+
+		switch (InteractType)
+		{
+		case ETruckInteractType::TurretSeat:
+			return bIsOnThisTruck &&
+				Character->IsOnTruckCargo() &&
+				!Character->IsUsingMountedWeapon() &&
+				!IsValid(OwnerTruck->GetMountedWeaponUser());
+
+		case ETruckInteractType::DriverSeat:
+		case ETruckInteractType::CargoSeat:
+		case ETruckInteractType::LoadCargo:
+			if (bIsTruckOccupant)
+			{
+				return false;
+			}
+			break;
+
+		default:
+			break;
+		}
+	}
+
 	if (!bRequiresTruckCargo)
 	{
 		return true;

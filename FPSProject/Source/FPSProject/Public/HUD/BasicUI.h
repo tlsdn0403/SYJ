@@ -34,6 +34,10 @@ protected:
 
 public:
 
+
+	UPROPERTY(meta = (BindWidget))
+	UTextBlock* NameText;
+
 	UPROPERTY(meta = (BindWidget))	//
 	UImage* GunImage;
 

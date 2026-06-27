@@ -14,6 +14,57 @@ namespace
 FName GetPoliceDismemberRootBone(FName HitBoneName)
 {
 	const FString Bone = HitBoneName.ToString();
+	const FString LowerBone = Bone.ToLower();
+
+	if (LowerBone == TEXT("head"))
+	{
+		return TEXT("Head");
+	}
+
+	if (LowerBone == TEXT("upperarm_l"))
+	{
+		return TEXT("LeftArm");
+	}
+
+	if (LowerBone == TEXT("lowerarm_l"))
+	{
+		return TEXT("LeftForeArm");
+	}
+
+	if (LowerBone == TEXT("upperarm_r"))
+	{
+		return TEXT("RightArm");
+	}
+
+	if (LowerBone == TEXT("lowerarm_r"))
+	{
+		return TEXT("RightForeArm");
+	}
+
+	if (LowerBone == TEXT("thigh_l"))
+	{
+		return TEXT("LeftUpLeg");
+	}
+
+	if (LowerBone == TEXT("calf_l"))
+	{
+		return TEXT("LeftLeg");
+	}
+
+	if (LowerBone == TEXT("thigh_r"))
+	{
+		return TEXT("RightUpLeg");
+	}
+
+	if (LowerBone == TEXT("calf_r"))
+	{
+		return TEXT("RightLeg");
+	}
+
+	if (LowerBone == TEXT("spine_01"))
+	{
+		return TEXT("Spine");
+	}
 
 	if (Bone == TEXT("Head") ||
 		Bone == TEXT("HeadTop_End") ||
@@ -87,9 +138,11 @@ APoliceZombie::APoliceZombie()
 	static ConstructorHelpers::FObjectFinder<USkeletalMesh> PoliceMesh(
 		TEXT("/Script/Engine.SkeletalMesh'/Game/Zombie/mixamo/ch/zoM_police/copzombie_l_actisdato.copzombie_l_actisdato'"));
 	static ConstructorHelpers::FObjectFinder<UAnimSequenceBase> PoliceIdle(
-		TEXT("/Script/Engine.AnimSequence'/Game/Zombie/mixamo/ch/zoM_police/copzombie_l_actisdato_Anim_Take_001.copzombie_l_actisdato_Anim_Take_001'"));
+		TEXT("/Script/Engine.AnimSequence'/Game/Zombie/mixamo/Ani/police/Idle.Idle'"));
 	static ConstructorHelpers::FObjectFinder<UAnimSequenceBase> PoliceWalk(
-		TEXT("/Script/Engine.AnimSequence'/Game/Zombie/mixamo/Ani/police/Zombie_Walk.Zombie_Walk'"));
+		TEXT("/Script/Engine.AnimSequence'/Game/Zombie/mixamo/Ani/police/Walking__2_.Walking__2_'"));
+	static ConstructorHelpers::FObjectFinder<UAnimSequenceBase> PoliceRun(
+		TEXT("/Script/Engine.AnimSequence'/Game/Zombie/mixamo/Ani/police/Zombie_Run.Zombie_Run'"));
 	static ConstructorHelpers::FObjectFinder<UAnimSequenceBase> PoliceAttackOne(
 		TEXT("/Script/Engine.AnimSequence'/Game/Zombie/mixamo/Ani/police/attack.attack'"));
 	static ConstructorHelpers::FObjectFinder<UAnimSequenceBase> PoliceAttackTwo(
@@ -119,18 +172,68 @@ APoliceZombie::APoliceZombie()
 		Capsule->SetCollisionResponseToChannel(ECC_GameTraceChannel1, ECR_Block);
 	}
 
-	IdleAnimation = PoliceIdle.Object;
-	WalkAnimation = PoliceWalk.Object;
+	if (PoliceIdle.Succeeded()) IdleAnimation = PoliceIdle.Object;
+	if (PoliceWalk.Succeeded()) WalkAnimation = PoliceWalk.Object;
+	if (PoliceRun.Succeeded()) RunAnimation = PoliceRun.Object;
 	AttackAnimations.Reset();
 	if (PoliceAttackOne.Succeeded()) AttackAnimations.Add(PoliceAttackOne.Object);
 	if (PoliceAttackTwo.Succeeded()) AttackAnimations.Add(PoliceAttackTwo.Object);
 	TruckAttackAnimations.Reset();
 	if (PoliceTruckAttackOne.Succeeded()) TruckAttackAnimations.Add(PoliceTruckAttackOne.Object);
 	if (PoliceTruckAttackTwo.Succeeded()) TruckAttackAnimations.Add(PoliceTruckAttackTwo.Object);
-	DeathAnimation = PoliceDeathOne.Object;
 	DeathAnimations.Reset();
-	if (PoliceDeathOne.Succeeded()) DeathAnimations.Add(PoliceDeathOne.Object);
+	if (PoliceDeathOne.Succeeded())
+	{
+		DeathAnimation = PoliceDeathOne.Object;
+		DeathAnimations.Add(PoliceDeathOne.Object);
+	}
 	if (PoliceDeathTwo.Succeeded()) DeathAnimations.Add(PoliceDeathTwo.Object);
+}
+
+void APoliceZombie::BeginPlay()
+{
+	if (UAnimSequenceBase* PoliceIdle = LoadObject<UAnimSequenceBase>(nullptr,
+		TEXT("/Script/Engine.AnimSequence'/Game/Zombie/mixamo/Ani/police/Idle.Idle'")))
+	{
+		IdleAnimation = PoliceIdle;
+	}
+	if (UAnimSequenceBase* PoliceWalk = LoadObject<UAnimSequenceBase>(nullptr,
+		TEXT("/Script/Engine.AnimSequence'/Game/Zombie/mixamo/Ani/police/Walking__2_.Walking__2_'")))
+	{
+		WalkAnimation = PoliceWalk;
+	}
+	if (UAnimSequenceBase* PoliceRun = LoadObject<UAnimSequenceBase>(nullptr,
+		TEXT("/Script/Engine.AnimSequence'/Game/Zombie/mixamo/Ani/police/Zombie_Run.Zombie_Run'")))
+	{
+		RunAnimation = PoliceRun;
+	}
+	DeathAnimations.Reset();
+	if (UAnimSequenceBase* PoliceDeathOne = LoadObject<UAnimSequenceBase>(nullptr,
+		TEXT("/Script/Engine.AnimSequence'/Game/Zombie/mixamo/Ani/police/Zombie_Dying__1_.Zombie_Dying__1_'")))
+	{
+		DeathAnimation = PoliceDeathOne;
+		DeathAnimations.Add(PoliceDeathOne);
+	}
+	if (UAnimSequenceBase* PoliceDeathTwo = LoadObject<UAnimSequenceBase>(nullptr,
+		TEXT("/Script/Engine.AnimSequence'/Game/Zombie/mixamo/Ani/police/HeadDying.HeadDying'")))
+	{
+		DeathAnimations.Add(PoliceDeathTwo);
+	}
+
+	Super::BeginPlay();
+
+	if (UCapsuleComponent* Capsule = GetCapsuleComponent())
+	{
+		Capsule->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
+		Capsule->SetCollisionResponseToChannel(ECC_GameTraceChannel1, ECR_Block);
+	}
+
+	if (USkeletalMeshComponent* MeshComp = GetMesh())
+	{
+		MeshComp->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+		MeshComp->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
+		MeshComp->SetCollisionResponseToChannel(ECC_GameTraceChannel1, ECR_Block);
+	}
 }
 
 FVector APoliceZombie::GetCrawlingMeshRelativeLocation(const FVector& CurrentStandingMeshRelativeLocation) const

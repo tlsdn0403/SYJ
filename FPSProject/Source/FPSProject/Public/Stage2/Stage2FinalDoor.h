@@ -1,0 +1,70 @@
+#pragma once
+
+#include "CoreMinimal.h"
+#include "ADoor.h"
+#include "Stage2FinalDoor.generated.h"
+
+class ALevelSequenceActor;
+class ULevelSequence;
+class ULevelSequencePlayer;
+
+UCLASS()
+class FPSPROJECT_API AStage2FinalDoor : public AADoor
+{
+	GENERATED_BODY()
+
+public:
+	AStage2FinalDoor();
+
+	virtual void Interact_Implementation(AFPSBaseCharacter* Character) override;
+	virtual void ApplyDoorState(bool bShouldOpen) override;
+
+	UFUNCTION(BlueprintCallable, Category = "Ending")
+	void StartEndingSequence();
+
+protected:
+	UFUNCTION()
+	void HandleEndingSequenceFinished();
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "Ending")
+	void OnEndingSequenceStarted();
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "Ending")
+	void OnEndingSequenceFinished();
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "Door")
+	void OnFinalDoorStateChanged(bool bIsOpen);
+
+	void TriggerEndingSequence();
+	void FinishEndingSequence();
+	void SetEndingCinematicMode(bool bEnable);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ending")
+	TObjectPtr<ULevelSequence> EndingSequence;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ending")
+	FName LevelNameAfterCinematic = NAME_None;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ending")
+	bool bQuitGameAfterCinematic = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ending")
+	bool bDisableInteractionAfterTriggered = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ending")
+	bool bUseCinematicMode = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ending", meta = (ClampMin = "0.1"))
+	float NoSequenceFallbackDelay = 1.0f;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ending")
+	bool bEndingTriggered = false;
+
+	UPROPERTY(Transient)
+	TObjectPtr<ULevelSequencePlayer> EndingSequencePlayer;
+
+	UPROPERTY(Transient)
+	TObjectPtr<ALevelSequenceActor> EndingSequenceActor;
+
+	FTimerHandle EndingFallbackTimerHandle;
+};

@@ -25,6 +25,7 @@ protected:
 	virtual void BeginPlay() override;
 	virtual float GetDirectAttackAnimationDuration() override;
 	virtual float PlayDeathAnimationBeforeRagdoll() override;
+	virtual void OnNetworkMoveAnimationUpdated() override;
 	virtual void InitializeBoneDurability() override;
 	virtual FName GetParentBoneForDamage(FName HitBoneName) const override;
 	virtual FName GetPhysicsRootBoneName() const override;
@@ -39,6 +40,9 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Zombie|Direct Animation")
 	TObjectPtr<UAnimSequenceBase> WalkAnimation;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Zombie|Direct Animation")
+	TObjectPtr<UAnimSequenceBase> RunAnimation;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Zombie|Direct Animation")
 	TObjectPtr<UAnimSequenceBase> CrawlAnimation;
@@ -61,12 +65,16 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Zombie|Direct Animation", meta = (ClampMin = "0.0"))
 	float MovingSpeedThreshold = 3.0f;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Zombie|Direct Animation", meta = (ClampMin = "0.0"))
+	float RunningSpeedThreshold = 130.0f;
+
 private:
 	enum class EDirectAnimationState : uint8
 	{
 		None,
 		Idle,
 		Walking,
+		Running,
 		Crawling,
 		Attacking,
 		CrawlingAttacking,

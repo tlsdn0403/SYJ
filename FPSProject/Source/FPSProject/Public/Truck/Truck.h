@@ -217,6 +217,8 @@ public:
 	AFPSBaseCharacter* GetMountedWeaponUser() const { return MountedWeaponUser; }
 	void SetLocallyDriven(bool bLocallyDriven);
 	bool IsLocallyDriven() const { return bIsLocallyDriven; }
+	void SetCinematicControlLocked(bool bLocked);
+	bool IsCinematicControlLocked() const { return bCinematicControlLocked; }
 	void ApplyNetworkTransform(const FVector& TargetLocation, const FRotator& TargetRotation, bool bForceCorrection = false);
 
 	UFUNCTION(BlueprintCallable, Category = "GameLogic")
@@ -401,6 +403,7 @@ protected:
 	float ZombieNoiseInterval = 0.35f;
 private:
 	bool bIsLocallyDriven = false;
+	bool bCinematicControlLocked = false;
 	bool bApplyingNetworkHealth = false;
 	bool bIsBrakingSoundPlaying = false;
 	bool bBrakePressedLastFrame = false;
@@ -416,8 +419,10 @@ private:
 	void ApplyStageVehicleTuning();
 	void ReportZombieAwarenessNoise(float DeltaTime);
 	void UpdateFuelConsumption(float DeltaTime);
+	void ClearDrivingInput(bool bHoldBrake);
 	void ConfigureVehiclePawnCollision();
 	bool IsLocalInteractionCharacter(const AFPSBaseCharacter* Character) const;
+	void SetInteractionWidgetsHidden(bool bShouldHide);
 	void RefreshLocalInteractionWidgets();
 
 	UFUNCTION()

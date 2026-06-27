@@ -484,9 +484,10 @@ void ATruck::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	CheckZombieImpactSweep();
+
 	if (bIsLocallyDriven || NetworkTruckId == 0)
 	{
-		CheckZombieImpactSweep();
 		ReportZombieAwarenessNoise(DeltaTime);
 	}
 
@@ -1099,13 +1100,32 @@ void ATruck::Brake(float Value)
 
 void ATruck::CheckZombieImpactSweep()
 {
+	UWorld* World = GetWorld();
 	UBoxComponent* ImpactCollision = VehiclePawnCollision;
-	if (!ImpactCollision)
+	if (!World || !ImpactCollision)
 	{
 		return;
 	}
 
-	const FVector VehicleVelocity = GetVelocity();
+	FVector VehicleVelocity = GetVelocity();
+	if (!bIsLocallyDriven && NetworkTruckId != 0)
+	{
+		const float CurrentTime = World->GetTimeSeconds();
+		const FVector CurrentLocation = GetActorLocation();
+		if (bHasImpactSweepSample)
+		{
+			const float DeltaSeconds = CurrentTime - LastImpactSweepTime;
+			if (DeltaSeconds > KINDA_SMALL_NUMBER)
+			{
+				VehicleVelocity = (CurrentLocation - LastImpactSweepLocation) / DeltaSeconds;
+			}
+		}
+
+		LastImpactSweepLocation = CurrentLocation;
+		LastImpactSweepTime = CurrentTime;
+		bHasImpactSweepSample = true;
+	}
+
 	const float ImpactSpeed = VehicleVelocity.Size();
 	if (ImpactSpeed < ZombieImpactMinSpeed)
 	{
@@ -1127,7 +1147,7 @@ void ATruck::CheckZombieImpactSweep()
 
 	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(TruckZombieImpactSweep), false, this);
 
-	if (!GetWorld()->OverlapMultiByObjectType(
+	if (!World->OverlapMultiByObjectType(
 		Overlaps,
 		SweepCenter,
 		ImpactCollision->GetComponentQuat(),
@@ -1553,11 +1573,6 @@ void ATruck::ProcessZombieImpact(ABaseZombie* Zombie, const FVector& ImpactPoint
 		FVector2D(ZombieImpactMinDamage, ZombieImpactMaxDamage),
 		ImpactSpeed);
 
-	if (UFPSProjectGameInstance::SendZombieHitPacket(DriverCharacter, Zombie, Damage, ImpactPoint))
-	{
-		return;
-	}
-
 	// 좀비의 넉백을 속도에 따라 조절
 	const float KnockbackScale = FMath::GetMappedRangeValueClamped(
 		FVector2D(ZombieImpactMinSpeed, ZombieImpactFatalSpeed),
@@ -1591,6 +1606,32 @@ void ATruck::ProcessZombieImpact(ABaseZombie* Zombie, const FVector& ImpactPoint
 	const FVector FinalImpactDirection = (SafeImpactDirection * 0.7f + WorldOutwardDirection * 0.9f).GetSafeNormal();
 	const FVector ImpactFlingDirection = FinalImpactDirection.IsNearlyZero() ? SafeImpactDirection : FinalImpactDirection;
 
+	// 좀비 즉사 조건
+	const bool bCheatFlingImpact = bTruckBodyImpact && ImpactSpeed >= ZombiePinnedImpactFatalSpeed;
+	const bool bForceImpactRagdoll = ImpactSpeed >= ZombieImpactFatalSpeed || bCheatFlingImpact;
+	const FVector LaunchVelocity =
+		ImpactFlingDirection * (ZombieImpactKnockback * KnockbackScale * 1.2f) +
+		FVector::UpVector * (ZombieImpactUpwardKnockback * KnockbackScale);
+	const FVector WorldImpulse =
+		ImpactFlingDirection * (ZombieImpactImpulse * KnockbackScale * 1.2f) +
+		FVector::UpVector * (ZombieImpactImpulse * 0.2f * KnockbackScale);
+
+	const bool bNetworkZombie = Zombie->GetNetworkObjectId() != 0;
+	const bool bCanReportServerHit = bIsLocallyDriven || NetworkTruckId == 0;
+	const bool bNetworkHitSent = bCanReportServerHit &&
+		UFPSProjectGameInstance::SendZombieHitPacket(DriverCharacter, Zombie, Damage, ImpactPoint, NAME_None, ImpactFlingDirection);
+	const bool bRemoteNetworkTruckImpact = bNetworkZombie && NetworkTruckId != 0 && !bIsLocallyDriven;
+	if (bNetworkZombie && (bNetworkHitSent || bRemoteNetworkTruckImpact || NetworkTruckId != 0))
+	{
+		Zombie->ApplyTruckImpactKnockback(
+			LaunchVelocity,
+			WorldImpulse,
+			ImpactPoint,
+			bForceImpactRagdoll,
+			ZombieImpactCooldown + 0.35f);
+		return;
+	}
+
 	// 좀비에게 데미지 줄 HitResult 생성
 	FHitResult DamageHit;
 	DamageHit.ImpactPoint = ImpactPoint;
@@ -1605,30 +1646,21 @@ void ATruck::ProcessZombieImpact(ABaseZombie* Zombie, const FVector& ImpactPoint
 		GetController(),
 		this,
 		nullptr);
-	// 좀비 즉사 조건
-	const bool bCheatFlingImpact = bTruckBodyImpact && ImpactSpeed >= ZombiePinnedImpactFatalSpeed;
 
 	if (Zombie->IsAlive() &&
-		(ImpactSpeed >= ZombieImpactFatalSpeed ||
-			bCheatFlingImpact))
+		bForceImpactRagdoll)
 	{
 		Zombie->Die();
 	}
 	// 살아있다면 캐릭터를 넉백
 	if (Zombie->IsAlive())
 	{
-		const FVector LaunchVelocity =
-			ImpactFlingDirection * (ZombieImpactKnockback * KnockbackScale * 1.2f) +
-			FVector::UpVector * (ZombieImpactUpwardKnockback * KnockbackScale);
 		Zombie->LaunchCharacter(LaunchVelocity, true, true);
 		return;
 	}
 	// 죽은 경우 레그돌 하여 넉백
 	if (USkeletalMeshComponent* ZombieMesh = Zombie->GetMesh())
 	{
-		const FVector WorldImpulse =
-			ImpactFlingDirection * (ZombieImpactImpulse * KnockbackScale * 1.2f) +
-			FVector::UpVector * (ZombieImpactImpulse * 0.2f * KnockbackScale);
 		ZombieMesh->AddImpulseAtLocation(WorldImpulse, ImpactPoint, FName(TEXT("pelvis")));
 	}
 }

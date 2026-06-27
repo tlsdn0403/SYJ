@@ -413,7 +413,10 @@ private:
 	float ZombieNoiseTimer = 0.0f;
 	float CurrentThrottleInput = 0.0f;
 	float OriginalEngineMaxTorque = 0.0f;
+	FVector LastImpactSweepLocation = FVector::ZeroVector;
+	float LastImpactSweepTime = 0.0f;
 	bool bHasOriginalEngineMaxTorque = false;
+	bool bHasImpactSweepSample = false;
 	static constexpr float TRUCK_MOVE_PACKET_SEND_DELAY = 0.05f;
 
 	void ApplyStageVehicleTuning();

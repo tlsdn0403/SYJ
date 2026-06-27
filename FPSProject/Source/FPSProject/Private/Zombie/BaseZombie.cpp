@@ -261,6 +261,11 @@ void ABaseZombie::SetNetworkMoveTarget(const FVector& TargetLocation, const FRot
 		return;
 	}
 
+	if (NetworkObjectId != 0 && GetWorld() && GetWorld()->GetTimeSeconds() < NetworkMovePausedUntilTime)
+	{
+		return;
+	}
+
 	const FVector PreviousLocation = GetActorLocation();
 	const bool bMovedByPacket = FVector::DistSquared2D(TargetLocation, PreviousLocation) > FMath::Square(1.0f);
 	const bool bShouldAnimateMoving = bInIsMoving || bMovedByPacket;
@@ -321,6 +326,118 @@ void ABaseZombie::SetNetworkMoveTarget(const FVector& TargetLocation, const FRot
 	SetAnimBoolIfPresent(AnimInstance, TEXT("bIsMoving"), bShouldAnimateMoving);
 	SetAnimBoolIfPresent(AnimInstance, TEXT("HasAcceleration"), bShouldAnimateMoving);
 	SetAnimBoolIfPresent(AnimInstance, TEXT("bHasAcceleration"), bShouldAnimateMoving);
+}
+
+void ABaseZombie::ApplyTruckImpactKnockback(const FVector& LaunchVelocity, const FVector& RagdollImpulse, const FVector& ImpactPoint, bool bForceRagdoll, float NetworkMovePauseSeconds)
+{
+	if (IsActorBeingDestroyed())
+	{
+		return;
+	}
+
+	UWorld* World = GetWorld();
+	if (NetworkObjectId != 0 && World && NetworkMovePauseSeconds > 0.0f)
+	{
+		NetworkMovePausedUntilTime = World->GetTimeSeconds() + NetworkMovePauseSeconds;
+		GetWorldTimerManager().ClearTimer(NetworkImpactRecoveryTimerHandle);
+		GetWorldTimerManager().SetTimer(
+			NetworkImpactRecoveryTimerHandle,
+			this,
+			&ABaseZombie::ResumeNetworkMovementAfterImpact,
+			NetworkMovePauseSeconds,
+			false);
+	}
+
+	if (bForceRagdoll)
+	{
+		bIsAlive = false;
+		bIsAttacking = false;
+		bAttackDamageApplied = false;
+		bShouldApplyCurrentNetworkAttackDamage = true;
+		CurrentAttackTarget = nullptr;
+		bWasCrawlingBeforeDeath = IsCrawling();
+		MovementState = EZombieMovementState::Dead;
+		GetWorldTimerManager().ClearTimer(AttackDamageTimerHandle);
+		GetWorldTimerManager().ClearTimer(AttackFinishTimerHandle);
+		GetWorldTimerManager().ClearTimer(DeathRagdollTimerHandle);
+
+		if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
+		{
+			MoveComp->StopMovementImmediately();
+			MoveComp->DisableMovement();
+			MoveComp->SetComponentTickEnabled(false);
+		}
+
+		if (UCapsuleComponent* Capsule = GetCapsuleComponent())
+		{
+			Capsule->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		}
+
+		if (USkeletalMeshComponent* MeshComp = GetMesh())
+		{
+			MeshComp->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+			MeshComp->SetCollisionProfileName(TEXT("Ragdoll"));
+			EnableDeathRagdoll();
+			MeshComp->WakeAllRigidBodies();
+			MeshComp->AddImpulseAtLocation(RagdollImpulse, ImpactPoint, GetPhysicsRootBoneName());
+		}
+
+		SetLifeSpan(5.0f);
+		return;
+	}
+
+	if (!bIsAlive)
+	{
+		if (USkeletalMeshComponent* MeshComp = GetMesh())
+		{
+			MeshComp->AddImpulseAtLocation(RagdollImpulse, ImpactPoint, GetPhysicsRootBoneName());
+		}
+		return;
+	}
+
+	if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
+	{
+		if (NetworkObjectId != 0 && !MoveComp->IsComponentTickEnabled())
+		{
+			bNetworkImpactTemporarilyEnabledMovement = true;
+			MoveComp->SetComponentTickEnabled(true);
+		}
+
+		if (MoveComp->MovementMode == MOVE_None)
+		{
+			MoveComp->SetMovementMode(MOVE_Falling);
+		}
+	}
+
+	LaunchCharacter(LaunchVelocity, true, true);
+}
+
+void ABaseZombie::ResumeNetworkMovementAfterImpact()
+{
+	UWorld* World = GetWorld();
+	if (World && World->GetTimeSeconds() < NetworkMovePausedUntilTime - KINDA_SMALL_NUMBER)
+	{
+		GetWorldTimerManager().SetTimer(
+			NetworkImpactRecoveryTimerHandle,
+			this,
+			&ABaseZombie::ResumeNetworkMovementAfterImpact,
+			NetworkMovePausedUntilTime - World->GetTimeSeconds(),
+			false);
+		return;
+	}
+
+	if (NetworkObjectId != 0 && bNetworkImpactTemporarilyEnabledMovement)
+	{
+		if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
+		{
+			MoveComp->StopMovementImmediately();
+			MoveComp->DisableMovement();
+			MoveComp->SetComponentTickEnabled(false);
+		}
+	}
+
+	bNetworkImpactTemporarilyEnabledMovement = false;
+	NetworkMovePausedUntilTime = 0.0f;
 }
 
 void ABaseZombie::OnNetworkMoveAnimationUpdated()

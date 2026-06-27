@@ -58,6 +58,7 @@ public:
 	void HandleNetworkDeath();
 	void HandleNetworkDismember(FName BoneName, const FVector& Impulse, const FVector& HitLocation);
 	void SetNetworkMoveTarget(const FVector& TargetLocation, const FRotator& TargetRotation, bool bInIsMoving);
+	void ApplyTruckImpactKnockback(const FVector& LaunchVelocity, const FVector& RagdollImpulse, const FVector& ImpactPoint, bool bForceRagdoll, float NetworkMovePauseSeconds = 0.0f);
 
 protected:
 	virtual void BeginPlay() override;
@@ -177,6 +178,7 @@ private:
 	void StartCrawling();
 	void StartDeathVisual();
 	void EnableDeathRagdoll();
+	void ResumeNetworkMovementAfterImpact();
 
 	UPROPERTY()
 	AActor* CurrentAttackTarget = nullptr;
@@ -240,10 +242,13 @@ private:
 	FTimerHandle AttackDamageTimerHandle;
 	FTimerHandle AttackFinishTimerHandle;
 	FTimerHandle DeathRagdollTimerHandle;
+	FTimerHandle NetworkImpactRecoveryTimerHandle;
 	FName LastDeathHitBone = NAME_None;
 	bool bWasCrawlingBeforeDeath = false;
 	bool bAttackDamageApplied = false;
 	bool bShouldApplyCurrentNetworkAttackDamage = true;
+	bool bNetworkImpactTemporarilyEnabledMovement = false;
+	float NetworkMovePausedUntilTime = 0.0f;
 
 	UFUNCTION()
 	void OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);

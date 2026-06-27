@@ -90,6 +90,11 @@ private:
 		bool hasLastMove = false;
 	};
 
+	struct ZombieAiUpdateState
+	{
+		float elapsedSeconds = 0.0f;
+	};
+
 	vector<ZombiePathPoint> FindZombiePath(const Protocol::PosInfo& start, const Protocol::PosInfo& goal) const;
 	bool AddObject(ObjectRef object);
 	bool RemoveObject(uint64 objectId);
@@ -174,6 +179,7 @@ private:
 	vector<Stage2WeaponState> _stage2Weapons;
 	unordered_map<uint64, ZombiePathState> _zombiePaths;
 	unordered_map<uint64, ZombieMoveBroadcastState> _zombieMoveBroadcastStates;
+	unordered_map<uint64, ZombieAiUpdateState> _zombieAiUpdateStates;
 	unordered_set<uint64> _inactiveLootItemIds;
 	unordered_set<uint64> _stageTransitionReadyPlayerIds;
 	vector<int32> _stage2TileTypeSequence;

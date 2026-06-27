@@ -542,15 +542,24 @@ namespace
 	constexpr float ZOMBIE_SEPARATION_RADIUS = 180.0f;
 	constexpr float ZOMBIE_SEPARATION_GRID_CELL_SIZE = ZOMBIE_SEPARATION_RADIUS;
 	constexpr float ZOMBIE_SEPARATION_WEIGHT = 1.35f;
+	constexpr int32 ZOMBIE_SEPARATION_MAX_NEIGHBORS = 8;
 	constexpr float ZOMBIE_PATH_RECALC_SECONDS = 0.75f;
 	constexpr float ZOMBIE_PATH_TARGET_REPATH_DISTANCE = 300.0f;
 	constexpr float ZOMBIE_WAYPOINT_REACHED_DISTANCE = 80.0f;
 	constexpr float ZOMBIE_NAV_GRID_CELL_SIZE = 300.0f;
 	constexpr int32 ZOMBIE_NAV_MAX_SEARCH_NODES = 512;
-	constexpr int32 STAGE2_ZOMBIES_TO_SPAWN_PER_TICK = 40;
-	constexpr float ZOMBIE_MOVE_BROADCAST_INTERVAL = 0.25f;
-	constexpr float ZOMBIE_MOVE_BROADCAST_DISTANCE = 80.0f;
-	constexpr float ZOMBIE_MOVE_BROADCAST_YAW_DELTA = 20.0f;
+	constexpr bool ZOMBIE_NAV_HAS_BLOCKED_CELLS = false;
+	constexpr int32 STAGE2_ZOMBIES_TO_SPAWN_PER_TICK = 10;
+	constexpr int32 STAGE2_ZOMBIE_GROUP_COLUMNS = 4;
+	constexpr int32 STAGE2_ZOMBIE_GROUP_ROWS = 10;
+	constexpr float ZOMBIE_AI_NEAR_RANGE = 1800.0f;
+	constexpr float ZOMBIE_AI_MID_RANGE = 3600.0f;
+	constexpr float ZOMBIE_AI_NEAR_UPDATE_INTERVAL = ZOMBIE_SERVER_TICK_SECONDS;
+	constexpr float ZOMBIE_AI_MID_UPDATE_INTERVAL = 0.2f;
+	constexpr float ZOMBIE_AI_FAR_UPDATE_INTERVAL = 0.4f;
+	constexpr float ZOMBIE_MOVE_BROADCAST_INTERVAL = 0.35f;
+	constexpr float ZOMBIE_MOVE_BROADCAST_DISTANCE = 120.0f;
+	constexpr float ZOMBIE_MOVE_BROADCAST_YAW_DELTA = 35.0f;
 	constexpr int32 STAGE2_ZOMBIE_TILE_WORLD = 0;
 	constexpr int32 STAGE2_ZOMBIE_TILE_STRAIGHT = 1;
 	constexpr int32 STAGE2_ZOMBIE_TILE_LEFT = 2;
@@ -635,6 +644,17 @@ namespace
 		return false;
 	}
 
+	float GetZombieAiUpdateInterval(float targetDistSq)
+	{
+		if (targetDistSq <= ZOMBIE_AI_NEAR_RANGE * ZOMBIE_AI_NEAR_RANGE)
+			return ZOMBIE_AI_NEAR_UPDATE_INTERVAL;
+
+		if (targetDistSq <= ZOMBIE_AI_MID_RANGE * ZOMBIE_AI_MID_RANGE)
+			return ZOMBIE_AI_MID_UPDATE_INTERVAL;
+
+		return ZOMBIE_AI_FAR_UPDATE_INTERVAL;
+	}
+
 	constexpr int32 EncodeStage2ZombieSpawnType(Protocol::ZombieType zombieType, int32 tileTypeCode, int32 tileOccurrenceIndex)
 	{
 		if (tileTypeCode == STAGE2_ZOMBIE_TILE_WORLD)
@@ -707,28 +727,28 @@ namespace
 
 	constexpr ZombieSpawnGroupInfo STAGE2_ZOMBIE_GROUPS[] =
 	{
-		{ -1810.0f, 16720.0f, 240.0f, 2, 5, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_START, STAGE2_START_TILE_OCCURRENCE_COUNT, 0x6A09E667u, 0xBB67AE85u },
-		{ -2010.0f, 9730.0f, 300.0f, 2, 5, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_START, STAGE2_START_TILE_OCCURRENCE_COUNT, 0x3C6EF372u, 0xA54FF53Au },
-		{ -4840.0f, 10210.0f, 310.0f, 2, 5, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_START, STAGE2_START_TILE_OCCURRENCE_COUNT, 0x510E527Fu, 0x9B05688Cu },
-		{ -1770.0f, 1060.0f, 170.0f, 2, 5, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_START, STAGE2_START_TILE_OCCURRENCE_COUNT, 0x1F83D9ABu, 0x5BE0CD19u },
-		{ -4570.0f, -19510.0f, 240.0f, 2, 5, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_START, STAGE2_START_TILE_OCCURRENCE_COUNT, 0x8C3D37C9u, 0x243F6A88u },
-		{ -1810.0f, 16720.0f, 240.0f, 2, 5, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_STRAIGHT, STAGE2_STRAIGHT_TILE_OCCURRENCE_COUNT, 0xA24BAED5u, 0x9FB21C63u },
-		{ -2010.0f, 9730.0f, 300.0f, 2, 5, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_STRAIGHT, STAGE2_STRAIGHT_TILE_OCCURRENCE_COUNT, 0xC13FA9A9u, 0x5D588B65u },
-		{ -4840.0f, 10210.0f, 310.0f, 2, 5, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_STRAIGHT, STAGE2_STRAIGHT_TILE_OCCURRENCE_COUNT, 0x91E10DA5u, 0xB7E15162u },
-		{ -1770.0f, 1060.0f, 170.0f, 2, 5, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_STRAIGHT, STAGE2_STRAIGHT_TILE_OCCURRENCE_COUNT, 0x7F4A7C15u, 0xD1B54A32u },
-		{ -4570.0f, -19510.0f, 240.0f, 2, 5, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_STRAIGHT, STAGE2_STRAIGHT_TILE_OCCURRENCE_COUNT, 0x3C6EF372u, 0xBB67AE85u },
-		{ 25080.0f, 9820.0f, 110.0f, 2, 5, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_LEFT, STAGE2_LEFT_TILE_OCCURRENCE_COUNT, 0xF00DBA11u, 0x10203040u },
-		{ 16840.0f, 10790.0f, 180.0f, 2, 5, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_LEFT, STAGE2_LEFT_TILE_OCCURRENCE_COUNT, 0xC001D00Du, 0x55667788u },
-		{ 15590.0f, 2430.0f, 110.0f, 2, 5, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_LEFT, STAGE2_LEFT_TILE_OCCURRENCE_COUNT, 0xA5A5F00Du, 0x89ABCDEFu },
-		{ 21750.0f, 5310.0f, 80.0f, 2, 5, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_LEFT, STAGE2_LEFT_TILE_OCCURRENCE_COUNT, 0x1BADB002u, 0x76543210u },
-		{ 19730.0, 12150.0f, 310.0f, 2, 5, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_LEFT, STAGE2_LEFT_TILE_OCCURRENCE_COUNT, 0xDEADC0DEu, 0x0F1E2D3Cu },
-		{ 4800.0f, 5330.0f, 50.0f, 2, 5, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_LEFT, STAGE2_LEFT_TILE_OCCURRENCE_COUNT, 0x31415926u, 0x27182818u },
-		{ 4770.0f, 5360.0f, 50.0f, 2, 5, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_RIGHT, STAGE2_RIGHT_TILE_OCCURRENCE_COUNT, 0x41C64E6Du, 0xA341316Cu },
-		{ 15280.0f, 2310.0f, 230.0, 2, 5, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_RIGHT, STAGE2_RIGHT_TILE_OCCURRENCE_COUNT, 0x6D2B79F5u, 0x13A5C89Bu },
-		{ 21570.8f, 5466.7f, -367.0f, 2, 4, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_RIGHT, STAGE2_RIGHT_TILE_OCCURRENCE_COUNT, 0x9E3779B9u, 0xC2B2AE35u },
-		{ 25180.0f, 10670.0f, 380.0, 2, 4, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_RIGHT, STAGE2_RIGHT_TILE_OCCURRENCE_COUNT, 0x85EBCA6Bu, 0x27D4EB2Fu },
-		{ 19390.0f, 12080.0f, 310.0f, 2, 5, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_RIGHT, STAGE2_RIGHT_TILE_OCCURRENCE_COUNT, 0x165667B1u, 0xD3A2646Cu },
-		{ 16390.0f, 12830.0f, 260.0f, 2, 4, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_RIGHT, STAGE2_RIGHT_TILE_OCCURRENCE_COUNT, 0x27D4EB2Du, 0x94D049BBu },
+		{ -1810.0f, 16720.0f, 240.0f, 8, 5, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_START, STAGE2_START_TILE_OCCURRENCE_COUNT, 0x6A09E667u, 0xBB67AE85u },
+		{ -2010.0f, 9730.0f, 300.0f, 8, 5, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_START, STAGE2_START_TILE_OCCURRENCE_COUNT, 0x3C6EF372u, 0xA54FF53Au },
+		{ -4840.0f, 10210.0f, 310.0f, 8, 5, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_START, STAGE2_START_TILE_OCCURRENCE_COUNT, 0x510E527Fu, 0x9B05688Cu },
+		{ -1770.0f, 1060.0f, 170.0f, 8, 5, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_START, STAGE2_START_TILE_OCCURRENCE_COUNT, 0x1F83D9ABu, 0x5BE0CD19u },
+		{ -4570.0f, -19510.0f, 240.0f, 8, 5, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_START, STAGE2_START_TILE_OCCURRENCE_COUNT, 0x8C3D37C9u, 0x243F6A88u },
+		{ -1810.0f, 16720.0f, 240.0f, 8, 5, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_STRAIGHT, STAGE2_STRAIGHT_TILE_OCCURRENCE_COUNT, 0xA24BAED5u, 0x9FB21C63u },
+		{ -2010.0f, 9730.0f, 300.0f, 8, 5, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_STRAIGHT, STAGE2_STRAIGHT_TILE_OCCURRENCE_COUNT, 0xC13FA9A9u, 0x5D588B65u },
+		{ -4840.0f, 10210.0f, 310.0f, 8, 5, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_STRAIGHT, STAGE2_STRAIGHT_TILE_OCCURRENCE_COUNT, 0x91E10DA5u, 0xB7E15162u },
+		{ -1770.0f, 1060.0f, 170.0f, 8, 5, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_STRAIGHT, STAGE2_STRAIGHT_TILE_OCCURRENCE_COUNT, 0x7F4A7C15u, 0xD1B54A32u },
+		{ -4570.0f, -19510.0f, 240.0f, 8, 5, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_STRAIGHT, STAGE2_STRAIGHT_TILE_OCCURRENCE_COUNT, 0x3C6EF372u, 0xBB67AE85u },
+		{ 25080.0f, 9820.0f, 110.0f, 8, 5, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_LEFT, STAGE2_LEFT_TILE_OCCURRENCE_COUNT, 0xF00DBA11u, 0x10203040u },
+		{ 16840.0f, 10790.0f, 180.0f, 8, 5, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_LEFT, STAGE2_LEFT_TILE_OCCURRENCE_COUNT, 0xC001D00Du, 0x55667788u },
+		{ 15590.0f, 2430.0f, 110.0f, 8, 5, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_LEFT, STAGE2_LEFT_TILE_OCCURRENCE_COUNT, 0xA5A5F00Du, 0x89ABCDEFu },
+		{ 21750.0f, 5310.0f, 80.0f, 8, 5, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_LEFT, STAGE2_LEFT_TILE_OCCURRENCE_COUNT, 0x1BADB002u, 0x76543210u },
+		{ 19730.0, 12150.0f, 310.0f, 8, 5, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_LEFT, STAGE2_LEFT_TILE_OCCURRENCE_COUNT, 0xDEADC0DEu, 0x0F1E2D3Cu },
+		{ 4800.0f, 5330.0f, 50.0f, 8, 5, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_LEFT, STAGE2_LEFT_TILE_OCCURRENCE_COUNT, 0x31415926u, 0x27182818u },
+		{ 4770.0f, 5360.0f, 50.0f, 8, 5, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_RIGHT, STAGE2_RIGHT_TILE_OCCURRENCE_COUNT, 0x41C64E6Du, 0xA341316Cu },
+		{ 15280.0f, 2310.0f, 230.0, 8, 5, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_RIGHT, STAGE2_RIGHT_TILE_OCCURRENCE_COUNT, 0x6D2B79F5u, 0x13A5C89Bu },
+		{ 21570.8f, 5466.7f, -367.0f, 8, 4, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_RIGHT, STAGE2_RIGHT_TILE_OCCURRENCE_COUNT, 0x9E3779B9u, 0xC2B2AE35u },
+		{ 25180.0f, 10670.0f, 380.0, 8, 4, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_RIGHT, STAGE2_RIGHT_TILE_OCCURRENCE_COUNT, 0x85EBCA6Bu, 0x27D4EB2Fu },
+		{ 19390.0f, 12080.0f, 310.0f, 8, 5, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_RIGHT, STAGE2_RIGHT_TILE_OCCURRENCE_COUNT, 0x165667B1u, 0xD3A2646Cu },
+		{ 16390.0f, 12830.0f, 260.0f, 8, 4, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_RIGHT, STAGE2_RIGHT_TILE_OCCURRENCE_COUNT, 0x27D4EB2Du, 0x94D049BBu },
 	};
 
 	struct Stage2WeaponSpawnInfo
@@ -863,17 +883,19 @@ void Room::SpawnStage2Zombies()
 
 	for (const ZombieSpawnGroupInfo& groupInfo : STAGE2_ZOMBIE_GROUPS)
 	{
-		const float startX = groupInfo.centerX - (static_cast<float>(groupInfo.columns - 1) * groupInfo.spacingX * 0.5f);
-		const float startY = groupInfo.centerY - (static_cast<float>(groupInfo.rows - 1) * groupInfo.spacingY * 0.5f);
+		const int32 spawnColumns = STAGE2_ZOMBIE_GROUP_COLUMNS;
+		const int32 spawnRows = STAGE2_ZOMBIE_GROUP_ROWS;
+		const float startX = groupInfo.centerX - (static_cast<float>(spawnColumns - 1) * groupInfo.spacingX * 0.5f);
+		const float startY = groupInfo.centerY - (static_cast<float>(spawnRows - 1) * groupInfo.spacingY * 0.5f);
 		const int32 tileOccurrenceCount = GetStage2TileOccurrenceCount(groupInfo.tileTypeCode, groupInfo.tileOccurrenceCount);
 
 		for (int32 occurrenceIndex = 0; occurrenceIndex < tileOccurrenceCount; ++occurrenceIndex)
 		{
-			for (int32 row = 0; row < groupInfo.rows; ++row)
+			for (int32 row = 0; row < spawnRows; ++row)
 			{
-				for (int32 column = 0; column < groupInfo.columns; ++column)
+				for (int32 column = 0; column < spawnColumns; ++column)
 				{
-					const int32 spawnIndex = occurrenceIndex * groupInfo.rows * groupInfo.columns + row * groupInfo.columns + column;
+					const int32 spawnIndex = occurrenceIndex * spawnRows * spawnColumns + row * spawnColumns + column;
 					QueueStage2ZombieSpawn(
 						startX + static_cast<float>(column) * groupInfo.spacingX,
 						startY + static_cast<float>(row) * groupInfo.spacingY,
@@ -1034,6 +1056,9 @@ vector<Room::ZombiePathPoint> Room::FindZombiePath(const Protocol::PosInfo& star
 	vector<ZombiePathPoint> fallbackPath;
 	fallbackPath.push_back({ goal.x(), goal.y(), goal.z() });
 
+	if (!ZOMBIE_NAV_HAS_BLOCKED_CELLS)
+		return fallbackPath;
+
 	const ZombieNavCell startCell = WorldToZombieNavCell(start.x(), start.y());
 	const ZombieNavCell goalCell = WorldToZombieNavCell(goal.x(), goal.y());
 	if (startCell.x == goalCell.x && startCell.y == goalCell.y)
@@ -1192,6 +1217,7 @@ void Room::UpdateZombies()
 		if (monster->IsDead())
 		{
 			_zombiePaths.erase(item.first);
+			_zombieAiUpdateStates.erase(item.first);
 			continue;
 		}
 
@@ -1202,12 +1228,11 @@ void Room::UpdateZombies()
 			continue;
 		}
 
-		monster->TickCooldown(ZOMBIE_SERVER_TICK_SECONDS);
-
 		PlayerRef targetPlayer = FindNearestPlayer(*monster->posInfo, ZOMBIE_AI_ACTIVE_RANGE);
 		if (targetPlayer == nullptr)
 		{
 			_zombiePaths.erase(item.first);
+			_zombieAiUpdateStates.erase(item.first);
 			if (monster->posInfo->state() != Protocol::MOVE_STATE_IDLE)
 			{
 				monster->posInfo->set_state(Protocol::MOVE_STATE_IDLE);
@@ -1221,15 +1246,27 @@ void Room::UpdateZombies()
 		const float dy = targetPlayer->posInfo->y() - monster->posInfo->y();
 		const float dz = targetPlayer->posInfo->z() - monster->posInfo->z();
 		const float distSq = dx * dx + dy * dy + dz * dz;
+
+		ZombieAiUpdateState& aiUpdateState = _zombieAiUpdateStates[item.first];
+		aiUpdateState.elapsedSeconds += ZOMBIE_SERVER_TICK_SECONDS;
+		const float aiUpdateInterval = GetZombieAiUpdateInterval(distSq);
+		if (aiUpdateState.elapsedSeconds + 0.001f < aiUpdateInterval)
+			continue;
+
+		const float aiDeltaSeconds = aiUpdateState.elapsedSeconds;
+		aiUpdateState.elapsedSeconds = 0.0f;
+		monster->TickCooldown(aiDeltaSeconds);
+
 		const float attackRangeSq = ZOMBIE_ATTACK_RANGE * ZOMBIE_ATTACK_RANGE;
 		float separationX = 0.0f;
 		float separationY = 0.0f;
 		const float separationRadiusSq = ZOMBIE_SEPARATION_RADIUS * ZOMBIE_SEPARATION_RADIUS;
 
 		const ZombieNavCell separationCell = WorldToZombieSeparationCell(monster->posInfo->x(), monster->posInfo->y());
-		for (int32 cellY = separationCell.y - 1; cellY <= separationCell.y + 1; ++cellY)
+		int32 separationNeighborCount = 0;
+		for (int32 cellY = separationCell.y - 1; cellY <= separationCell.y + 1 && separationNeighborCount < ZOMBIE_SEPARATION_MAX_NEIGHBORS; ++cellY)
 		{
-			for (int32 cellX = separationCell.x - 1; cellX <= separationCell.x + 1; ++cellX)
+			for (int32 cellX = separationCell.x - 1; cellX <= separationCell.x + 1 && separationNeighborCount < ZOMBIE_SEPARATION_MAX_NEIGHBORS; ++cellX)
 			{
 				auto gridIt = separationGrid.find(MakeZombieNavCellKey(cellX, cellY));
 				if (gridIt == separationGrid.end())
@@ -1237,6 +1274,9 @@ void Room::UpdateZombies()
 
 				for (const MonsterRef& otherMonster : gridIt->second)
 				{
+					if (separationNeighborCount >= ZOMBIE_SEPARATION_MAX_NEIGHBORS)
+						break;
+
 					if (otherMonster == nullptr ||
 						otherMonster->objectInfo->object_id() == monster->objectInfo->object_id())
 					{
@@ -1254,6 +1294,7 @@ void Room::UpdateZombies()
 						const float fallbackAngle = static_cast<float>((item.first * 37 + otherMonster->objectInfo->object_id() * 17) % 360) * (3.1415926535f / 180.0f);
 						separationX += cosf(fallbackAngle);
 						separationY += sinf(fallbackAngle);
+						++separationNeighborCount;
 						continue;
 					}
 
@@ -1261,6 +1302,7 @@ void Room::UpdateZombies()
 					const float strength = (ZOMBIE_SEPARATION_RADIUS - otherDist) / ZOMBIE_SEPARATION_RADIUS;
 					separationX += (awayX / otherDist) * strength;
 					separationY += (awayY / otherDist) * strength;
+					++separationNeighborCount;
 				}
 			}
 		}
@@ -1285,7 +1327,7 @@ void Room::UpdateZombies()
 			if (separationSq > 0.001f)
 			{
 				const float separationLen = sqrtf(separationSq);
-				const float moveStep = ZOMBIE_MOVE_SPEED * monster->GetMoveSpeedScale() * ZOMBIE_SERVER_TICK_SECONDS;
+				const float moveStep = ZOMBIE_MOVE_SPEED * monster->GetMoveSpeedScale() * aiDeltaSeconds;
 				monster->posInfo->set_x(monster->posInfo->x() + (separationX / separationLen) * moveStep);
 				monster->posInfo->set_y(monster->posInfo->y() + (separationY / separationLen) * moveStep);
 			}
@@ -1304,7 +1346,7 @@ void Room::UpdateZombies()
 		else
 		{
 			ZombiePathState& pathState = _zombiePaths[item.first];
-			pathState.repathRemainingSeconds -= ZOMBIE_SERVER_TICK_SECONDS;
+			pathState.repathRemainingSeconds -= aiDeltaSeconds;
 
 			const float targetMoveX = targetPlayer->posInfo->x() - pathState.lastTargetX;
 			const float targetMoveY = targetPlayer->posInfo->y() - pathState.lastTargetY;
@@ -1352,7 +1394,7 @@ void Room::UpdateZombies()
 			const float distance = sqrtf(pathDistSq);
 			if (distance > 0.001f)
 			{
-				const float moveStep = ZOMBIE_MOVE_SPEED * monster->GetMoveSpeedScale() * ZOMBIE_SERVER_TICK_SECONDS;
+				const float moveStep = ZOMBIE_MOVE_SPEED * monster->GetMoveSpeedScale() * aiDeltaSeconds;
 				float moveX = pathDx / distance;
 				float moveY = pathDy / distance;
 				const float separationSq = separationX * separationX + separationY * separationY;

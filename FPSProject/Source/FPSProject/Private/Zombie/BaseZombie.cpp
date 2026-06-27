@@ -109,6 +109,8 @@ void ABaseZombie::BeginPlay()
 	{
 		StandingMeshRelativeLocation = ZombieMesh->GetRelativeLocation();
 		bHasStandingMeshRelativeLocation = true;
+		ZombieMesh->VisibilityBasedAnimTickOption = EVisibilityBasedAnimTickOption::OnlyTickPoseWhenRendered;
+		ZombieMesh->bEnableUpdateRateOptimizations = true;
 
 		ZombieMesh->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
 		ZombieMesh->SetCollisionResponseToChannel(ECC_GameTraceChannel1, ECR_Block);

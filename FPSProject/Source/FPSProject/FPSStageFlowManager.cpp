@@ -472,6 +472,10 @@ void FFPSStageFlowManager::ApplyStage1ItemSpawnSeed()
 		if (ALootItemBase* LootItem = SpawnPoint->GetSpawnedItem())
 		{
 			Owner.RegisterNetworkLootItem(LootItem);
+			if (Owner.IsNetworkLootItemInactive(LootItem->GetNetworkItemId()))
+			{
+				LootItem->SetNetworkItemActive(false);
+			}
 		}
 	}
 

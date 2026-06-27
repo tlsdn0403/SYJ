@@ -1643,6 +1643,15 @@ void Room::HandlePickupLootItem(PlayerRef player, Protocol::C_PICKUP_LOOT_ITEM p
 	}
 
 	_inactiveLootItemIds.insert(itemId);
+	_pendingLootItemRespawns.erase(
+		std::remove_if(
+			_pendingLootItemRespawns.begin(),
+			_pendingLootItemRespawns.end(),
+			[itemId](const PendingLootItemRespawn& pendingRespawn)
+			{
+				return pendingRespawn.itemId == itemId;
+			}),
+		_pendingLootItemRespawns.end());
 
 	Protocol::S_DESPAWN despawnPkt;
 	Protocol::DespawnInfo* despawnInfo = despawnPkt.add_despawn_infos();
@@ -1654,9 +1663,7 @@ void Room::HandlePickupLootItem(PlayerRef player, Protocol::C_PICKUP_LOOT_ITEM p
 
 	if (pkt.should_respawn() && pkt.respawn_delay() > 0.0f)
 	{
-		PendingLootItemRespawn& pendingRespawn = _pendingLootItemRespawns.emplace_back();
-		pendingRespawn.itemId = itemId;
-		pendingRespawn.remainingTime = pkt.respawn_delay();
+		cout << "[PickupLootItem] respawn request ignored for network loot itemId=" << itemId << endl;
 	}
 }
 

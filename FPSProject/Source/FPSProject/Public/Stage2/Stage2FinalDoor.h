@@ -7,6 +7,7 @@
 class ALevelSequenceActor;
 class ULevelSequence;
 class ULevelSequencePlayer;
+class UUserWidget;
 
 UCLASS()
 class FPSPROJECT_API AStage2FinalDoor : public AADoor
@@ -19,10 +20,16 @@ public:
 	virtual void Interact_Implementation(AFPSBaseCharacter* Character) override;
 	virtual void ApplyDoorState(bool bShouldOpen) override;
 
+	virtual void WidgetStart(AActor* OtherActor) override;
+
+	virtual void WidgetEnd(AActor* OtherActor) override;
+
 	UFUNCTION(BlueprintCallable, Category = "Ending")
 	void StartEndingSequence();
 
 protected:
+	virtual void BeginPlay() override;
+
 	UFUNCTION()
 	void HandleEndingSequenceFinished();
 
@@ -35,12 +42,22 @@ protected:
 	UFUNCTION(BlueprintImplementableEvent, Category = "Door")
 	void OnFinalDoorStateChanged(bool bIsOpen);
 
+	bool SetFinalDoorInteractText(UUserWidget* Widget) const;
+	bool UpdateFinalDoorInteractText();
+	void PlayFinalDoorInteractWidgets();
+	ULevelSequence* ResolveEndingSequence();
 	void TriggerEndingSequence();
 	void FinishEndingSequence();
 	void SetEndingCinematicMode(bool bEnable);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ending")
 	TObjectPtr<ULevelSequence> EndingSequence;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ending")
+	bool bEnableEndingOnInteract = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interaction")
+	FText FinalDoorInteractText;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ending")
 	FName LevelNameAfterCinematic = NAME_None;

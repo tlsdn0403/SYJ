@@ -58,10 +58,10 @@ public:
 	float MoveTime = 3.f;
 
 	UFUNCTION()
-	void WidgetStart(AActor* OtherActor);
+	virtual void WidgetStart(AActor* OtherActor);
 
 	UFUNCTION()
-	void WidgetEnd(AActor* OtherActor);
+	virtual void WidgetEnd(AActor* OtherActor);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Setting")
 	UMaterialInterface* OverlayMaterial;

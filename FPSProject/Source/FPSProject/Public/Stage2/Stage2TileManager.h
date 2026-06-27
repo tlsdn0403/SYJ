@@ -241,6 +241,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stage2|Debug")
 	bool bVerboseLog = true;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stage2|Debug")
+	bool bDebugSpawnGoalAfterOnePlayableTile = true;
+
 	UPROPERTY(BlueprintReadOnly, Category = "Stage2")
 	TArray<FStage2LoadedTile> ActiveTiles;
 
@@ -320,6 +323,7 @@ private:
 	void SpawnZombiesForTile(FStage2LoadedTile& LoadedTile);
 	void DestroySpawnedZombiesForTile(FStage2LoadedTile& LoadedTile);
 	void UpdateTurnHistory(EStage2TileType TileType);
+	int32 GetEffectiveGoalAfterPlayableTileCount() const;
 	EStage2TileType ChooseNextTileType();
 	AStage2TileMarker* FindTileMarkerFromStreamingLevel(ULevelStreamingDynamic* StreamingLevel) const;
 	int32 GetInitializedTileCount() const;

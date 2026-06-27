@@ -11,8 +11,10 @@
 #include "LevelSequenceActor.h"
 #include "LevelSequencePlayer.h"
 #include "MovieSceneSequencePlaybackSettings.h"
+#include "DefaultLevelSequenceInstanceData.h"
 #include "EngineUtils.h"
 #include "Engine/Level.h"
+#include "Engine/LevelStreaming.h"
 #include "Kismet/GameplayStatics.h"
 
 AStage2FinalDoor::AStage2FinalDoor()
@@ -247,6 +249,8 @@ bool AStage2FinalDoor::TryPlayPlacedEndingSequence(ULevelSequence* SequenceToPla
 		return false;
 	}
 
+	ConfigureEndingSequenceActor(EndingSequenceActor.Get());
+
 	EndingSequencePlayer = EndingSequenceActor->GetSequencePlayer();
 	if (EndingSequencePlayer == nullptr)
 	{
@@ -263,6 +267,70 @@ bool AStage2FinalDoor::TryPlayPlacedEndingSequence(ULevelSequence* SequenceToPla
 		*GetNameSafe(DoorLevel));
 
 	return true;
+}
+
+bool AStage2FinalDoor::TryGetRuntimeLevelTransform(FTransform& OutLevelTransform) const
+{
+	OutLevelTransform = FTransform::Identity;
+
+	ULevel* DoorLevel = GetLevel();
+	if (DoorLevel == nullptr)
+	{
+		return false;
+	}
+
+	if (ULevelStreaming* StreamingLevel = ULevelStreaming::FindStreamingLevel(DoorLevel))
+	{
+		OutLevelTransform = StreamingLevel->LevelTransform;
+		return true;
+	}
+
+	UWorld* World = GetWorld();
+	if (World == nullptr)
+	{
+		return false;
+	}
+
+	for (ULevelStreaming* StreamingLevel : World->GetStreamingLevels())
+	{
+		if (StreamingLevel && StreamingLevel->GetLoadedLevel() == DoorLevel)
+		{
+			OutLevelTransform = StreamingLevel->LevelTransform;
+			return true;
+		}
+	}
+
+	return false;
+}
+
+void AStage2FinalDoor::ConfigureEndingSequenceActor(ALevelSequenceActor* SequenceActor)
+{
+	if (!bUseRuntimeLevelTransformOrigin || SequenceActor == nullptr)
+	{
+		return;
+	}
+
+	FTransform RuntimeLevelTransform;
+	if (!TryGetRuntimeLevelTransform(RuntimeLevelTransform))
+	{
+		return;
+	}
+
+	UDefaultLevelSequenceInstanceData* InstanceData =
+		Cast<UDefaultLevelSequenceInstanceData>(SequenceActor->DefaultInstanceData);
+	if (InstanceData == nullptr)
+	{
+		InstanceData = NewObject<UDefaultLevelSequenceInstanceData>(SequenceActor, TEXT("RuntimeEndingInstanceData"));
+		SequenceActor->DefaultInstanceData = InstanceData;
+	}
+
+	InstanceData->TransformOriginActor = nullptr;
+	InstanceData->TransformOrigin = RuntimeLevelTransform;
+	SequenceActor->bOverrideInstanceData = true;
+
+	UE_LOG(LogTemp, Log, TEXT("[Stage2FinalDoor] Ending sequence transform origin set to %s for %s."),
+		*RuntimeLevelTransform.ToHumanReadableString(),
+		*GetNameSafe(SequenceActor));
 }
 
 void AStage2FinalDoor::TriggerEndingSequence()
@@ -321,6 +389,8 @@ void AStage2FinalDoor::TriggerEndingSequence()
 		CreatedSequenceActor);
 	EndingSequenceActor = CreatedSequenceActor;
 	bDestroyEndingSequenceActorOnFinish = true;
+
+	ConfigureEndingSequenceActor(EndingSequenceActor.Get());
 
 	if (EndingSequencePlayer == nullptr)
 	{

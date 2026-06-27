@@ -47,6 +47,8 @@ protected:
 	void PlayFinalDoorInteractWidgets();
 	ULevelSequence* ResolveEndingSequence();
 	bool TryPlayPlacedEndingSequence(ULevelSequence* SequenceToPlay);
+	bool TryGetRuntimeLevelTransform(FTransform& OutLevelTransform) const;
+	void ConfigureEndingSequenceActor(ALevelSequenceActor* SequenceActor);
 	void TriggerEndingSequence();
 	void FinishEndingSequence();
 	void SetEndingCinematicMode(bool bEnable);
@@ -71,6 +73,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ending")
 	bool bUseCinematicMode = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ending")
+	bool bUseRuntimeLevelTransformOrigin = true;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ending", meta = (ClampMin = "0.1"))
 	float NoSequenceFallbackDelay = 1.0f;

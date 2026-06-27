@@ -273,7 +273,7 @@ void AStage2TileManager::GetPlannedStage2ZombieTileTypeCodes(TArray<int32>& OutT
 		OutTileTypeCodes.Add(StartTileTypeCode);
 	}
 
-	const int32 PlannedPlayableTileCount = FMath::Max(0, GoalAfterPlayableTileCount);
+	const int32 PlannedPlayableTileCount = FMath::Max(0, GetEffectiveGoalAfterPlayableTileCount());
 	for (int32 PlayableTileIndex = 0; PlayableTileIndex < PlannedPlayableTileCount; ++PlayableTileIndex)
 	{
 		const EStage2TileType TileType =
@@ -1565,11 +1565,18 @@ void AStage2TileManager::UpdateTurnHistory(EStage2TileType TileType)
 	}
 }
 
+int32 AStage2TileManager::GetEffectiveGoalAfterPlayableTileCount() const
+{
+	return bDebugSpawnGoalAfterOnePlayableTile
+		? 1
+		: GoalAfterPlayableTileCount;
+}
+
 EStage2TileType AStage2TileManager::ChooseNextTileType()
 {
 	if (!bGoalTileSpawnRequested &&
 		GoalTileLevels.Num() > 0 &&
-		SpawnedPlayableTileCount >= GoalAfterPlayableTileCount &&
+		SpawnedPlayableTileCount >= GetEffectiveGoalAfterPlayableTileCount() &&
 		IsPoolTileAvailable(EStage2TileType::Goal))
 	{
 		return EStage2TileType::Goal;

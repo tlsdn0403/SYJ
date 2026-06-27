@@ -1473,7 +1473,10 @@ void Room::HandleHitZombie(PlayerRef player, Protocol::C_HIT_ZOMBIE pkt)
 		SendBufferRef dismemberBuffer = ServerPacketHandler::MakeSendBuffer(dismemberPkt);
 		Broadcast(dismemberBuffer);
 
-		if (brokenBoneName == "head" || brokenBoneName == "spine_01")
+		if (brokenBoneName == "head" ||
+			brokenBoneName == "Head" ||
+			brokenBoneName == "spine_01" ||
+			brokenBoneName == "Spine")
 		{
 			monster->ApplyDamage(monster->GetMaxHp());
 		}

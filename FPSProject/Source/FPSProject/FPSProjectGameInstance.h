@@ -110,6 +110,7 @@ public:
 	bool ConsumeRecordedStage1CargoItem(EItemType ItemType, int32 Amount = 1);
 	void RegisterNetworkLootItem(ALootItemBase* LootItem);
 	void UnregisterNetworkLootItem(uint64 LootItemId);
+	bool IsNetworkLootItemInactive(uint64 LootItemId) const;
 
 	UFUNCTION(BlueprintCallable, Category = "Stage1|Cargo")
 	void ClearRecordedStage1CargoItems();
@@ -155,6 +156,8 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stage1|Cargo")
 	TMap<EItemType, int32> RecordedStage1CargoItems;
+
+	TSet<uint64> InactiveNetworkLootItemIds;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Network|Class")
 	TSubclassOf<class AWeaponBase> DefaultWeaponClass;	// 바닥에 떨어진 무기 스폰할 때 사용할 기본 무기 클래스

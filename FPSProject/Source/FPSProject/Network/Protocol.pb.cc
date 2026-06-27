@@ -50,7 +50,9 @@ struct S_LOGINDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 S_LOGINDefaultTypeInternal _S_LOGIN_default_instance_;
 PROTOBUF_CONSTEXPR C_ENTER_GAME::C_ENTER_GAME(
     ::_pbi::ConstantInitialized): _impl_{
-    /*decltype(_impl_.playerindex_)*/uint64_t{0u}
+    /*decltype(_impl_.stage2_tile_types_)*/{}
+  , /*decltype(_impl_._stage2_tile_types_cached_byte_size_)*/{0}
+  , /*decltype(_impl_.playerindex_)*/uint64_t{0u}
   , /*decltype(_impl_._cached_size_)*/{}} {}
 struct C_ENTER_GAMEDefaultTypeInternal {
   PROTOBUF_CONSTEXPR C_ENTER_GAMEDefaultTypeInternal()
@@ -610,6 +612,7 @@ const uint32_t TableStruct_Protocol_2eproto::offsets[] PROTOBUF_SECTION_VARIABLE
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
   PROTOBUF_FIELD_OFFSET(::Protocol::C_ENTER_GAME, _impl_.playerindex_),
+  PROTOBUF_FIELD_OFFSET(::Protocol::C_ENTER_GAME, _impl_.stage2_tile_types_),
   ~0u,  // no _has_bits_
   PROTOBUF_FIELD_OFFSET(::Protocol::S_ENTER_GAME, _internal_metadata_),
   ~0u,  // no _extensions_
@@ -920,42 +923,42 @@ static const ::_pbi::MigrationSchema schemas[] PROTOBUF_SECTION_VARIABLE(protode
   { 0, -1, -1, sizeof(::Protocol::C_LOGIN)},
   { 7, -1, -1, sizeof(::Protocol::S_LOGIN)},
   { 15, -1, -1, sizeof(::Protocol::C_ENTER_GAME)},
-  { 22, -1, -1, sizeof(::Protocol::S_ENTER_GAME)},
-  { 30, -1, -1, sizeof(::Protocol::C_LEAVE_GAME)},
-  { 36, -1, -1, sizeof(::Protocol::S_LEAVE_GAME)},
-  { 43, -1, -1, sizeof(::Protocol::S_SPAWN)},
-  { 50, -1, -1, sizeof(::Protocol::S_DESPAWN)},
-  { 57, -1, -1, sizeof(::Protocol::C_MOVE)},
-  { 64, -1, -1, sizeof(::Protocol::S_MOVE)},
-  { 71, -1, -1, sizeof(::Protocol::C_HIT_ZOMBIE)},
-  { 87, -1, -1, sizeof(::Protocol::S_ZOMBIE_ATTACK)},
-  { 95, -1, -1, sizeof(::Protocol::S_ZOMBIE_HP)},
-  { 104, -1, -1, sizeof(::Protocol::S_ZOMBIE_DIE)},
-  { 112, -1, -1, sizeof(::Protocol::C_CHAT)},
-  { 119, -1, -1, sizeof(::Protocol::S_CHAT)},
-  { 127, -1, -1, sizeof(::Protocol::C_EQUIP_WEAPON)},
-  { 134, -1, -1, sizeof(::Protocol::C_PICKUP_LOOT_ITEM)},
-  { 143, -1, -1, sizeof(::Protocol::S_EQUIP_WEAPON)},
-  { 152, -1, -1, sizeof(::Protocol::S_SPAWN_ITEM)},
-  { 159, -1, -1, sizeof(::Protocol::C_FIRE)},
-  { 165, -1, -1, sizeof(::Protocol::S_FIRE)},
-  { 172, -1, -1, sizeof(::Protocol::C_ENTER_TRUCK)},
-  { 180, -1, -1, sizeof(::Protocol::S_ENTER_TRUCK)},
-  { 189, -1, -1, sizeof(::Protocol::C_EXIT_TRUCK)},
-  { 195, -1, -1, sizeof(::Protocol::S_EXIT_TRUCK)},
-  { 204, -1, -1, sizeof(::Protocol::C_TRUCK_MOVE)},
-  { 220, -1, -1, sizeof(::Protocol::S_TRUCK_MOVE)},
-  { 236, -1, -1, sizeof(::Protocol::C_LOAD_TRUCK_ITEM)},
-  { 244, -1, -1, sizeof(::Protocol::S_LOAD_TRUCK_ITEM)},
-  { 253, -1, -1, sizeof(::Protocol::C_TOGGLE_DOOR)},
-  { 260, -1, -1, sizeof(::Protocol::S_TOGGLE_DOOR)},
-  { 268, -1, -1, sizeof(::Protocol::S_ENTER_GAME_READY_COUNT)},
-  { 276, -1, -1, sizeof(::Protocol::S_STAGE_TIMER)},
-  { 284, -1, -1, sizeof(::Protocol::S_STAGE1_ITEM_SEED)},
-  { 291, -1, -1, sizeof(::Protocol::S_RESPAWN_LOOT_ITEM)},
-  { 298, -1, -1, sizeof(::Protocol::C_STAGE_TRANSITION_REQUEST)},
-  { 306, -1, -1, sizeof(::Protocol::S_STAGE_TRANSITION)},
-  { 313, -1, -1, sizeof(::Protocol::S_ZOMBIE_DISMEMBER)},
+  { 23, -1, -1, sizeof(::Protocol::S_ENTER_GAME)},
+  { 31, -1, -1, sizeof(::Protocol::C_LEAVE_GAME)},
+  { 37, -1, -1, sizeof(::Protocol::S_LEAVE_GAME)},
+  { 44, -1, -1, sizeof(::Protocol::S_SPAWN)},
+  { 51, -1, -1, sizeof(::Protocol::S_DESPAWN)},
+  { 58, -1, -1, sizeof(::Protocol::C_MOVE)},
+  { 65, -1, -1, sizeof(::Protocol::S_MOVE)},
+  { 72, -1, -1, sizeof(::Protocol::C_HIT_ZOMBIE)},
+  { 88, -1, -1, sizeof(::Protocol::S_ZOMBIE_ATTACK)},
+  { 96, -1, -1, sizeof(::Protocol::S_ZOMBIE_HP)},
+  { 105, -1, -1, sizeof(::Protocol::S_ZOMBIE_DIE)},
+  { 113, -1, -1, sizeof(::Protocol::C_CHAT)},
+  { 120, -1, -1, sizeof(::Protocol::S_CHAT)},
+  { 128, -1, -1, sizeof(::Protocol::C_EQUIP_WEAPON)},
+  { 135, -1, -1, sizeof(::Protocol::C_PICKUP_LOOT_ITEM)},
+  { 144, -1, -1, sizeof(::Protocol::S_EQUIP_WEAPON)},
+  { 153, -1, -1, sizeof(::Protocol::S_SPAWN_ITEM)},
+  { 160, -1, -1, sizeof(::Protocol::C_FIRE)},
+  { 166, -1, -1, sizeof(::Protocol::S_FIRE)},
+  { 173, -1, -1, sizeof(::Protocol::C_ENTER_TRUCK)},
+  { 181, -1, -1, sizeof(::Protocol::S_ENTER_TRUCK)},
+  { 190, -1, -1, sizeof(::Protocol::C_EXIT_TRUCK)},
+  { 196, -1, -1, sizeof(::Protocol::S_EXIT_TRUCK)},
+  { 205, -1, -1, sizeof(::Protocol::C_TRUCK_MOVE)},
+  { 221, -1, -1, sizeof(::Protocol::S_TRUCK_MOVE)},
+  { 237, -1, -1, sizeof(::Protocol::C_LOAD_TRUCK_ITEM)},
+  { 245, -1, -1, sizeof(::Protocol::S_LOAD_TRUCK_ITEM)},
+  { 254, -1, -1, sizeof(::Protocol::C_TOGGLE_DOOR)},
+  { 261, -1, -1, sizeof(::Protocol::S_TOGGLE_DOOR)},
+  { 269, -1, -1, sizeof(::Protocol::S_ENTER_GAME_READY_COUNT)},
+  { 277, -1, -1, sizeof(::Protocol::S_STAGE_TIMER)},
+  { 285, -1, -1, sizeof(::Protocol::S_STAGE1_ITEM_SEED)},
+  { 292, -1, -1, sizeof(::Protocol::S_RESPAWN_LOOT_ITEM)},
+  { 299, -1, -1, sizeof(::Protocol::C_STAGE_TRANSITION_REQUEST)},
+  { 307, -1, -1, sizeof(::Protocol::S_STAGE_TRANSITION)},
+  { 314, -1, -1, sizeof(::Protocol::S_ZOMBIE_DISMEMBER)},
 };
 
 static const ::_pb::Message* const file_default_instances[] = {
@@ -1004,73 +1007,74 @@ const char descriptor_table_protodef_Protocol_2eproto[] PROTOBUF_SECTION_VARIABL
   "\n\016Protocol.proto\022\010Protocol\032\nEnum.proto\032\014"
   "Struct.proto\"\033\n\007C_LOGIN\022\020\n\010nickname\030\001 \001("
   "\t\"A\n\007S_LOGIN\022\017\n\007success\030\001 \001(\010\022%\n\007players"
-  "\030\002 \003(\0132\024.Protocol.ObjectInfo\"#\n\014C_ENTER_"
-  "GAME\022\023\n\013playerIndex\030\001 \001(\004\"E\n\014S_ENTER_GAM"
-  "E\022\017\n\007success\030\001 \001(\010\022$\n\006player\030\002 \001(\0132\024.Pro"
-  "tocol.ObjectInfo\"\016\n\014C_LEAVE_GAME\"!\n\014S_LE"
-  "AVE_GAME\022\021\n\tobject_id\030\001 \001(\004\"0\n\007S_SPAWN\022%"
-  "\n\007players\030\001 \003(\0132\024.Protocol.ObjectInfo\"9\n"
-  "\tS_DESPAWN\022,\n\rdespawn_infos\030\001 \003(\0132\025.Prot"
-  "ocol.DespawnInfo\")\n\006C_MOVE\022\037\n\004info\030\001 \001(\013"
-  "2\021.Protocol.PosInfo\")\n\006S_MOVE\022\037\n\004info\030\001 "
-  "\001(\0132\021.Protocol.PosInfo\"\314\001\n\014C_HIT_ZOMBIE\022"
-  "\021\n\tzombie_id\030\001 \001(\004\022\023\n\013attacker_id\030\002 \001(\004\022"
-  "\016\n\006damage\030\003 \001(\002\022\r\n\005hit_x\030\004 \001(\002\022\r\n\005hit_y\030"
-  "\005 \001(\002\022\r\n\005hit_z\030\006 \001(\002\022\025\n\rhit_bone_name\030\007 "
-  "\001(\t\022\024\n\014hit_normal_x\030\010 \001(\002\022\024\n\014hit_normal_"
-  "y\030\t \001(\002\022\024\n\014hit_normal_z\030\n \001(\002\">\n\017S_ZOMBI"
-  "E_ATTACK\022\021\n\tzombie_id\030\001 \001(\004\022\030\n\020target_pl"
-  "ayer_id\030\002 \001(\004\"<\n\013S_ZOMBIE_HP\022\021\n\tzombie_i"
-  "d\030\001 \001(\004\022\n\n\002hp\030\002 \001(\002\022\016\n\006max_hp\030\003 \001(\002\"4\n\014S"
-  "_ZOMBIE_DIE\022\021\n\tzombie_id\030\001 \001(\004\022\021\n\tkiller"
-  "_id\030\002 \001(\004\"\025\n\006C_CHAT\022\013\n\003msg\030\001 \001(\t\"\'\n\006S_CH"
-  "AT\022\020\n\010playerId\030\001 \001(\004\022\013\n\003msg\030\002 \001(\t\"&\n\016C_E"
-  "QUIP_WEAPON\022\024\n\014itemObjectId\030\001 \001(\004\"[\n\022C_P"
-  "ICKUP_LOOT_ITEM\022\026\n\016item_object_id\030\001 \001(\004\022"
-  "\026\n\016should_respawn\030\002 \001(\010\022\025\n\rrespawn_delay"
-  "\030\003 \001(\002\"L\n\016S_EQUIP_WEAPON\022\020\n\010playerId\030\001 \001"
-  "(\004\022\024\n\014itemObjectId\030\002 \001(\004\022\022\n\nweaponType\030\003"
-  " \001(\005\"3\n\014S_SPAWN_ITEM\022#\n\005items\030\001 \003(\0132\024.Pr"
-  "otocol.ObjectInfo\"\010\n\006C_FIRE\"\033\n\006S_FIRE\022\021\n"
-  "\tobject_id\030\001 \001(\004\"M\n\rC_ENTER_TRUCK\022\020\n\010tru"
-  "ck_id\030\001 \001(\004\022*\n\tseat_type\030\002 \001(\0162\027.Protoco"
-  "l.TruckSeatType\"`\n\rS_ENTER_TRUCK\022\021\n\tplay"
-  "er_id\030\001 \001(\004\022\020\n\010truck_id\030\002 \001(\004\022*\n\tseat_ty"
-  "pe\030\003 \001(\0162\027.Protocol.TruckSeatType\"\016\n\014C_E"
-  "XIT_TRUCK\"_\n\014S_EXIT_TRUCK\022\021\n\tplayer_id\030\001"
-  " \001(\004\022\020\n\010truck_id\030\002 \001(\004\022*\n\tseat_type\030\003 \001("
-  "\0162\027.Protocol.TruckSeatType\"\372\001\n\014C_TRUCK_M"
-  "OVE\022\037\n\004info\030\001 \001(\0132\021.Protocol.PosInfo\022\014\n\004"
-  "fuel\030\003 \001(\002\022\022\n\nturret_yaw\030\004 \001(\002\022\024\n\014turret"
-  "_pitch\030\005 \001(\002\022\026\n\016has_turret_aim\030\006 \001(\010\022\030\n\020"
-  "has_truck_health\030\007 \001(\010\022\020\n\010truck_hp\030\010 \001(\002"
-  "\022\024\n\014truck_max_hp\030\t \001(\002\022\026\n\016has_truck_fuel"
-  "\030\n \001(\010\022\037\n\027has_truck_health_repair\030\013 \001(\010\""
-  "\360\001\n\014S_TRUCK_MOVE\022\037\n\004info\030\001 \001(\0132\021.Protoco"
-  "l.PosInfo\022\025\n\ris_correction\030\002 \001(\010\022\014\n\004fuel"
-  "\030\003 \001(\002\022\022\n\nturret_yaw\030\004 \001(\002\022\024\n\014turret_pit"
-  "ch\030\005 \001(\002\022\026\n\016has_turret_aim\030\006 \001(\010\022\030\n\020has_"
-  "truck_health\030\007 \001(\010\022\020\n\010truck_hp\030\010 \001(\002\022\024\n\014"
-  "truck_max_hp\030\t \001(\002\022\026\n\016has_truck_fuel\030\n \001"
-  "(\010\"9\n\021C_LOAD_TRUCK_ITEM\022\020\n\010truck_id\030\001 \001("
-  "\004\022\022\n\nitem_types\030\002 \003(\005\"L\n\021S_LOAD_TRUCK_IT"
-  "EM\022\021\n\tplayer_id\030\001 \001(\004\022\020\n\010truck_id\030\002 \001(\004\022"
-  "\022\n\nitem_types\030\003 \003(\005\" \n\rC_TOGGLE_DOOR\022\017\n\007"
-  "door_id\030\001 \001(\004\"1\n\rS_TOGGLE_DOOR\022\017\n\007door_i"
-  "d\030\001 \001(\004\022\017\n\007is_open\030\002 \001(\010\"G\n\030S_ENTER_GAME"
-  "_READY_COUNT\022\023\n\013ready_count\030\001 \001(\005\022\026\n\016req"
-  "uired_count\030\002 \001(\005\"D\n\rS_STAGE_TIMER\022\031\n\021re"
-  "maining_seconds\030\001 \001(\005\022\030\n\020is_loading_phas"
-  "e\030\002 \001(\010\"\"\n\022S_STAGE1_ITEM_SEED\022\014\n\004seed\030\001 "
-  "\001(\r\".\n\023S_RESPAWN_LOOT_ITEM\022\027\n\017item_objec"
-  "t_ids\030\001 \003(\004\"D\n\032C_STAGE_TRANSITION_REQUES"
-  "T\022\020\n\010truck_id\030\001 \001(\004\022\024\n\014target_level\030\002 \001("
-  "\t\"*\n\022S_STAGE_TRANSITION\022\024\n\014target_level\030"
-  "\001 \001(\t\"\240\001\n\022S_ZOMBIE_DISMEMBER\022\021\n\tzombie_i"
-  "d\030\001 \001(\004\022\021\n\tbone_name\030\002 \001(\t\022\r\n\005hit_x\030\003 \001("
-  "\002\022\r\n\005hit_y\030\004 \001(\002\022\r\n\005hit_z\030\005 \001(\002\022\021\n\timpul"
-  "se_x\030\006 \001(\002\022\021\n\timpulse_y\030\007 \001(\002\022\021\n\timpulse"
-  "_z\030\010 \001(\002b\006proto3"
+  "\030\002 \003(\0132\024.Protocol.ObjectInfo\">\n\014C_ENTER_"
+  "GAME\022\023\n\013playerIndex\030\001 \001(\004\022\031\n\021stage2_tile"
+  "_types\030\002 \003(\005\"E\n\014S_ENTER_GAME\022\017\n\007success\030"
+  "\001 \001(\010\022$\n\006player\030\002 \001(\0132\024.Protocol.ObjectI"
+  "nfo\"\016\n\014C_LEAVE_GAME\"!\n\014S_LEAVE_GAME\022\021\n\to"
+  "bject_id\030\001 \001(\004\"0\n\007S_SPAWN\022%\n\007players\030\001 \003"
+  "(\0132\024.Protocol.ObjectInfo\"9\n\tS_DESPAWN\022,\n"
+  "\rdespawn_infos\030\001 \003(\0132\025.Protocol.DespawnI"
+  "nfo\")\n\006C_MOVE\022\037\n\004info\030\001 \001(\0132\021.Protocol.P"
+  "osInfo\")\n\006S_MOVE\022\037\n\004info\030\001 \001(\0132\021.Protoco"
+  "l.PosInfo\"\314\001\n\014C_HIT_ZOMBIE\022\021\n\tzombie_id\030"
+  "\001 \001(\004\022\023\n\013attacker_id\030\002 \001(\004\022\016\n\006damage\030\003 \001"
+  "(\002\022\r\n\005hit_x\030\004 \001(\002\022\r\n\005hit_y\030\005 \001(\002\022\r\n\005hit_"
+  "z\030\006 \001(\002\022\025\n\rhit_bone_name\030\007 \001(\t\022\024\n\014hit_no"
+  "rmal_x\030\010 \001(\002\022\024\n\014hit_normal_y\030\t \001(\002\022\024\n\014hi"
+  "t_normal_z\030\n \001(\002\">\n\017S_ZOMBIE_ATTACK\022\021\n\tz"
+  "ombie_id\030\001 \001(\004\022\030\n\020target_player_id\030\002 \001(\004"
+  "\"<\n\013S_ZOMBIE_HP\022\021\n\tzombie_id\030\001 \001(\004\022\n\n\002hp"
+  "\030\002 \001(\002\022\016\n\006max_hp\030\003 \001(\002\"4\n\014S_ZOMBIE_DIE\022\021"
+  "\n\tzombie_id\030\001 \001(\004\022\021\n\tkiller_id\030\002 \001(\004\"\025\n\006"
+  "C_CHAT\022\013\n\003msg\030\001 \001(\t\"\'\n\006S_CHAT\022\020\n\010playerI"
+  "d\030\001 \001(\004\022\013\n\003msg\030\002 \001(\t\"&\n\016C_EQUIP_WEAPON\022\024"
+  "\n\014itemObjectId\030\001 \001(\004\"[\n\022C_PICKUP_LOOT_IT"
+  "EM\022\026\n\016item_object_id\030\001 \001(\004\022\026\n\016should_res"
+  "pawn\030\002 \001(\010\022\025\n\rrespawn_delay\030\003 \001(\002\"L\n\016S_E"
+  "QUIP_WEAPON\022\020\n\010playerId\030\001 \001(\004\022\024\n\014itemObj"
+  "ectId\030\002 \001(\004\022\022\n\nweaponType\030\003 \001(\005\"3\n\014S_SPA"
+  "WN_ITEM\022#\n\005items\030\001 \003(\0132\024.Protocol.Object"
+  "Info\"\010\n\006C_FIRE\"\033\n\006S_FIRE\022\021\n\tobject_id\030\001 "
+  "\001(\004\"M\n\rC_ENTER_TRUCK\022\020\n\010truck_id\030\001 \001(\004\022*"
+  "\n\tseat_type\030\002 \001(\0162\027.Protocol.TruckSeatTy"
+  "pe\"`\n\rS_ENTER_TRUCK\022\021\n\tplayer_id\030\001 \001(\004\022\020"
+  "\n\010truck_id\030\002 \001(\004\022*\n\tseat_type\030\003 \001(\0162\027.Pr"
+  "otocol.TruckSeatType\"\016\n\014C_EXIT_TRUCK\"_\n\014"
+  "S_EXIT_TRUCK\022\021\n\tplayer_id\030\001 \001(\004\022\020\n\010truck"
+  "_id\030\002 \001(\004\022*\n\tseat_type\030\003 \001(\0162\027.Protocol."
+  "TruckSeatType\"\372\001\n\014C_TRUCK_MOVE\022\037\n\004info\030\001"
+  " \001(\0132\021.Protocol.PosInfo\022\014\n\004fuel\030\003 \001(\002\022\022\n"
+  "\nturret_yaw\030\004 \001(\002\022\024\n\014turret_pitch\030\005 \001(\002\022"
+  "\026\n\016has_turret_aim\030\006 \001(\010\022\030\n\020has_truck_hea"
+  "lth\030\007 \001(\010\022\020\n\010truck_hp\030\010 \001(\002\022\024\n\014truck_max"
+  "_hp\030\t \001(\002\022\026\n\016has_truck_fuel\030\n \001(\010\022\037\n\027has"
+  "_truck_health_repair\030\013 \001(\010\"\360\001\n\014S_TRUCK_M"
+  "OVE\022\037\n\004info\030\001 \001(\0132\021.Protocol.PosInfo\022\025\n\r"
+  "is_correction\030\002 \001(\010\022\014\n\004fuel\030\003 \001(\002\022\022\n\ntur"
+  "ret_yaw\030\004 \001(\002\022\024\n\014turret_pitch\030\005 \001(\002\022\026\n\016h"
+  "as_turret_aim\030\006 \001(\010\022\030\n\020has_truck_health\030"
+  "\007 \001(\010\022\020\n\010truck_hp\030\010 \001(\002\022\024\n\014truck_max_hp\030"
+  "\t \001(\002\022\026\n\016has_truck_fuel\030\n \001(\010\"9\n\021C_LOAD_"
+  "TRUCK_ITEM\022\020\n\010truck_id\030\001 \001(\004\022\022\n\nitem_typ"
+  "es\030\002 \003(\005\"L\n\021S_LOAD_TRUCK_ITEM\022\021\n\tplayer_"
+  "id\030\001 \001(\004\022\020\n\010truck_id\030\002 \001(\004\022\022\n\nitem_types"
+  "\030\003 \003(\005\" \n\rC_TOGGLE_DOOR\022\017\n\007door_id\030\001 \001(\004"
+  "\"1\n\rS_TOGGLE_DOOR\022\017\n\007door_id\030\001 \001(\004\022\017\n\007is"
+  "_open\030\002 \001(\010\"G\n\030S_ENTER_GAME_READY_COUNT\022"
+  "\023\n\013ready_count\030\001 \001(\005\022\026\n\016required_count\030\002"
+  " \001(\005\"D\n\rS_STAGE_TIMER\022\031\n\021remaining_secon"
+  "ds\030\001 \001(\005\022\030\n\020is_loading_phase\030\002 \001(\010\"\"\n\022S_"
+  "STAGE1_ITEM_SEED\022\014\n\004seed\030\001 \001(\r\".\n\023S_RESP"
+  "AWN_LOOT_ITEM\022\027\n\017item_object_ids\030\001 \003(\004\"D"
+  "\n\032C_STAGE_TRANSITION_REQUEST\022\020\n\010truck_id"
+  "\030\001 \001(\004\022\024\n\014target_level\030\002 \001(\t\"*\n\022S_STAGE_"
+  "TRANSITION\022\024\n\014target_level\030\001 \001(\t\"\240\001\n\022S_Z"
+  "OMBIE_DISMEMBER\022\021\n\tzombie_id\030\001 \001(\004\022\021\n\tbo"
+  "ne_name\030\002 \001(\t\022\r\n\005hit_x\030\003 \001(\002\022\r\n\005hit_y\030\004 "
+  "\001(\002\022\r\n\005hit_z\030\005 \001(\002\022\021\n\timpulse_x\030\006 \001(\002\022\021\n"
+  "\timpulse_y\030\007 \001(\002\022\021\n\timpulse_z\030\010 \001(\002b\006pro"
+  "to3"
   ;
 static const ::_pbi::DescriptorTable* const descriptor_table_Protocol_2eproto_deps[2] = {
   &::descriptor_table_Enum_2eproto,
@@ -1078,7 +1082,7 @@ static const ::_pbi::DescriptorTable* const descriptor_table_Protocol_2eproto_de
 };
 static ::_pbi::once_flag descriptor_table_Protocol_2eproto_once;
 const ::_pbi::DescriptorTable descriptor_table_Protocol_2eproto = {
-    false, false, 2776, descriptor_table_protodef_Protocol_2eproto,
+    false, false, 2803, descriptor_table_protodef_Protocol_2eproto,
     "Protocol.proto",
     &descriptor_table_Protocol_2eproto_once, descriptor_table_Protocol_2eproto_deps, 2, 39,
     schemas, file_default_instances, TableStruct_Protocol_2eproto::offsets,
@@ -1527,7 +1531,9 @@ C_ENTER_GAME::C_ENTER_GAME(const C_ENTER_GAME& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
   C_ENTER_GAME* const _this = this; (void)_this;
   new (&_impl_) Impl_{
-      decltype(_impl_.playerindex_){}
+      decltype(_impl_.stage2_tile_types_){from._impl_.stage2_tile_types_}
+    , /*decltype(_impl_._stage2_tile_types_cached_byte_size_)*/{0}
+    , decltype(_impl_.playerindex_){}
     , /*decltype(_impl_._cached_size_)*/{}};
 
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
@@ -1540,7 +1546,9 @@ inline void C_ENTER_GAME::SharedCtor(
   (void)arena;
   (void)is_message_owned;
   new (&_impl_) Impl_{
-      decltype(_impl_.playerindex_){uint64_t{0u}}
+      decltype(_impl_.stage2_tile_types_){arena}
+    , /*decltype(_impl_._stage2_tile_types_cached_byte_size_)*/{0}
+    , decltype(_impl_.playerindex_){uint64_t{0u}}
     , /*decltype(_impl_._cached_size_)*/{}
   };
 }
@@ -1556,6 +1564,7 @@ C_ENTER_GAME::~C_ENTER_GAME() {
 
 inline void C_ENTER_GAME::SharedDtor() {
   GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+  _impl_.stage2_tile_types_.~RepeatedField();
 }
 
 void C_ENTER_GAME::SetCachedSize(int size) const {
@@ -1568,6 +1577,7 @@ void C_ENTER_GAME::Clear() {
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
+  _impl_.stage2_tile_types_.Clear();
   _impl_.playerindex_ = uint64_t{0u};
   _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
 }
@@ -1582,6 +1592,17 @@ const char* C_ENTER_GAME::_InternalParse(const char* ptr, ::_pbi::ParseContext* 
       case 1:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 8)) {
           _impl_.playerindex_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // repeated int32 stage2_tile_types = 2;
+      case 2:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 18)) {
+          ptr = ::PROTOBUF_NAMESPACE_ID::internal::PackedInt32Parser(_internal_mutable_stage2_tile_types(), ptr, ctx);
+          CHK_(ptr);
+        } else if (static_cast<uint8_t>(tag) == 16) {
+          _internal_add_stage2_tile_types(::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr));
           CHK_(ptr);
         } else
           goto handle_unusual;
@@ -1621,6 +1642,15 @@ uint8_t* C_ENTER_GAME::_InternalSerialize(
     target = ::_pbi::WireFormatLite::WriteUInt64ToArray(1, this->_internal_playerindex(), target);
   }
 
+  // repeated int32 stage2_tile_types = 2;
+  {
+    int byte_size = _impl_._stage2_tile_types_cached_byte_size_.load(std::memory_order_relaxed);
+    if (byte_size > 0) {
+      target = stream->WriteInt32Packed(
+          2, _internal_stage2_tile_types(), byte_size, target);
+    }
+  }
+
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
@@ -1636,6 +1666,20 @@ size_t C_ENTER_GAME::ByteSizeLong() const {
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
+
+  // repeated int32 stage2_tile_types = 2;
+  {
+    size_t data_size = ::_pbi::WireFormatLite::
+      Int32Size(this->_impl_.stage2_tile_types_);
+    if (data_size > 0) {
+      total_size += 1 +
+        ::_pbi::WireFormatLite::Int32Size(static_cast<int32_t>(data_size));
+    }
+    int cached_size = ::_pbi::ToCachedSize(data_size);
+    _impl_._stage2_tile_types_cached_byte_size_.store(cached_size,
+                                    std::memory_order_relaxed);
+    total_size += data_size;
+  }
 
   // uint64 playerIndex = 1;
   if (this->_internal_playerindex() != 0) {
@@ -1660,6 +1704,7 @@ void C_ENTER_GAME::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::P
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
+  _this->_impl_.stage2_tile_types_.MergeFrom(from._impl_.stage2_tile_types_);
   if (from._internal_playerindex() != 0) {
     _this->_internal_set_playerindex(from._internal_playerindex());
   }
@@ -1680,6 +1725,7 @@ bool C_ENTER_GAME::IsInitialized() const {
 void C_ENTER_GAME::InternalSwap(C_ENTER_GAME* other) {
   using std::swap;
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  _impl_.stage2_tile_types_.InternalSwap(&other->_impl_.stage2_tile_types_);
   swap(_impl_.playerindex_, other->_impl_.playerindex_);
 }
 

@@ -165,6 +165,7 @@ void UFPSProjectGameInstance::HandlePostLoadMap(UWorld* LoadedWorld)
 	}
 	PendingWeaponsByPlayer.Empty();
 	PendingStage2SpawnInfos.Reset();
+	InactiveNetworkLootItemIds.Reset();
 	bProcessingPendingStage2Spawns = false;
 	bStage2StartupHoldApplied = false;
 
@@ -234,6 +235,11 @@ void UFPSProjectGameInstance::RegisterNetworkLootItem(ALootItemBase* LootItem)
 	{
 		WorldObjects->RegisterNetworkLootItem(LootItem);
 	}
+
+	if (LootItem != nullptr && InactiveNetworkLootItemIds.Contains(LootItem->GetNetworkItemId()))
+	{
+		LootItem->SetNetworkItemActive(false);
+	}
 }
 
 void UFPSProjectGameInstance::UnregisterNetworkLootItem(uint64 LootItemId)
@@ -247,6 +253,11 @@ void UFPSProjectGameInstance::UnregisterNetworkLootItem(uint64 LootItemId)
 ALootItemBase* UFPSProjectGameInstance::FindNetworkLootItemById(uint64 LootItemId)
 {
 	return WorldObjects ? WorldObjects->FindNetworkLootItemById(LootItemId, GetWorld()) : nullptr;
+}
+
+bool UFPSProjectGameInstance::IsNetworkLootItemInactive(uint64 LootItemId) const
+{
+	return InactiveNetworkLootItemIds.Contains(LootItemId);
 }
 
 bool UFPSProjectGameInstance::TryPickupWeaponLocally(AFPSBaseCharacter* Character, AWeaponBase* Weapon)
@@ -534,11 +545,13 @@ void UFPSProjectGameInstance::HandleDespawn(uint64 ObjectId)
 
 	if (WorldObjects && WorldObjects->DestroyAndRemoveFieldItem(ObjectId))
 	{
+		InactiveNetworkLootItemIds.Add(ObjectId);
 		return;
 	}
 
 	if (ALootItemBase* LootItem = FindNetworkLootItemById(ObjectId))
 	{
+		InactiveNetworkLootItemIds.Add(ObjectId);
 		UE_LOG(LogTemp, Verbose, TEXT("[HandleDespawn] Hiding loot item '%s' with NetworkItemId=%llu"),
 			*LootItem->GetName(),
 			LootItem->GetNetworkItemId());
@@ -565,6 +578,7 @@ void UFPSProjectGameInstance::HandleDespawn(const Protocol::S_DESPAWN& DespawnPk
 		switch (ObjectType)
 		{
 		case Protocol::OBJECT_TYPE_ITEM:
+			InactiveNetworkLootItemIds.Add(ObjectId);
 			if (WorldObjects && WorldObjects->DestroyAndRemoveFieldItem(ObjectId))
 			{
 				continue;
@@ -1037,6 +1051,7 @@ void UFPSProjectGameInstance::HandleRespawnLootItem(const Protocol::S_RESPAWN_LO
 {
 	for (uint64 ItemId : pkt.item_object_ids())
 	{
+		InactiveNetworkLootItemIds.Remove(ItemId);
 		if (ALootItemBase* LootItem = FindNetworkLootItemById(ItemId))
 		{
 			LootItem->SetNetworkItemActive(true);

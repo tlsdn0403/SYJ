@@ -142,7 +142,7 @@ APoliceZombie::APoliceZombie()
 	static ConstructorHelpers::FObjectFinder<UAnimSequenceBase> PoliceWalk(
 		TEXT("/Script/Engine.AnimSequence'/Game/Zombie/mixamo/Ani/police/Walking__2_.Walking__2_'"));
 	static ConstructorHelpers::FObjectFinder<UAnimSequenceBase> PoliceRun(
-		TEXT("/Script/Engine.AnimSequence'/Game/Zombie/mixamo/Ani/police/Zombie_Run.Zombie_Run'"));
+		TEXT("/Script/Engine.AnimSequence'/Game/Zombie/mixamo/Ani/police/Fast_Run.Fast_Run'"));
 	static ConstructorHelpers::FObjectFinder<UAnimSequenceBase> PoliceAttackOne(
 		TEXT("/Script/Engine.AnimSequence'/Game/Zombie/mixamo/Ani/police/attack.attack'"));
 	static ConstructorHelpers::FObjectFinder<UAnimSequenceBase> PoliceAttackTwo(
@@ -155,6 +155,8 @@ APoliceZombie::APoliceZombie()
 		TEXT("/Script/Engine.AnimSequence'/Game/Zombie/mixamo/Ani/police/Zombie_Dying__1_.Zombie_Dying__1_'"));
 	static ConstructorHelpers::FObjectFinder<UAnimSequenceBase> PoliceDeathTwo(
 		TEXT("/Script/Engine.AnimSequence'/Game/Zombie/mixamo/Ani/police/HeadDying.HeadDying'"));
+	static ConstructorHelpers::FObjectFinder<UAnimSequenceBase> PoliceProneDeath(
+		TEXT("/Script/Engine.AnimSequence'/Game/Zombie/mixamo/Ani/police/Prone_Death.Prone_Death'"));
 
 	if (PoliceMesh.Succeeded() && GetMesh())
 	{
@@ -188,6 +190,8 @@ APoliceZombie::APoliceZombie()
 		DeathAnimations.Add(PoliceDeathOne.Object);
 	}
 	if (PoliceDeathTwo.Succeeded()) DeathAnimations.Add(PoliceDeathTwo.Object);
+	if (PoliceDeathTwo.Succeeded()) HeadDeathAnimation = PoliceDeathTwo.Object;
+	if (PoliceProneDeath.Succeeded()) ProneDeathAnimation = PoliceProneDeath.Object;
 }
 
 void APoliceZombie::BeginPlay()
@@ -203,7 +207,7 @@ void APoliceZombie::BeginPlay()
 		WalkAnimation = PoliceWalk;
 	}
 	if (UAnimSequenceBase* PoliceRun = LoadObject<UAnimSequenceBase>(nullptr,
-		TEXT("/Script/Engine.AnimSequence'/Game/Zombie/mixamo/Ani/police/Zombie_Run.Zombie_Run'")))
+		TEXT("/Script/Engine.AnimSequence'/Game/Zombie/mixamo/Ani/police/Fast_Run.Fast_Run'")))
 	{
 		RunAnimation = PoliceRun;
 	}
@@ -217,7 +221,12 @@ void APoliceZombie::BeginPlay()
 	if (UAnimSequenceBase* PoliceDeathTwo = LoadObject<UAnimSequenceBase>(nullptr,
 		TEXT("/Script/Engine.AnimSequence'/Game/Zombie/mixamo/Ani/police/HeadDying.HeadDying'")))
 	{
-		DeathAnimations.Add(PoliceDeathTwo);
+		HeadDeathAnimation = PoliceDeathTwo;
+	}
+	if (UAnimSequenceBase* PoliceProneDeath = LoadObject<UAnimSequenceBase>(nullptr,
+		TEXT("/Script/Engine.AnimSequence'/Game/Zombie/mixamo/Ani/police/Prone_Death.Prone_Death'")))
+	{
+		ProneDeathAnimation = PoliceProneDeath;
 	}
 
 	Super::BeginPlay();

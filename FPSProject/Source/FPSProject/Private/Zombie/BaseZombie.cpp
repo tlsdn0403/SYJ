@@ -212,6 +212,7 @@ void ABaseZombie::HandleNetworkDeath()
 	bAttackDamageApplied = false;
 	bShouldApplyCurrentNetworkAttackDamage = true;
 	CurrentAttackTarget = nullptr;
+	bWasCrawlingBeforeDeath = IsCrawling();
 	MovementState = EZombieMovementState::Dead;
 	GetWorldTimerManager().ClearTimer(AttackDamageTimerHandle);
 	GetWorldTimerManager().ClearTimer(AttackFinishTimerHandle);
@@ -748,6 +749,7 @@ void ABaseZombie::OnZombieDamaged(float NewHealth, float Damage, const FHitResul
 	{
 		// 맞은 뼈를 주요 분해 가능한 뼈 이름으로 변환
 		FName TargetBone = GetParentBoneForDamage(Hit.BoneName);
+		LastDeathHitBone = TargetBone;
 
 		// 뼈 내구도 깎기 및 분해 시도
 		// Hit.ImpactNormal * -1은 총알이 날아온 방향(충격 방향)을 의미
@@ -1043,6 +1045,7 @@ void ABaseZombie::Die()
 	bIsAlive = false;
 	bIsAttacking = false;
 	bAttackDamageApplied = false;
+	bWasCrawlingBeforeDeath = IsCrawling();
 	MovementState = EZombieMovementState::Dead;
 	CurrentAttackTarget = nullptr;
 	GetWorldTimerManager().ClearTimer(AttackDamageTimerHandle);

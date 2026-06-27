@@ -6,7 +6,20 @@
 #include "ObjectUtils.h"
 #include <algorithm>
 #include <cmath>
+#include <chrono>
 #include <limits>
+
+namespace
+{
+constexpr float TRUCK_STATE_EPSILON = 0.01f;
+constexpr auto TRUCK_ITEM_STALE_PACKET_GRACE = std::chrono::milliseconds(1000);
+
+bool IsRecentTruckItemUpdate(std::chrono::steady_clock::time_point LastUpdateTime)
+{
+	return LastUpdateTime.time_since_epoch().count() != 0 &&
+		std::chrono::steady_clock::now() - LastUpdateTime < TRUCK_ITEM_STALE_PACKET_GRACE;
+}
+}
 
 RoomRef GRoom = make_shared<Room>();
 
@@ -319,8 +332,10 @@ bool Room::HandleLeavePlayer(PlayerRef player)
 	return true;
 }
 
-void Room::HandleReadyPlayer(GameSessionRef session)
+void Room::HandleReadyPlayer(GameSessionRef session, Protocol::C_ENTER_GAME pkt)
 {
+	RecordStage2TileSequence(pkt);
+
 	if (session == nullptr || session->player.load() != nullptr)
 	{
 		return;
@@ -399,8 +414,10 @@ void Room::HandleReadyPlayer(GameSessionRef session)
 	}
 }
 
-void Room::HandleStageMapReady(GameSessionRef session)
+void Room::HandleStageMapReady(GameSessionRef session, Protocol::C_ENTER_GAME pkt)
 {
+	RecordStage2TileSequence(pkt);
+
 	if (session == nullptr)
 		return;
 
@@ -516,7 +533,7 @@ namespace
 	constexpr uint64 STAGE2_WEAPON_OBJECT_ID_START = 200001;
 	constexpr uint64 ZOMBIE_OBJECT_ID_START = 1000000;
 	constexpr float ZOMBIE_SERVER_TICK_SECONDS = 0.1f;
-	constexpr float ZOMBIE_MOVE_SPEED = 210.0f;
+	constexpr float ZOMBIE_MOVE_SPEED = 250.0f;
 	constexpr float ZOMBIE_AGGRO_RANGE = 5000.0f;
 	constexpr float ZOMBIE_AI_ACTIVE_RANGE = 5200.0f;
 	constexpr float ZOMBIE_ATTACK_RANGE = 140.0f;
@@ -730,6 +747,54 @@ namespace
 	};
 }
 
+void Room::RecordStage2TileSequence(const Protocol::C_ENTER_GAME& pkt)
+{
+	if (_bHasStage2TileTypeSequence || pkt.stage2_tile_types_size() <= 0)
+		return;
+
+	vector<int32> tileTypeSequence;
+	tileTypeSequence.reserve(pkt.stage2_tile_types_size());
+
+	for (int32 tileTypeCode : pkt.stage2_tile_types())
+	{
+		switch (tileTypeCode)
+		{
+		case STAGE2_ZOMBIE_TILE_START:
+		case STAGE2_ZOMBIE_TILE_STRAIGHT:
+		case STAGE2_ZOMBIE_TILE_LEFT:
+		case STAGE2_ZOMBIE_TILE_RIGHT:
+			tileTypeSequence.push_back(tileTypeCode);
+			break;
+		default:
+			break;
+		}
+	}
+
+	if (tileTypeSequence.empty())
+		return;
+
+	_stage2TileTypeSequence = std::move(tileTypeSequence);
+	_bHasStage2TileTypeSequence = true;
+
+	cout << "[Stage2Tile] Recorded tile sequence count=" << _stage2TileTypeSequence.size()
+		<< " start=" << GetStage2TileOccurrenceCount(STAGE2_ZOMBIE_TILE_START, 0)
+		<< " straight=" << GetStage2TileOccurrenceCount(STAGE2_ZOMBIE_TILE_STRAIGHT, 0)
+		<< " left=" << GetStage2TileOccurrenceCount(STAGE2_ZOMBIE_TILE_LEFT, 0)
+		<< " right=" << GetStage2TileOccurrenceCount(STAGE2_ZOMBIE_TILE_RIGHT, 0)
+		<< endl;
+}
+
+int32 Room::GetStage2TileOccurrenceCount(int32 tileTypeCode, int32 fallbackOccurrenceCount) const
+{
+	if (!_bHasStage2TileTypeSequence)
+		return fallbackOccurrenceCount;
+
+	return static_cast<int32>(std::count(
+		_stage2TileTypeSequence.begin(),
+		_stage2TileTypeSequence.end(),
+		tileTypeCode));
+}
+
 void Room::SendStage2WeaponsToSession(const GameSessionRef& session) const
 {
 	if (session == nullptr || _stage2Weapons.empty())
@@ -800,8 +865,9 @@ void Room::SpawnStage2Zombies()
 	{
 		const float startX = groupInfo.centerX - (static_cast<float>(groupInfo.columns - 1) * groupInfo.spacingX * 0.5f);
 		const float startY = groupInfo.centerY - (static_cast<float>(groupInfo.rows - 1) * groupInfo.spacingY * 0.5f);
+		const int32 tileOccurrenceCount = GetStage2TileOccurrenceCount(groupInfo.tileTypeCode, groupInfo.tileOccurrenceCount);
 
-		for (int32 occurrenceIndex = 0; occurrenceIndex < groupInfo.tileOccurrenceCount; ++occurrenceIndex)
+		for (int32 occurrenceIndex = 0; occurrenceIndex < tileOccurrenceCount; ++occurrenceIndex)
 		{
 			for (int32 row = 0; row < groupInfo.rows; ++row)
 			{
@@ -1577,6 +1643,15 @@ void Room::HandlePickupLootItem(PlayerRef player, Protocol::C_PICKUP_LOOT_ITEM p
 	}
 
 	_inactiveLootItemIds.insert(itemId);
+	_pendingLootItemRespawns.erase(
+		std::remove_if(
+			_pendingLootItemRespawns.begin(),
+			_pendingLootItemRespawns.end(),
+			[itemId](const PendingLootItemRespawn& pendingRespawn)
+			{
+				return pendingRespawn.itemId == itemId;
+			}),
+		_pendingLootItemRespawns.end());
 
 	Protocol::S_DESPAWN despawnPkt;
 	Protocol::DespawnInfo* despawnInfo = despawnPkt.add_despawn_infos();
@@ -1588,9 +1663,7 @@ void Room::HandlePickupLootItem(PlayerRef player, Protocol::C_PICKUP_LOOT_ITEM p
 
 	if (pkt.should_respawn() && pkt.respawn_delay() > 0.0f)
 	{
-		PendingLootItemRespawn& pendingRespawn = _pendingLootItemRespawns.emplace_back();
-		pendingRespawn.itemId = itemId;
-		pendingRespawn.remainingTime = pkt.respawn_delay();
+		cout << "[PickupLootItem] respawn request ignored for network loot itemId=" << itemId << endl;
 	}
 }
 
@@ -1678,11 +1751,6 @@ void Room::HandleEnterTruck(PlayerRef player, Protocol::C_ENTER_TRUCK pkt)
 	player->currentTruckId = truckId;
 	player->currentTruckSeatType = seatType;
 
-	// A new driver must start from the last server-approved truck pose, not from
-	// the player's standing position beside the truck.
-	if (seatType == Protocol::TRUCK_SEAT_DRIVER && truckState.hasTransform)
-		BroadcastTruckState(truckState, true);
-
 	BroadcastSeatChange(seatType);
 }
 
@@ -1734,6 +1802,22 @@ void Room::HandleTruckMove(PlayerRef player, Protocol::C_TRUCK_MOVE pkt)
 	if (truckState == nullptr)
 		return;
 
+	const bool bIsExplicitTruckItemUpdate = pkt.has_truck_health_repair();
+	const bool bFiniteTransform =
+		std::isfinite(incoming.x()) &&
+		std::isfinite(incoming.y()) &&
+		std::isfinite(incoming.z()) &&
+		std::isfinite(incoming.yaw()) &&
+		std::isfinite(incoming.pitch()) &&
+		std::isfinite(incoming.roll());
+	const bool bHasTruckStatePayload =
+		pkt.has_truck_fuel() ||
+		pkt.has_truck_health() ||
+		bIsExplicitTruckItemUpdate;
+	const bool bCanUseIncomingTransform =
+		bFiniteTransform &&
+		(!pkt.has_turret_aim() || bHasTruckStatePayload);
+
 	if (pkt.has_truck_health() &&
 		std::isfinite(pkt.truck_hp()) &&
 		std::isfinite(pkt.truck_max_hp()) &&
@@ -1741,20 +1825,52 @@ void Room::HandleTruckMove(PlayerRef player, Protocol::C_TRUCK_MOVE pkt)
 	{
 		const float incomingMaxHp = pkt.truck_max_hp();
 		const float incomingHp = (std::max)(0.0f, (std::min)(pkt.truck_hp(), incomingMaxHp));
-		constexpr float HEALTH_EPSILON = 0.01f;
-		const bool bIsHealthDecrease = truckState->hasHealth == false || incomingHp <= truckState->hp + HEALTH_EPSILON;
-		const bool bIsExplicitRepair = pkt.has_truck_health_repair();
+		const bool bHasPreviousHealth = truckState->hasHealth;
+		const bool bIsHealthIncrease = bHasPreviousHealth && incomingHp > truckState->hp + TRUCK_STATE_EPSILON;
+		const bool bIsHealthDecrease = bHasPreviousHealth == false || incomingHp <= truckState->hp + TRUCK_STATE_EPSILON;
+		const bool bIgnoreStalePostRepairHealth =
+			!bIsExplicitTruckItemUpdate &&
+			bHasPreviousHealth &&
+			incomingHp < truckState->hp - TRUCK_STATE_EPSILON &&
+			IsRecentTruckItemUpdate(truckState->lastHealthRepairUpdateTime);
 
-		if (bIsHealthDecrease || bIsExplicitRepair)
+		if ((bIsExplicitTruckItemUpdate && (bHasPreviousHealth == false || incomingHp >= truckState->hp - TRUCK_STATE_EPSILON)) ||
+			(!bIsExplicitTruckItemUpdate && bIsHealthDecrease && !bIgnoreStalePostRepairHealth))
 		{
 			truckState->hasHealth = true;
 			truckState->hp = incomingHp;
 			truckState->maxHp = incomingMaxHp;
+			if (bIsExplicitTruckItemUpdate && bIsHealthIncrease)
+			{
+				truckState->lastHealthRepairUpdateTime = std::chrono::steady_clock::now();
+			}
 		}
 	}
 
 	if (bPlayerInThisTruck == false)
 	{
+		if (bIsExplicitTruckItemUpdate &&
+			pkt.has_truck_fuel() &&
+			std::isfinite(pkt.fuel()) &&
+			pkt.fuel() >= 0.0f &&
+			(truckState->hasFuel == false || pkt.fuel() >= truckState->fuel - TRUCK_STATE_EPSILON))
+		{
+			const bool bIsFuelIncrease = truckState->hasFuel && pkt.fuel() > truckState->fuel + TRUCK_STATE_EPSILON;
+			truckState->hasFuel = true;
+			truckState->fuel = pkt.fuel();
+			if (bIsFuelIncrease)
+			{
+				truckState->lastFuelItemUpdateTime = std::chrono::steady_clock::now();
+			}
+		}
+
+		if (truckState->hasTransform == false && bCanUseIncomingTransform)
+		{
+			truckState->posInfo.CopyFrom(incoming);
+			truckState->posInfo.set_object_id(truckId);
+			truckState->hasTransform = true;
+		}
+
 		BroadcastTruckState(*truckState);
 		return;
 	}
@@ -1778,12 +1894,29 @@ void Room::HandleTruckMove(PlayerRef player, Protocol::C_TRUCK_MOVE pkt)
 	{
 		if (pkt.has_truck_fuel() &&
 			std::isfinite(pkt.fuel()) &&
-			pkt.fuel() >= 0.0f &&
-			(truckState->hasFuel == false || pkt.fuel() > truckState->fuel))
+			pkt.fuel() >= 0.0f)
 		{
-			truckState->hasFuel = true;
-			truckState->fuel = pkt.fuel();
+			const float incomingFuel = pkt.fuel();
+			if (bIsExplicitTruckItemUpdate &&
+				(truckState->hasFuel == false || incomingFuel >= truckState->fuel - TRUCK_STATE_EPSILON))
+			{
+				const bool bIsFuelIncrease = truckState->hasFuel && incomingFuel > truckState->fuel + TRUCK_STATE_EPSILON;
+				truckState->hasFuel = true;
+				truckState->fuel = incomingFuel;
+				if (bIsFuelIncrease)
+				{
+					truckState->lastFuelItemUpdateTime = std::chrono::steady_clock::now();
+				}
+			}
 		}
+
+		if (truckState->hasTransform == false && bCanUseIncomingTransform)
+		{
+			truckState->posInfo.CopyFrom(incoming);
+			truckState->posInfo.set_object_id(truckId);
+			truckState->hasTransform = true;
+		}
+
 		BroadcastTruckState(*truckState);
 		return;
 	}
@@ -1793,18 +1926,29 @@ void Room::HandleTruckMove(PlayerRef player, Protocol::C_TRUCK_MOVE pkt)
 
 	if (pkt.has_truck_fuel() && std::isfinite(pkt.fuel()) && pkt.fuel() >= 0.0f)
 	{
-		truckState->hasFuel = true;
-		truckState->fuel = pkt.fuel();
+		const float incomingFuel = pkt.fuel();
+		const bool bHasPreviousFuel = truckState->hasFuel;
+		const bool bIsFuelIncrease = bHasPreviousFuel && incomingFuel > truckState->fuel + TRUCK_STATE_EPSILON;
+		const bool bIsFuelDecrease = bHasPreviousFuel == false || incomingFuel <= truckState->fuel + TRUCK_STATE_EPSILON;
+		const bool bIgnoreStalePostRefuel =
+			!bIsExplicitTruckItemUpdate &&
+			bHasPreviousFuel &&
+			incomingFuel < truckState->fuel - TRUCK_STATE_EPSILON &&
+			IsRecentTruckItemUpdate(truckState->lastFuelItemUpdateTime);
+
+		if ((bIsExplicitTruckItemUpdate && (bHasPreviousFuel == false || incomingFuel >= truckState->fuel - TRUCK_STATE_EPSILON)) ||
+			(!bIsExplicitTruckItemUpdate && bIsFuelDecrease && !bIgnoreStalePostRefuel))
+		{
+			truckState->hasFuel = true;
+			truckState->fuel = incomingFuel;
+			if (bIsExplicitTruckItemUpdate && bIsFuelIncrease)
+			{
+				truckState->lastFuelItemUpdateTime = std::chrono::steady_clock::now();
+			}
+		}
 	}
 
-	const bool bFiniteTransform =
-		std::isfinite(incoming.x()) &&
-		std::isfinite(incoming.y()) &&
-		std::isfinite(incoming.z()) &&
-		std::isfinite(incoming.yaw()) &&
-		std::isfinite(incoming.pitch()) &&
-		std::isfinite(incoming.roll());
-	if (bFiniteTransform == false)
+	if (bCanUseIncomingTransform == false)
 	{
 		BroadcastTruckState(*truckState, true);
 		return;

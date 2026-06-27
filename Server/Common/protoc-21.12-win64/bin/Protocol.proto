@@ -18,6 +18,7 @@ message S_LOGIN
 message C_ENTER_GAME
 {
 	uint64 playerIndex = 1;
+	repeated int32 stage2_tile_types = 2;
 }
 
 message S_ENTER_GAME

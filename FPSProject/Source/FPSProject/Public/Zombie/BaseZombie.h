@@ -67,6 +67,8 @@ protected:
 	virtual FVector GetCrawlingMeshRelativeLocation(const FVector& CurrentStandingMeshRelativeLocation) const;
 	AActor* GetCurrentAttackTarget() const { return CurrentAttackTarget; }
 	float GetNetworkAnimationMoveSpeed2D() const { return NetworkAnimationMoveSpeed2D; }
+	FName GetLastDeathHitBone() const { return LastDeathHitBone; }
+	bool WasCrawlingBeforeDeath() const { return bWasCrawlingBeforeDeath; }
 
 	/** 좀비 대미지 처리 내부 로직 */
 	UFUNCTION()
@@ -238,6 +240,8 @@ private:
 	FTimerHandle AttackDamageTimerHandle;
 	FTimerHandle AttackFinishTimerHandle;
 	FTimerHandle DeathRagdollTimerHandle;
+	FName LastDeathHitBone = NAME_None;
+	bool bWasCrawlingBeforeDeath = false;
 	bool bAttackDamageApplied = false;
 	bool bShouldApplyCurrentNetworkAttackDamage = true;
 

@@ -29,12 +29,42 @@
 #include "UObject/ConstructorHelpers.h"
 #include "TimerManager.h"
 #include "EngineUtils.h"
+#include "Stage2/Stage2TileManager.h"
 
 namespace
 {
 EItemType NormalizeStageItemType(EItemType ItemType)
 {
 	return ItemType == EItemType::TT ? EItemType::HealPack : ItemType;
+}
+
+ATruck* FindNearestTruckForItemUse(UWorld* World, const FVector& Origin, float SearchRadius)
+{
+	if (World == nullptr)
+	{
+		return nullptr;
+	}
+
+	ATruck* BestTruck = nullptr;
+	float BestDistanceSquared = FMath::Square(FMath::Max(0.0f, SearchRadius));
+
+	for (TActorIterator<ATruck> It(World); It; ++It)
+	{
+		ATruck* Truck = *It;
+		if (!IsValid(Truck))
+		{
+			continue;
+		}
+
+		const float DistanceSquared = FVector::DistSquared(Origin, Truck->GetActorLocation());
+		if (DistanceSquared <= BestDistanceSquared)
+		{
+			BestDistanceSquared = DistanceSquared;
+			BestTruck = Truck;
+		}
+	}
+
+	return BestTruck;
 }
 }
 
@@ -582,6 +612,16 @@ void AFPSBaseCharacter::SendEnterGamePacket()
 
 	Protocol::C_ENTER_GAME EnterGamePkt;
 	EnterGamePkt.set_playerindex(0); // 임시로 0번
+
+	if (const AStage2TileManager* Stage2TileManager = FPSStage2WorldUtils::FindStage2TileManager(GetWorld()))
+	{
+		TArray<int32> Stage2TileTypeCodes;
+		Stage2TileManager->GetPlannedStage2ZombieTileTypeCodes(Stage2TileTypeCodes);
+		for (const int32 TileTypeCode : Stage2TileTypeCodes)
+		{
+			EnterGamePkt.add_stage2_tile_types(TileTypeCode);
+		}
+	}
 
 	if (auto* GameInstance = Cast<UFPSProjectGameInstance>(GetGameInstance()))
 	{
@@ -1873,29 +1913,34 @@ bool AFPSBaseCharacter::UseHealPack()
 bool AFPSBaseCharacter::UseFuelCan()
 {
 	UFPSProjectGameInstance* GameInstance = Cast<UFPSProjectGameInstance>(GetGameInstance());
-	if (GameInstance == nullptr || !GameInstance->IsInStage2World() || !CurrentTruck)
+	if (GameInstance == nullptr || !GameInstance->IsInStage2World())
 	{
 		return false;
 	}
 
 	const APlayerController* LocalPlayerController = UGameplayStatics::GetPlayerController(this, 0);
-	const bool bIsTruckOccupant =
-		CurrentTruck &&
-		(bIsDrivingTruck ||
-			bIsOnTruckCargo ||
-			bIsUsingMountedWeapon ||
-			CurrentTruck->GetDriverCharacter() == this ||
-			CurrentTruck->GetMountedWeaponUser() == this);
 	const bool bIsLocalPlayerCharacter =
 		IsLocallyControlled() ||
 		GameInstance->MyPlayer == this ||
-		(CurrentTruck->GetDriverCharacter() == this && CurrentTruck->GetController() == LocalPlayerController);
-	if (!bIsTruckOccupant || !bIsLocalPlayerCharacter)
+		(CurrentTruck && CurrentTruck->GetDriverCharacter() == this && CurrentTruck->GetController() == LocalPlayerController);
+	if (!bIsLocalPlayerCharacter)
 	{
 		return false;
 	}
 
-	if (CurrentTruck->GetTruckFuel() >= CurrentTruck->GetTruckMaxFuel() - KINDA_SMALL_NUMBER)
+	ATruck* TargetTruck = IsValid(CurrentTruck)
+		? CurrentTruck
+		: FindNearestTruckForItemUse(GetWorld(), GetActorLocation(), TruckItemUseSearchRadius);
+	if (!TargetTruck)
+	{
+		return false;
+	}
+	if (GameInstance->IsConnectedToGameServer() && TargetTruck->NetworkTruckId == 0)
+	{
+		return false;
+	}
+
+	if (TargetTruck->GetTruckFuel() >= TargetTruck->GetTruckMaxFuel() - KINDA_SMALL_NUMBER)
 	{
 		return false;
 	}
@@ -1907,14 +1952,14 @@ bool AFPSBaseCharacter::UseFuelCan()
 		return false;
 	}
 
-	CurrentTruck->RefuelTruck(FuelCanRefuelAmount);
-	ShowTruckFuelOnHUD(CurrentTruck);
-	CurrentTruck->SyncTruckStateToServer();
+	TargetTruck->RefuelTruck(FuelCanRefuelAmount);
+	ShowTruckFuelOnHUD(TargetTruck);
+	TargetTruck->SyncTruckStateToServer(true);
 	RefreshStage2ItemUI();
 	UE_LOG(LogTemp, Log, TEXT("Fuel Can used. Refueled %.1f, truck fuel=%.1f/%.1f, remaining=%d"),
 		FuelCanRefuelAmount,
-		CurrentTruck->GetTruckFuel(),
-		CurrentTruck->GetTruckMaxFuel(),
+		TargetTruck->GetTruckFuel(),
+		TargetTruck->GetTruckMaxFuel(),
 		GetInventoryItemCount(EItemType::Fuel));
 	return true;
 }
@@ -1922,30 +1967,35 @@ bool AFPSBaseCharacter::UseFuelCan()
 bool AFPSBaseCharacter::UseTruckRepairKit()
 {
 	UFPSProjectGameInstance* GameInstance = Cast<UFPSProjectGameInstance>(GetGameInstance());
-	if (GameInstance == nullptr || !GameInstance->IsInStage2World() || !CurrentTruck)
+	if (GameInstance == nullptr || !GameInstance->IsInStage2World())
 	{
 		return false;
 	}
 
 	const APlayerController* LocalPlayerController = UGameplayStatics::GetPlayerController(this, 0);
-	const bool bIsTruckOccupant =
-		CurrentTruck &&
-		(bIsDrivingTruck ||
-			bIsOnTruckCargo ||
-			bIsUsingMountedWeapon ||
-			CurrentTruck->GetDriverCharacter() == this ||
-			CurrentTruck->GetMountedWeaponUser() == this);
 	const bool bIsLocalPlayerCharacter =
 		IsLocallyControlled() ||
 		GameInstance->MyPlayer == this ||
-		(CurrentTruck->GetDriverCharacter() == this && CurrentTruck->GetController() == LocalPlayerController);
-	if (!bIsTruckOccupant || !bIsLocalPlayerCharacter)
+		(CurrentTruck && CurrentTruck->GetDriverCharacter() == this && CurrentTruck->GetController() == LocalPlayerController);
+	if (!bIsLocalPlayerCharacter)
 	{
 		return false;
 	}
 
-	if (CurrentTruck->IsTruckDestroyed() ||
-		CurrentTruck->GetTruckHealth() >= CurrentTruck->GetTruckMaxHealth() - KINDA_SMALL_NUMBER)
+	ATruck* TargetTruck = IsValid(CurrentTruck)
+		? CurrentTruck
+		: FindNearestTruckForItemUse(GetWorld(), GetActorLocation(), TruckItemUseSearchRadius);
+	if (!TargetTruck)
+	{
+		return false;
+	}
+	if (GameInstance->IsConnectedToGameServer() && TargetTruck->NetworkTruckId == 0)
+	{
+		return false;
+	}
+
+	if (TargetTruck->IsTruckDestroyed() ||
+		TargetTruck->GetTruckHealth() >= TargetTruck->GetTruckMaxHealth() - KINDA_SMALL_NUMBER)
 	{
 		return false;
 	}
@@ -1957,14 +2007,14 @@ bool AFPSBaseCharacter::UseTruckRepairKit()
 		return false;
 	}
 
-	CurrentTruck->RepairTruck(TruckRepairKitHealAmount);
-	ShowTruckHealthOnHUD(CurrentTruck);
-	CurrentTruck->SyncTruckStateToServer(true);
+	TargetTruck->RepairTruck(TruckRepairKitHealAmount);
+	ShowTruckHealthOnHUD(TargetTruck);
+	TargetTruck->SyncTruckStateToServer(true);
 	RefreshStage2ItemUI();
 	UE_LOG(LogTemp, Log, TEXT("Truck Repair Kit used. Repaired %.1f, truck health=%.1f/%.1f, remaining=%d"),
 		TruckRepairKitHealAmount,
-		CurrentTruck->GetTruckHealth(),
-		CurrentTruck->GetTruckMaxHealth(),
+		TargetTruck->GetTruckHealth(),
+		TargetTruck->GetTruckMaxHealth(),
 		GetInventoryItemCount(EItemType::TruckRepairKit));
 	return true;
 }

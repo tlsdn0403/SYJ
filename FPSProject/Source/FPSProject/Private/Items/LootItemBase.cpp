@@ -163,8 +163,8 @@ void ALootItemBase::Interact_Implementation(AFPSBaseCharacter* Character)
 
 					Protocol::C_PICKUP_LOOT_ITEM PickupPkt;
 					PickupPkt.set_item_object_id(NetworkItemId);
-					PickupPkt.set_should_respawn(bRespawnOnPickup);
-					PickupPkt.set_respawn_delay(RespawnDelay);
+					PickupPkt.set_should_respawn(false);
+					PickupPkt.set_respawn_delay(0.0f);
 					GameInstance->SendPacket(ClientPacketHandler::MakeSendBuffer(PickupPkt));
 				}
 			}

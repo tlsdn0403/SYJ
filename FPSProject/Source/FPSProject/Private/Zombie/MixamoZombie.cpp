@@ -248,22 +248,19 @@ UAnimSequenceBase* AMixamoZombie::ChooseAttackAnimation()
 
 UAnimSequenceBase* AMixamoZombie::ChooseDeathAnimation()
 {
-	TArray<UAnimSequenceBase*> CompatibleAnimations;
-	for (UAnimSequenceBase* Animation : DeathAnimations)
+	if (WasCrawlingBeforeDeath() && IsAnimationCompatible(ProneDeathAnimation))
 	{
-		if (Animation && IsAnimationCompatible(Animation))
-		{
-			CompatibleAnimations.Add(Animation);
-		}
-	}
-
-	if (CompatibleAnimations.IsEmpty())
-	{
-		CurrentDeathAnimation = IsAnimationCompatible(DeathAnimation) ? DeathAnimation.Get() : nullptr;
+		CurrentDeathAnimation = ProneDeathAnimation;
 		return CurrentDeathAnimation;
 	}
 
-	CurrentDeathAnimation = CompatibleAnimations[FMath::RandRange(0, CompatibleAnimations.Num() - 1)];
+	if (IsFatalDismemberBone(GetLastDeathHitBone()) && IsAnimationCompatible(HeadDeathAnimation))
+	{
+		CurrentDeathAnimation = HeadDeathAnimation;
+		return CurrentDeathAnimation;
+	}
+
+	CurrentDeathAnimation = IsAnimationCompatible(DeathAnimation) ? DeathAnimation.Get() : nullptr;
 	return CurrentDeathAnimation;
 }
 

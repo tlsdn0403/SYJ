@@ -50,10 +50,10 @@ void AFPSBaseCharacter::UpdateHealthHUD(float CurrentHealth, float MaxHealth)
 				PlayerController->L2BaseW->SetTruckHealth(CurrentHealth, MaxHealth);
 			}
 		}
-		else if (PlayerController->BasicW)
+		/*else if (PlayerController->BasicW)
 		{
 			PlayerController->BasicW->SetHealth(CurrentHealth, MaxHealth);
-		}
+		}*/
 	}
 }
 

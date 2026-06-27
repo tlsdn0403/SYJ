@@ -8,6 +8,7 @@
 #include "Components/Button.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Characters/FPSPlayerController.h"
+#include "FPSProjectGameInstance.h"
 
 void UBasicUI::NativeConstruct()
 {
@@ -20,6 +21,14 @@ void UBasicUI::NativeConstruct()
 	if (EndB)
 	{
 		EndB->OnClicked.AddDynamic(this, &UBasicUI::OnExitClicked);
+	}
+
+	if (NameText)
+	{
+		if (const UFPSProjectGameInstance* GameInstance = GetGameInstance<UFPSProjectGameInstance>())
+		{
+			NameText->SetText(FText::FromString(GameInstance->GetPlayerNickname()));
+		}
 	}
 }
 

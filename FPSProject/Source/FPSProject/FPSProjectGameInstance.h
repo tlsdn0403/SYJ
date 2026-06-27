@@ -53,6 +53,8 @@ public:
 	void SendPacket(SendBufferRef SendBuffer);
 	static void SendPacketStatic(SendBufferRef SendBuffer);
 	static bool SendZombieHitPacket(class AFPSBaseCharacter* Attacker, class ABaseZombie* Zombie, float Damage, const FVector& HitLocation, FName HitBoneName = NAME_None, const FVector& HitNormal = FVector::ZeroVector);
+	void SetPlayerNickname(const FString& Nickname);
+	const FString& GetPlayerNickname() const { return PlayerNickname; }
 
 public:
 	void HandleSpawn(const Protocol::ObjectInfo& PlayerInfo, bool IsMine);
@@ -165,6 +167,9 @@ public:
 
 	UPROPERTY()
 	TSubclassOf<UUserWidget> EntryLoadingWidgetClass;
+
+	UPROPERTY()
+	FString PlayerNickname;
 
 private:
 	UPROPERTY()

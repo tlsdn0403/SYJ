@@ -600,6 +600,17 @@ void FFPSStageFlowManager::SetStageTransitionCinematicMode(bool bEnable)
 	{
 		PlayerController->SetCinematicMode(bEnable, false, true, true, true);
 	}
+
+	if (UWorld* World = Owner.GetWorld())
+	{
+		for (TActorIterator<ATruck> It(World); It; ++It)
+		{
+			if (ATruck* Truck = *It)
+			{
+				Truck->SetCinematicControlLocked(bEnable);
+			}
+		}
+	}
 }
 
 void FFPSStageFlowManager::PrepareStageTransitionCinematicActors()

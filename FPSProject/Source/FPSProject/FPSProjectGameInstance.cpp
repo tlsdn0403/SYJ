@@ -276,7 +276,7 @@ bool UFPSProjectGameInstance::TryEnterTruckLocally(AFPSBaseCharacter* Character,
 	switch (SeatType)
 	{
 	case Protocol::TRUCK_SEAT_DRIVER:
-		if (Truck->GetDriverCharacter() && Truck->GetDriverCharacter() != Character)
+		if (IsValid(Truck->GetDriverCharacter()) && Truck->GetDriverCharacter() != Character)
 		{
 			return true;
 		}

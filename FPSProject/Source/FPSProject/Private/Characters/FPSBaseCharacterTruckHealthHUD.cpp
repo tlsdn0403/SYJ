@@ -43,7 +43,14 @@ void AFPSBaseCharacter::UpdateHealthHUD(float CurrentHealth, float MaxHealth)
 {
 	if (AFPSPlayerController* PlayerController = ResolveHealthHUDController())
 	{
-		if (PlayerController->BasicW)
+		if (DisplayedHealthTruck)
+		{
+			if (PlayerController->L2BaseW)
+			{
+				PlayerController->L2BaseW->SetTruckHealth(CurrentHealth, MaxHealth);
+			}
+		}
+		else if (PlayerController->BasicW)
 		{
 			PlayerController->BasicW->SetHealth(CurrentHealth, MaxHealth);
 		}

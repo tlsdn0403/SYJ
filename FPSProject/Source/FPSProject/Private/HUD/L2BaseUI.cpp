@@ -114,3 +114,67 @@ void UL2BaseUI::OilUpdate(float CurrentFuel, float MaxFuel)
 		}
 	}
 }
+
+
+void UL2BaseUI::SetTruckHealth(float CurrentHP, float MaxHP)
+{
+	constexpr float TruckMaxHealth = 500.0f;
+	const float SafeMaxHealth = MaxHP > KINDA_SMALL_NUMBER ? FMath::Min(MaxHP, TruckMaxHealth) : TruckMaxHealth;
+	const float HealthRatio = FMath::Clamp(CurrentHP / SafeMaxHealth, 0.0f, 1.0f);
+
+	if (TruckHPSlider)
+	{
+		TruckHPSlider->SetValue(HealthRatio);
+
+		if (HealthRatio <= 0.2f)
+		{
+			TruckHPSlider->SetSliderProgressColor(FLinearColor(1.0f, 0.1f, 0.0f, 1.0f));
+		}
+		else if (HealthRatio <= 0.4f)
+		{
+			TruckHPSlider->SetSliderProgressColor(FLinearColor(1.0f, 0.45f, 0.0f, 1.0f));
+		}
+		else if (HealthRatio <= 0.6f)
+		{
+			TruckHPSlider->SetSliderProgressColor(FLinearColor(1.0f, 0.55f, 0.0f, 1.0f));
+		}
+		else
+		{
+			TruckHPSlider->SetSliderProgressColor(FLinearColor(0.2f, 0.85f, 0.25f, 1.0f));
+		}
+	}
+
+	if (truckHP)
+	{
+		truckHP->SetText(FText::FromString(FString::FromInt(FMath::RoundToInt(CurrentHP))));
+	}
+
+	const bool bLowHealth = HealthRatio <= 0.4f;
+	if (bLowHealth)
+	{
+		if (TruckIcon)
+		{
+			TruckIcon->SetColorAndOpacity(FLinearColor(1.0f, 0.0f, 0.0f, 1.0f));
+			TruckIcon->SetBrushTintColor(FSlateColor(FLinearColor(1.0f, 0.0f, 0.0f, 1.0f)));
+		}
+
+		if (Ani_Truck_Icon && !IsAnimationPlaying(Ani_Truck_Icon))
+		{
+			PlayAnimation(Ani_Truck_Icon, 0.0f, 0);
+		}
+	}
+	else
+	{
+		if (Ani_Truck_Icon && IsAnimationPlaying(Ani_Truck_Icon))
+		{
+			StopAnimation(Ani_Truck_Icon);
+		}
+
+		if (TruckIcon)
+		{
+			TruckIcon->SetRenderOpacity(1.0f);
+			TruckIcon->SetColorAndOpacity(FLinearColor::White);
+			TruckIcon->SetBrushTintColor(FSlateColor(FLinearColor::White));
+		}
+	}
+}

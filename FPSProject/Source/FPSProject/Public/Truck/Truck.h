@@ -422,6 +422,7 @@ private:
 	void ClearDrivingInput(bool bHoldBrake);
 	void ConfigureVehiclePawnCollision();
 	bool IsLocalInteractionCharacter(const AFPSBaseCharacter* Character) const;
+	void SetInteractionWidgetsHidden(bool bShouldHide);
 	void RefreshLocalInteractionWidgets();
 
 	UFUNCTION()

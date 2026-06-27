@@ -18,6 +18,7 @@
 #include "Components/BillboardComponent.h"
 #include "Components/MeshComponent.h"
 #include "Components/PrimitiveComponent.h"
+#include "Components/SceneComponent.h"
 #include "Components/ShapeComponent.h"
 #include "Components/WidgetComponent.h"
 #include "GameFramework/PlayerController.h"
@@ -35,12 +36,37 @@ bool ShouldShowComponentForStageTransitionCinematic(const UPrimitiveComponent* P
 		return false;
 	}
 
-	if (PrimitiveComponent->IsA<UShapeComponent>() || PrimitiveComponent->IsA<UBillboardComponent>())
+	if (PrimitiveComponent->IsA<UShapeComponent>() ||
+		PrimitiveComponent->IsA<UBillboardComponent>() ||
+		PrimitiveComponent->IsA<UWidgetComponent>())
 	{
 		return false;
 	}
 
-	return PrimitiveComponent->IsA<UMeshComponent>() || PrimitiveComponent->IsA<UWidgetComponent>();
+	const FString ComponentName = PrimitiveComponent->GetName();
+	if (ComponentName.Contains(TEXT("Camera"), ESearchCase::IgnoreCase) ||
+		ComponentName.Contains(TEXT("SpringArm"), ESearchCase::IgnoreCase) ||
+		ComponentName.Contains(TEXT("Interact"), ESearchCase::IgnoreCase) ||
+		ComponentName.Contains(TEXT("Widget"), ESearchCase::IgnoreCase))
+	{
+		return false;
+	}
+
+	return PrimitiveComponent->IsA<UMeshComponent>();
+}
+
+bool ShouldHideTruckUtilityComponentForStageTransitionCinematic(const USceneComponent* SceneComponent)
+{
+	if (!SceneComponent)
+	{
+		return false;
+	}
+
+	const FString ComponentName = SceneComponent->GetName();
+	return ComponentName.Contains(TEXT("Camera"), ESearchCase::IgnoreCase) ||
+		ComponentName.Contains(TEXT("SpringArm"), ESearchCase::IgnoreCase) ||
+		ComponentName.Contains(TEXT("Interact"), ESearchCase::IgnoreCase) ||
+		ComponentName.Contains(TEXT("Widget"), ESearchCase::IgnoreCase);
 }
 }
 
@@ -652,6 +678,23 @@ void FFPSStageFlowManager::PrepareStageTransitionCinematicActors()
 			const bool bShouldShow = ShouldShowComponentForStageTransitionCinematic(PrimitiveComponent);
 			PrimitiveComponent->SetHiddenInGame(!bShouldShow, false);
 			PrimitiveComponent->SetVisibility(bShouldShow, false);
+		}
+
+		TArray<USceneComponent*> SceneComponents;
+		Truck->GetComponents<USceneComponent>(SceneComponents);
+		for (USceneComponent* SceneComponent : SceneComponents)
+		{
+			if (!IsValid(SceneComponent) ||
+				!ShouldHideTruckUtilityComponentForStageTransitionCinematic(SceneComponent))
+			{
+				continue;
+			}
+
+			SceneComponent->SetHiddenInGame(true, false);
+			if (UPrimitiveComponent* PrimitiveComponent = Cast<UPrimitiveComponent>(SceneComponent))
+			{
+				PrimitiveComponent->SetVisibility(false, false);
+			}
 		}
 	}
 

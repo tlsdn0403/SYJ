@@ -41,7 +41,7 @@ public:
 	UWidgetComponent* WidgetComp;
 
 	virtual void Interact_Implementation(AFPSBaseCharacter* Character) override;
-	void ApplyDoorState(bool bShouldOpen);
+	virtual void ApplyDoorState(bool bShouldOpen);
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Door")
 	bool bOpen = false;

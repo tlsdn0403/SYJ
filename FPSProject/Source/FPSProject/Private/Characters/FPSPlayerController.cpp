@@ -61,7 +61,8 @@ void AFPSPlayerController::BeginPlay()
 		}
 		else
 		{
-			ControlledCharacter->Add_L1_Widget(this);
+			//ControlledCharacter->Add_L1_Widget(this);
+			ControlledCharacter->Add_L2_Widget(this);
 		}
 	}
 

@@ -164,6 +164,11 @@ message C_TRUCK_MOVE
 	float turret_yaw = 4;
 	float turret_pitch = 5;
 	bool has_turret_aim = 6;
+	bool has_truck_health = 7;
+	float truck_hp = 8;
+	float truck_max_hp = 9;
+	bool has_truck_fuel = 10;
+	bool has_truck_health_repair = 11;
 }
 
 message S_TRUCK_MOVE
@@ -174,6 +179,10 @@ message S_TRUCK_MOVE
 	float turret_yaw = 4;
 	float turret_pitch = 5;
 	bool has_turret_aim = 6;
+	bool has_truck_health = 7;
+	float truck_hp = 8;
+	float truck_max_hp = 9;
+	bool has_truck_fuel = 10;
 }
 
 message C_LOAD_TRUCK_ITEM

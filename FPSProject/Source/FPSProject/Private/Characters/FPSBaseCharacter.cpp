@@ -1901,6 +1901,8 @@ bool AFPSBaseCharacter::UseFuelCan()
 	}
 
 	CurrentTruck->RefuelTruck(FuelCanRefuelAmount);
+	ShowTruckFuelOnHUD(CurrentTruck);
+	CurrentTruck->SyncTruckStateToServer();
 	RefreshStage2ItemUI();
 	UE_LOG(LogTemp, Log, TEXT("Fuel Can used. Refueled %.1f, truck fuel=%.1f/%.1f, remaining=%d"),
 		FuelCanRefuelAmount,
@@ -1950,7 +1952,7 @@ bool AFPSBaseCharacter::UseTruckRepairKit()
 
 	CurrentTruck->RepairTruck(TruckRepairKitHealAmount);
 	ShowTruckHealthOnHUD(CurrentTruck);
-	CurrentTruck->SyncTruckStateToServer();
+	CurrentTruck->SyncTruckStateToServer(true);
 	RefreshStage2ItemUI();
 	UE_LOG(LogTemp, Log, TEXT("Truck Repair Kit used. Repaired %.1f, truck health=%.1f/%.1f, remaining=%d"),
 		TruckRepairKitHealAmount,

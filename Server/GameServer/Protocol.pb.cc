@@ -384,7 +384,12 @@ PROTOBUF_CONSTEXPR C_TRUCK_MOVE::C_TRUCK_MOVE(
   , /*decltype(_impl_.fuel_)*/0
   , /*decltype(_impl_.turret_yaw_)*/0
   , /*decltype(_impl_.turret_pitch_)*/0
+  , /*decltype(_impl_.truck_hp_)*/0
   , /*decltype(_impl_.has_turret_aim_)*/false
+  , /*decltype(_impl_.has_truck_health_)*/false
+  , /*decltype(_impl_.has_truck_fuel_)*/false
+  , /*decltype(_impl_.has_truck_health_repair_)*/false
+  , /*decltype(_impl_.truck_max_hp_)*/0
   , /*decltype(_impl_._cached_size_)*/{}} {}
 struct C_TRUCK_MOVEDefaultTypeInternal {
   PROTOBUF_CONSTEXPR C_TRUCK_MOVEDefaultTypeInternal()
@@ -400,9 +405,13 @@ PROTOBUF_CONSTEXPR S_TRUCK_MOVE::S_TRUCK_MOVE(
     /*decltype(_impl_.info_)*/nullptr
   , /*decltype(_impl_.fuel_)*/0
   , /*decltype(_impl_.turret_yaw_)*/0
+  , /*decltype(_impl_.turret_pitch_)*/0
   , /*decltype(_impl_.is_correction_)*/false
   , /*decltype(_impl_.has_turret_aim_)*/false
-  , /*decltype(_impl_.turret_pitch_)*/0
+  , /*decltype(_impl_.has_truck_health_)*/false
+  , /*decltype(_impl_.has_truck_fuel_)*/false
+  , /*decltype(_impl_.truck_hp_)*/0
+  , /*decltype(_impl_.truck_max_hp_)*/0
   , /*decltype(_impl_._cached_size_)*/{}} {}
 struct S_TRUCK_MOVEDefaultTypeInternal {
   PROTOBUF_CONSTEXPR S_TRUCK_MOVEDefaultTypeInternal()
@@ -794,6 +803,11 @@ const uint32_t TableStruct_Protocol_2eproto::offsets[] PROTOBUF_SECTION_VARIABLE
   PROTOBUF_FIELD_OFFSET(::Protocol::C_TRUCK_MOVE, _impl_.turret_yaw_),
   PROTOBUF_FIELD_OFFSET(::Protocol::C_TRUCK_MOVE, _impl_.turret_pitch_),
   PROTOBUF_FIELD_OFFSET(::Protocol::C_TRUCK_MOVE, _impl_.has_turret_aim_),
+  PROTOBUF_FIELD_OFFSET(::Protocol::C_TRUCK_MOVE, _impl_.has_truck_health_),
+  PROTOBUF_FIELD_OFFSET(::Protocol::C_TRUCK_MOVE, _impl_.truck_hp_),
+  PROTOBUF_FIELD_OFFSET(::Protocol::C_TRUCK_MOVE, _impl_.truck_max_hp_),
+  PROTOBUF_FIELD_OFFSET(::Protocol::C_TRUCK_MOVE, _impl_.has_truck_fuel_),
+  PROTOBUF_FIELD_OFFSET(::Protocol::C_TRUCK_MOVE, _impl_.has_truck_health_repair_),
   ~0u,  // no _has_bits_
   PROTOBUF_FIELD_OFFSET(::Protocol::S_TRUCK_MOVE, _internal_metadata_),
   ~0u,  // no _extensions_
@@ -806,6 +820,10 @@ const uint32_t TableStruct_Protocol_2eproto::offsets[] PROTOBUF_SECTION_VARIABLE
   PROTOBUF_FIELD_OFFSET(::Protocol::S_TRUCK_MOVE, _impl_.turret_yaw_),
   PROTOBUF_FIELD_OFFSET(::Protocol::S_TRUCK_MOVE, _impl_.turret_pitch_),
   PROTOBUF_FIELD_OFFSET(::Protocol::S_TRUCK_MOVE, _impl_.has_turret_aim_),
+  PROTOBUF_FIELD_OFFSET(::Protocol::S_TRUCK_MOVE, _impl_.has_truck_health_),
+  PROTOBUF_FIELD_OFFSET(::Protocol::S_TRUCK_MOVE, _impl_.truck_hp_),
+  PROTOBUF_FIELD_OFFSET(::Protocol::S_TRUCK_MOVE, _impl_.truck_max_hp_),
+  PROTOBUF_FIELD_OFFSET(::Protocol::S_TRUCK_MOVE, _impl_.has_truck_fuel_),
   ~0u,  // no _has_bits_
   PROTOBUF_FIELD_OFFSET(::Protocol::C_LOAD_TRUCK_ITEM, _internal_metadata_),
   ~0u,  // no _extensions_
@@ -926,18 +944,18 @@ static const ::_pbi::MigrationSchema schemas[] PROTOBUF_SECTION_VARIABLE(protode
   { 189, -1, -1, sizeof(::Protocol::C_EXIT_TRUCK)},
   { 195, -1, -1, sizeof(::Protocol::S_EXIT_TRUCK)},
   { 204, -1, -1, sizeof(::Protocol::C_TRUCK_MOVE)},
-  { 215, -1, -1, sizeof(::Protocol::S_TRUCK_MOVE)},
-  { 227, -1, -1, sizeof(::Protocol::C_LOAD_TRUCK_ITEM)},
-  { 235, -1, -1, sizeof(::Protocol::S_LOAD_TRUCK_ITEM)},
-  { 244, -1, -1, sizeof(::Protocol::C_TOGGLE_DOOR)},
-  { 251, -1, -1, sizeof(::Protocol::S_TOGGLE_DOOR)},
-  { 259, -1, -1, sizeof(::Protocol::S_ENTER_GAME_READY_COUNT)},
-  { 267, -1, -1, sizeof(::Protocol::S_STAGE_TIMER)},
-  { 275, -1, -1, sizeof(::Protocol::S_STAGE1_ITEM_SEED)},
-  { 282, -1, -1, sizeof(::Protocol::S_RESPAWN_LOOT_ITEM)},
-  { 289, -1, -1, sizeof(::Protocol::C_STAGE_TRANSITION_REQUEST)},
-  { 297, -1, -1, sizeof(::Protocol::S_STAGE_TRANSITION)},
-  { 304, -1, -1, sizeof(::Protocol::S_ZOMBIE_DISMEMBER)},
+  { 220, -1, -1, sizeof(::Protocol::S_TRUCK_MOVE)},
+  { 236, -1, -1, sizeof(::Protocol::C_LOAD_TRUCK_ITEM)},
+  { 244, -1, -1, sizeof(::Protocol::S_LOAD_TRUCK_ITEM)},
+  { 253, -1, -1, sizeof(::Protocol::C_TOGGLE_DOOR)},
+  { 260, -1, -1, sizeof(::Protocol::S_TOGGLE_DOOR)},
+  { 268, -1, -1, sizeof(::Protocol::S_ENTER_GAME_READY_COUNT)},
+  { 276, -1, -1, sizeof(::Protocol::S_STAGE_TIMER)},
+  { 284, -1, -1, sizeof(::Protocol::S_STAGE1_ITEM_SEED)},
+  { 291, -1, -1, sizeof(::Protocol::S_RESPAWN_LOOT_ITEM)},
+  { 298, -1, -1, sizeof(::Protocol::C_STAGE_TRANSITION_REQUEST)},
+  { 306, -1, -1, sizeof(::Protocol::S_STAGE_TRANSITION)},
+  { 313, -1, -1, sizeof(::Protocol::S_ZOMBIE_DISMEMBER)},
 };
 
 static const ::_pb::Message* const file_default_instances[] = {
@@ -1021,33 +1039,38 @@ const char descriptor_table_protodef_Protocol_2eproto[] PROTOBUF_SECTION_VARIABL
   "pe\030\003 \001(\0162\027.Protocol.TruckSeatType\"\016\n\014C_E"
   "XIT_TRUCK\"_\n\014S_EXIT_TRUCK\022\021\n\tplayer_id\030\001"
   " \001(\004\022\020\n\010truck_id\030\002 \001(\004\022*\n\tseat_type\030\003 \001("
-  "\0162\027.Protocol.TruckSeatType\"\177\n\014C_TRUCK_MO"
-  "VE\022\037\n\004info\030\001 \001(\0132\021.Protocol.PosInfo\022\014\n\004f"
-  "uel\030\003 \001(\002\022\022\n\nturret_yaw\030\004 \001(\002\022\024\n\014turret_"
-  "pitch\030\005 \001(\002\022\026\n\016has_turret_aim\030\006 \001(\010\"\226\001\n\014"
-  "S_TRUCK_MOVE\022\037\n\004info\030\001 \001(\0132\021.Protocol.Po"
-  "sInfo\022\025\n\ris_correction\030\002 \001(\010\022\014\n\004fuel\030\003 \001"
-  "(\002\022\022\n\nturret_yaw\030\004 \001(\002\022\024\n\014turret_pitch\030\005"
-  " \001(\002\022\026\n\016has_turret_aim\030\006 \001(\010\"9\n\021C_LOAD_T"
-  "RUCK_ITEM\022\020\n\010truck_id\030\001 \001(\004\022\022\n\nitem_type"
-  "s\030\002 \003(\005\"L\n\021S_LOAD_TRUCK_ITEM\022\021\n\tplayer_i"
-  "d\030\001 \001(\004\022\020\n\010truck_id\030\002 \001(\004\022\022\n\nitem_types\030"
-  "\003 \003(\005\" \n\rC_TOGGLE_DOOR\022\017\n\007door_id\030\001 \001(\004\""
-  "1\n\rS_TOGGLE_DOOR\022\017\n\007door_id\030\001 \001(\004\022\017\n\007is_"
-  "open\030\002 \001(\010\"G\n\030S_ENTER_GAME_READY_COUNT\022\023"
-  "\n\013ready_count\030\001 \001(\005\022\026\n\016required_count\030\002 "
-  "\001(\005\"D\n\rS_STAGE_TIMER\022\031\n\021remaining_second"
-  "s\030\001 \001(\005\022\030\n\020is_loading_phase\030\002 \001(\010\"\"\n\022S_S"
-  "TAGE1_ITEM_SEED\022\014\n\004seed\030\001 \001(\r\".\n\023S_RESPA"
-  "WN_LOOT_ITEM\022\027\n\017item_object_ids\030\001 \003(\004\"D\n"
-  "\032C_STAGE_TRANSITION_REQUEST\022\020\n\010truck_id\030"
-  "\001 \001(\004\022\024\n\014target_level\030\002 \001(\t\"*\n\022S_STAGE_T"
-  "RANSITION\022\024\n\014target_level\030\001 \001(\t\"\240\001\n\022S_ZO"
-  "MBIE_DISMEMBER\022\021\n\tzombie_id\030\001 \001(\004\022\021\n\tbon"
-  "e_name\030\002 \001(\t\022\r\n\005hit_x\030\003 \001(\002\022\r\n\005hit_y\030\004 \001"
-  "(\002\022\r\n\005hit_z\030\005 \001(\002\022\021\n\timpulse_x\030\006 \001(\002\022\021\n\t"
-  "impulse_y\030\007 \001(\002\022\021\n\timpulse_z\030\010 \001(\002b\006prot"
-  "o3"
+  "\0162\027.Protocol.TruckSeatType\"\372\001\n\014C_TRUCK_M"
+  "OVE\022\037\n\004info\030\001 \001(\0132\021.Protocol.PosInfo\022\014\n\004"
+  "fuel\030\003 \001(\002\022\022\n\nturret_yaw\030\004 \001(\002\022\024\n\014turret"
+  "_pitch\030\005 \001(\002\022\026\n\016has_turret_aim\030\006 \001(\010\022\030\n\020"
+  "has_truck_health\030\007 \001(\010\022\020\n\010truck_hp\030\010 \001(\002"
+  "\022\024\n\014truck_max_hp\030\t \001(\002\022\026\n\016has_truck_fuel"
+  "\030\n \001(\010\022\037\n\027has_truck_health_repair\030\013 \001(\010\""
+  "\360\001\n\014S_TRUCK_MOVE\022\037\n\004info\030\001 \001(\0132\021.Protoco"
+  "l.PosInfo\022\025\n\ris_correction\030\002 \001(\010\022\014\n\004fuel"
+  "\030\003 \001(\002\022\022\n\nturret_yaw\030\004 \001(\002\022\024\n\014turret_pit"
+  "ch\030\005 \001(\002\022\026\n\016has_turret_aim\030\006 \001(\010\022\030\n\020has_"
+  "truck_health\030\007 \001(\010\022\020\n\010truck_hp\030\010 \001(\002\022\024\n\014"
+  "truck_max_hp\030\t \001(\002\022\026\n\016has_truck_fuel\030\n \001"
+  "(\010\"9\n\021C_LOAD_TRUCK_ITEM\022\020\n\010truck_id\030\001 \001("
+  "\004\022\022\n\nitem_types\030\002 \003(\005\"L\n\021S_LOAD_TRUCK_IT"
+  "EM\022\021\n\tplayer_id\030\001 \001(\004\022\020\n\010truck_id\030\002 \001(\004\022"
+  "\022\n\nitem_types\030\003 \003(\005\" \n\rC_TOGGLE_DOOR\022\017\n\007"
+  "door_id\030\001 \001(\004\"1\n\rS_TOGGLE_DOOR\022\017\n\007door_i"
+  "d\030\001 \001(\004\022\017\n\007is_open\030\002 \001(\010\"G\n\030S_ENTER_GAME"
+  "_READY_COUNT\022\023\n\013ready_count\030\001 \001(\005\022\026\n\016req"
+  "uired_count\030\002 \001(\005\"D\n\rS_STAGE_TIMER\022\031\n\021re"
+  "maining_seconds\030\001 \001(\005\022\030\n\020is_loading_phas"
+  "e\030\002 \001(\010\"\"\n\022S_STAGE1_ITEM_SEED\022\014\n\004seed\030\001 "
+  "\001(\r\".\n\023S_RESPAWN_LOOT_ITEM\022\027\n\017item_objec"
+  "t_ids\030\001 \003(\004\"D\n\032C_STAGE_TRANSITION_REQUES"
+  "T\022\020\n\010truck_id\030\001 \001(\004\022\024\n\014target_level\030\002 \001("
+  "\t\"*\n\022S_STAGE_TRANSITION\022\024\n\014target_level\030"
+  "\001 \001(\t\"\240\001\n\022S_ZOMBIE_DISMEMBER\022\021\n\tzombie_i"
+  "d\030\001 \001(\004\022\021\n\tbone_name\030\002 \001(\t\022\r\n\005hit_x\030\003 \001("
+  "\002\022\r\n\005hit_y\030\004 \001(\002\022\r\n\005hit_z\030\005 \001(\002\022\021\n\timpul"
+  "se_x\030\006 \001(\002\022\021\n\timpulse_y\030\007 \001(\002\022\021\n\timpulse"
+  "_z\030\010 \001(\002b\006proto3"
   ;
 static const ::_pbi::DescriptorTable* const descriptor_table_Protocol_2eproto_deps[2] = {
   &::descriptor_table_Enum_2eproto,
@@ -1055,7 +1078,7 @@ static const ::_pbi::DescriptorTable* const descriptor_table_Protocol_2eproto_de
 };
 static ::_pbi::once_flag descriptor_table_Protocol_2eproto_once;
 const ::_pbi::DescriptorTable descriptor_table_Protocol_2eproto = {
-    false, false, 2562, descriptor_table_protodef_Protocol_2eproto,
+    false, false, 2776, descriptor_table_protodef_Protocol_2eproto,
     "Protocol.proto",
     &descriptor_table_Protocol_2eproto_once, descriptor_table_Protocol_2eproto_deps, 2, 39,
     schemas, file_default_instances, TableStruct_Protocol_2eproto::offsets,
@@ -6344,7 +6367,12 @@ C_TRUCK_MOVE::C_TRUCK_MOVE(const C_TRUCK_MOVE& from)
     , decltype(_impl_.fuel_){}
     , decltype(_impl_.turret_yaw_){}
     , decltype(_impl_.turret_pitch_){}
+    , decltype(_impl_.truck_hp_){}
     , decltype(_impl_.has_turret_aim_){}
+    , decltype(_impl_.has_truck_health_){}
+    , decltype(_impl_.has_truck_fuel_){}
+    , decltype(_impl_.has_truck_health_repair_){}
+    , decltype(_impl_.truck_max_hp_){}
     , /*decltype(_impl_._cached_size_)*/{}};
 
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
@@ -6352,8 +6380,8 @@ C_TRUCK_MOVE::C_TRUCK_MOVE(const C_TRUCK_MOVE& from)
     _this->_impl_.info_ = new ::Protocol::PosInfo(*from._impl_.info_);
   }
   ::memcpy(&_impl_.fuel_, &from._impl_.fuel_,
-    static_cast<size_t>(reinterpret_cast<char*>(&_impl_.has_turret_aim_) -
-    reinterpret_cast<char*>(&_impl_.fuel_)) + sizeof(_impl_.has_turret_aim_));
+    static_cast<size_t>(reinterpret_cast<char*>(&_impl_.truck_max_hp_) -
+    reinterpret_cast<char*>(&_impl_.fuel_)) + sizeof(_impl_.truck_max_hp_));
   // @@protoc_insertion_point(copy_constructor:Protocol.C_TRUCK_MOVE)
 }
 
@@ -6366,7 +6394,12 @@ inline void C_TRUCK_MOVE::SharedCtor(
     , decltype(_impl_.fuel_){0}
     , decltype(_impl_.turret_yaw_){0}
     , decltype(_impl_.turret_pitch_){0}
+    , decltype(_impl_.truck_hp_){0}
     , decltype(_impl_.has_turret_aim_){false}
+    , decltype(_impl_.has_truck_health_){false}
+    , decltype(_impl_.has_truck_fuel_){false}
+    , decltype(_impl_.has_truck_health_repair_){false}
+    , decltype(_impl_.truck_max_hp_){0}
     , /*decltype(_impl_._cached_size_)*/{}
   };
 }
@@ -6400,8 +6433,8 @@ void C_TRUCK_MOVE::Clear() {
   }
   _impl_.info_ = nullptr;
   ::memset(&_impl_.fuel_, 0, static_cast<size_t>(
-      reinterpret_cast<char*>(&_impl_.has_turret_aim_) -
-      reinterpret_cast<char*>(&_impl_.fuel_)) + sizeof(_impl_.has_turret_aim_));
+      reinterpret_cast<char*>(&_impl_.truck_max_hp_) -
+      reinterpret_cast<char*>(&_impl_.fuel_)) + sizeof(_impl_.truck_max_hp_));
   _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
 }
 
@@ -6447,6 +6480,46 @@ const char* C_TRUCK_MOVE::_InternalParse(const char* ptr, ::_pbi::ParseContext* 
       case 6:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 48)) {
           _impl_.has_turret_aim_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // bool has_truck_health = 7;
+      case 7:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 56)) {
+          _impl_.has_truck_health_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // float truck_hp = 8;
+      case 8:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 69)) {
+          _impl_.truck_hp_ = ::PROTOBUF_NAMESPACE_ID::internal::UnalignedLoad<float>(ptr);
+          ptr += sizeof(float);
+        } else
+          goto handle_unusual;
+        continue;
+      // float truck_max_hp = 9;
+      case 9:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 77)) {
+          _impl_.truck_max_hp_ = ::PROTOBUF_NAMESPACE_ID::internal::UnalignedLoad<float>(ptr);
+          ptr += sizeof(float);
+        } else
+          goto handle_unusual;
+        continue;
+      // bool has_truck_fuel = 10;
+      case 10:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 80)) {
+          _impl_.has_truck_fuel_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // bool has_truck_health_repair = 11;
+      case 11:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 88)) {
+          _impl_.has_truck_health_repair_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
           CHK_(ptr);
         } else
           goto handle_unusual;
@@ -6523,6 +6596,44 @@ uint8_t* C_TRUCK_MOVE::_InternalSerialize(
     target = ::_pbi::WireFormatLite::WriteBoolToArray(6, this->_internal_has_turret_aim(), target);
   }
 
+  // bool has_truck_health = 7;
+  if (this->_internal_has_truck_health() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteBoolToArray(7, this->_internal_has_truck_health(), target);
+  }
+
+  // float truck_hp = 8;
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_truck_hp = this->_internal_truck_hp();
+  uint32_t raw_truck_hp;
+  memcpy(&raw_truck_hp, &tmp_truck_hp, sizeof(tmp_truck_hp));
+  if (raw_truck_hp != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteFloatToArray(8, this->_internal_truck_hp(), target);
+  }
+
+  // float truck_max_hp = 9;
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_truck_max_hp = this->_internal_truck_max_hp();
+  uint32_t raw_truck_max_hp;
+  memcpy(&raw_truck_max_hp, &tmp_truck_max_hp, sizeof(tmp_truck_max_hp));
+  if (raw_truck_max_hp != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteFloatToArray(9, this->_internal_truck_max_hp(), target);
+  }
+
+  // bool has_truck_fuel = 10;
+  if (this->_internal_has_truck_fuel() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteBoolToArray(10, this->_internal_has_truck_fuel(), target);
+  }
+
+  // bool has_truck_health_repair = 11;
+  if (this->_internal_has_truck_health_repair() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteBoolToArray(11, this->_internal_has_truck_health_repair(), target);
+  }
+
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
@@ -6573,9 +6684,42 @@ size_t C_TRUCK_MOVE::ByteSizeLong() const {
     total_size += 1 + 4;
   }
 
+  // float truck_hp = 8;
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_truck_hp = this->_internal_truck_hp();
+  uint32_t raw_truck_hp;
+  memcpy(&raw_truck_hp, &tmp_truck_hp, sizeof(tmp_truck_hp));
+  if (raw_truck_hp != 0) {
+    total_size += 1 + 4;
+  }
+
   // bool has_turret_aim = 6;
   if (this->_internal_has_turret_aim() != 0) {
     total_size += 1 + 1;
+  }
+
+  // bool has_truck_health = 7;
+  if (this->_internal_has_truck_health() != 0) {
+    total_size += 1 + 1;
+  }
+
+  // bool has_truck_fuel = 10;
+  if (this->_internal_has_truck_fuel() != 0) {
+    total_size += 1 + 1;
+  }
+
+  // bool has_truck_health_repair = 11;
+  if (this->_internal_has_truck_health_repair() != 0) {
+    total_size += 1 + 1;
+  }
+
+  // float truck_max_hp = 9;
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_truck_max_hp = this->_internal_truck_max_hp();
+  uint32_t raw_truck_max_hp;
+  memcpy(&raw_truck_max_hp, &tmp_truck_max_hp, sizeof(tmp_truck_max_hp));
+  if (raw_truck_max_hp != 0) {
+    total_size += 1 + 4;
   }
 
   return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
@@ -6621,8 +6765,31 @@ void C_TRUCK_MOVE::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::P
   if (raw_turret_pitch != 0) {
     _this->_internal_set_turret_pitch(from._internal_turret_pitch());
   }
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_truck_hp = from._internal_truck_hp();
+  uint32_t raw_truck_hp;
+  memcpy(&raw_truck_hp, &tmp_truck_hp, sizeof(tmp_truck_hp));
+  if (raw_truck_hp != 0) {
+    _this->_internal_set_truck_hp(from._internal_truck_hp());
+  }
   if (from._internal_has_turret_aim() != 0) {
     _this->_internal_set_has_turret_aim(from._internal_has_turret_aim());
+  }
+  if (from._internal_has_truck_health() != 0) {
+    _this->_internal_set_has_truck_health(from._internal_has_truck_health());
+  }
+  if (from._internal_has_truck_fuel() != 0) {
+    _this->_internal_set_has_truck_fuel(from._internal_has_truck_fuel());
+  }
+  if (from._internal_has_truck_health_repair() != 0) {
+    _this->_internal_set_has_truck_health_repair(from._internal_has_truck_health_repair());
+  }
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_truck_max_hp = from._internal_truck_max_hp();
+  uint32_t raw_truck_max_hp;
+  memcpy(&raw_truck_max_hp, &tmp_truck_max_hp, sizeof(tmp_truck_max_hp));
+  if (raw_truck_max_hp != 0) {
+    _this->_internal_set_truck_max_hp(from._internal_truck_max_hp());
   }
   _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
 }
@@ -6642,8 +6809,8 @@ void C_TRUCK_MOVE::InternalSwap(C_TRUCK_MOVE* other) {
   using std::swap;
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
   ::PROTOBUF_NAMESPACE_ID::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(C_TRUCK_MOVE, _impl_.has_turret_aim_)
-      + sizeof(C_TRUCK_MOVE::_impl_.has_turret_aim_)
+      PROTOBUF_FIELD_OFFSET(C_TRUCK_MOVE, _impl_.truck_max_hp_)
+      + sizeof(C_TRUCK_MOVE::_impl_.truck_max_hp_)
       - PROTOBUF_FIELD_OFFSET(C_TRUCK_MOVE, _impl_.info_)>(
           reinterpret_cast<char*>(&_impl_.info_),
           reinterpret_cast<char*>(&other->_impl_.info_));
@@ -6685,9 +6852,13 @@ S_TRUCK_MOVE::S_TRUCK_MOVE(const S_TRUCK_MOVE& from)
       decltype(_impl_.info_){nullptr}
     , decltype(_impl_.fuel_){}
     , decltype(_impl_.turret_yaw_){}
+    , decltype(_impl_.turret_pitch_){}
     , decltype(_impl_.is_correction_){}
     , decltype(_impl_.has_turret_aim_){}
-    , decltype(_impl_.turret_pitch_){}
+    , decltype(_impl_.has_truck_health_){}
+    , decltype(_impl_.has_truck_fuel_){}
+    , decltype(_impl_.truck_hp_){}
+    , decltype(_impl_.truck_max_hp_){}
     , /*decltype(_impl_._cached_size_)*/{}};
 
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
@@ -6695,8 +6866,8 @@ S_TRUCK_MOVE::S_TRUCK_MOVE(const S_TRUCK_MOVE& from)
     _this->_impl_.info_ = new ::Protocol::PosInfo(*from._impl_.info_);
   }
   ::memcpy(&_impl_.fuel_, &from._impl_.fuel_,
-    static_cast<size_t>(reinterpret_cast<char*>(&_impl_.turret_pitch_) -
-    reinterpret_cast<char*>(&_impl_.fuel_)) + sizeof(_impl_.turret_pitch_));
+    static_cast<size_t>(reinterpret_cast<char*>(&_impl_.truck_max_hp_) -
+    reinterpret_cast<char*>(&_impl_.fuel_)) + sizeof(_impl_.truck_max_hp_));
   // @@protoc_insertion_point(copy_constructor:Protocol.S_TRUCK_MOVE)
 }
 
@@ -6708,9 +6879,13 @@ inline void S_TRUCK_MOVE::SharedCtor(
       decltype(_impl_.info_){nullptr}
     , decltype(_impl_.fuel_){0}
     , decltype(_impl_.turret_yaw_){0}
+    , decltype(_impl_.turret_pitch_){0}
     , decltype(_impl_.is_correction_){false}
     , decltype(_impl_.has_turret_aim_){false}
-    , decltype(_impl_.turret_pitch_){0}
+    , decltype(_impl_.has_truck_health_){false}
+    , decltype(_impl_.has_truck_fuel_){false}
+    , decltype(_impl_.truck_hp_){0}
+    , decltype(_impl_.truck_max_hp_){0}
     , /*decltype(_impl_._cached_size_)*/{}
   };
 }
@@ -6744,8 +6919,8 @@ void S_TRUCK_MOVE::Clear() {
   }
   _impl_.info_ = nullptr;
   ::memset(&_impl_.fuel_, 0, static_cast<size_t>(
-      reinterpret_cast<char*>(&_impl_.turret_pitch_) -
-      reinterpret_cast<char*>(&_impl_.fuel_)) + sizeof(_impl_.turret_pitch_));
+      reinterpret_cast<char*>(&_impl_.truck_max_hp_) -
+      reinterpret_cast<char*>(&_impl_.fuel_)) + sizeof(_impl_.truck_max_hp_));
   _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
 }
 
@@ -6799,6 +6974,38 @@ const char* S_TRUCK_MOVE::_InternalParse(const char* ptr, ::_pbi::ParseContext* 
       case 6:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 48)) {
           _impl_.has_turret_aim_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // bool has_truck_health = 7;
+      case 7:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 56)) {
+          _impl_.has_truck_health_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // float truck_hp = 8;
+      case 8:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 69)) {
+          _impl_.truck_hp_ = ::PROTOBUF_NAMESPACE_ID::internal::UnalignedLoad<float>(ptr);
+          ptr += sizeof(float);
+        } else
+          goto handle_unusual;
+        continue;
+      // float truck_max_hp = 9;
+      case 9:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 77)) {
+          _impl_.truck_max_hp_ = ::PROTOBUF_NAMESPACE_ID::internal::UnalignedLoad<float>(ptr);
+          ptr += sizeof(float);
+        } else
+          goto handle_unusual;
+        continue;
+      // bool has_truck_fuel = 10;
+      case 10:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 80)) {
+          _impl_.has_truck_fuel_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
           CHK_(ptr);
         } else
           goto handle_unusual;
@@ -6881,6 +7088,38 @@ uint8_t* S_TRUCK_MOVE::_InternalSerialize(
     target = ::_pbi::WireFormatLite::WriteBoolToArray(6, this->_internal_has_turret_aim(), target);
   }
 
+  // bool has_truck_health = 7;
+  if (this->_internal_has_truck_health() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteBoolToArray(7, this->_internal_has_truck_health(), target);
+  }
+
+  // float truck_hp = 8;
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_truck_hp = this->_internal_truck_hp();
+  uint32_t raw_truck_hp;
+  memcpy(&raw_truck_hp, &tmp_truck_hp, sizeof(tmp_truck_hp));
+  if (raw_truck_hp != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteFloatToArray(8, this->_internal_truck_hp(), target);
+  }
+
+  // float truck_max_hp = 9;
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_truck_max_hp = this->_internal_truck_max_hp();
+  uint32_t raw_truck_max_hp;
+  memcpy(&raw_truck_max_hp, &tmp_truck_max_hp, sizeof(tmp_truck_max_hp));
+  if (raw_truck_max_hp != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteFloatToArray(9, this->_internal_truck_max_hp(), target);
+  }
+
+  // bool has_truck_fuel = 10;
+  if (this->_internal_has_truck_fuel() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteBoolToArray(10, this->_internal_has_truck_fuel(), target);
+  }
+
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
@@ -6922,6 +7161,15 @@ size_t S_TRUCK_MOVE::ByteSizeLong() const {
     total_size += 1 + 4;
   }
 
+  // float turret_pitch = 5;
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_turret_pitch = this->_internal_turret_pitch();
+  uint32_t raw_turret_pitch;
+  memcpy(&raw_turret_pitch, &tmp_turret_pitch, sizeof(tmp_turret_pitch));
+  if (raw_turret_pitch != 0) {
+    total_size += 1 + 4;
+  }
+
   // bool is_correction = 2;
   if (this->_internal_is_correction() != 0) {
     total_size += 1 + 1;
@@ -6932,12 +7180,31 @@ size_t S_TRUCK_MOVE::ByteSizeLong() const {
     total_size += 1 + 1;
   }
 
-  // float turret_pitch = 5;
+  // bool has_truck_health = 7;
+  if (this->_internal_has_truck_health() != 0) {
+    total_size += 1 + 1;
+  }
+
+  // bool has_truck_fuel = 10;
+  if (this->_internal_has_truck_fuel() != 0) {
+    total_size += 1 + 1;
+  }
+
+  // float truck_hp = 8;
   static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
-  float tmp_turret_pitch = this->_internal_turret_pitch();
-  uint32_t raw_turret_pitch;
-  memcpy(&raw_turret_pitch, &tmp_turret_pitch, sizeof(tmp_turret_pitch));
-  if (raw_turret_pitch != 0) {
+  float tmp_truck_hp = this->_internal_truck_hp();
+  uint32_t raw_truck_hp;
+  memcpy(&raw_truck_hp, &tmp_truck_hp, sizeof(tmp_truck_hp));
+  if (raw_truck_hp != 0) {
+    total_size += 1 + 4;
+  }
+
+  // float truck_max_hp = 9;
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_truck_max_hp = this->_internal_truck_max_hp();
+  uint32_t raw_truck_max_hp;
+  memcpy(&raw_truck_max_hp, &tmp_truck_max_hp, sizeof(tmp_truck_max_hp));
+  if (raw_truck_max_hp != 0) {
     total_size += 1 + 4;
   }
 
@@ -6977,18 +7244,38 @@ void S_TRUCK_MOVE::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::P
   if (raw_turret_yaw != 0) {
     _this->_internal_set_turret_yaw(from._internal_turret_yaw());
   }
-  if (from._internal_is_correction() != 0) {
-    _this->_internal_set_is_correction(from._internal_is_correction());
-  }
-  if (from._internal_has_turret_aim() != 0) {
-    _this->_internal_set_has_turret_aim(from._internal_has_turret_aim());
-  }
   static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
   float tmp_turret_pitch = from._internal_turret_pitch();
   uint32_t raw_turret_pitch;
   memcpy(&raw_turret_pitch, &tmp_turret_pitch, sizeof(tmp_turret_pitch));
   if (raw_turret_pitch != 0) {
     _this->_internal_set_turret_pitch(from._internal_turret_pitch());
+  }
+  if (from._internal_is_correction() != 0) {
+    _this->_internal_set_is_correction(from._internal_is_correction());
+  }
+  if (from._internal_has_turret_aim() != 0) {
+    _this->_internal_set_has_turret_aim(from._internal_has_turret_aim());
+  }
+  if (from._internal_has_truck_health() != 0) {
+    _this->_internal_set_has_truck_health(from._internal_has_truck_health());
+  }
+  if (from._internal_has_truck_fuel() != 0) {
+    _this->_internal_set_has_truck_fuel(from._internal_has_truck_fuel());
+  }
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_truck_hp = from._internal_truck_hp();
+  uint32_t raw_truck_hp;
+  memcpy(&raw_truck_hp, &tmp_truck_hp, sizeof(tmp_truck_hp));
+  if (raw_truck_hp != 0) {
+    _this->_internal_set_truck_hp(from._internal_truck_hp());
+  }
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_truck_max_hp = from._internal_truck_max_hp();
+  uint32_t raw_truck_max_hp;
+  memcpy(&raw_truck_max_hp, &tmp_truck_max_hp, sizeof(tmp_truck_max_hp));
+  if (raw_truck_max_hp != 0) {
+    _this->_internal_set_truck_max_hp(from._internal_truck_max_hp());
   }
   _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
 }
@@ -7008,8 +7295,8 @@ void S_TRUCK_MOVE::InternalSwap(S_TRUCK_MOVE* other) {
   using std::swap;
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
   ::PROTOBUF_NAMESPACE_ID::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(S_TRUCK_MOVE, _impl_.turret_pitch_)
-      + sizeof(S_TRUCK_MOVE::_impl_.turret_pitch_)
+      PROTOBUF_FIELD_OFFSET(S_TRUCK_MOVE, _impl_.truck_max_hp_)
+      + sizeof(S_TRUCK_MOVE::_impl_.truck_max_hp_)
       - PROTOBUF_FIELD_OFFSET(S_TRUCK_MOVE, _impl_.info_)>(
           reinterpret_cast<char*>(&_impl_.info_),
           reinterpret_cast<char*>(&other->_impl_.info_));

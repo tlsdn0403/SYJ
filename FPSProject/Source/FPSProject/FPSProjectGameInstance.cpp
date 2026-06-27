@@ -974,9 +974,13 @@ void UFPSProjectGameInstance::HandleTruckMove(const Protocol::S_TRUCK_MOVE& pkt)
 
 	FVector TargetLocation(pkt.info().x(), pkt.info().y(), pkt.info().z());
 	const FRotator TargetRotation(pkt.info().pitch(), pkt.info().yaw(), pkt.info().roll());
-	if (pkt.fuel() >= 0.0f)
+	if (pkt.has_truck_fuel() && pkt.fuel() >= 0.0f)
 	{
 		Truck->SetTruckFuel(pkt.fuel());
+	}
+	if (pkt.has_truck_health())
+	{
+		Truck->ApplyNetworkHealth(pkt.truck_hp(), pkt.truck_max_hp());
 	}
 	Truck->ApplyNetworkTransform(TargetLocation, TargetRotation, pkt.is_correction());
 	if (pkt.has_turret_aim())

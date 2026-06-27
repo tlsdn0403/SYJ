@@ -570,7 +570,7 @@ void ATruck::ReportZombieAwarenessNoise(float DeltaTime)
 		FName(TEXT("TruckNoise")));
 }
 
-void ATruck::SendTruckMovePacket()
+void ATruck::SendTruckMovePacket(bool bAllowHealthIncrease)
 {
 	if (NetworkTruckId == 0)
 	{
@@ -588,14 +588,22 @@ void ATruck::SendTruckMovePacket()
 	Info->set_pitch(TruckRotation.Pitch);
 	Info->set_roll(TruckRotation.Roll);
 	Info->set_state(GetVelocity().SizeSquared() > KINDA_SMALL_NUMBER ? Protocol::MOVE_STATE_RUN : Protocol::MOVE_STATE_IDLE);
+	MovePkt.set_has_truck_fuel(true);
 	MovePkt.set_fuel(CurrentTruckFuel);
+	MovePkt.set_has_truck_health(true);
+	MovePkt.set_truck_hp(GetTruckHealth());
+	MovePkt.set_truck_max_hp(GetTruckMaxHealth());
+	if (bAllowHealthIncrease)
+	{
+		MovePkt.set_has_truck_health_repair(true);
+	}
 
 	SEND_PACKET(MovePkt);
 }
 
-void ATruck::SyncTruckStateToServer()
+void ATruck::SyncTruckStateToServer(bool bAllowHealthIncrease)
 {
-	SendTruckMovePacket();
+	SendTruckMovePacket(bAllowHealthIncrease);
 }
 
 void ATruck::SetLocallyDriven(bool bLocallyDriven)
@@ -838,6 +846,25 @@ void ATruck::RepairTruck(float RepairAmount)
 	}
 }
 
+void ATruck::ApplyNetworkHealth(float CurrentHealth, float MaxHealth)
+{
+	if (!HealthComponent || MaxHealth <= 0.0f)
+	{
+		return;
+	}
+
+	const float ClampedMaxHealth = FMath::Max(MaxHealth, 1.0f);
+	const float ClampedCurrentHealth = FMath::Clamp(CurrentHealth, 0.0f, ClampedMaxHealth);
+	if (!FMath::IsNearlyEqual(HealthComponent->MaxGetHealth(), ClampedMaxHealth))
+	{
+		HealthComponent->SetMaxHealth(ClampedMaxHealth, false);
+	}
+	if (!FMath::IsNearlyEqual(HealthComponent->GetHealth(), ClampedCurrentHealth))
+	{
+		HealthComponent->SetCurrentHealth(ClampedCurrentHealth);
+	}
+}
+
 void ATruck::UseDriverHealPack()
 {
 	if (DriverCharacter)
@@ -850,7 +877,13 @@ void ATruck::HandleTruckHealthChanged(float NewHealth, float Damage)
 {
 	OnTruckHealthChanged.Broadcast(NewHealth, GetTruckMaxHealth());
 
-	if (NewHealth > 0.0f || bTruckDestroyed)
+	if (NewHealth > 0.0f)
+	{
+		bTruckDestroyed = false;
+		return;
+	}
+
+	if (bTruckDestroyed)
 	{
 		return;
 	}

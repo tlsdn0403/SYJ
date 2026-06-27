@@ -88,6 +88,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	void RepairTruck(float RepairAmount);
 
+	void ApplyNetworkHealth(float CurrentHealth, float MaxHealth);
+
 	UFUNCTION(BlueprintPure, Category = "Combat")
 	bool IsTruckDestroyed() const { return bTruckDestroyed; }
 
@@ -106,7 +108,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Fuel")
 	void RefuelTruck(float FuelAmount);
 
-	void SyncTruckStateToServer();
+	void SyncTruckStateToServer(bool bAllowHealthIncrease = false);
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Driver")
 	USceneComponent* DriverSeatPoint;
@@ -262,7 +264,7 @@ protected:
 	void MoveRight(float Value);
 	void Brake(float Value);
 	void UseDriverHealPack();
-	void SendTruckMovePacket();
+	void SendTruckMovePacket(bool bAllowHealthIncrease = false);
 	void CheckZombieImpactSweep();
 	void ProcessZombieImpact(ABaseZombie* Zombie, const FVector& ImpactPoint, const FVector& ImpactDirection, float ImpactSpeed);
 

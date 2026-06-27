@@ -21,6 +21,8 @@ AMixamoZombie::AMixamoZombie()
 		TEXT("/Script/Engine.AnimSequence'/Game/Zombie/mixamo/Ani/NewFolder/ayjstart_Anim.ayjstart_Anim'"));
 	static ConstructorHelpers::FObjectFinder<UAnimSequenceBase> DefaultWalk(
 		TEXT("/Script/Engine.AnimSequence'/Game/Zombie/mixamo/Ani/Walking__3_.Walking__3_'"));
+	static ConstructorHelpers::FObjectFinder<UAnimSequenceBase> DefaultRun(
+		TEXT("/Script/Engine.AnimSequence'/Game/Zombie/mixamo/Ani/NewFolder/Zombie_Run.Zombie_Run'"));
 	static ConstructorHelpers::FObjectFinder<UAnimSequenceBase> DefaultCrawl(
 		TEXT("/Script/Engine.AnimSequence'/Game/Zombie/mixamo/Ani/Zombie_Crawl.Zombie_Crawl'"));
 	static ConstructorHelpers::FObjectFinder<UAnimSequenceBase> DefaultCrawlingAttack(
@@ -42,6 +44,7 @@ AMixamoZombie::AMixamoZombie()
 	}
 	IdleAnimation = TeamIdle.Object;
 	WalkAnimation = DefaultWalk.Object;
+	RunAnimation = DefaultRun.Object;
 	CrawlAnimation = DefaultCrawl.Object;
 	CrawlingAttackAnimation = DefaultCrawlingAttack.Object;
 	DeathAnimation = TeamDeath.Object;
@@ -87,6 +90,11 @@ void AMixamoZombie::Tick(float DeltaTime)
 	UpdateDirectAnimation();
 }
 
+void AMixamoZombie::OnNetworkMoveAnimationUpdated()
+{
+	UpdateDirectAnimation();
+}
+
 void AMixamoZombie::UpdateDirectAnimation()
 {
 	USkeletalMeshComponent* MeshComp = GetMesh();
@@ -110,9 +118,19 @@ void AMixamoZombie::UpdateDirectAnimation()
 	{
 		DesiredState = EDirectAnimationState::Crawling;
 	}
-	else if (GetVelocity().SizeSquared2D() > FMath::Square(MovingSpeedThreshold))
+	else
 	{
-		DesiredState = EDirectAnimationState::Walking;
+		const float NetworkSpeed2D = GetNetworkAnimationMoveSpeed2D();
+		const float Speed2D = NetworkSpeed2D > KINDA_SMALL_NUMBER ? NetworkSpeed2D : GetVelocity().Size2D();
+		const float SpeedSquared2D = FMath::Square(Speed2D);
+		if (SpeedSquared2D > FMath::Square(FMath::Max(RunningSpeedThreshold, MovingSpeedThreshold)))
+		{
+			DesiredState = EDirectAnimationState::Running;
+		}
+		else if (SpeedSquared2D > FMath::Square(MovingSpeedThreshold))
+		{
+			DesiredState = EDirectAnimationState::Walking;
+		}
 	}
 
 	if (DesiredState != CurrentDirectState)
@@ -145,14 +163,19 @@ void AMixamoZombie::PlayDirectAnimation(EDirectAnimationState NewState)
 	if (!Animation || !IsAnimationCompatible(Animation))
 	{
 		UE_LOG(LogTemp, Warning,
-			TEXT("MixamoZombie %s cannot play animation %s. Check that mesh and animation use the same Skeleton."),
-			*GetName(), *GetNameSafe(Animation));
-		CurrentDirectState = NewState;
+			TEXT("MixamoZombie %s cannot play animation %s for state %d. Mesh=%s Speed=%.2f NetworkSpeed=%.2f"),
+			*GetName(),
+			*GetNameSafe(Animation),
+			static_cast<int32>(NewState),
+			*GetNameSafe(MeshComp->GetSkeletalMeshAsset()),
+			GetVelocity().Size2D(),
+			GetNetworkAnimationMoveSpeed2D());
 		return;
 	}
 
 	const bool bLoop = NewState == EDirectAnimationState::Idle ||
 		NewState == EDirectAnimationState::Walking ||
+		NewState == EDirectAnimationState::Running ||
 		NewState == EDirectAnimationState::Crawling;
 	MeshComp->PlayAnimation(Animation, bLoop);
 
@@ -181,6 +204,8 @@ UAnimSequenceBase* AMixamoZombie::GetAnimationForState(EDirectAnimationState Sta
 		return IdleAnimation;
 	case EDirectAnimationState::Walking:
 		return WalkAnimation;
+	case EDirectAnimationState::Running:
+		return RunAnimation ? RunAnimation.Get() : WalkAnimation.Get();
 	case EDirectAnimationState::Crawling:
 		return CrawlAnimation ? CrawlAnimation.Get() : WalkAnimation.Get();
 	case EDirectAnimationState::Attacking:
@@ -300,6 +325,18 @@ void AMixamoZombie::InitializeBoneDurability()
 FName AMixamoZombie::GetParentBoneForDamage(FName HitBoneName) const
 {
 	const FString Bone = HitBoneName.ToString();
+	const FString LowerBone = Bone.ToLower();
+	if (LowerBone == TEXT("head")) return TEXT("Head");
+	if (LowerBone == TEXT("upperarm_l")) return TEXT("LeftArm");
+	if (LowerBone == TEXT("lowerarm_l")) return TEXT("LeftForeArm");
+	if (LowerBone == TEXT("upperarm_r")) return TEXT("RightArm");
+	if (LowerBone == TEXT("lowerarm_r")) return TEXT("RightForeArm");
+	if (LowerBone == TEXT("thigh_l")) return TEXT("LeftUpLeg");
+	if (LowerBone == TEXT("calf_l")) return TEXT("LeftLeg");
+	if (LowerBone == TEXT("thigh_r")) return TEXT("RightUpLeg");
+	if (LowerBone == TEXT("calf_r")) return TEXT("RightLeg");
+	if (LowerBone == TEXT("spine_01")) return TEXT("Spine");
+
 	if (Bone.Contains(TEXT("Head")) || Bone.Contains(TEXT("Neck"))) return TEXT("Head");
 	if (Bone.Contains(TEXT("LeftUpLeg"))) return TEXT("LeftUpLeg");
 	if (Bone.Contains(TEXT("RightUpLeg"))) return TEXT("RightUpLeg");

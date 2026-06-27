@@ -624,7 +624,8 @@ void UFPSProjectGameInstance::HandleMove(const Protocol::S_MOVE& MovePkt)
 		const float ZombieGroundOffset = ZombieCapsule ? ZombieCapsule->GetScaledCapsuleHalfHeight() + 2.0f : 90.0f;
 		FPSStage2WorldUtils::TryProjectLocationToGround(World, ZombieLocation, ZombieGroundOffset, ZombieLocation, Zombie);
 		const FRotator ZombieRotation(0.0f, MovePkt.info().yaw(), 0.0f);
-		const bool bZombieIsMoving = MovePkt.info().state() != Protocol::MOVE_STATE_IDLE;
+		const bool bZombieMovedByPacket = FVector::DistSquared2D(ZombieLocation, Zombie->GetActorLocation()) > FMath::Square(1.0f);
+		const bool bZombieIsMoving = MovePkt.info().state() != Protocol::MOVE_STATE_IDLE || bZombieMovedByPacket;
 		Zombie->SetNetworkMoveTarget(ZombieLocation, ZombieRotation, bZombieIsMoving);
 		return;
 	}

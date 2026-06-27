@@ -46,6 +46,7 @@ protected:
 	bool UpdateFinalDoorInteractText();
 	void PlayFinalDoorInteractWidgets();
 	ULevelSequence* ResolveEndingSequence();
+	bool TryPlayPlacedEndingSequence(ULevelSequence* SequenceToPlay);
 	void TriggerEndingSequence();
 	void FinishEndingSequence();
 	void SetEndingCinematicMode(bool bEnable);
@@ -82,6 +83,8 @@ protected:
 
 	UPROPERTY(Transient)
 	TObjectPtr<ALevelSequenceActor> EndingSequenceActor;
+
+	bool bDestroyEndingSequenceActorOnFinish = false;
 
 	FTimerHandle EndingFallbackTimerHandle;
 };

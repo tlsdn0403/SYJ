@@ -255,7 +255,6 @@ private:
 	bool bGoalTileSpawnRequested = false;
 	bool bInitialTilesReady = false;
 	bool bTilePoolPreloadStarted = false;
-	bool bGoalTilePoolPreloadStarted = false;
 	bool bTilePoolReady = false;
 	int32 ConsecutiveLeftTurns = 0;
 	int32 ConsecutiveRightTurns = 0;
@@ -266,7 +265,6 @@ private:
 
 	void PreloadTilePool();
 	void QueueTilePoolLevels(const TArray<TSoftObjectPtr<UWorld>>& LevelArray, EStage2TileType TileType);
-	void QueueGoalTilePoolLevel();
 	void LoadPooledTileLevel(const TSoftObjectPtr<UWorld>& TileLevel, EStage2TileType TileType);
 	void TryFinalizePooledTiles();
 	void FinalizePooledTile(int32 PoolIndex);

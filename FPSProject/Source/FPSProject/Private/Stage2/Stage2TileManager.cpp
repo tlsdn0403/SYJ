@@ -69,17 +69,6 @@ void AStage2TileManager::Tick(float DeltaTime)
 		SpawnNextTile();
 	}
 
-	if (bGenerationStarted &&
-		IsTilePoolReady() &&
-		ActiveTiles.Num() > 0 &&
-		!bGoalTileSpawnRequested &&
-		GoalTileLevels.Num() > 0 &&
-		SpawnedPlayableTileCount >= GoalAfterPlayableTileCount &&
-		IsPoolTileAvailable(EStage2TileType::Goal))
-	{
-		SpawnNextTile();
-	}
-
 	if (bTilePoolReady && !HasPendingLandscapeLevels())
 	{
 		SetActorTickEnabled(false);
@@ -129,21 +118,6 @@ void AStage2TileManager::SpawnNextTile()
 	}
 
 	const bool bNeedsStartTile = ActiveTiles.Num() == 0;
-	const bool bShouldSpawnGoalTile =
-		!bNeedsStartTile &&
-		!bGoalTileSpawnRequested &&
-		GoalTileLevels.Num() > 0 &&
-		SpawnedPlayableTileCount >= GoalAfterPlayableTileCount;
-
-	if (bShouldSpawnGoalTile && !IsPoolTileAvailable(EStage2TileType::Goal))
-	{
-		QueueGoalTilePoolLevel();
-		if (bVerboseLog)
-		{
-			UE_LOG(LogTemp, Log, TEXT("Stage2TileManager: Waiting for lazy goal tile preload."));
-		}
-		return;
-	}
 
 	if (!bNeedsStartTile && ActiveTiles.Num() >= MaxActiveTiles)
 	{
@@ -264,6 +238,7 @@ void AStage2TileManager::PreloadTilePool()
 	QueueTilePoolLevels(StraightTileLevels, EStage2TileType::Straight);
 	QueueTilePoolLevels(LeftTileLevels, EStage2TileType::Left);
 	QueueTilePoolLevels(RightTileLevels, EStage2TileType::Right);
+	QueueTilePoolLevels(GoalTileLevels, EStage2TileType::Goal);
 
 	if (TilePool.Num() == 0)
 	{
@@ -284,26 +259,6 @@ void AStage2TileManager::QueueTilePoolLevels(const TArray<TSoftObjectPtr<UWorld>
 	{
 		const TSoftObjectPtr<UWorld>& TileLevel = LevelArray[PoolIndex % LevelArray.Num()];
 		LoadPooledTileLevel(TileLevel, TileType);
-	}
-}
-
-void AStage2TileManager::QueueGoalTilePoolLevel()
-{
-	if (bGoalTilePoolPreloadStarted || GoalTileLevels.Num() == 0)
-	{
-		return;
-	}
-
-	bGoalTilePoolPreloadStarted = true;
-	bTilePoolReady = false;
-	SetActorTickEnabled(true);
-
-	LoadPooledTileLevel(GoalTileLevels[0], EStage2TileType::Goal);
-
-	if (bVerboseLog)
-	{
-		UE_LOG(LogTemp, Log, TEXT("Stage2TileManager: Requested lazy goal tile preload for %s"),
-			*GoalTileLevels[0].ToSoftObjectPath().ToString());
 	}
 }
 
@@ -375,21 +330,6 @@ void AStage2TileManager::TryFinalizePooledTiles()
 		AStage2TileMarker* TileMarker = FindTileMarkerFromStreamingLevel(PooledTile.StreamingLevel);
 		if (!TileMarker)
 		{
-			if (PooledTile.TileType != EStage2TileType::Goal)
-			{
-				continue;
-			}
-
-			PooledTile.EntryLocalTransform = FTransform::Identity;
-			PooledTile.bHasEntryLocalTransform = true;
-			PooledTile.bInitialized = true;
-			ApplyTilePerformanceSettings(PooledTile);
-			SetTileRenderingEnabled(PooledTile, false);
-			SetTileCollisionEnabled(PooledTile, false);
-
-			UE_LOG(LogTemp, Warning,
-				TEXT("Stage2TileManager: Goal tile %s has no Stage2TileMarker. Using level origin as entry transform."),
-				*PooledTile.SourceLevel.ToSoftObjectPath().ToString());
 			continue;
 		}
 		// 로드가 완료 되었다면 타일 마커를 찾아서 풀 타일 정보에 저장
@@ -469,9 +409,7 @@ bool AStage2TileManager::TryActivatePooledTile(EStage2TileType TileType, const F
 	for (int32 PoolIndex = 0; PoolIndex < TilePool.Num(); ++PoolIndex)
 	{
 		const FStage2LoadedTile& PooledTile = TilePool[PoolIndex];
-		if (PooledTile.bInitialized &&
-			PooledTile.TileType == TileType &&
-			(PooledTile.TileMarker || TileType == EStage2TileType::Goal))
+		if (PooledTile.bInitialized && PooledTile.TileType == TileType && PooledTile.TileMarker)
 		{
 			CandidatePoolIndexes.Add(PoolIndex);
 		}
@@ -492,9 +430,7 @@ bool AStage2TileManager::TryActivatePooledTile(EStage2TileType TileType, const F
 	// 타일이 와야할 위치를 정해줌
 	const FTransform EntryLocalTransform = ActivatedTile.bHasEntryLocalTransform
 		? ActivatedTile.EntryLocalTransform
-		: (ActivatedTile.TileMarker
-			? ActivatedTile.TileMarker->GetEntryTransform().GetRelativeTransform(ActivatedTile.AppliedLevelTransform)
-			: FTransform::Identity);
+		: ActivatedTile.TileMarker->GetEntryTransform().GetRelativeTransform(ActivatedTile.AppliedLevelTransform);
 	const FTransform LevelTransformToApply = EntryLocalTransform.Inverse() * EntryTransform;
 
 	// 이제 실제로 타일을 위치로 옮겨줌
@@ -1216,36 +1152,13 @@ void AStage2TileManager::FinalizeLoadedTile(int32 TileIndex)
 	}
 
 	FStage2LoadedTile& LoadedTile = ActiveTiles[TileIndex];
-	if (LoadedTile.bInitialized)
+	if (LoadedTile.bInitialized || !LoadedTile.TileMarker)
 	{
 		return;
 	}
 
 	AStage2TileMarker* TileMarker = LoadedTile.TileMarker;
 	const EStage2TileType TileType = LoadedTile.TileType;
-	if (!TileMarker)
-	{
-		if (TileType != EStage2TileType::Goal)
-		{
-			return;
-		}
-
-		LoadedTile.EntryLocalTransform = FTransform::Identity;
-		LoadedTile.bHasEntryLocalTransform = true;
-		LoadedTile.bInitialized = true;
-		bGoalTileSpawnRequested = true;
-
-		if (bVerboseLog)
-		{
-			UE_LOG(LogTemp, Log, TEXT("Stage2TileManager: Finalized markerless goal tile %s."),
-				*LoadedTile.SourceLevel.ToSoftObjectPath().ToString());
-		}
-
-		TrimOldTiles();
-		MarkInitialTilesReadyIfNeeded();
-		return;
-	}
-
 	if (TileType == EStage2TileType::Right)
 	{
 		LoadedTile.TileOccurrenceIndex = NextRightTileOccurrenceIndex++;
@@ -1389,7 +1302,6 @@ void AStage2TileManager::ResetGenerationState()
 	bGoalTileSpawnRequested = false;
 	bInitialTilesReady = false;
 	bTilePoolPreloadStarted = false;
-	bGoalTilePoolPreloadStarted = false;
 	bTilePoolReady = false;
 	ConsecutiveLeftTurns = 0;
 	ConsecutiveRightTurns = 0;

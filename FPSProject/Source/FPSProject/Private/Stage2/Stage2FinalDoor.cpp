@@ -11,6 +11,8 @@
 #include "LevelSequenceActor.h"
 #include "LevelSequencePlayer.h"
 #include "MovieSceneSequencePlaybackSettings.h"
+#include "EngineUtils.h"
+#include "Engine/Level.h"
 #include "Kismet/GameplayStatics.h"
 
 AStage2FinalDoor::AStage2FinalDoor()
@@ -194,6 +196,75 @@ ULevelSequence* AStage2FinalDoor::ResolveEndingSequence()
 	return EndingSequence;
 }
 
+bool AStage2FinalDoor::TryPlayPlacedEndingSequence(ULevelSequence* SequenceToPlay)
+{
+	if (SequenceToPlay == nullptr)
+	{
+		return false;
+	}
+
+	UWorld* World = GetWorld();
+	if (World == nullptr)
+	{
+		return false;
+	}
+
+	ALevelSequenceActor* FallbackSequenceActor = nullptr;
+	ULevel* DoorLevel = GetLevel();
+	for (TActorIterator<ALevelSequenceActor> It(World); It; ++It)
+	{
+		ALevelSequenceActor* SequenceActor = *It;
+		if (!IsValid(SequenceActor))
+		{
+			continue;
+		}
+
+		ULevelSequence* ActorSequence = Cast<ULevelSequence>(SequenceActor->GetSequence());
+		if (ActorSequence != SequenceToPlay)
+		{
+			continue;
+		}
+
+		if (SequenceActor->GetLevel() == DoorLevel)
+		{
+			EndingSequenceActor = SequenceActor;
+			break;
+		}
+
+		if (FallbackSequenceActor == nullptr)
+		{
+			FallbackSequenceActor = SequenceActor;
+		}
+	}
+
+	if (EndingSequenceActor == nullptr)
+	{
+		EndingSequenceActor = FallbackSequenceActor;
+	}
+
+	if (EndingSequenceActor == nullptr)
+	{
+		return false;
+	}
+
+	EndingSequencePlayer = EndingSequenceActor->GetSequencePlayer();
+	if (EndingSequencePlayer == nullptr)
+	{
+		return false;
+	}
+
+	bDestroyEndingSequenceActorOnFinish = false;
+	EndingSequencePlayer->OnFinished.RemoveDynamic(this, &AStage2FinalDoor::HandleEndingSequenceFinished);
+	EndingSequencePlayer->OnFinished.AddDynamic(this, &AStage2FinalDoor::HandleEndingSequenceFinished);
+	EndingSequencePlayer->Play();
+
+	UE_LOG(LogTemp, Log, TEXT("[Stage2FinalDoor] Playing placed ending sequence actor %s in level %s."),
+		*GetNameSafe(EndingSequenceActor.Get()),
+		*GetNameSafe(DoorLevel));
+
+	return true;
+}
+
 void AStage2FinalDoor::TriggerEndingSequence()
 {
 	bEndingTriggered = true;
@@ -234,6 +305,11 @@ void AStage2FinalDoor::TriggerEndingSequence()
 		return;
 	}
 
+	if (TryPlayPlacedEndingSequence(SequenceToPlay))
+	{
+		return;
+	}
+
 	FMovieSceneSequencePlaybackSettings PlaybackSettings;
 	PlaybackSettings.bAutoPlay = false;
 
@@ -244,6 +320,7 @@ void AStage2FinalDoor::TriggerEndingSequence()
 		PlaybackSettings,
 		CreatedSequenceActor);
 	EndingSequenceActor = CreatedSequenceActor;
+	bDestroyEndingSequenceActorOnFinish = true;
 
 	if (EndingSequencePlayer == nullptr)
 	{
@@ -280,11 +357,13 @@ void AStage2FinalDoor::FinishEndingSequence()
 		EndingSequencePlayer = nullptr;
 	}
 
-	if (EndingSequenceActor)
+	if (EndingSequenceActor && bDestroyEndingSequenceActorOnFinish)
 	{
 		EndingSequenceActor->Destroy();
-		EndingSequenceActor = nullptr;
 	}
+
+	EndingSequenceActor = nullptr;
+	bDestroyEndingSequenceActorOnFinish = false;
 
 	OnEndingSequenceFinished();
 

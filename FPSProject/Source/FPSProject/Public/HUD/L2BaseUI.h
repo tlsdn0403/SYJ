@@ -13,6 +13,7 @@
 class UImage;
 class UTextBlock;
 class URadialSlider;
+class UWidgetAnimation;
 
 UCLASS()
 class FPSPROJECT_API UL2BaseUI : public UUserWidget
@@ -64,10 +65,25 @@ public:
 	UPROPERTY(meta = (BindWidgetAnim), Transient)	//±ôºýÀÓ¾Ö´Ï
 	UWidgetAnimation* Ani_Oil_Icon;
 
+
 	void OilUpdate(float CurrentFuel, float MaxFuel);
 	
 	void ItemSetting(int oil, int heal, int box);
 	bool UsingItem(int num);
 
+	//=====================================Â÷·® ÆÄÆ®
+	UPROPERTY(meta = (BindWidget))	//±â¸§¹Ù 
+		URadialSlider* TruckHPSlider;
+
+	UPROPERTY(meta = (BindWidget))	// ±â¸§ ºÎÁ·½Ã ±ôºýÀÓ
+		UImage* TruckIcon;
+
+	UPROPERTY(meta = (BindWidgetAnim), Transient)	//±ôºýÀÓ¾Ö´Ï
+	UWidgetAnimation* Ani_Truck_Icon;
+
+	UPROPERTY(meta = (BindWidget))
+	UTextBlock* truckHP;
+
+	void SetTruckHealth(float CurrentHP, float MaxHP);
 };
 

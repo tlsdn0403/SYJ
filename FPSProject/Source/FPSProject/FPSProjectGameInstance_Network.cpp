@@ -40,6 +40,11 @@ void UFPSProjectGameInstance::SendPacket(SendBufferRef SendBuffer)
 	}
 }
 
+void UFPSProjectGameInstance::SetPlayerNickname(const FString& Nickname)
+{
+	PlayerNickname = Nickname;
+}
+
 void UFPSProjectGameInstance::SendPacketStatic(SendBufferRef SendBuffer)
 {
 	UWorld* World = nullptr;

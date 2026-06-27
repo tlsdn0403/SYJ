@@ -316,6 +316,7 @@ namespace FPSStage2WorldUtils
 			false,
 			nullptr,
 			ETeleportType::TeleportPhysics);
+		Truck->ResetVehiclePhysicsState(true);
 		Truck->Tags.Add(Stage2InitialTruckPlacementTag);
 	}
 }

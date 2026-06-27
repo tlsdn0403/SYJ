@@ -1715,31 +1715,21 @@ void Room::HandleExitTruck(PlayerRef player, Protocol::C_EXIT_TRUCK pkt)
 
 void Room::HandleTruckMove(PlayerRef player, Protocol::C_TRUCK_MOVE pkt)
 {
-	if (player == nullptr || player->bIsInTruck == false)
-		return;
-
-	const uint64 truckId = player->currentTruckId;
-	TruckState* truckState = FindTruckState(truckId);
-	if (truckState == nullptr)
+	if (player == nullptr)
 		return;
 
 	const Protocol::PosInfo& incoming = pkt.info();
-	if (incoming.object_id() != 0 && incoming.object_id() != truckId)
+	const bool bPlayerInThisTruck =
+		player->bIsInTruck &&
+		player->currentTruckId != 0 &&
+		(incoming.object_id() == 0 || incoming.object_id() == player->currentTruckId);
+	const uint64 truckId = bPlayerInThisTruck ? player->currentTruckId : incoming.object_id();
+	if (truckId == 0)
 		return;
 
-	const uint64 playerId = player->objectInfo->object_id();
-	const bool bIsTurretUser =
-		player->currentTruckSeatType == Protocol::TRUCK_SEAT_TURRET &&
-		truckState->turretPlayerId == playerId;
-	if (bIsTurretUser &&
-		pkt.has_turret_aim() &&
-		std::isfinite(pkt.turret_yaw()) &&
-		std::isfinite(pkt.turret_pitch()))
-	{
-		truckState->hasTurretAim = true;
-		truckState->turretYaw = pkt.turret_yaw();
-		truckState->turretPitch = pkt.turret_pitch();
-	}
+	TruckState* truckState = FindTruckState(truckId);
+	if (truckState == nullptr)
+		return;
 
 	if (pkt.has_truck_health() &&
 		std::isfinite(pkt.truck_hp()) &&
@@ -1758,6 +1748,26 @@ void Room::HandleTruckMove(PlayerRef player, Protocol::C_TRUCK_MOVE pkt)
 			truckState->hp = incomingHp;
 			truckState->maxHp = incomingMaxHp;
 		}
+	}
+
+	if (bPlayerInThisTruck == false)
+	{
+		BroadcastTruckState(*truckState);
+		return;
+	}
+
+	const uint64 playerId = player->objectInfo->object_id();
+	const bool bIsTurretUser =
+		player->currentTruckSeatType == Protocol::TRUCK_SEAT_TURRET &&
+		truckState->turretPlayerId == playerId;
+	if (bIsTurretUser &&
+		pkt.has_turret_aim() &&
+		std::isfinite(pkt.turret_yaw()) &&
+		std::isfinite(pkt.turret_pitch()))
+	{
+		truckState->hasTurretAim = true;
+		truckState->turretYaw = pkt.turret_yaw();
+		truckState->turretPitch = pkt.turret_pitch();
 	}
 
 	const bool bIsDriver = player->currentTruckSeatType == Protocol::TRUCK_SEAT_DRIVER;

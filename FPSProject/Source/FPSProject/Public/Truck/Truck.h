@@ -89,6 +89,7 @@ public:
 	void RepairTruck(float RepairAmount);
 
 	void ApplyNetworkHealth(float CurrentHealth, float MaxHealth);
+	void ResetVehiclePhysicsState(bool bReleaseBrake);
 
 	UFUNCTION(BlueprintPure, Category = "Combat")
 	bool IsTruckDestroyed() const { return bTruckDestroyed; }
@@ -397,6 +398,7 @@ protected:
 	float ZombieNoiseInterval = 0.35f;
 private:
 	bool bIsLocallyDriven = false;
+	bool bApplyingNetworkHealth = false;
 	bool bIsBrakingSoundPlaying = false;
 	bool bBrakePressedLastFrame = false;
 	bool bTruckDestroyed = false;

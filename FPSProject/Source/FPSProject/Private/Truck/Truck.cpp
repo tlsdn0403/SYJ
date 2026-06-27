@@ -855,6 +855,7 @@ void ATruck::ApplyNetworkHealth(float CurrentHealth, float MaxHealth)
 
 	const float ClampedMaxHealth = FMath::Max(MaxHealth, 1.0f);
 	const float ClampedCurrentHealth = FMath::Clamp(CurrentHealth, 0.0f, ClampedMaxHealth);
+	bApplyingNetworkHealth = true;
 	if (!FMath::IsNearlyEqual(HealthComponent->MaxGetHealth(), ClampedMaxHealth))
 	{
 		HealthComponent->SetMaxHealth(ClampedMaxHealth, false);
@@ -862,6 +863,29 @@ void ATruck::ApplyNetworkHealth(float CurrentHealth, float MaxHealth)
 	if (!FMath::IsNearlyEqual(HealthComponent->GetHealth(), ClampedCurrentHealth))
 	{
 		HealthComponent->SetCurrentHealth(ClampedCurrentHealth);
+	}
+	bApplyingNetworkHealth = false;
+}
+
+void ATruck::ResetVehiclePhysicsState(bool bReleaseBrake)
+{
+	CurrentThrottleInput = 0.0f;
+	bBrakePressedLastFrame = false;
+
+	if (UChaosWheeledVehicleMovementComponent* MoveComp = Cast<UChaosWheeledVehicleMovementComponent>(GetVehicleMovement()))
+	{
+		MoveComp->SetThrottleInput(0.0f);
+		MoveComp->SetSteeringInput(0.0f);
+		MoveComp->SetBrakeInput(bReleaseBrake ? 0.0f : 1.0f);
+	}
+
+	if (USkeletalMeshComponent* TruckMesh = GetMesh())
+	{
+		EnsureVehicleMeshPhysicsReady(TruckMesh, true);
+		TruckMesh->SetPhysicsLinearVelocity(FVector::ZeroVector);
+		TruckMesh->SetPhysicsAngularVelocityInDegrees(FVector::ZeroVector);
+		TruckMesh->WakeAllRigidBodies();
+		RefreshVehicleMeshRenderState(TruckMesh);
 	}
 }
 
@@ -876,6 +900,10 @@ void ATruck::UseDriverHealPack()
 void ATruck::HandleTruckHealthChanged(float NewHealth, float Damage)
 {
 	OnTruckHealthChanged.Broadcast(NewHealth, GetTruckMaxHealth());
+	if (!bApplyingNetworkHealth && NetworkTruckId != 0)
+	{
+		SyncTruckStateToServer(Damage < 0.0f);
+	}
 
 	if (NewHealth > 0.0f)
 	{

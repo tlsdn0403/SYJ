@@ -120,7 +120,8 @@ void AMixamoZombie::UpdateDirectAnimation()
 	}
 	else
 	{
-		const float Speed2D = FMath::Max(GetVelocity().Size2D(), GetNetworkAnimationMoveSpeed2D());
+		const float NetworkSpeed2D = GetNetworkAnimationMoveSpeed2D();
+		const float Speed2D = NetworkSpeed2D > KINDA_SMALL_NUMBER ? NetworkSpeed2D : GetVelocity().Size2D();
 		const float SpeedSquared2D = FMath::Square(Speed2D);
 		if (SpeedSquared2D > FMath::Square(FMath::Max(RunningSpeedThreshold, MovingSpeedThreshold)))
 		{

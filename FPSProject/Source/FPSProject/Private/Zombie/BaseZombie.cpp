@@ -282,12 +282,12 @@ void ABaseZombie::SetNetworkMoveTarget(const FVector& TargetLocation, const FRot
 	else
 	{
 		constexpr float ZombieServerTickSeconds = 0.1f;
-		constexpr float NetworkZombieFallbackMaxSpeed = 180.0f;
+		constexpr float NetworkZombieFallbackMaxSpeed = 210.0f;
 		FVector PacketVelocity = (TargetLocation - PreviousLocation) / ZombieServerTickSeconds;
 		const FVector AnimationVelocity = PacketVelocity.GetClampedToMaxSize(NetworkZombieFallbackMaxSpeed);
 		AnimSpeed = AnimationVelocity.Size2D();
-		MoveComp->Velocity = MoveComp->GetMaxSpeed() > 0.0f
-			? PacketVelocity.GetClampedToMaxSize(MoveComp->GetMaxSpeed())
+		MoveComp->Velocity = NetworkObjectId != 0
+			? AnimationVelocity * NetworkAnimBlueprintVelocityScale
 			: AnimationVelocity;
 	}
 

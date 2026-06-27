@@ -516,7 +516,7 @@ namespace
 	constexpr uint64 STAGE2_WEAPON_OBJECT_ID_START = 200001;
 	constexpr uint64 ZOMBIE_OBJECT_ID_START = 1000000;
 	constexpr float ZOMBIE_SERVER_TICK_SECONDS = 0.1f;
-	constexpr float ZOMBIE_MOVE_SPEED = 180.0f;
+	constexpr float ZOMBIE_MOVE_SPEED = 210.0f;
 	constexpr float ZOMBIE_AGGRO_RANGE = 5000.0f;
 	constexpr float ZOMBIE_AI_ACTIVE_RANGE = 5200.0f;
 	constexpr float ZOMBIE_ATTACK_RANGE = 140.0f;

@@ -28,8 +28,10 @@ ABP_Zombiegirl::ABP_Zombiegirl()
 	static ConstructorHelpers::FObjectFinder<UAnimSequenceBase> GirlTruckAttackTwo(
 		TEXT("/Script/Engine.AnimSequence'/Game/Zombie/mixamo/Ani/NewFolder/truckattack2.truckattack2'"));
 	static ConstructorHelpers::FObjectFinder<UAnimSequenceBase> GirlDeathOne(
-		TEXT("/Script/Engine.AnimSequence'/Game/Zombie/mixamo/Ani/NewFolder/Zombie_Dying__1_.Zombie_Dying__1_'"));
+		TEXT("/Script/Engine.AnimSequence'/Game/Zombie/mixamo/Ani/NewFolder/Zombie_Death.Zombie_Death'"));
 	static ConstructorHelpers::FObjectFinder<UAnimSequenceBase> GirlDeathTwo(
+		TEXT("/Script/Engine.AnimSequence'/Game/Zombie/mixamo/Ani/NewFolder/Zombie_Dying__1_.Zombie_Dying__1_'"));
+	static ConstructorHelpers::FObjectFinder<UAnimSequenceBase> GirlDeathThree(
 		TEXT("/Script/Engine.AnimSequence'/Game/Zombie/mixamo/Ani/NewFolder/HeadDying.HeadDying'"));
 
 	if (GirlMesh.Succeeded() && GetMesh())
@@ -48,10 +50,14 @@ ABP_Zombiegirl::ABP_Zombiegirl()
 	TruckAttackAnimations.Reset();
 	if (GirlTruckAttackOne.Succeeded()) TruckAttackAnimations.Add(GirlTruckAttackOne.Object);
 	if (GirlTruckAttackTwo.Succeeded()) TruckAttackAnimations.Add(GirlTruckAttackTwo.Object);
-	DeathAnimation = GirlDeathOne.Object;
 	DeathAnimations.Reset();
-	if (GirlDeathOne.Succeeded()) DeathAnimations.Add(GirlDeathOne.Object);
+	if (GirlDeathOne.Succeeded())
+	{
+		DeathAnimation = GirlDeathOne.Object;
+		DeathAnimations.Add(GirlDeathOne.Object);
+	}
 	if (GirlDeathTwo.Succeeded()) DeathAnimations.Add(GirlDeathTwo.Object);
+	if (GirlDeathThree.Succeeded()) DeathAnimations.Add(GirlDeathThree.Object);
 }
 
 void ABP_Zombiegirl::BeginPlay()
@@ -70,6 +76,23 @@ void ABP_Zombiegirl::BeginPlay()
 		TEXT("/Script/Engine.AnimSequence'/Game/Zombie/mixamo/Ani/NewFolder/Zombie_Run.Zombie_Run'")))
 	{
 		RunAnimation = GirlRun;
+	}
+	DeathAnimations.Reset();
+	if (UAnimSequenceBase* GirlDeathOne = LoadObject<UAnimSequenceBase>(nullptr,
+		TEXT("/Script/Engine.AnimSequence'/Game/Zombie/mixamo/Ani/NewFolder/Zombie_Death.Zombie_Death'")))
+	{
+		DeathAnimation = GirlDeathOne;
+		DeathAnimations.Add(GirlDeathOne);
+	}
+	if (UAnimSequenceBase* GirlDeathTwo = LoadObject<UAnimSequenceBase>(nullptr,
+		TEXT("/Script/Engine.AnimSequence'/Game/Zombie/mixamo/Ani/NewFolder/Zombie_Dying__1_.Zombie_Dying__1_'")))
+	{
+		DeathAnimations.Add(GirlDeathTwo);
+	}
+	if (UAnimSequenceBase* GirlDeathThree = LoadObject<UAnimSequenceBase>(nullptr,
+		TEXT("/Script/Engine.AnimSequence'/Game/Zombie/mixamo/Ani/NewFolder/HeadDying.HeadDying'")))
+	{
+		DeathAnimations.Add(GirlDeathThree);
 	}
 
 	Super::BeginPlay();

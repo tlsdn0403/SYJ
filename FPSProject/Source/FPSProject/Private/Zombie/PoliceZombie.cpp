@@ -181,9 +181,12 @@ APoliceZombie::APoliceZombie()
 	TruckAttackAnimations.Reset();
 	if (PoliceTruckAttackOne.Succeeded()) TruckAttackAnimations.Add(PoliceTruckAttackOne.Object);
 	if (PoliceTruckAttackTwo.Succeeded()) TruckAttackAnimations.Add(PoliceTruckAttackTwo.Object);
-	DeathAnimation = PoliceDeathOne.Object;
 	DeathAnimations.Reset();
-	if (PoliceDeathOne.Succeeded()) DeathAnimations.Add(PoliceDeathOne.Object);
+	if (PoliceDeathOne.Succeeded())
+	{
+		DeathAnimation = PoliceDeathOne.Object;
+		DeathAnimations.Add(PoliceDeathOne.Object);
+	}
 	if (PoliceDeathTwo.Succeeded()) DeathAnimations.Add(PoliceDeathTwo.Object);
 }
 
@@ -203,6 +206,18 @@ void APoliceZombie::BeginPlay()
 		TEXT("/Script/Engine.AnimSequence'/Game/Zombie/mixamo/Ani/police/Zombie_Run.Zombie_Run'")))
 	{
 		RunAnimation = PoliceRun;
+	}
+	DeathAnimations.Reset();
+	if (UAnimSequenceBase* PoliceDeathOne = LoadObject<UAnimSequenceBase>(nullptr,
+		TEXT("/Script/Engine.AnimSequence'/Game/Zombie/mixamo/Ani/police/Zombie_Dying__1_.Zombie_Dying__1_'")))
+	{
+		DeathAnimation = PoliceDeathOne;
+		DeathAnimations.Add(PoliceDeathOne);
+	}
+	if (UAnimSequenceBase* PoliceDeathTwo = LoadObject<UAnimSequenceBase>(nullptr,
+		TEXT("/Script/Engine.AnimSequence'/Game/Zombie/mixamo/Ani/police/HeadDying.HeadDying'")))
+	{
+		DeathAnimations.Add(PoliceDeathTwo);
 	}
 
 	Super::BeginPlay();

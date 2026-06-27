@@ -224,6 +224,9 @@ private:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zombie|Movement", meta = (AllowPrivateAccess = "true"))
 	float NetworkMoveSnapDistance = 200.0f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zombie|Animation", meta = (AllowPrivateAccess = "true", ClampMin = "0.1"))
+	float NetworkAnimBlueprintVelocityScale = 2.5f;
+
 	float AnimationRateScale = 1.0f;
 	FVector StandingMeshRelativeLocation = FVector::ZeroVector;
 	bool bHasStandingMeshRelativeLocation = false;

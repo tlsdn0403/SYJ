@@ -5,6 +5,7 @@
 #include "Characters/FPSBaseCharacter.h"
 #include "Characters/FPSPlayerController.h"
 #include "Blueprint/UserWidget.h"
+#include "Camera/CameraActor.h"
 #include "EngineUtils.h"
 #include "HUD/BaseUI.h"
 #include "HUD/LoadingUI.h"
@@ -533,6 +534,7 @@ bool FFPSStageFlowManager::TryPlayStageTransitionCinematic(
 	}
 
 	SequencePlayer->Play();
+	HideStageTransitionCameraActors();
 
 	const float SafeDurationSeconds = FMath::Max(SequenceDurationSeconds, 0.1f);
 	World->GetTimerManager().SetTimer(
@@ -566,6 +568,7 @@ void FFPSStageFlowManager::FinishStageTransitionCinematic()
 	{
 		SequenceActor->Destroy();
 	}
+	HideStageTransitionCameraActors();
 
 	StageTransitionSequencePlayer.Reset();
 	StageTransitionSequenceActor.Reset();
@@ -632,6 +635,8 @@ void FFPSStageFlowManager::PrepareStageTransitionCinematicActors()
 		}
 	}
 
+	HideStageTransitionCameraActors();
+
 	if (AFPSBaseCharacter* LocalCharacter = Owner.MyPlayer)
 	{
 		FPSStage2WorldUtils::RestoreNetworkCharacterVisibility(LocalCharacter);
@@ -642,5 +647,38 @@ void FFPSStageFlowManager::PrepareStageTransitionCinematicActors()
 	for (const TPair<uint64, AFPSBaseCharacter*>& PlayerEntry : RegisteredPlayers)
 	{
 		FPSStage2WorldUtils::RestoreNetworkCharacterVisibility(PlayerEntry.Value);
+	}
+}
+
+void FFPSStageFlowManager::HideStageTransitionCameraActors()
+{
+	UWorld* World = Owner.GetWorld();
+	if (World == nullptr)
+	{
+		return;
+	}
+
+	for (TActorIterator<ACameraActor> It(World); It; ++It)
+	{
+		ACameraActor* CameraActor = *It;
+		if (!IsValid(CameraActor))
+		{
+			continue;
+		}
+
+		CameraActor->SetActorHiddenInGame(true);
+
+		TArray<UPrimitiveComponent*> PrimitiveComponents;
+		CameraActor->GetComponents<UPrimitiveComponent>(PrimitiveComponents);
+		for (UPrimitiveComponent* PrimitiveComponent : PrimitiveComponents)
+		{
+			if (!IsValid(PrimitiveComponent))
+			{
+				continue;
+			}
+
+			PrimitiveComponent->SetHiddenInGame(true, false);
+			PrimitiveComponent->SetVisibility(false, false);
+		}
 	}
 }

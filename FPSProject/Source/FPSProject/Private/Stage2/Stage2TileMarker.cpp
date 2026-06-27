@@ -51,7 +51,10 @@ void AStage2TileMarker::BeginPlay()
 
 	if (NextTileTrigger)
 	{
+		NextTileTrigger->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 		NextTileTrigger->SetGenerateOverlapEvents(true);
+		NextTileTrigger->SetCollisionResponseToAllChannels(ECR_Ignore);
+		NextTileTrigger->SetCollisionResponseToChannel(ECC_Vehicle, ECR_Overlap);
 		NextTileTrigger->OnComponentBeginOverlap.AddDynamic(this, &AStage2TileMarker::HandleNextTileTriggerBeginOverlap);
 	}
 }

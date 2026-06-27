@@ -271,7 +271,8 @@ ATruck::ATruck()
 	VehiclePawnCollision->SetCollisionObjectType(ECC_Vehicle);
 	VehiclePawnCollision->SetCollisionResponseToAllChannels(ECR_Ignore);
 	VehiclePawnCollision->SetCollisionResponseToChannel(ECC_Pawn, ECR_Block);
-	VehiclePawnCollision->SetGenerateOverlapEvents(false);
+	VehiclePawnCollision->SetCollisionResponseToChannel(ECC_WorldDynamic, ECR_Overlap);
+	VehiclePawnCollision->SetGenerateOverlapEvents(true);
 	VehiclePawnCollision->SetNotifyRigidBodyCollision(true);
 
 	auto SetupCargoCollision = [](UBoxComponent* Box)
@@ -391,6 +392,12 @@ void ATruck::BeginPlay()
 
 	if (VehiclePawnCollision)
 	{
+		VehiclePawnCollision->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+		VehiclePawnCollision->SetCollisionObjectType(ECC_Vehicle);
+		VehiclePawnCollision->SetCollisionResponseToAllChannels(ECR_Ignore);
+		VehiclePawnCollision->SetCollisionResponseToChannel(ECC_Pawn, ECR_Block);
+		VehiclePawnCollision->SetCollisionResponseToChannel(ECC_WorldDynamic, ECR_Overlap);
+		VehiclePawnCollision->SetGenerateOverlapEvents(true);
 		VehiclePawnCollision->OnComponentHit.AddDynamic(this, &ATruck::OnTruckMeshHit);
 	}
 

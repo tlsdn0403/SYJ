@@ -671,6 +671,12 @@ void ATruck::SetCinematicControlLocked(bool bLocked)
 	TruckMovePacketSendTimer = 0.0f;
 	DebugTransformLogTimer = 0.0f;
 	ClearDrivingInput(bCinematicControlLocked || !bIsLocallyDriven);
+	SetInteractionWidgetsHidden(bCinematicControlLocked);
+
+	if (!bCinematicControlLocked)
+	{
+		RefreshLocalInteractionWidgets();
+	}
 }
 
 void ATruck::SetDriverCharacter(AFPSBaseCharacter* Character)
@@ -1683,6 +1689,19 @@ void ATruck::RefreshInteractionWidgetsForCharacter(AFPSBaseCharacter* Character)
 		return;
 	}
 
+	if (bCinematicControlLocked)
+	{
+		SetInteractionWidgetsHidden(true);
+		if (Character->GetCurrentInteractableActor() == this)
+		{
+			Character->SetInteractableActor(nullptr);
+			Character->SetCurrentTruckInteractType(ETruckInteractType::None);
+		}
+		return;
+	}
+
+	SetInteractionWidgetsHidden(false);
+
 	const bool bCharacterIsAnyTruckOccupant =
 		Character->CurrentTruck != nullptr ||
 		Character->IsOnTruckCargo() ||
@@ -1833,6 +1852,24 @@ void ATruck::RefreshLocalInteractionWidgets()
 	{
 		RefreshInteractionWidgetsForCharacter(LocalCharacter);
 	}
+}
+
+void ATruck::SetInteractionWidgetsHidden(bool bShouldHide)
+{
+	auto ApplyHidden = [bShouldHide](UWidgetComponent* WidgetComponent)
+		{
+			if (!WidgetComponent)
+			{
+				return;
+			}
+
+			WidgetComponent->SetHiddenInGame(bShouldHide, true);
+			WidgetComponent->SetVisibility(!bShouldHide, true);
+		};
+
+	ApplyHidden(DriverSeatInteractWidget);
+	ApplyHidden(CargoSeatInteractWidget);
+	ApplyHidden(TurretInteractWidget);
 }
 
 bool ATruck::IsLocalInteractionCharacter(const AFPSBaseCharacter* Character) const

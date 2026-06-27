@@ -303,6 +303,9 @@ private:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "FPS|Inventory", meta = (AllowPrivateAccess = "true", ClampMin = "0.0"))
 	float TruckRepairKitHealAmount = 50.0f;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "FPS|Inventory", meta = (AllowPrivateAccess = "true", ClampMin = "0.0"))
+	float TruckItemUseSearchRadius = 700.0f;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FPS|State", meta = (AllowPrivateAccess = "true"))
 	bool bIsDead = false;
 

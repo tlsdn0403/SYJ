@@ -114,6 +114,9 @@ public:
 		int32 TileOccurrenceIndex,
 		FTransform& OutTransform) const;
 
+	void GetActiveTileTypeCodes(TArray<int32>& OutTileTypeCodes) const;
+	void GetPlannedStage2ZombieTileTypeCodes(TArray<int32>& OutTileTypeCodes) const;
+
 	UPROPERTY(BlueprintAssignable, Category = "Stage2")
 	FStage2InitialTilesReadySignature OnInitialTilesReady;
 
@@ -258,7 +261,11 @@ private:
 	bool bTilePoolReady = false;
 	int32 ConsecutiveLeftTurns = 0;
 	int32 ConsecutiveRightTurns = 0;
+	int32 NextStartTileOccurrenceIndex = 0;
+	int32 NextStraightTileOccurrenceIndex = 0;
+	int32 NextLeftTileOccurrenceIndex = 0;
 	int32 NextRightTileOccurrenceIndex = 0;
+	int32 NextGoalTileOccurrenceIndex = 0;
 	int32 NextPoolParkingIndex = 0;
 	FRandomStream RandomStream;
 	TMap<TObjectKey<UPrimitiveComponent>, ECollisionEnabled::Type> CachedTileCollisionStates;

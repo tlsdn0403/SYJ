@@ -60,6 +60,12 @@ protected:
 	TObjectPtr<UAnimSequenceBase> DeathAnimation;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Zombie|Direct Animation")
+	TObjectPtr<UAnimSequenceBase> HeadDeathAnimation;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Zombie|Direct Animation")
+	TObjectPtr<UAnimSequenceBase> ProneDeathAnimation;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Zombie|Direct Animation")
 	TArray<TObjectPtr<UAnimSequenceBase>> DeathAnimations;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Zombie|Direct Animation", meta = (ClampMin = "0.0"))

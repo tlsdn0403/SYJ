@@ -101,6 +101,15 @@ bool FFPSStageFlowManager::TrySendEnterGamePacket()
 
 	Protocol::C_ENTER_GAME EnterGamePkt;
 	EnterGamePkt.set_playerindex(0);
+	if (const AStage2TileManager* Stage2TileManager = FPSStage2WorldUtils::FindStage2TileManager(Owner.GetWorld()))
+	{
+		TArray<int32> Stage2TileTypeCodes;
+		Stage2TileManager->GetPlannedStage2ZombieTileTypeCodes(Stage2TileTypeCodes);
+		for (const int32 TileTypeCode : Stage2TileTypeCodes)
+		{
+			EnterGamePkt.add_stage2_tile_types(TileTypeCode);
+		}
+	}
 	Owner.SendPacket(ClientPacketHandler::MakeSendBuffer(EnterGamePkt));
 
 	bEnterGamePacketSent = true;

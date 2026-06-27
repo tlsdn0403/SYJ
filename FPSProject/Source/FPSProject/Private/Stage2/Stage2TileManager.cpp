@@ -21,6 +21,29 @@ constexpr EStage2TileType PlayableTileSequence[] =
 	EStage2TileType::Right,
 	EStage2TileType::Straight
 };
+
+constexpr int32 Stage2TileTypeCode_None = 0;
+constexpr int32 Stage2TileTypeCode_Straight = 1;
+constexpr int32 Stage2TileTypeCode_Left = 2;
+constexpr int32 Stage2TileTypeCode_Right = 3;
+constexpr int32 Stage2TileTypeCode_Start = 4;
+
+constexpr int32 GetStage2ServerTileTypeCode(EStage2TileType TileType)
+{
+	switch (TileType)
+	{
+	case EStage2TileType::Start:
+		return Stage2TileTypeCode_Start;
+	case EStage2TileType::Straight:
+		return Stage2TileTypeCode_Straight;
+	case EStage2TileType::Left:
+		return Stage2TileTypeCode_Left;
+	case EStage2TileType::Right:
+		return Stage2TileTypeCode_Right;
+	default:
+		return Stage2TileTypeCode_None;
+	}
+}
 }
 
 AStage2TileManager::AStage2TileManager()
@@ -219,6 +242,48 @@ bool AStage2TileManager::TryBuildWorldTransformForTileLocalPoint(
 	}
 
 	return false;
+}
+
+void AStage2TileManager::GetActiveTileTypeCodes(TArray<int32>& OutTileTypeCodes) const
+{
+	OutTileTypeCodes.Reset();
+
+	for (const FStage2LoadedTile& LoadedTile : ActiveTiles)
+	{
+		if (!LoadedTile.bInitialized)
+		{
+			continue;
+		}
+
+		const int32 TileTypeCode = GetStage2ServerTileTypeCode(LoadedTile.TileType);
+		if (TileTypeCode != Stage2TileTypeCode_None)
+		{
+			OutTileTypeCodes.Add(TileTypeCode);
+		}
+	}
+}
+
+void AStage2TileManager::GetPlannedStage2ZombieTileTypeCodes(TArray<int32>& OutTileTypeCodes) const
+{
+	OutTileTypeCodes.Reset();
+
+	const int32 StartTileTypeCode = GetStage2ServerTileTypeCode(EStage2TileType::Start);
+	if (StartTileTypeCode != Stage2TileTypeCode_None)
+	{
+		OutTileTypeCodes.Add(StartTileTypeCode);
+	}
+
+	const int32 PlannedPlayableTileCount = FMath::Max(0, GoalAfterPlayableTileCount);
+	for (int32 PlayableTileIndex = 0; PlayableTileIndex < PlannedPlayableTileCount; ++PlayableTileIndex)
+	{
+		const EStage2TileType TileType =
+			PlayableTileSequence[PlayableTileIndex % UE_ARRAY_COUNT(PlayableTileSequence)];
+		const int32 TileTypeCode = GetStage2ServerTileTypeCode(TileType);
+		if (TileTypeCode != Stage2TileTypeCode_None)
+		{
+			OutTileTypeCodes.Add(TileTypeCode);
+		}
+	}
 }
 
 void AStage2TileManager::PreloadTilePool()
@@ -1159,9 +1224,26 @@ void AStage2TileManager::FinalizeLoadedTile(int32 TileIndex)
 
 	AStage2TileMarker* TileMarker = LoadedTile.TileMarker;
 	const EStage2TileType TileType = LoadedTile.TileType;
-	if (TileType == EStage2TileType::Right)
+	switch (TileType)
 	{
+	case EStage2TileType::Start:
+		LoadedTile.TileOccurrenceIndex = NextStartTileOccurrenceIndex++;
+		break;
+	case EStage2TileType::Straight:
+		LoadedTile.TileOccurrenceIndex = NextStraightTileOccurrenceIndex++;
+		break;
+	case EStage2TileType::Left:
+		LoadedTile.TileOccurrenceIndex = NextLeftTileOccurrenceIndex++;
+		break;
+	case EStage2TileType::Right:
 		LoadedTile.TileOccurrenceIndex = NextRightTileOccurrenceIndex++;
+		break;
+	case EStage2TileType::Goal:
+		LoadedTile.TileOccurrenceIndex = NextGoalTileOccurrenceIndex++;
+		break;
+	default:
+		LoadedTile.TileOccurrenceIndex = 0;
+		break;
 	}
 
 	// 재활용될 때도 같은 기준점으로 맞출 수 있도록, 타일의 Entry 위치만 저장한다.
@@ -1305,7 +1387,11 @@ void AStage2TileManager::ResetGenerationState()
 	bTilePoolReady = false;
 	ConsecutiveLeftTurns = 0;
 	ConsecutiveRightTurns = 0;
+	NextStartTileOccurrenceIndex = 0;
+	NextStraightTileOccurrenceIndex = 0;
+	NextLeftTileOccurrenceIndex = 0;
 	NextRightTileOccurrenceIndex = 0;
+	NextGoalTileOccurrenceIndex = 0;
 	NextPoolParkingIndex = 0;
 	SpawnedPlayableTileCount = 0;
 	NextSpawnTransform = GetManagerTileTransform();

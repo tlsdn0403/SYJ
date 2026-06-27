@@ -70,12 +70,10 @@ void UL2BaseUI::OilUpdate(float CurrentFuel, float MaxFuel)
 		if (FuelRatio <= 0.2f)
 		{
 			OilSlider->SetSliderProgressColor(FLinearColor(1.0f, 0.1f, 0.0f, 1.0f));
-			PlayAnimation(Ani_Oil_Icon);
 		}
 		else if (FuelRatio <= 0.4f)
 		{
 			OilSlider->SetSliderProgressColor(FLinearColor(1.0f, 0.45f, 0.0f, 1.0f));
-			PlayAnimation(Ani_Oil_Icon);
 		}
 		else if (FuelRatio <= 0.6f)
 		{
@@ -84,6 +82,35 @@ void UL2BaseUI::OilUpdate(float CurrentFuel, float MaxFuel)
 		else
 		{
 			OilSlider->SetSliderProgressColor(FLinearColor(0.2f, 0.85f, 0.25f, 1.0f));
+		}
+	}
+
+	const bool bLowFuel = FuelRatio <= 0.4f;
+	if (bLowFuel)
+	{
+		if (Oil_Icon)
+		{
+			Oil_Icon->SetColorAndOpacity(FLinearColor(1.0f, 0.0f, 0.0f, 1.0f));
+			Oil_Icon->SetBrushTintColor(FSlateColor(FLinearColor(1.0f, 0.0f, 0.0f, 1.0f)));
+		}
+
+		if (Ani_Oil_Icon && !IsAnimationPlaying(Ani_Oil_Icon))
+		{
+			PlayAnimation(Ani_Oil_Icon, 0.0f, 0);
+		}
+	}
+	else
+	{
+		if (Ani_Oil_Icon && IsAnimationPlaying(Ani_Oil_Icon))
+		{
+			StopAnimation(Ani_Oil_Icon);
+		}
+
+		if (Oil_Icon)
+		{
+			Oil_Icon->SetRenderOpacity(1.0f);
+			Oil_Icon->SetColorAndOpacity(FLinearColor::White);
+			Oil_Icon->SetBrushTintColor(FSlateColor(FLinearColor::White));
 		}
 	}
 }

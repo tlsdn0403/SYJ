@@ -382,6 +382,9 @@ protected:
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Fuel")
 	float CurrentTruckFuel = 0.0f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Vehicle|Stage2", meta = (ClampMin = "1.0"))
+	float Stage2EngineTorqueMultiplier = 1.5f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
 	float BrakeSoundMinSpeed = 300.0f;
 
@@ -406,8 +409,11 @@ private:
 	float DebugTransformLogTimer = 0.0f;
 	float ZombieNoiseTimer = 0.0f;
 	float CurrentThrottleInput = 0.0f;
+	float OriginalEngineMaxTorque = 0.0f;
+	bool bHasOriginalEngineMaxTorque = false;
 	static constexpr float TRUCK_MOVE_PACKET_SEND_DELAY = 0.05f;
 
+	void ApplyStageVehicleTuning();
 	void ReportZombieAwarenessNoise(float DeltaTime);
 	void UpdateFuelConsumption(float DeltaTime);
 	void ConfigureVehiclePawnCollision();

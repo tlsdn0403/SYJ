@@ -24,6 +24,7 @@
 #include "Perception/AISense_Sight.h"
 #include "HUD/InventoryWidget.h"
 #include "Characters/FPSPlayerController.h"
+#include "FPSStage2WorldUtils.h"
 #include "Stage2/Stage2TileManager.h"
 #include "EngineUtils.h"
 
@@ -363,6 +364,7 @@ void ATruck::BeginPlay()
 		HealthComponent->OnHealthChanged.AddDynamic(this, &ATruck::HandleTruckHealthChanged);
 		HealthComponent->SetMaxHealth(TruckMaxHealth, true);
 	}
+	ApplyStageVehicleTuning();
 
 	TruckMaxFuel = FMath::Max(1.0f, TruckMaxFuel);
 	CurrentTruckFuel = bUseFuel
@@ -610,6 +612,7 @@ void ATruck::SetLocallyDriven(bool bLocallyDriven)
 {
 	bIsLocallyDriven = bLocallyDriven;
 	CurrentThrottleInput = 0.0f;
+	ApplyStageVehicleTuning();
 
 	UE_LOG(LogTemp, Verbose,
 		TEXT("[TruckDebug] SetLocallyDriven Truck=%s bLocallyDriven=%d Controller=%s IsPlayerControlled=%d"),
@@ -887,6 +890,30 @@ void ATruck::ResetVehiclePhysicsState(bool bReleaseBrake)
 		TruckMesh->WakeAllRigidBodies();
 		RefreshVehicleMeshRenderState(TruckMesh);
 	}
+
+	ApplyStageVehicleTuning();
+}
+
+void ATruck::ApplyStageVehicleTuning()
+{
+	UChaosWheeledVehicleMovementComponent* MoveComp = Cast<UChaosWheeledVehicleMovementComponent>(GetVehicleMovement());
+	if (!MoveComp)
+	{
+		return;
+	}
+
+	if (!bHasOriginalEngineMaxTorque)
+	{
+		OriginalEngineMaxTorque = MoveComp->EngineSetup.MaxTorque;
+		bHasOriginalEngineMaxTorque = true;
+	}
+
+	const bool bStage2World = FPSStage2WorldUtils::IsStage2World(GetWorld());
+	const float TargetTorque = bStage2World
+		? OriginalEngineMaxTorque * FMath::Max(1.0f, Stage2EngineTorqueMultiplier)
+		: OriginalEngineMaxTorque;
+
+	MoveComp->SetMaxEngineTorque(TargetTorque);
 }
 
 void ATruck::UseDriverHealPack()

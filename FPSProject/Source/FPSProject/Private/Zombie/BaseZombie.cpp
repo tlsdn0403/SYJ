@@ -148,7 +148,14 @@ float ABaseZombie::PlayDeathAnimationBeforeRagdoll()
 
 FVector ABaseZombie::GetCrawlingMeshRelativeLocation(const FVector& CurrentStandingMeshRelativeLocation) const
 {
-	return CurrentStandingMeshRelativeLocation;
+	FVector CrawlingMeshLocation = CurrentStandingMeshRelativeLocation;
+	if (const UCapsuleComponent* Capsule = GetCapsuleComponent())
+	{
+		const float GroundedMeshZ = -Capsule->GetUnscaledCapsuleHalfHeight();
+		CrawlingMeshLocation.Z = FMath::Max(CrawlingMeshLocation.Z, GroundedMeshZ);
+	}
+
+	return CrawlingMeshLocation;
 }
 
 void ABaseZombie::Attack()
@@ -993,8 +1000,18 @@ void ABaseZombie::StartCrawling()
 	UCapsuleComponent* Capsule = GetCapsuleComponent();
 	if (Capsule)
 	{
-		Capsule->SetCapsuleHalfHeight(CrawlingCapsuleHalfHeight);
-		Capsule->SetCapsuleRadius(CrawlingCapsuleRadius);
+		const float OldBottomZ = Capsule->GetComponentLocation().Z - Capsule->GetScaledCapsuleHalfHeight();
+		const float NewRadius = FMath::Max(0.0f, CrawlingCapsuleRadius);
+		const float NewHalfHeight = FMath::Max(CrawlingCapsuleHalfHeight, NewRadius);
+
+		Capsule->SetCapsuleSize(NewRadius, NewHalfHeight, true);
+
+		const float NewBottomZ = Capsule->GetComponentLocation().Z - Capsule->GetScaledCapsuleHalfHeight();
+		const float GroundingOffsetZ = OldBottomZ - NewBottomZ;
+		if (!FMath::IsNearlyZero(GroundingOffsetZ))
+		{
+			AddActorWorldOffset(FVector(0.0f, 0.0f, GroundingOffsetZ), false, nullptr, ETeleportType::TeleportPhysics);
+		}
 	}
 
 	// 이동 속도 줄이기
@@ -1011,8 +1028,7 @@ void ABaseZombie::StartCrawling()
 		ApplyAvoidanceTuning();
 	}
 
-	// Preserve the blueprint-authored mesh offset. Forcing this to the new capsule half height
-	// lifts the zombie mesh after leg dismemberment, especially in crawling animations.
+	// Keep the mesh above the new crawling capsule floor after the capsule height changes.
 	USkeletalMeshComponent* MeshComp = GetMesh();
 	if (MeshComp)
 	{

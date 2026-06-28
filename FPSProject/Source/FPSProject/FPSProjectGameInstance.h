@@ -73,6 +73,7 @@ public:
 	void HandleExitTruck(const Protocol::S_EXIT_TRUCK& pkt);
 	void HandleTruckMove(const Protocol::S_TRUCK_MOVE& pkt);
 	void HandleLoadTruckItem(const Protocol::S_LOAD_TRUCK_ITEM& pkt);
+	void HandleMachineGunAmmo(const Protocol::S_MACHINE_GUN_AMMO& pkt);
 	void HandleToggleDoor(const Protocol::S_TOGGLE_DOOR& pkt);
 	void HandleEnterGameReadyCount(const Protocol::S_ENTER_GAME_READY_COUNT& pkt);
 	void HandleStageTimer(const Protocol::S_STAGE_TIMER& pkt);

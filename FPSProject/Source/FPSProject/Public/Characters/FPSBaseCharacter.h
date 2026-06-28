@@ -71,6 +71,7 @@ public:
 	void RefreshStage2ItemUI();
 	bool ConsumeStage2AmmoBullet();
 	void UpdateStage2AmmoUI() const;
+	void UpdateMachineGunUI(bool bShouldShow) const;
 
 	UFUNCTION(BlueprintCallable, Category = "FPS|Inventory")
 	bool UseHealPack();

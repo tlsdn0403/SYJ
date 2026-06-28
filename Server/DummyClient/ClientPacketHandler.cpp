@@ -131,6 +131,14 @@ bool Handle_S_LOAD_TRUCK_ITEM(PacketSessionRef& session, Protocol::S_LOAD_TRUCK_
 	return true;
 }
 
+bool Handle_S_MACHINE_GUN_AMMO(PacketSessionRef& session, Protocol::S_MACHINE_GUN_AMMO& pkt)
+{
+	cout << "[DummyClient] S_MACHINE_GUN_AMMO truckId=" << pkt.truck_id()
+		<< " total=" << pkt.total_ammo()
+		<< " current=" << pkt.current_ammo()
+		<< " max=" << pkt.max_ammo() << endl;
+	return true;
+}
 bool Handle_S_TOGGLE_DOOR(PacketSessionRef& session, Protocol::S_TOGGLE_DOOR& pkt)
 {
 	return false;

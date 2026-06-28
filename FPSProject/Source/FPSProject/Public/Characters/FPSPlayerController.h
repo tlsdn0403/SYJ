@@ -18,6 +18,7 @@ class UBasicUI;
 class UInputMappingContext;
 class UInputAction;
 class UL2BaseUI;
+class UMachineGunUI;
 
 UCLASS()
 class FPSPROJECT_API AFPSPlayerController : public APlayerController
@@ -57,7 +58,14 @@ public:
 
 	UPROPERTY()
 	UL2BaseUI* L2BaseW;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory")
+	TSubclassOf<UMachineGunUI> MachineGunWidgetClass;
+
+	UPROPERTY()
+	UMachineGunUI* MachineGunW;
 public:
+	AFPSPlayerController();
 	UPROPERTY()
 	UInventoryWidget* InventoryW;
 

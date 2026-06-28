@@ -197,6 +197,14 @@ bool Handle_S_LOAD_TRUCK_ITEM(PacketSessionRef& session, Protocol::S_LOAD_TRUCK_
 		});
 }
 
+bool Handle_S_MACHINE_GUN_AMMO(PacketSessionRef& session, Protocol::S_MACHINE_GUN_AMMO& pkt)
+{
+	return DispatchGameInstancePacket(pkt, [](UFPSProjectGameInstance& GameInstance, const Protocol::S_MACHINE_GUN_AMMO& Pkt)
+		{
+			GameInstance.HandleMachineGunAmmo(Pkt);
+		});
+}
+
 bool Handle_S_TOGGLE_DOOR(PacketSessionRef& session, Protocol::S_TOGGLE_DOOR& pkt)
 {
 	return DispatchGameInstancePacket(pkt, [](UFPSProjectGameInstance& GameInstance, const Protocol::S_TOGGLE_DOOR& Pkt)

@@ -1,4 +1,4 @@
-ï»¿#include "pch.h"
+#include "pch.h"
 #include "Room.h"
 #include "Player.h"
 #include "GameSession.h"
@@ -12,6 +12,7 @@
 namespace
 {
 constexpr float TRUCK_STATE_EPSILON = 0.01f;
+constexpr int32 MOUNTED_GUN_AMMO_ITEM_TYPE = 5;
 constexpr auto TRUCK_ITEM_STALE_PACKET_GRACE = std::chrono::milliseconds(1000);
 
 bool IsRecentTruckItemUpdate(std::chrono::steady_clock::time_point LastUpdateTime)
@@ -51,6 +52,7 @@ Room::TruckState& Room::GetOrCreateTruckState(uint64 truckId)
 		truckState.posInfo.set_state(Protocol::MOVE_STATE_IDLE);
 	}
 
+	ApplyPendingStage2MachineGunAmmo(truckState);
 	return truckState;
 }
 
@@ -181,11 +183,132 @@ void Room::BroadcastTruckState(const TruckState& truckState, bool isCorrection)
 	Broadcast(sendBuffer);
 }
 
+void Room::RefreshMachineGunAmmoFromCargo(TruckState& truckState)
+{
+	const int32 safeMaxAmmo = (std::max)(truckState.machineGunMaxAmmo, 0);
+	const int32 safeMountedAmmoCount = (std::max)(truckState.mountedAmmoCount, 0);
+	const int32 ammoCountDelta = safeMountedAmmoCount - truckState.lastSyncedMountedAmmoCount;
+
+	if (ammoCountDelta != 0)
+	{
+		truckState.machineGunTotalAmmo = (std::max)(truckState.machineGunTotalAmmo + (ammoCountDelta * safeMaxAmmo), 0);
+		truckState.lastSyncedMountedAmmoCount = safeMountedAmmoCount;
+	}
+	else if (truckState.lastSyncedMountedAmmoCount == 0 && truckState.machineGunTotalAmmo == 0 && safeMountedAmmoCount > 0)
+	{
+		truckState.machineGunTotalAmmo = safeMountedAmmoCount * safeMaxAmmo;
+		truckState.lastSyncedMountedAmmoCount = safeMountedAmmoCount;
+	}
+
+	truckState.machineGunCurrentAmmo = (std::min)((std::max)(truckState.machineGunCurrentAmmo, 0), safeMaxAmmo);
+	if (truckState.machineGunCurrentAmmo <= 0 && truckState.machineGunTotalAmmo > 0)
+	{
+		truckState.machineGunCurrentAmmo = (std::min)(safeMaxAmmo, truckState.machineGunTotalAmmo);
+	}
+}
+
+bool Room::ConsumeMachineGunBullet(TruckState& truckState)
+{
+	RefreshMachineGunAmmoFromCargo(truckState);
+
+	if (truckState.machineGunTotalAmmo <= 0 || truckState.machineGunCurrentAmmo <= 0)
+	{
+		truckState.machineGunTotalAmmo = (std::max)(truckState.machineGunTotalAmmo, 0);
+		truckState.machineGunCurrentAmmo = 0;
+		return false;
+	}
+
+	--truckState.machineGunTotalAmmo;
+	--truckState.machineGunCurrentAmmo;
+
+	if (truckState.machineGunCurrentAmmo <= 0 && truckState.machineGunTotalAmmo > 0)
+	{
+		truckState.machineGunCurrentAmmo = (std::min)((std::max)(truckState.machineGunMaxAmmo, 0), truckState.machineGunTotalAmmo);
+	}
+
+	return true;
+}
+
+void Room::BroadcastMachineGunAmmo(const TruckState& truckState)
+{
+	const uint64 truckId = truckState.posInfo.object_id();
+	if (truckId == 0)
+	{
+		return;
+	}
+
+	Protocol::S_MACHINE_GUN_AMMO ammoPkt;
+	ammoPkt.set_truck_id(truckId);
+	ammoPkt.set_total_ammo((std::max)(truckState.machineGunTotalAmmo, 0));
+	ammoPkt.set_current_ammo((std::max)(truckState.machineGunCurrentAmmo, 0));
+	ammoPkt.set_max_ammo((std::max)(truckState.machineGunMaxAmmo, 0));
+
+	SendBufferRef sendBuffer = ServerPacketHandler::MakeSendBuffer(ammoPkt);
+	Broadcast(sendBuffer);
+}
+void Room::CaptureStage2MachineGunAmmoFromTruck(uint64 truckId)
+{
+	_bHasPendingStage2MachineGunAmmo = false;
+	_pendingStage2MountedAmmoCount = 0;
+	_pendingStage2MachineGunMaxAmmo = 100;
+	_pendingStage2MachineGunTotalAmmo = 0;
+	_pendingStage2MachineGunCurrentAmmo = 0;
+
+	TruckState* truckState = FindTruckState(truckId);
+	if (truckState == nullptr)
+		return;
+
+	RefreshMachineGunAmmoFromCargo(*truckState);
+
+	_pendingStage2MountedAmmoCount = (std::max)(truckState->mountedAmmoCount, 0);
+	_pendingStage2MachineGunMaxAmmo = (std::max)(truckState->machineGunMaxAmmo, 0);
+	_pendingStage2MachineGunTotalAmmo = (std::max)(truckState->machineGunTotalAmmo, 0);
+	_pendingStage2MachineGunCurrentAmmo = (std::min)((std::max)(truckState->machineGunCurrentAmmo, 0), _pendingStage2MachineGunMaxAmmo);
+	_bHasPendingStage2MachineGunAmmo =
+		_pendingStage2MountedAmmoCount > 0 ||
+		_pendingStage2MachineGunTotalAmmo > 0 ||
+		_pendingStage2MachineGunCurrentAmmo > 0;
+
+	cout << "[Stage2MachineGunAmmo] Captured truckId=" << truckId
+		<< " mountedAmmoCount=" << _pendingStage2MountedAmmoCount
+		<< " total=" << _pendingStage2MachineGunTotalAmmo
+		<< " current=" << _pendingStage2MachineGunCurrentAmmo
+		<< " max=" << _pendingStage2MachineGunMaxAmmo << endl;
+}
+
+bool Room::ApplyPendingStage2MachineGunAmmo(TruckState& truckState)
+{
+	if (_bHasPendingStage2MachineGunAmmo == false)
+		return false;
+
+	if (truckState.posInfo.object_id() == 0)
+		return false;
+
+	truckState.mountedAmmoCount = _pendingStage2MountedAmmoCount;
+	truckState.lastSyncedMountedAmmoCount = _pendingStage2MountedAmmoCount;
+	truckState.machineGunMaxAmmo = _pendingStage2MachineGunMaxAmmo;
+	truckState.machineGunTotalAmmo = _pendingStage2MachineGunTotalAmmo;
+	truckState.machineGunCurrentAmmo = _pendingStage2MachineGunCurrentAmmo;
+
+	_bHasPendingStage2MachineGunAmmo = false;
+	_pendingStage2MountedAmmoCount = 0;
+	_pendingStage2MachineGunTotalAmmo = 0;
+	_pendingStage2MachineGunCurrentAmmo = 0;
+
+	cout << "[Stage2MachineGunAmmo] Applied truckId=" << truckState.posInfo.object_id()
+		<< " mountedAmmoCount=" << truckState.mountedAmmoCount
+		<< " total=" << truckState.machineGunTotalAmmo
+		<< " current=" << truckState.machineGunCurrentAmmo
+		<< " max=" << truckState.machineGunMaxAmmo << endl;
+
+	BroadcastMachineGunAmmo(truckState);
+	return true;
+}
 bool Room::EnterRoom(ObjectRef object, bool randPos /*= true*/)
 {
 	bool success = AddObject(object);
 
-	// í”Œë ˆì´ì–´ ìœ„ì¹˜
+	// ÇÃ·¹ÀÌ¾î À§Ä¡
 	if (randPos)
 	{
 		object->posInfo->set_x(Utils::GetRandom(0.f, 500.0f));
@@ -194,7 +317,7 @@ bool Room::EnterRoom(ObjectRef object, bool randPos /*= true*/)
 		object->posInfo->set_yaw(Utils::GetRandom(0.f, 100.0f));
 	}
 
-	// ì…ì¥ ì‚¬ì‹¤ì„ ì‹ ì… í”Œë ˆì´ì–´ì—ê²Œ ì•Œë¦°ë‹¤
+	// ÀÔÀå »ç½ÇÀ» ½ÅÀÔ ÇÃ·¹ÀÌ¾î¿¡°Ô ¾Ë¸°´Ù
 	if (auto player = dynamic_pointer_cast<Player>(object))
 	{
 		Protocol::S_ENTER_GAME enterGamePkt;
@@ -209,7 +332,7 @@ bool Room::EnterRoom(ObjectRef object, bool randPos /*= true*/)
 			session->Send(sendBuffer);
 	}
 
-	// ì…ì¥ ì‚¬ì‹¤ì„ ë‹¤ë¥¸ í”Œë ˆì´ì–´ì—ê²Œ ì•Œë¦°ë‹¤
+	// ÀÔÀå »ç½ÇÀ» ´Ù¸¥ ÇÃ·¹ÀÌ¾î¿¡°Ô ¾Ë¸°´Ù
 	{
 		Protocol::S_SPAWN spawnPkt;
 
@@ -220,7 +343,7 @@ bool Room::EnterRoom(ObjectRef object, bool randPos /*= true*/)
 		Broadcast(sendBuffer, object->objectInfo->object_id());
 	}
 
-	// ê¸°ì¡´ ì…ì¥í•œ í”Œë ˆì´ì–´ ëª©ë¡ì„ ì‹ ì… í”Œë ˆì´ì–´í•œí…Œ ì „ì†¡í•´ì¤€ë‹¤
+	// ±âÁ¸ ÀÔÀåÇÑ ÇÃ·¹ÀÌ¾î ¸ñ·ÏÀ» ½ÅÀÔ ÇÃ·¹ÀÌ¾îÇÑÅ× Àü¼ÛÇØÁØ´Ù
 	if (auto player = dynamic_pointer_cast<Player>(object))
 	{
 		Protocol::S_SPAWN spawnPkt;
@@ -253,7 +376,7 @@ bool Room::LeaveRoom(ObjectRef object)
 	const uint64 objectId = object->objectInfo->object_id();
 	bool success = RemoveObject(objectId);
 
-	// í‡´ì¥ ì‚¬ì‹¤ì„ í‡´ì¥í•˜ëŠ” í”Œë ˆì´ì–´ì—ê²Œ ì•Œë¦°ë‹¤
+	// ÅğÀå »ç½ÇÀ» ÅğÀåÇÏ´Â ÇÃ·¹ÀÌ¾î¿¡°Ô ¾Ë¸°´Ù
 	if (auto player = dynamic_pointer_cast<Player>(object))
 	{
 		Protocol::S_LEAVE_GAME leaveGamePkt;
@@ -263,7 +386,7 @@ bool Room::LeaveRoom(ObjectRef object)
 			session->Send(sendBuffer);
 	}
 
-	// í‡´ì¥ ì‚¬ì‹¤ì„ ì•Œë¦°ë‹¤
+	// ÅğÀå »ç½ÇÀ» ¾Ë¸°´Ù
 	{
 		Protocol::S_DESPAWN despawnPkt;
 		Protocol::DespawnInfo* despawnInfo = despawnPkt.add_despawn_infos();
@@ -313,16 +436,16 @@ bool Room::HandleLeavePlayer(PlayerRef player)
 
 	ForceExitTruck(player);
 
-	// ë‚˜ê°€ëŠ” ìœ ì €ì˜ IDë¥¼ ë¯¸ë¦¬ ê¸°ì–µí•´ë‘ 
+	// ³ª°¡´Â À¯ÀúÀÇ ID¸¦ ¹Ì¸® ±â¾ïÇØµÒ
 	uint64 leaveId = player->objectInfo->object_id();
 
-	// ê¸°ì¡´ì— ë§Œë“¤ì–´ë‘” ë°© í‡´ì¥ ë¡œì§ ì‹¤í–‰ (ì„œë²„ ë‚´ë¶€ ì¥ë¶€ì—ì„œ ì§€ìš°ëŠ” ì—­í• )
+	// ±âÁ¸¿¡ ¸¸µé¾îµĞ ¹æ ÅğÀå ·ÎÁ÷ ½ÇÇà (¼­¹ö ³»ºÎ ÀåºÎ¿¡¼­ Áö¿ì´Â ¿ªÇÒ)
 	bool success = LeaveRoom(player);
 
-	// í‡´ì¥ì— ì‹¤íŒ¨í–ˆê±°ë‚˜ ì´ë¯¸ ë‚˜ê°„ ìœ ì €ë¼ë©´ ì—¬ê¸°ì„œ ëëƒ„
+	// ÅğÀå¿¡ ½ÇÆĞÇß°Å³ª ÀÌ¹Ì ³ª°£ À¯Àú¶ó¸é ¿©±â¼­ ³¡³¿
 	if (success == false) return false;
 
-	// ë°©ì— ë‚¨ì•„ìˆëŠ” ë‹¤ë¥¸ ì‚¬ëŒë“¤ì—ê²Œ "ì–˜ ë‚˜ê°”ë‹¤"ê³  ì†Œë¬¸ë‚´ê¸°!
+	// ¹æ¿¡ ³²¾ÆÀÖ´Â ´Ù¸¥ »ç¶÷µé¿¡°Ô "¾ê ³ª°¬´Ù"°í ¼Ò¹®³»±â!
 	Protocol::S_LEAVE_GAME leavePkt;
 	leavePkt.set_object_id(leaveId);
 
@@ -454,11 +577,14 @@ void Room::HandleStageMapReady(GameSessionRef session, Protocol::C_ENTER_GAME pk
 		readyPlayers.push_back(player);
 	}
 
+	CaptureStage2MachineGunAmmoFromTruck(_stageTransitionTruckId);
+
 	for (const PlayerRef& player : readyPlayers)
 	{
 		ClearPlayerTruckState(player);
 	}
 	_trucks.clear();
+	_stageTransitionTruckId = 0;
 
 	for (const PlayerRef& player : readyPlayers)
 	{
@@ -1561,7 +1687,7 @@ void Room::HandleMove(PlayerRef player, Protocol::C_MOVE pkt)
 	if (_objects.find(objectId) == _objects.end())
 		return;
 
-	// ì ìš©
+	// Àû¿ë
 	player = dynamic_pointer_cast<Player>(_objects[objectId]);
 	if (player == nullptr)
 		return;
@@ -1610,14 +1736,14 @@ void Room::HandleMove(PlayerRef player, Protocol::C_MOVE pkt)
 		player->bIsInTruck &&
 		player->currentTruckSeatType != Protocol::TRUCK_SEAT_CARGO;
 
-	//[ì‹ ìš°] ìš´ì „ì„/ê¸°ê´€ì´ ì¢Œì„ì€ ì„œë²„ê°€ ì¢Œì„ ê¸°ì¤€ ìœ„ì¹˜ë¥¼ ë”°ë¡œ ê´€ë¦¬í•˜ë¯€ë¡œ ì¼ë°˜ ì´ë™ íŒ¨í‚·ì„ ë¬´ì‹œí•œë‹¤.
-	//[ì‹ ìš°] cargoë§Œ ì˜ˆì™¸ë¡œ ë‘ëŠ” ì´ìœ ëŠ” ì ì¬í•¨ ìœ„ë¥¼ í”Œë ˆì´ì–´ê°€ ì§ì ‘ ê±¸ì–´ë‹¤ë‹ ìˆ˜ ìˆê¸° ë•Œë¬¸ì´ë‹¤.
+	//[½Å¿ì] ¿îÀü¼®/±â°üÃÑ ÁÂ¼®Àº ¼­¹ö°¡ ÁÂ¼® ±âÁØ À§Ä¡¸¦ µû·Î °ü¸®ÇÏ¹Ç·Î ÀÏ¹İ ÀÌµ¿ ÆĞÅ¶À» ¹«½ÃÇÑ´Ù.
+	//[½Å¿ì] cargo¸¸ ¿¹¿Ü·Î µÎ´Â ÀÌÀ¯´Â ÀûÀçÇÔ À§¸¦ ÇÃ·¹ÀÌ¾î°¡ Á÷Á¢ °É¾î´Ù´Ò ¼ö ÀÖ±â ¶§¹®ÀÌ´Ù.
 	if (bShouldIgnoreMoveWhileInTruck)
 		return;
 
 	player->posInfo->CopyFrom(pkt.info());
 
-	// ì´ë™ ì‚¬ì‹¤ì„ ì•Œë¦°ë‹¤ (ë³¸ì¸ í¬í•¨? ë¹¼ê³ ?)
+	// ÀÌµ¿ »ç½ÇÀ» ¾Ë¸°´Ù (º»ÀÎ Æ÷ÇÔ? »©°í?)
 	{
 		Protocol::S_MOVE movePkt;
 		{
@@ -1771,13 +1897,13 @@ void Room::HandleEquipWeapon(PlayerRef player, Protocol::C_EQUIP_WEAPON pkt)
 	weaponState->pickedUp = true;
 	player->objectInfo->set_weapon_type(weaponState->weaponType);
 
-	// ë‹¤ë¥¸ ì‚¬ëŒë“¤ì—ê²Œ ë¿Œë¦´ S_EQUIP_WEAPON íŒ¨í‚· ì¡°ë¦½
+	// ´Ù¸¥ »ç¶÷µé¿¡°Ô »Ñ¸± S_EQUIP_WEAPON ÆĞÅ¶ Á¶¸³
 	Protocol::S_EQUIP_WEAPON equipPkt;
-	equipPkt.set_playerid(player->objectInfo->object_id()); // ëˆ„ê°€ ì£¼ì› ëŠ”ì§€ (ë³¸ì¸)
-	equipPkt.set_itemobjectid(itemObjectId);                // ì–´ë–¤ ì•„ì´í…œì„ ì£¼ì› ëŠ”ì§€
-	equipPkt.set_weapontype(weaponState->weaponType);       // ì„œë²„ì— ë“±ë¡ëœ ë¬´ê¸° íƒ€ì…
+	equipPkt.set_playerid(player->objectInfo->object_id()); // ´©°¡ ÁÖ¿ü´ÂÁö (º»ÀÎ)
+	equipPkt.set_itemobjectid(itemObjectId);                // ¾î¶² ¾ÆÀÌÅÛÀ» ÁÖ¿ü´ÂÁö
+	equipPkt.set_weapontype(weaponState->weaponType);       // ¼­¹ö¿¡ µî·ÏµÈ ¹«±â Å¸ÀÔ
 
-	// ë°©ì— ìˆëŠ” ëª¨ë“  ì‚¬ëŒì—ê²Œ ì†Œë¬¸ë‚´ê¸° (Broadcast)
+	// ¹æ¿¡ ÀÖ´Â ¸ğµç »ç¶÷¿¡°Ô ¼Ò¹®³»±â (Broadcast)
 	SendBufferRef sendBuffer = ServerPacketHandler::MakeSendBuffer(equipPkt);
 	Broadcast(sendBuffer);
 
@@ -1835,16 +1961,33 @@ void Room::HandlePickupLootItem(PlayerRef player, Protocol::C_PICKUP_LOOT_ITEM p
 
 void Room::HandleFire(PlayerRef player, Protocol::C_FIRE pkt)
 {
+	UNREFERENCED_PARAMETER(pkt);
+
 	if (player == nullptr) return;
+
+	if (player->bIsInTruck && player->currentTruckSeatType == Protocol::TRUCK_SEAT_TURRET)
+	{
+		TruckState* truckState = FindTruckState(player->currentTruckId);
+		if (truckState == nullptr || truckState->turretPlayerId != player->objectInfo->object_id())
+			return;
+
+		if (ConsumeMachineGunBullet(*truckState) == false)
+		{
+			BroadcastMachineGunAmmo(*truckState);
+			return;
+		}
+
+		BroadcastMachineGunAmmo(*truckState);
+	}
 
 	Protocol::S_FIRE broadcastPkt;
 	broadcastPkt.set_object_id(player->objectInfo->object_id());
 
-	// ë°©ì— ìˆëŠ” ëª¨ë‘ì—ê²Œ ìˆë‹¤ê³  ì•Œë¦¼
+	// ¹æ¿¡ ÀÖ´Â ¸ğµÎ¿¡°Ô ½ú´Ù°í ¾Ë¸²
 	SendBufferRef sendBuffer = ServerPacketHandler::MakeSendBuffer(broadcastPkt);
 	Broadcast(sendBuffer);
 
-	cout << "[Server] " << player->objectInfo->object_id() << "ë²ˆ ìœ ì € ì´ê¸° ë°œì‚¬! ë‚¨ë“¤ì—ê²Œ ë¸Œë¡œë“œìºìŠ¤íŠ¸ ì™„ë£Œ." << endl;
+	cout << "[Server] " << player->objectInfo->object_id() << "¹ø À¯Àú ÃÑ±â ¹ß»ç! ³²µé¿¡°Ô ºê·ÎµåÄ³½ºÆ® ¿Ï·á." << endl;
 }
 
 void Room::HandleEnterTruck(PlayerRef player, Protocol::C_ENTER_TRUCK pkt)
@@ -1861,8 +2004,8 @@ void Room::HandleEnterTruck(PlayerRef player, Protocol::C_ENTER_TRUCK pkt)
 
 	TruckState& truckState = GetOrCreateTruckState(truckId);
 
-	//[ì‹ ìš°] cargo <-> turret ì „í™˜ë„ í´ë¼ì´ì–¸íŠ¸ì—ì„œëŠ” "íƒ‘ìŠ¹" íë¦„ìœ¼ë¡œ ì²˜ë¦¬í•˜ë¯€ë¡œ,
-	//[ì‹ ìš°] ì„œë²„ì—ì„œëŠ” ì¢Œì„ ë³€ê²½ì´ ì¼ì–´ë‚˜ë©´ S_ENTER_TRUCKë¥¼ ë‹¤ì‹œ ë¸Œë¡œë“œìºìŠ¤íŠ¸í•´ì„œ ìƒíƒœë¥¼ ë™ê¸°í™”í•œë‹¤.
+	//[½Å¿ì] cargo <-> turret ÀüÈ¯µµ Å¬¶óÀÌ¾ğÆ®¿¡¼­´Â "Å¾½Â" Èå¸§À¸·Î Ã³¸®ÇÏ¹Ç·Î,
+	//[½Å¿ì] ¼­¹ö¿¡¼­´Â ÁÂ¼® º¯°æÀÌ ÀÏ¾î³ª¸é S_ENTER_TRUCK¸¦ ´Ù½Ã ºê·ÎµåÄ³½ºÆ®ÇØ¼­ »óÅÂ¸¦ µ¿±âÈ­ÇÑ´Ù.
 	auto BroadcastSeatChange = [&](Protocol::TruckSeatType NewSeatType)
 		{
 			Protocol::S_ENTER_TRUCK enterPkt;
@@ -1889,8 +2032,8 @@ void Room::HandleEnterTruck(PlayerRef player, Protocol::C_ENTER_TRUCK pkt)
 			player->currentTruckSeatType == Protocol::TRUCK_SEAT_TURRET &&
 			seatType == Protocol::TRUCK_SEAT_CARGO;
 
-		//[ì‹ ìš°] ì´ë¯¸ íŠ¸ëŸ­ì— íƒ€ê³  ìˆëŠ” ìƒíƒœì—ì„œëŠ” cargo <-> turret ì „í™˜ë§Œ í—ˆìš©í•œë‹¤.
-		//[ì‹ ìš°] ë‹¤ë¥¸ ì¢Œì„ ë³€ê²½ê¹Œì§€ í—ˆìš©í•˜ë©´ ìš´ì „ì„/ì ì¬í•¨/ê¸°ê´€ì´ ìƒíƒœê°€ ê¼¬ì´ê¸° ì‰¬ì›Œì„œ ì„œë²„ì—ì„œ ë§‰ì•„ë‘”ë‹¤.
+		//[½Å¿ì] ÀÌ¹Ì Æ®·°¿¡ Å¸°í ÀÖ´Â »óÅÂ¿¡¼­´Â cargo <-> turret ÀüÈ¯¸¸ Çã¿ëÇÑ´Ù.
+		//[½Å¿ì] ´Ù¸¥ ÁÂ¼® º¯°æ±îÁö Çã¿ëÇÏ¸é ¿îÀü¼®/ÀûÀçÇÔ/±â°üÃÑ »óÅÂ°¡ ²¿ÀÌ±â ½¬¿ö¼­ ¼­¹ö¿¡¼­ ¸·¾ÆµĞ´Ù.
 		if (bCargoToTurret == false && bTurretToCargo == false)
 			return;
 
@@ -1901,11 +2044,16 @@ void Room::HandleEnterTruck(PlayerRef player, Protocol::C_ENTER_TRUCK pkt)
 		SetTruckSeatOccupant(truckState, seatType, playerId);
 		player->currentTruckSeatType = seatType;
 		BroadcastSeatChange(seatType);
+		if (seatType == Protocol::TRUCK_SEAT_TURRET)
+		{
+			RefreshMachineGunAmmoFromCargo(truckState);
+			BroadcastMachineGunAmmo(truckState);
+		}
 		return;
 	}
 
-	//[ì‹ ìš°] ê¸°ê´€ì´ì€ ë°˜ë“œì‹œ íŠ¸ëŸ­ ë‚´ë¶€(cargo)ì—ì„œë§Œ ê°ˆì•„íƒˆ ìˆ˜ ìˆê²Œ í•œë‹¤.
-	//[ì‹ ìš°] íŠ¸ëŸ­ ë°–ì—ì„œ ë°”ë¡œ ê¸°ê´€ì´ì— íƒ€ëŠ” ë¬¸ì œë¥¼ ì„œë²„ ê¶Œí•œìœ¼ë¡œ ì°¨ë‹¨í•˜ëŠ” ë¶€ë¶„ì´ë‹¤.
+	//[½Å¿ì] ±â°üÃÑÀº ¹İµå½Ã Æ®·° ³»ºÎ(cargo)¿¡¼­¸¸ °¥¾ÆÅ» ¼ö ÀÖ°Ô ÇÑ´Ù.
+	//[½Å¿ì] Æ®·° ¹Û¿¡¼­ ¹Ù·Î ±â°üÃÑ¿¡ Å¸´Â ¹®Á¦¸¦ ¼­¹ö ±ÇÇÑÀ¸·Î Â÷´ÜÇÏ´Â ºÎºĞÀÌ´Ù.
 	if (seatType == Protocol::TRUCK_SEAT_TURRET)
 		return;
 
@@ -1962,7 +2110,9 @@ void Room::HandleTruckMove(PlayerRef player, Protocol::C_TRUCK_MOVE pkt)
 		(incoming.object_id() == 0 || incoming.object_id() == player->currentTruckId);
 	const uint64 truckId = bPlayerInThisTruck ? player->currentTruckId : incoming.object_id();
 	if (truckId == 0)
+	{
 		return;
+	}
 
 	TruckState* truckState = FindTruckState(truckId);
 	if (truckState == nullptr)
@@ -2167,7 +2317,8 @@ void Room::HandleLoadTruckItem(PlayerRef player, Protocol::C_LOAD_TRUCK_ITEM pkt
 	if (truckId == 0 || pkt.item_types_size() <= 0)
 		return;
 
-	GetOrCreateTruckState(truckId);
+	TruckState& truckState = GetOrCreateTruckState(truckId);
+	bool bMachineGunAmmoChanged = false;
 
 	Protocol::S_LOAD_TRUCK_ITEM loadPkt;
 	loadPkt.set_player_id(player->objectInfo->object_id());
@@ -2175,10 +2326,21 @@ void Room::HandleLoadTruckItem(PlayerRef player, Protocol::C_LOAD_TRUCK_ITEM pkt
 	for (const int32 itemType : pkt.item_types())
 	{
 		loadPkt.add_item_types(itemType);
+		if (itemType == MOUNTED_GUN_AMMO_ITEM_TYPE)
+		{
+			++truckState.mountedAmmoCount;
+			bMachineGunAmmoChanged = true;
+		}
 	}
 
 	SendBufferRef sendBuffer = ServerPacketHandler::MakeSendBuffer(loadPkt);
 	Broadcast(sendBuffer, player->objectInfo->object_id());
+
+	if (bMachineGunAmmoChanged)
+	{
+		RefreshMachineGunAmmoFromCargo(truckState);
+		BroadcastMachineGunAmmo(truckState);
+	}
 }
 
 void Room::HandleToggleDoor(PlayerRef player, Protocol::C_TOGGLE_DOOR pkt)
@@ -2224,6 +2386,7 @@ void Room::HandleStageTransitionRequest(PlayerRef player, Protocol::C_STAGE_TRAN
 		return;
 
 	_bStageTransitionStarted = true;
+	_stageTransitionTruckId = truckId;
 	_stageTransitionReadyPlayerIds.clear();
 
 	Protocol::S_STAGE_TRANSITION transitionPkt;
@@ -2289,7 +2452,7 @@ RoomRef Room::GetRoomRef()
 
 bool Room::AddObject(ObjectRef object)
 {
-	// ìˆë‹¤ë©´ ë¬¸ì œê°€ ìˆë‹¤.
+	// ÀÖ´Ù¸é ¹®Á¦°¡ ÀÖ´Ù.
 	if (_objects.find(object->objectInfo->object_id()) != _objects.end())
 		return false;
 
@@ -2302,7 +2465,7 @@ bool Room::AddObject(ObjectRef object)
 
 bool Room::RemoveObject(uint64 objectId)
 {
-	// ì—†ë‹¤ë©´ ë¬¸ì œê°€ ìˆë‹¤.
+	// ¾ø´Ù¸é ¹®Á¦°¡ ÀÖ´Ù.
 	if (_objects.find(objectId) == _objects.end())
 		return false;
 

@@ -1,4 +1,5 @@
 #include "Stage2/Stage2FinalDoor.h"
+#include "Components/Button.h"
 #include "Components/InteractTriggerComponent.h"
 #include "Components/TextBlock.h"
 #include "Components/WidgetComponent.h"
@@ -10,13 +11,60 @@
 #include "LevelSequence.h"
 #include "LevelSequenceActor.h"
 #include "LevelSequencePlayer.h"
+#include "MovieSceneSequencePlayer.h"
 #include "MovieSceneSequencePlaybackSettings.h"
 #include "DefaultLevelSequenceInstanceData.h"
 #include "EngineUtils.h"
 #include "Engine/Level.h"
 #include "Engine/LevelStreaming.h"
 #include "Kismet/GameplayStatics.h"
+#include "Kismet/KismetSystemLibrary.h"
 #include "UObject/ConstructorHelpers.h"
+
+namespace
+{
+UButton* FindGameOverExitButton(UUserWidget* GameOverWidget)
+{
+	if (GameOverWidget == nullptr || GameOverWidget->WidgetTree == nullptr)
+	{
+		return nullptr;
+	}
+
+	static const FName ExitButtonNames[] =
+	{
+		TEXT("EndB"),
+		TEXT("ExitButton"),
+		TEXT("QuitButton"),
+		TEXT("LeaveButton"),
+		TEXT("ExitB"),
+		TEXT("QuitB")
+	};
+
+	for (const FName& ButtonName : ExitButtonNames)
+	{
+		if (UButton* Button = Cast<UButton>(GameOverWidget->WidgetTree->FindWidget(ButtonName)))
+		{
+			return Button;
+		}
+	}
+
+	TArray<UWidget*> Widgets;
+	GameOverWidget->WidgetTree->GetAllWidgets(Widgets);
+
+	UButton* OnlyButton = nullptr;
+	int32 ButtonCount = 0;
+	for (UWidget* Widget : Widgets)
+	{
+		if (UButton* Button = Cast<UButton>(Widget))
+		{
+			OnlyButton = Button;
+			++ButtonCount;
+		}
+	}
+
+	return ButtonCount == 1 ? OnlyButton : nullptr;
+}
+}
 
 AStage2FinalDoor::AStage2FinalDoor()
 {
@@ -54,30 +102,37 @@ void AStage2FinalDoor::Interact_Implementation(AFPSBaseCharacter* Character)
 		return;
 	}
 
-	Super::Interact_Implementation(Character);
-
 	if (bEnableEndingOnInteract)
 	{
 		StartEndingSequence();
+		return;
 	}
+
+	Super::Interact_Implementation(Character);
 }
 
 void AStage2FinalDoor::ApplyDoorState(bool bShouldOpen)
 {
 	const bool bWasOpen = bOpen;
-	Super::ApplyDoorState(bShouldOpen);
 
 	if (bEnableEndingOnInteract)
 	{
+		bOpen = bShouldOpen;
+		Target = OriginalRotation;
+		SetActorTickEnabled(false);
 		UpdateFinalDoorInteractText();
+		OnFinalDoorStateChanged(bOpen);
+
+		if (!bWasOpen && bShouldOpen && !bEndingTriggered)
+		{
+			TriggerEndingSequence();
+		}
+		return;
 	}
+
+	Super::ApplyDoorState(bShouldOpen);
 
 	OnFinalDoorStateChanged(bOpen);
-
-	if (bEnableEndingOnInteract && !bWasOpen && bShouldOpen && !bEndingTriggered)
-	{
-		TriggerEndingSequence();
-	}
 }
 
 void AStage2FinalDoor::WidgetStart(AActor* OtherActor)
@@ -267,6 +322,7 @@ bool AStage2FinalDoor::TryPlayPlacedEndingSequence(ULevelSequence* SequenceToPla
 	bDestroyEndingSequenceActorOnFinish = false;
 	EndingSequencePlayer->OnFinished.RemoveDynamic(this, &AStage2FinalDoor::HandleEndingSequenceFinished);
 	EndingSequencePlayer->OnFinished.AddDynamic(this, &AStage2FinalDoor::HandleEndingSequenceFinished);
+	EndingSequencePlayer->SetPlaybackPosition(FMovieSceneSequencePlaybackParams(0.0f, EUpdatePositionMethod::Jump));
 	EndingSequencePlayer->Play();
 
 	UE_LOG(LogTemp, Log, TEXT("[Stage2FinalDoor] Playing placed ending sequence actor %s in level %s."),
@@ -412,6 +468,7 @@ void AStage2FinalDoor::TriggerEndingSequence()
 	}
 
 	EndingSequencePlayer->OnFinished.AddDynamic(this, &AStage2FinalDoor::HandleEndingSequenceFinished);
+	EndingSequencePlayer->SetPlaybackPosition(FMovieSceneSequencePlaybackParams(0.0f, EUpdatePositionMethod::Jump));
 	EndingSequencePlayer->Play();
 }
 
@@ -495,6 +552,7 @@ bool AStage2FinalDoor::ShowGameOverScreen()
 	}
 
 	GameOverWidget->AddToViewport(1000);
+	BindGameOverExitButton();
 
 	FInputModeUIOnly InputMode;
 	InputMode.SetWidgetToFocus(GameOverWidget->TakeWidget());
@@ -507,6 +565,29 @@ bool AStage2FinalDoor::ShowGameOverScreen()
 	return true;
 }
 
+void AStage2FinalDoor::BindGameOverExitButton()
+{
+	UButton* ExitButton = FindGameOverExitButton(GameOverWidget);
+	if (ExitButton == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Stage2FinalDoor: GameOver exit button was not found."));
+		return;
+	}
+
+	ExitButton->OnClicked.AddUniqueDynamic(this, &AStage2FinalDoor::OnGameOverExitClicked);
+}
+
+void AStage2FinalDoor::OnGameOverExitClicked()
+{
+	if (UFPSProjectGameInstance* GameInstance = Cast<UFPSProjectGameInstance>(GetGameInstance()))
+	{
+		GameInstance->QuitGame();
+		return;
+	}
+
+	UKismetSystemLibrary::QuitGame(this, UGameplayStatics::GetPlayerController(this, 0), EQuitPreference::Quit, false);
+}
+
 void AStage2FinalDoor::SetEndingCinematicMode(bool bEnable)
 {
 	if (!bUseCinematicMode)
@@ -516,6 +597,6 @@ void AStage2FinalDoor::SetEndingCinematicMode(bool bEnable)
 
 	if (APlayerController* PlayerController = UGameplayStatics::GetPlayerController(this, 0))
 	{
-		PlayerController->SetCinematicMode(bEnable, false, true, true, true);
+		PlayerController->SetCinematicMode(bEnable, true, true, true, true);
 	}
 }

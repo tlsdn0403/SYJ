@@ -324,6 +324,11 @@ void FFPSStageFlowManager::TryDistributeStage1CargoItemsToPlayers()
 			continue;
 		}
 
+		if (ItemType == EItemType::MountedGunAmmo)
+		{
+			continue;
+		}
+
 		const int32 BaseShare = ItemCount / PlayerCount;
 		const int32 Remainder = ItemCount % PlayerCount;
 		auto GrantCargoItem = [ItemType](const TPair<uint64, AFPSBaseCharacter*>& PlayerEntry)

@@ -8,11 +8,13 @@
 #include "HUD/BasicUI.h"
 #include "HUD/EffectUI.h"
 #include "HUD/L2BaseUI.h"
+#include "HUD/MachineGunUI.h"
 #include "FPSStage2WorldUtils.h"
 #include "FPSProjectGameInstance.h"
 #include<algorithm>
 #include "EnhancedInputSubsystems.h"
 #include "EnhancedInputComponent.h"
+#include "UObject/ConstructorHelpers.h"
 
 namespace
 {
@@ -40,10 +42,27 @@ AFPSBaseCharacter* ResolveLocalStageCharacter(AFPSPlayerController* PlayerContro
 }
 }
 
+AFPSPlayerController::AFPSPlayerController()
+{
+	static ConstructorHelpers::FClassFinder<UMachineGunUI> MachineGunWidgetBP(TEXT("/Game/HUD/WBP_machine_Gun"));
+	if (MachineGunWidgetBP.Succeeded())
+	{
+		MachineGunWidgetClass = MachineGunWidgetBP.Class;
+	}
+}
 
 void AFPSPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
+	if (MachineGunWidgetClass && FPSStage2WorldUtils::IsStage2World(GetWorld()))
+	{
+		MachineGunW = CreateWidget<UMachineGunUI>(this, MachineGunWidgetClass);
+		if (MachineGunW)
+		{
+			MachineGunW->SetVisibleState(false);
+		}
+	}
+
 	if (!InvenWidgetClass || !TimerWidgetClass) return;
 
 	InventoryW = CreateWidget<UInventoryWidget>(this, InvenWidgetClass);

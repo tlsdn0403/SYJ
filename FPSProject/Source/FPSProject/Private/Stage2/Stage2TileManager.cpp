@@ -1443,6 +1443,10 @@ void AStage2TileManager::SpawnZombiesForTile(FStage2LoadedTile& LoadedTile)
 	const int32 DesiredSpawnCount = FMath::Min(
 		CandidateSpawnTransforms.Num(),
 		RandomStream.RandRange(EffectiveMinSpawnCount, EffectiveMaxSpawnCount));
+	const uint32 TileGroupHash = HashCombine(
+		static_cast<uint32>(LoadedTile.TileType),
+		static_cast<uint32>(LoadedTile.TileOccurrenceIndex + 1));
+	const int32 ZombieGroupSoundKey = TileGroupHash != 0 ? static_cast<int32>(TileGroupHash) : 1;
 
 	TArray<TEnumAsByte<EObjectTypeQuery>> OverlapObjectTypes;
 	OverlapObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECC_Pawn));
@@ -1515,6 +1519,7 @@ void AStage2TileManager::SpawnZombiesForTile(FStage2LoadedTile& LoadedTile)
 
 		if (ABaseZombie* SpawnedZombie = GetWorld()->SpawnActor<ABaseZombie>(ZombieClass, SpawnTransform, SpawnParameters))
 		{
+			SpawnedZombie->SetZombieGroupSoundKey(ZombieGroupSoundKey);
 			LoadedTile.SpawnedZombies.Add(SpawnedZombie);
 			UsedZombieSpawnLocations.Add(SpawnedZombie->GetActorLocation());
 		}

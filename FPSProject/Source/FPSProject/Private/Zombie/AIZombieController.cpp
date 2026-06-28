@@ -12,7 +12,9 @@
 #include "Perception/AIPerceptionComponent.h"
 #include "Perception/AISenseConfig_Hearing.h"
 #include "Perception/AISenseConfig_Sight.h"
+#include "Sound/SoundBase.h"
 #include "Truck/Truck.h"
+#include "UObject/ConstructorHelpers.h"
 #include "Zombie/BaseZombie.h"
 
 const FName AAIZombieController::TargetPlayerKey = FName("TargetPlayer");
@@ -20,6 +22,21 @@ const FName AAIZombieController::PlayerLocationKey = FName("PlayerLocation");
 
 namespace
 {
+	struct FZombieGroupAwarenessSoundState
+	{
+		int32 PlayCount = 0;
+		float LastPlayTime = -100000.0f;
+	};
+
+	TMap<uint64, FZombieGroupAwarenessSoundState> GZombieGroupAwarenessSoundStates;
+
+	uint64 BuildZombieGroupSoundStateKey(const UWorld* World, int32 GroupKey)
+	{
+		const uint64 WorldHash = static_cast<uint64>(PointerHash(World));
+		const uint64 GroupHash = static_cast<uint32>(GroupKey);
+		return (WorldHash << 32) | GroupHash;
+	}
+
 	AActor* ResolveTargetActorFromPawn(APawn* PlayerPawn)
 	{
 		AFPSBaseCharacter* PlayerCharacter = Cast<AFPSBaseCharacter>(PlayerPawn);
@@ -70,6 +87,12 @@ AAIZombieController::AAIZombieController()
 
 	SightConfig = CreateDefaultSubobject<UAISenseConfig_Sight>(TEXT("SightConfig"));
 	HearingConfig = CreateDefaultSubobject<UAISenseConfig_Hearing>(TEXT("HearingConfig"));
+
+	static ConstructorHelpers::FObjectFinder<USoundBase> DefaultZombieGroupSound(TEXT("/Game/Sound/ZombieGroup.ZombieGroup"));
+	if (DefaultZombieGroupSound.Succeeded())
+	{
+		ZombieGroupAwarenessSound = DefaultZombieGroupSound.Object;
+	}
 }
 
 void AAIZombieController::BeginPlay()
@@ -286,6 +309,62 @@ float AAIZombieController::GetMemoryDurationForTarget(AActor* TargetActor) const
 	return TargetActor && TargetActor->IsA<ATruck>() ? TruckTargetMemoryDuration : TargetMemoryDuration;
 }
 
+int32 AAIZombieController::ResolveZombieGroupSoundKey() const
+{
+	const ABaseZombie* Zombie = Cast<ABaseZombie>(GetPawn());
+	if (Zombie && Zombie->GetZombieGroupSoundKey() != 0)
+	{
+		return Zombie->GetZombieGroupSoundKey();
+	}
+
+	const APawn* ZombiePawn = GetPawn();
+	if (!ZombiePawn || ZombieGroupFallbackCellSize <= 0.0f)
+	{
+		return 0;
+	}
+
+	const FVector ZombieLocation = ZombiePawn->GetActorLocation();
+	const int32 CellX = FMath::FloorToInt(ZombieLocation.X / ZombieGroupFallbackCellSize);
+	const int32 CellY = FMath::FloorToInt(ZombieLocation.Y / ZombieGroupFallbackCellSize);
+	const int32 CellZ = FMath::FloorToInt(ZombieLocation.Z / ZombieGroupFallbackCellSize);
+	uint32 CellHash = HashCombine(GetTypeHash(CellX), GetTypeHash(CellY));
+	CellHash = HashCombine(CellHash, GetTypeHash(CellZ));
+	return CellHash != 0 ? static_cast<int32>(CellHash) : 1;
+}
+
+void AAIZombieController::TryPlayZombieGroupAwarenessSound(AActor* TargetActor, const FVector& KnownLocation)
+{
+	UWorld* World = GetWorld();
+	APawn* ZombiePawn = GetPawn();
+	if (!World || !ZombiePawn || !TargetActor || !ZombieGroupAwarenessSound || MaxZombieGroupAwarenessSoundPlays <= 0)
+	{
+		return;
+	}
+
+	const int32 GroupKey = ResolveZombieGroupSoundKey();
+	if (GroupKey == 0)
+	{
+		return;
+	}
+
+	FZombieGroupAwarenessSoundState& SoundState =
+		GZombieGroupAwarenessSoundStates.FindOrAdd(BuildZombieGroupSoundStateKey(World, GroupKey));
+
+	const float CurrentTime = World->GetTimeSeconds();
+	if (SoundState.PlayCount >= MaxZombieGroupAwarenessSoundPlays ||
+		(CurrentTime - SoundState.LastPlayTime) < ZombieGroupAwarenessSoundCooldown)
+	{
+		return;
+	}
+
+	const FVector SoundLocation = ZombiePawn->GetActorLocation().IsNearlyZero()
+		? KnownLocation
+		: ZombiePawn->GetActorLocation();
+	UGameplayStatics::PlaySoundAtLocation(this, ZombieGroupAwarenessSound, SoundLocation);
+	++SoundState.PlayCount;
+	SoundState.LastPlayTime = CurrentTime;
+}
+
 void AAIZombieController::RememberTarget(AActor* TargetActor, const FVector& KnownLocation)
 {
 	if (!TargetActor)
@@ -293,10 +372,16 @@ void AAIZombieController::RememberTarget(AActor* TargetActor, const FVector& Kno
 		return;
 	}
 
+	const bool bBecameAwareOfTarget = !bHasKnownTarget || CurrentTargetActor.Get() != TargetActor;
 	CurrentTargetActor = TargetActor;
 	LastTargetSeenTime = GetWorld() ? GetWorld()->GetTimeSeconds() : LastTargetSeenTime;
 	LastKnownTargetLocation = KnownLocation;
 	bHasKnownTarget = true;
+
+	if (bBecameAwareOfTarget)
+	{
+		TryPlayZombieGroupAwarenessSound(TargetActor, KnownLocation);
+	}
 }
 
 void AAIZombieController::ClearCurrentTarget(UBlackboardComponent* BlackboardComponent)

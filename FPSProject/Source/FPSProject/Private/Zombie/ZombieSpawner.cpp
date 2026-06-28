@@ -56,6 +56,7 @@ void AZombieSpawner::SpawnZombies()
 	UE_LOG(LogTemp, Verbose, TEXT("[ZombieSync] %s SpawnZombies start. SpawnPointCount=%d"), *GetName(), SpawnPoints.Num());
 
 	TArray<FVector> UsedSpawnLocations;
+	const int32 ZombieGroupSoundKey = static_cast<int32>(GetTypeHash(GetFName()));
 	for (ATargetPoint* SpawnPoint : SpawnPoints)
 	{
 		if (!IsValid(SpawnPoint))
@@ -103,6 +104,7 @@ void AZombieSpawner::SpawnZombies()
 			SpawnParameters))
 		{
 			UE_LOG(LogTemp, Verbose, TEXT("[ZombieSync] Spawned zombie %s at %s"), *GetNameSafe(SpawnedZombie), *SpawnLocation.ToString());
+			SpawnedZombie->SetZombieGroupSoundKey(ZombieGroupSoundKey != 0 ? ZombieGroupSoundKey : 1);
 			SpawnedZombies.Add(SpawnedZombie);
 			UsedSpawnLocations.Add(SpawnedZombie->GetActorLocation());
 		}

@@ -510,6 +510,18 @@ void FFPSSpawnManager::SpawnZombie(UWorld* World, const Protocol::ObjectInfo& Ob
 		}
 	}
 	SpawnedZombie->SetNetworkObjectId(ObjectId);
+	if (TileTypeCode != 0)
+	{
+		const uint32 TileGroupHash = HashCombine(
+			static_cast<uint32>(TileTypeCode),
+			static_cast<uint32>(TileOccurrenceIndex + 1));
+		SpawnedZombie->SetZombieGroupSoundKey(TileGroupHash != 0 ? static_cast<int32>(TileGroupHash) : 1);
+	}
+	else
+	{
+		const uint32 ObjectGroupHash = GetTypeHash(ObjectId);
+		SpawnedZombie->SetZombieGroupSoundKey(ObjectGroupHash != 0 ? static_cast<int32>(ObjectGroupHash) : 1);
+	}
 	SpawnedZombie->SetActorTickEnabled(false);
 	if (UCharacterMovementComponent* MoveComp = SpawnedZombie->GetCharacterMovement())
 	{

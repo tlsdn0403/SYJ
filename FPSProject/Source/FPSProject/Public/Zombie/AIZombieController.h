@@ -12,6 +12,7 @@ class UAISenseConfig_Hearing;
 class UAISenseConfig_Sight;
 class UBehaviorTree;
 class UBlackboardComponent;
+class USoundBase;
 
 UCLASS()
 class FPSPROJECT_API AAIZombieController : public AAIController
@@ -87,6 +88,18 @@ private:
 	UPROPERTY(EditAnywhere, Category = "AI|Awareness")
 	float PlayerAwarenessHeightTolerance = 600.0f;
 
+	UPROPERTY(EditAnywhere, Category = "AI|Awareness|Sound")
+	TObjectPtr<USoundBase> ZombieGroupAwarenessSound = nullptr;
+
+	UPROPERTY(EditAnywhere, Category = "AI|Awareness|Sound", meta = (ClampMin = "1"))
+	int32 MaxZombieGroupAwarenessSoundPlays = 2;
+
+	UPROPERTY(EditAnywhere, Category = "AI|Awareness|Sound", meta = (ClampMin = "0.0"))
+	float ZombieGroupAwarenessSoundCooldown = 2.0f;
+
+	UPROPERTY(EditAnywhere, Category = "AI|Awareness|Sound", meta = (ClampMin = "100.0"))
+	float ZombieGroupFallbackCellSize = 3000.0f;
+
 	UPROPERTY(EditAnywhere, Category = "AI|Navigation")
 	bool bRequireReachableNavigationPath = true;
 
@@ -112,6 +125,8 @@ private:
 	bool CanForceAwarenessFor(AActor* TargetActor) const;
 	bool HasReachableNavigationPathTo(AActor* TargetActor);
 	float GetMemoryDurationForTarget(AActor* TargetActor) const;
+	int32 ResolveZombieGroupSoundKey() const;
+	void TryPlayZombieGroupAwarenessSound(AActor* TargetActor, const FVector& KnownLocation);
 	void RememberTarget(AActor* TargetActor, const FVector& KnownLocation);
 	void ClearCurrentTarget(UBlackboardComponent* BlackboardComponent);
 	void UpdateBlackboardTarget(UBlackboardComponent* BlackboardComponent, AActor* TargetActor, const FVector& TargetLocation);

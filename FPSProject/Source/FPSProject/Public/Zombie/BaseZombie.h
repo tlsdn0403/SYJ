@@ -32,6 +32,8 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	void SetNetworkObjectId(uint64 InNetworkObjectId) { NetworkObjectId = InNetworkObjectId; }
 	uint64 GetNetworkObjectId() const { return NetworkObjectId; }
+	void SetZombieGroupSoundKey(int32 InZombieGroupSoundKey) { ZombieGroupSoundKey = InZombieGroupSoundKey; }
+	int32 GetZombieGroupSoundKey() const { return ZombieGroupSoundKey; }
 
 	UFUNCTION(BlueprintCallable, Category = "Zombie")
 	bool IsAlive() const { return bIsAlive; }
@@ -108,6 +110,7 @@ protected:
 	TSubclassOf<UAnimInstance> ZombieAnimClass;
 
 	uint64 NetworkObjectId = 0;
+	int32 ZombieGroupSoundKey = 0;
 
 	virtual void InitializeBoneDurability();
 	virtual FName GetParentBoneForDamage(FName HitBoneName) const;

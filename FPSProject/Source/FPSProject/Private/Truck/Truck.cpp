@@ -2158,6 +2158,7 @@ void ATruck::ProcessZombieImpact(ABaseZombie* Zombie, const FVector& ImpactPoint
 	}
 	// LastZombieImpactTimes 맵에 좀비의 마지막 충돌 시간을 업데이트
 	LastZombieImpactTimes.Add(Zombie, CurrentTime);
+	ApplyZombieImpactSpeedPenalty(ImpactSpeed);
 	PlayLocalDriverZombieImpactBloodEffect();
 
 	if (ZombieCrashSound)
@@ -2262,6 +2263,52 @@ void ATruck::ProcessZombieImpact(ABaseZombie* Zombie, const FVector& ImpactPoint
 	if (USkeletalMeshComponent* ZombieMesh = Zombie->GetMesh())
 	{
 		ZombieMesh->AddImpulseAtLocation(WorldImpulse, ImpactPoint, FName(TEXT("pelvis")));
+	}
+}
+
+void ATruck::ApplyZombieImpactSpeedPenalty(float ImpactSpeed)
+{
+	if ((!bIsLocallyDriven && NetworkTruckId != 0) || bCinematicControlLocked)
+	{
+		return;
+	}
+
+	USkeletalMeshComponent* TruckMesh = GetMesh();
+	if (!TruckMesh || !TruckMesh->IsSimulatingPhysics() || ImpactSpeed < ZombieImpactMinSpeed)
+	{
+		return;
+	}
+
+	const float MinLossRatio = FMath::Clamp(ZombieImpactMinSpeedLossRatio, 0.0f, 0.95f);
+	const float MaxLossRatio = FMath::Clamp(ZombieImpactMaxSpeedLossRatio, MinLossRatio, 0.95f);
+	const float LossRatio = FMath::GetMappedRangeValueClamped(
+		FVector2D(ZombieImpactMinSpeed, ZombieImpactFatalSpeed),
+		FVector2D(MinLossRatio, MaxLossRatio),
+		ImpactSpeed);
+	if (LossRatio <= KINDA_SMALL_NUMBER)
+	{
+		return;
+	}
+
+	const FVector CurrentVelocity = TruckMesh->GetPhysicsLinearVelocity();
+	const FVector CurrentHorizontalVelocity(CurrentVelocity.X, CurrentVelocity.Y, 0.0f);
+	if (CurrentHorizontalVelocity.SizeSquared() <= KINDA_SMALL_NUMBER)
+	{
+		return;
+	}
+
+	const FVector NewHorizontalVelocity = CurrentHorizontalVelocity * (1.0f - LossRatio);
+	const FVector NewVelocity(NewHorizontalVelocity.X, NewHorizontalVelocity.Y, CurrentVelocity.Z);
+	TruckMesh->SetPhysicsLinearVelocity(NewVelocity, false);
+	TruckMesh->SetPhysicsAngularVelocityInDegrees(
+		TruckMesh->GetPhysicsAngularVelocityInDegrees() * (1.0f - LossRatio * 0.35f),
+		false);
+	TruckMesh->WakeAllRigidBodies();
+
+	if (bIsLocallyDriven && NetworkTruckId != 0)
+	{
+		TruckMovePacketSendTimer = 0.0f;
+		SendTruckMovePacket();
 	}
 }
 

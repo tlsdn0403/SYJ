@@ -299,6 +299,7 @@ protected:
 	void SendTruckMovePacket(bool bAllowHealthIncrease = false);
 	void CheckZombieImpactSweep();
 	void ProcessZombieImpact(ABaseZombie* Zombie, const FVector& ImpactPoint, const FVector& ImpactDirection, float ImpactSpeed);
+	void ApplyZombieImpactSpeedPenalty(float ImpactSpeed);
 	void PlayLocalDriverZombieImpactBloodEffect();
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GameLogic")
@@ -401,6 +402,12 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Zombie")
 	float ZombieImpactContactTolerance = 35.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Zombie", meta = (ClampMin = "0.0", ClampMax = "0.95"))
+	float ZombieImpactMinSpeedLossRatio = 0.08f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Zombie", meta = (ClampMin = "0.0", ClampMax = "0.95"))
+	float ZombieImpactMaxSpeedLossRatio = 0.16f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Collision")
 	bool bAutoFitVehiclePawnCollision = true;

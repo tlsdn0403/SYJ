@@ -1034,6 +1034,22 @@ void UFPSProjectGameInstance::HandleLoadTruckItem(const Protocol::S_LOAD_TRUCK_I
 	RecordStage1CargoItems(LoadedItems);
 }
 
+void UFPSProjectGameInstance::HandleMachineGunAmmo(const Protocol::S_MACHINE_GUN_AMMO& pkt)
+{
+	ATruck* Truck = FindTruckById(pkt.truck_id());
+	if (Truck == nullptr)
+	{
+		return;
+	}
+
+	Truck->ApplyNetworkMachineGunAmmo(pkt.total_ammo(), pkt.current_ammo(), pkt.max_ammo());
+
+	if (MyPlayer && MyPlayer->CurrentTruck == Truck && MyPlayer->IsUsingMountedWeapon())
+	{
+		MyPlayer->UpdateMachineGunUI(true);
+	}
+}
+
 void UFPSProjectGameInstance::HandleToggleDoor(const Protocol::S_TOGGLE_DOOR& pkt)
 {
 	if (AADoor* Door = FindDoorById(pkt.door_id()))

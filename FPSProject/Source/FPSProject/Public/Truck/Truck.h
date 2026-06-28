@@ -239,6 +239,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Turret|Ammo")
 	void RefreshMachineGunAmmoFromCargo();
 
+	UFUNCTION(BlueprintCallable, Category = "Turret|Ammo")
+	void ApplyNetworkMachineGunAmmo(int32 TotalAmmo, int32 CurrentAmmo, int32 MaxAmmo);
+
 	UFUNCTION(BlueprintPure, Category = "Turret|Ammo")
 	int32 GetMachineGunTotalAmmo() const { return MachineGunTotalAmmo; }
 

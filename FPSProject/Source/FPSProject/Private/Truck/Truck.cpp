@@ -1726,6 +1726,14 @@ void ATruck::RefreshMachineGunAmmoFromCargo()
 	}
 }
 
+void ATruck::ApplyNetworkMachineGunAmmo(int32 TotalAmmo, int32 CurrentAmmo, int32 MaxAmmo)
+{
+	MachineGunMaxAmmo = FMath::Max(MaxAmmo, 0);
+	MachineGunTotalAmmo = FMath::Max(TotalAmmo, 0);
+	MachineGunCurrentAmmo = FMath::Clamp(CurrentAmmo, 0, MachineGunMaxAmmo);
+	LastSyncedMountedAmmoCount = FMath::Max(CurrentMountedAmmoCount, 0);
+}
+
 bool ATruck::ConsumeMachineGunBullet()
 {
 	RefreshMachineGunAmmoFromCargo();

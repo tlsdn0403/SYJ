@@ -584,8 +584,24 @@ struct S_ZOMBIE_DISMEMBERDefaultTypeInternal {
   };
 };
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 S_ZOMBIE_DISMEMBERDefaultTypeInternal _S_ZOMBIE_DISMEMBER_default_instance_;
+PROTOBUF_CONSTEXPR S_MACHINE_GUN_AMMO::S_MACHINE_GUN_AMMO(
+    ::_pbi::ConstantInitialized): _impl_{
+    /*decltype(_impl_.truck_id_)*/uint64_t{0u}
+  , /*decltype(_impl_.total_ammo_)*/0
+  , /*decltype(_impl_.current_ammo_)*/0
+  , /*decltype(_impl_.max_ammo_)*/0
+  , /*decltype(_impl_._cached_size_)*/{}} {}
+struct S_MACHINE_GUN_AMMODefaultTypeInternal {
+  PROTOBUF_CONSTEXPR S_MACHINE_GUN_AMMODefaultTypeInternal()
+      : _instance(::_pbi::ConstantInitialized{}) {}
+  ~S_MACHINE_GUN_AMMODefaultTypeInternal() {}
+  union {
+    S_MACHINE_GUN_AMMO _instance;
+  };
+};
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 S_MACHINE_GUN_AMMODefaultTypeInternal _S_MACHINE_GUN_AMMO_default_instance_;
 }  // namespace Protocol
-static ::_pb::Metadata file_level_metadata_Protocol_2eproto[39];
+static ::_pb::Metadata file_level_metadata_Protocol_2eproto[40];
 static constexpr ::_pb::EnumDescriptor const** file_level_enum_descriptors_Protocol_2eproto = nullptr;
 static constexpr ::_pb::ServiceDescriptor const** file_level_service_descriptors_Protocol_2eproto = nullptr;
 
@@ -918,6 +934,16 @@ const uint32_t TableStruct_Protocol_2eproto::offsets[] PROTOBUF_SECTION_VARIABLE
   PROTOBUF_FIELD_OFFSET(::Protocol::S_ZOMBIE_DISMEMBER, _impl_.impulse_x_),
   PROTOBUF_FIELD_OFFSET(::Protocol::S_ZOMBIE_DISMEMBER, _impl_.impulse_y_),
   PROTOBUF_FIELD_OFFSET(::Protocol::S_ZOMBIE_DISMEMBER, _impl_.impulse_z_),
+  ~0u,  // no _has_bits_
+  PROTOBUF_FIELD_OFFSET(::Protocol::S_MACHINE_GUN_AMMO, _internal_metadata_),
+  ~0u,  // no _extensions_
+  ~0u,  // no _oneof_case_
+  ~0u,  // no _weak_field_map_
+  ~0u,  // no _inlined_string_donated_
+  PROTOBUF_FIELD_OFFSET(::Protocol::S_MACHINE_GUN_AMMO, _impl_.truck_id_),
+  PROTOBUF_FIELD_OFFSET(::Protocol::S_MACHINE_GUN_AMMO, _impl_.total_ammo_),
+  PROTOBUF_FIELD_OFFSET(::Protocol::S_MACHINE_GUN_AMMO, _impl_.current_ammo_),
+  PROTOBUF_FIELD_OFFSET(::Protocol::S_MACHINE_GUN_AMMO, _impl_.max_ammo_),
 };
 static const ::_pbi::MigrationSchema schemas[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) = {
   { 0, -1, -1, sizeof(::Protocol::C_LOGIN)},
@@ -959,6 +985,7 @@ static const ::_pbi::MigrationSchema schemas[] PROTOBUF_SECTION_VARIABLE(protode
   { 299, -1, -1, sizeof(::Protocol::C_STAGE_TRANSITION_REQUEST)},
   { 307, -1, -1, sizeof(::Protocol::S_STAGE_TRANSITION)},
   { 314, -1, -1, sizeof(::Protocol::S_ZOMBIE_DISMEMBER)},
+  { 328, -1, -1, sizeof(::Protocol::S_MACHINE_GUN_AMMO)},
 };
 
 static const ::_pb::Message* const file_default_instances[] = {
@@ -1001,6 +1028,7 @@ static const ::_pb::Message* const file_default_instances[] = {
   &::Protocol::_C_STAGE_TRANSITION_REQUEST_default_instance_._instance,
   &::Protocol::_S_STAGE_TRANSITION_default_instance_._instance,
   &::Protocol::_S_ZOMBIE_DISMEMBER_default_instance_._instance,
+  &::Protocol::_S_MACHINE_GUN_AMMO_default_instance_._instance,
 };
 
 const char descriptor_table_protodef_Protocol_2eproto[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) =
@@ -1073,8 +1101,10 @@ const char descriptor_table_protodef_Protocol_2eproto[] PROTOBUF_SECTION_VARIABL
   "OMBIE_DISMEMBER\022\021\n\tzombie_id\030\001 \001(\004\022\021\n\tbo"
   "ne_name\030\002 \001(\t\022\r\n\005hit_x\030\003 \001(\002\022\r\n\005hit_y\030\004 "
   "\001(\002\022\r\n\005hit_z\030\005 \001(\002\022\021\n\timpulse_x\030\006 \001(\002\022\021\n"
-  "\timpulse_y\030\007 \001(\002\022\021\n\timpulse_z\030\010 \001(\002b\006pro"
-  "to3"
+  "\timpulse_y\030\007 \001(\002\022\021\n\timpulse_z\030\010 \001(\002\"b\n\022S"
+  "_MACHINE_GUN_AMMO\022\020\n\010truck_id\030\001 \001(\004\022\022\n\nt"
+  "otal_ammo\030\002 \001(\005\022\024\n\014current_ammo\030\003 \001(\005\022\020\n"
+  "\010max_ammo\030\004 \001(\005b\006proto3"
   ;
 static const ::_pbi::DescriptorTable* const descriptor_table_Protocol_2eproto_deps[2] = {
   &::descriptor_table_Enum_2eproto,
@@ -1082,9 +1112,9 @@ static const ::_pbi::DescriptorTable* const descriptor_table_Protocol_2eproto_de
 };
 static ::_pbi::once_flag descriptor_table_Protocol_2eproto_once;
 const ::_pbi::DescriptorTable descriptor_table_Protocol_2eproto = {
-    false, false, 2803, descriptor_table_protodef_Protocol_2eproto,
+    false, false, 2903, descriptor_table_protodef_Protocol_2eproto,
     "Protocol.proto",
-    &descriptor_table_Protocol_2eproto_once, descriptor_table_Protocol_2eproto_deps, 2, 39,
+    &descriptor_table_Protocol_2eproto_once, descriptor_table_Protocol_2eproto_deps, 2, 40,
     schemas, file_default_instances, TableStruct_Protocol_2eproto::offsets,
     file_level_metadata_Protocol_2eproto, file_level_enum_descriptors_Protocol_2eproto,
     file_level_service_descriptors_Protocol_2eproto,
@@ -9897,6 +9927,265 @@ void S_ZOMBIE_DISMEMBER::InternalSwap(S_ZOMBIE_DISMEMBER* other) {
       file_level_metadata_Protocol_2eproto[38]);
 }
 
+// ===================================================================
+
+class S_MACHINE_GUN_AMMO::_Internal {
+ public:
+};
+
+S_MACHINE_GUN_AMMO::S_MACHINE_GUN_AMMO(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
+  SharedCtor(arena, is_message_owned);
+  // @@protoc_insertion_point(arena_constructor:Protocol.S_MACHINE_GUN_AMMO)
+}
+S_MACHINE_GUN_AMMO::S_MACHINE_GUN_AMMO(const S_MACHINE_GUN_AMMO& from)
+  : ::PROTOBUF_NAMESPACE_ID::Message() {
+  S_MACHINE_GUN_AMMO* const _this = this; (void)_this;
+  new (&_impl_) Impl_{
+      decltype(_impl_.truck_id_){}
+    , decltype(_impl_.total_ammo_){}
+    , decltype(_impl_.current_ammo_){}
+    , decltype(_impl_.max_ammo_){}
+    , /*decltype(_impl_._cached_size_)*/{}};
+
+  _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+  ::memcpy(&_impl_.truck_id_, &from._impl_.truck_id_,
+    static_cast<size_t>(reinterpret_cast<char*>(&_impl_.max_ammo_) -
+    reinterpret_cast<char*>(&_impl_.truck_id_)) + sizeof(_impl_.max_ammo_));
+  // @@protoc_insertion_point(copy_constructor:Protocol.S_MACHINE_GUN_AMMO)
+}
+
+inline void S_MACHINE_GUN_AMMO::SharedCtor(
+    ::_pb::Arena* arena, bool is_message_owned) {
+  (void)arena;
+  (void)is_message_owned;
+  new (&_impl_) Impl_{
+      decltype(_impl_.truck_id_){uint64_t{0u}}
+    , decltype(_impl_.total_ammo_){0}
+    , decltype(_impl_.current_ammo_){0}
+    , decltype(_impl_.max_ammo_){0}
+    , /*decltype(_impl_._cached_size_)*/{}
+  };
+}
+
+S_MACHINE_GUN_AMMO::~S_MACHINE_GUN_AMMO() {
+  // @@protoc_insertion_point(destructor:Protocol.S_MACHINE_GUN_AMMO)
+  if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
+  (void)arena;
+    return;
+  }
+  SharedDtor();
+}
+
+inline void S_MACHINE_GUN_AMMO::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+}
+
+void S_MACHINE_GUN_AMMO::SetCachedSize(int size) const {
+  _impl_._cached_size_.Set(size);
+}
+
+void S_MACHINE_GUN_AMMO::Clear() {
+// @@protoc_insertion_point(message_clear_start:Protocol.S_MACHINE_GUN_AMMO)
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  ::memset(&_impl_.truck_id_, 0, static_cast<size_t>(
+      reinterpret_cast<char*>(&_impl_.max_ammo_) -
+      reinterpret_cast<char*>(&_impl_.truck_id_)) + sizeof(_impl_.max_ammo_));
+  _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
+}
+
+const char* S_MACHINE_GUN_AMMO::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  while (!ctx->Done(&ptr)) {
+    uint32_t tag;
+    ptr = ::_pbi::ReadTag(ptr, &tag);
+    switch (tag >> 3) {
+      // uint64 truck_id = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 8)) {
+          _impl_.truck_id_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // int32 total_ammo = 2;
+      case 2:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 16)) {
+          _impl_.total_ammo_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // int32 current_ammo = 3;
+      case 3:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 24)) {
+          _impl_.current_ammo_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // int32 max_ammo = 4;
+      case 4:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 32)) {
+          _impl_.max_ammo_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      default:
+        goto handle_unusual;
+    }  // switch
+  handle_unusual:
+    if ((tag == 0) || ((tag & 7) == 4)) {
+      CHK_(ptr);
+      ctx->SetLastTag(tag);
+      goto message_done;
+    }
+    ptr = UnknownFieldParse(
+        tag,
+        _internal_metadata_.mutable_unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(),
+        ptr, ctx);
+    CHK_(ptr != nullptr);
+  }  // while
+message_done:
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto message_done;
+#undef CHK_
+}
+
+uint8_t* S_MACHINE_GUN_AMMO::_InternalSerialize(
+    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:Protocol.S_MACHINE_GUN_AMMO)
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  // uint64 truck_id = 1;
+  if (this->_internal_truck_id() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt64ToArray(1, this->_internal_truck_id(), target);
+  }
+
+  // int32 total_ammo = 2;
+  if (this->_internal_total_ammo() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteInt32ToArray(2, this->_internal_total_ammo(), target);
+  }
+
+  // int32 current_ammo = 3;
+  if (this->_internal_current_ammo() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteInt32ToArray(3, this->_internal_current_ammo(), target);
+  }
+
+  // int32 max_ammo = 4;
+  if (this->_internal_max_ammo() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteInt32ToArray(4, this->_internal_max_ammo(), target);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+        _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:Protocol.S_MACHINE_GUN_AMMO)
+  return target;
+}
+
+size_t S_MACHINE_GUN_AMMO::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:Protocol.S_MACHINE_GUN_AMMO)
+  size_t total_size = 0;
+
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  // uint64 truck_id = 1;
+  if (this->_internal_truck_id() != 0) {
+    total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(this->_internal_truck_id());
+  }
+
+  // int32 total_ammo = 2;
+  if (this->_internal_total_ammo() != 0) {
+    total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(this->_internal_total_ammo());
+  }
+
+  // int32 current_ammo = 3;
+  if (this->_internal_current_ammo() != 0) {
+    total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(this->_internal_current_ammo());
+  }
+
+  // int32 max_ammo = 4;
+  if (this->_internal_max_ammo() != 0) {
+    total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(this->_internal_max_ammo());
+  }
+
+  return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
+}
+
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData S_MACHINE_GUN_AMMO::_class_data_ = {
+    ::PROTOBUF_NAMESPACE_ID::Message::CopyWithSourceCheck,
+    S_MACHINE_GUN_AMMO::MergeImpl
+};
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*S_MACHINE_GUN_AMMO::GetClassData() const { return &_class_data_; }
+
+
+void S_MACHINE_GUN_AMMO::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
+  auto* const _this = static_cast<S_MACHINE_GUN_AMMO*>(&to_msg);
+  auto& from = static_cast<const S_MACHINE_GUN_AMMO&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:Protocol.S_MACHINE_GUN_AMMO)
+  GOOGLE_DCHECK_NE(&from, _this);
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  if (from._internal_truck_id() != 0) {
+    _this->_internal_set_truck_id(from._internal_truck_id());
+  }
+  if (from._internal_total_ammo() != 0) {
+    _this->_internal_set_total_ammo(from._internal_total_ammo());
+  }
+  if (from._internal_current_ammo() != 0) {
+    _this->_internal_set_current_ammo(from._internal_current_ammo());
+  }
+  if (from._internal_max_ammo() != 0) {
+    _this->_internal_set_max_ammo(from._internal_max_ammo());
+  }
+  _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+}
+
+void S_MACHINE_GUN_AMMO::CopyFrom(const S_MACHINE_GUN_AMMO& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:Protocol.S_MACHINE_GUN_AMMO)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool S_MACHINE_GUN_AMMO::IsInitialized() const {
+  return true;
+}
+
+void S_MACHINE_GUN_AMMO::InternalSwap(S_MACHINE_GUN_AMMO* other) {
+  using std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  ::PROTOBUF_NAMESPACE_ID::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(S_MACHINE_GUN_AMMO, _impl_.max_ammo_)
+      + sizeof(S_MACHINE_GUN_AMMO::_impl_.max_ammo_)
+      - PROTOBUF_FIELD_OFFSET(S_MACHINE_GUN_AMMO, _impl_.truck_id_)>(
+          reinterpret_cast<char*>(&_impl_.truck_id_),
+          reinterpret_cast<char*>(&other->_impl_.truck_id_));
+}
+
+::PROTOBUF_NAMESPACE_ID::Metadata S_MACHINE_GUN_AMMO::GetMetadata() const {
+  return ::_pbi::AssignDescriptors(
+      &descriptor_table_Protocol_2eproto_getter, &descriptor_table_Protocol_2eproto_once,
+      file_level_metadata_Protocol_2eproto[39]);
+}
+
 // @@protoc_insertion_point(namespace_scope)
 }  // namespace Protocol
 PROTOBUF_NAMESPACE_OPEN
@@ -10055,6 +10344,10 @@ Arena::CreateMaybeMessage< ::Protocol::S_STAGE_TRANSITION >(Arena* arena) {
 template<> PROTOBUF_NOINLINE ::Protocol::S_ZOMBIE_DISMEMBER*
 Arena::CreateMaybeMessage< ::Protocol::S_ZOMBIE_DISMEMBER >(Arena* arena) {
   return Arena::CreateMessageInternal< ::Protocol::S_ZOMBIE_DISMEMBER >(arena);
+}
+template<> PROTOBUF_NOINLINE ::Protocol::S_MACHINE_GUN_AMMO*
+Arena::CreateMaybeMessage< ::Protocol::S_MACHINE_GUN_AMMO >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::Protocol::S_MACHINE_GUN_AMMO >(arena);
 }
 PROTOBUF_NAMESPACE_CLOSE
 

@@ -110,6 +110,8 @@ private:
 	void RefreshMachineGunAmmoFromCargo(TruckState& truckState);
 	bool ConsumeMachineGunBullet(TruckState& truckState);
 	void BroadcastMachineGunAmmo(const TruckState& truckState);
+	void CaptureStage2MachineGunAmmoFromTruck(uint64 truckId);
+	bool ApplyPendingStage2MachineGunAmmo(TruckState& truckState);
 	void SendStageTimerToSession(const GameSessionRef& session) const;
 	void SendStage1ItemSeedToSession(const GameSessionRef& session) const;
 	void SendStage2WeaponsToSession(const GameSessionRef& session) const;
@@ -194,10 +196,16 @@ private:
 	unordered_set<uint64> _stageTransitionReadyPlayerIds;
 	vector<int32> _stage2TileTypeSequence;
 	uint64 _nextStage2ZombieId = 0;
+	uint64 _stageTransitionTruckId = 0;
 	bool _bTruckLoadingPhaseActive = false;
 	bool _bStageTransitionStarted = false;
 	bool _bStage2ZombiesSpawned = false;
 	bool _bHasStage2TileTypeSequence = false;
+	bool _bHasPendingStage2MachineGunAmmo = false;
+	int32 _pendingStage2MountedAmmoCount = 0;
+	int32 _pendingStage2MachineGunMaxAmmo = 100;
+	int32 _pendingStage2MachineGunTotalAmmo = 0;
+	int32 _pendingStage2MachineGunCurrentAmmo = 0;
 	std::chrono::steady_clock::time_point _truckLoadingPhaseEndTime;
 	int32 _lastBroadcastTruckLoadingRemainingSeconds = -1;
 	uint32 _stage1ItemSpawnSeed = 0;

@@ -52,6 +52,7 @@ Room::TruckState& Room::GetOrCreateTruckState(uint64 truckId)
 		truckState.posInfo.set_state(Protocol::MOVE_STATE_IDLE);
 	}
 
+	ApplyPendingStage2MachineGunAmmo(truckState);
 	return truckState;
 }
 
@@ -244,6 +245,64 @@ void Room::BroadcastMachineGunAmmo(const TruckState& truckState)
 
 	SendBufferRef sendBuffer = ServerPacketHandler::MakeSendBuffer(ammoPkt);
 	Broadcast(sendBuffer);
+}
+void Room::CaptureStage2MachineGunAmmoFromTruck(uint64 truckId)
+{
+	_bHasPendingStage2MachineGunAmmo = false;
+	_pendingStage2MountedAmmoCount = 0;
+	_pendingStage2MachineGunMaxAmmo = 100;
+	_pendingStage2MachineGunTotalAmmo = 0;
+	_pendingStage2MachineGunCurrentAmmo = 0;
+
+	TruckState* truckState = FindTruckState(truckId);
+	if (truckState == nullptr)
+		return;
+
+	RefreshMachineGunAmmoFromCargo(*truckState);
+
+	_pendingStage2MountedAmmoCount = (std::max)(truckState->mountedAmmoCount, 0);
+	_pendingStage2MachineGunMaxAmmo = (std::max)(truckState->machineGunMaxAmmo, 0);
+	_pendingStage2MachineGunTotalAmmo = (std::max)(truckState->machineGunTotalAmmo, 0);
+	_pendingStage2MachineGunCurrentAmmo = (std::min)((std::max)(truckState->machineGunCurrentAmmo, 0), _pendingStage2MachineGunMaxAmmo);
+	_bHasPendingStage2MachineGunAmmo =
+		_pendingStage2MountedAmmoCount > 0 ||
+		_pendingStage2MachineGunTotalAmmo > 0 ||
+		_pendingStage2MachineGunCurrentAmmo > 0;
+
+	cout << "[Stage2MachineGunAmmo] Captured truckId=" << truckId
+		<< " mountedAmmoCount=" << _pendingStage2MountedAmmoCount
+		<< " total=" << _pendingStage2MachineGunTotalAmmo
+		<< " current=" << _pendingStage2MachineGunCurrentAmmo
+		<< " max=" << _pendingStage2MachineGunMaxAmmo << endl;
+}
+
+bool Room::ApplyPendingStage2MachineGunAmmo(TruckState& truckState)
+{
+	if (_bHasPendingStage2MachineGunAmmo == false)
+		return false;
+
+	if (truckState.posInfo.object_id() == 0)
+		return false;
+
+	truckState.mountedAmmoCount = _pendingStage2MountedAmmoCount;
+	truckState.lastSyncedMountedAmmoCount = _pendingStage2MountedAmmoCount;
+	truckState.machineGunMaxAmmo = _pendingStage2MachineGunMaxAmmo;
+	truckState.machineGunTotalAmmo = _pendingStage2MachineGunTotalAmmo;
+	truckState.machineGunCurrentAmmo = _pendingStage2MachineGunCurrentAmmo;
+
+	_bHasPendingStage2MachineGunAmmo = false;
+	_pendingStage2MountedAmmoCount = 0;
+	_pendingStage2MachineGunTotalAmmo = 0;
+	_pendingStage2MachineGunCurrentAmmo = 0;
+
+	cout << "[Stage2MachineGunAmmo] Applied truckId=" << truckState.posInfo.object_id()
+		<< " mountedAmmoCount=" << truckState.mountedAmmoCount
+		<< " total=" << truckState.machineGunTotalAmmo
+		<< " current=" << truckState.machineGunCurrentAmmo
+		<< " max=" << truckState.machineGunMaxAmmo << endl;
+
+	BroadcastMachineGunAmmo(truckState);
+	return true;
 }
 bool Room::EnterRoom(ObjectRef object, bool randPos /*= true*/)
 {
@@ -518,11 +577,14 @@ void Room::HandleStageMapReady(GameSessionRef session, Protocol::C_ENTER_GAME pk
 		readyPlayers.push_back(player);
 	}
 
+	CaptureStage2MachineGunAmmoFromTruck(_stageTransitionTruckId);
+
 	for (const PlayerRef& player : readyPlayers)
 	{
 		ClearPlayerTruckState(player);
 	}
 	_trucks.clear();
+	_stageTransitionTruckId = 0;
 
 	for (const PlayerRef& player : readyPlayers)
 	{
@@ -2225,6 +2287,7 @@ void Room::HandleStageTransitionRequest(PlayerRef player, Protocol::C_STAGE_TRAN
 		return;
 
 	_bStageTransitionStarted = true;
+	_stageTransitionTruckId = truckId;
 	_stageTransitionReadyPlayerIds.clear();
 
 	Protocol::S_STAGE_TRANSITION transitionPkt;

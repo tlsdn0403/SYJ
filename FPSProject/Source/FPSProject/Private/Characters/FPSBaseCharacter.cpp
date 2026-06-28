@@ -700,7 +700,8 @@ void AFPSBaseCharacter::ExitTruckDriverSeat()
 
 	bIsDrivingTruck = false;
 	CurrentTruck = nullptr;
-	StopShowingTruckFuelOnHUD();
+	ShowTruckHealthOnHUD(Truck);
+	ShowTruckFuelOnHUD(Truck);
 	SetHeldWeaponVehicleVisibility(false);
 	RefreshTruckInteractionState(Truck);
 	Truck->RefreshInteractionWidgetsForCharacter(this);
@@ -782,7 +783,8 @@ void AFPSBaseCharacter::ExitTruckCargo()
 
 	bIsOnTruckCargo = false;
 	CurrentTruck = nullptr;
-	StopShowingTruckFuelOnHUD();
+	ShowTruckHealthOnHUD(Truck);
+	ShowTruckFuelOnHUD(Truck);
 	bHasReplicatedTruckCargoLocalLocation = false;
 	bHasLastTruckCargoLocalLocationForMoveState = false;
 	RefreshTruckInteractionState(Truck);
@@ -971,7 +973,8 @@ void AFPSBaseCharacter::ExitMountedWeapon(bool bReturnToCargo)
 	{
 		bIsOnTruckCargo = false;
 		CurrentTruck = nullptr;
-		StopShowingTruckFuelOnHUD();
+		ShowTruckHealthOnHUD(Truck);
+		ShowTruckFuelOnHUD(Truck);
 		bHasReplicatedTruckCargoLocalLocation = false;
 		bHasLastTruckCargoLocalLocationForMoveState = false;
 

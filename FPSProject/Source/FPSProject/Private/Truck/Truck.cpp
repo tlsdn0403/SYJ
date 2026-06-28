@@ -2377,10 +2377,6 @@ void ATruck::RefreshInteractionWidgetsForCharacter(AFPSBaseCharacter* Character)
 		{
 			Character->ShowTruckHealthOnHUD(this);
 		}
-		else if (Character->CurrentTruck == nullptr)
-		{
-			Character->RestorePlayerHealthOnHUD();
-		}
 	}
 
 	if (Character && VehiclePawnCollision)

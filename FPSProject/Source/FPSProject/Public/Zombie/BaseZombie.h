@@ -47,6 +47,7 @@ public:
 	void Attack();
 	void Attack(AActor* TargetActor);
 	bool IsTargetInAttackRange(AActor* TargetActor) const;
+	float GetTruckAttackStandOffDistance() const;
 	void ApplyDirectPursuitInput(const FVector& TargetLocation);
 	bool TryGetFallZonePursuitLocation(AActor* TargetActor, FVector& OutApproachLocation, FVector& OutCommitLocation);
 
@@ -130,6 +131,12 @@ private:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zombie|Attack", meta = (AllowPrivateAccess = "true"))
 	float AttackRange = 200.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zombie|Attack", meta = (AllowPrivateAccess = "true", ClampMin = "0.0"))
+	float TruckAttackStandOffPadding = 35.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zombie|Attack", meta = (AllowPrivateAccess = "true", ClampMin = "0.0"))
+	float TruckAttackPositionTolerance = 45.0f;
 
 	// 몽타주 45퍼 진행되면 데미지를 줌
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zombie|Attack", meta = (AllowPrivateAccess = "true", ClampMin = "0.0", ClampMax = "0.95"))

@@ -775,9 +775,37 @@ void UFPSProjectGameInstance::HandleZombieDismember(const Protocol::S_ZOMBIE_DIS
 		return;
 	}
 
-	const FName BoneName(UTF8_TO_TCHAR(pkt.bone_name().c_str()));
 	const FVector HitLocation(pkt.hit_x(), pkt.hit_y(), pkt.hit_z());
 	const FVector Impulse(pkt.impulse_x(), pkt.impulse_y(), pkt.impulse_z());
+	const FString BoneNameString(UTF8_TO_TCHAR(pkt.bone_name().c_str()));
+	const bool bTruckImpact = BoneNameString == TEXT("__truck_impact__");
+	const bool bTruckImpactRagdoll = BoneNameString == TEXT("__truck_impact_ragdoll__");
+	if (bTruckImpact || bTruckImpactRagdoll)
+	{
+		FVector ImpactDirection(Impulse.X, Impulse.Y, 0.0f);
+		if (ImpactDirection.IsNearlyZero())
+		{
+			ImpactDirection = FVector(Impulse.X, Impulse.Y, Impulse.Z).GetSafeNormal();
+		}
+		else
+		{
+			ImpactDirection.Normalize();
+		}
+
+		const float KnockbackScale = FMath::Clamp(Impulse.Size2D() / 312000.0f, 0.8f, 1.8f);
+		const FVector LaunchVelocity =
+			ImpactDirection * (1900.0f * KnockbackScale) +
+			FVector::UpVector * (550.0f * KnockbackScale);
+		Zombie->ApplyTruckImpactKnockback(
+			LaunchVelocity,
+			Impulse,
+			HitLocation,
+			bTruckImpactRagdoll,
+			0.70f);
+		return;
+	}
+
+	const FName BoneName(*BoneNameString);
 	Zombie->HandleNetworkDismember(BoneName, Impulse, HitLocation);
 }
 

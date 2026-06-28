@@ -176,10 +176,9 @@ private:
 	Stage2WeaponState* FindStage2Weapon(uint64 itemId);
 
 private:
-	//[? ìš°] ?„ì¬ 2?¤í…Œ?´ì? ?¸ëŸ­ ?ì¬?¨ì? ìµœë? 4ëª…ê¹Œì§€ ?€??êµ¬ì¡°ë¡??œë²„?ì„œ ?œí•œ?œë‹¤.
 	static constexpr size_t MAX_CARGO_OCCUPANTS = 4;
 	static constexpr size_t REQUIRED_STAGE2_PLAYER_COUNT = 3;
-	static constexpr int32 TRUCK_LOADING_PHASE_DURATION_SECONDS = 120;
+	static constexpr int32 TRUCK_LOADING_PHASE_DURATION_SECONDS = 10;
 
 	unordered_map<uint64, ObjectRef> _objects;
 	unordered_map<uint64, TruckState> _trucks;

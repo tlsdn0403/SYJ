@@ -398,6 +398,13 @@ void AMountedMachineGun::AttachUserToOperatorSeat(AFPSBaseCharacter* User)
 	User->AttachToComponent(OperatorSeatPoint, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
 }
 
+void AMountedMachineGun::SetMagazineAmmo(int32 CurrentAmmo, int32 MaxAmmo)
+{
+	MagazineCapacity = FMath::Max(MaxAmmo, 0);
+	CurrentBulletsInMagazine = FMath::Clamp(CurrentAmmo, 0, MagazineCapacity);
+	UpdateMagazineAnimationState(false);
+}
+
 FVector AMountedMachineGun::GetCameraLocation() const
 {
 	return CameraPoint ? CameraPoint->GetComponentLocation() : GetActorLocation();

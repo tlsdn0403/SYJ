@@ -669,6 +669,11 @@ namespace
 	constexpr float ZOMBIE_SEPARATION_GRID_CELL_SIZE = ZOMBIE_SEPARATION_RADIUS;
 	constexpr float ZOMBIE_SEPARATION_WEIGHT = 1.35f;
 	constexpr int32 ZOMBIE_SEPARATION_MAX_NEIGHBORS = 8;
+	constexpr float ZOMBIE_YAW_TURN_RATE_DEGREES = 360.0f;
+	constexpr float ZOMBIE_TRUCK_IMPACT_EVENT_MIN_DAMAGE = 35.0f;
+	constexpr float ZOMBIE_TRUCK_IMPACT_BASE_DAMAGE = 50.0f;
+	constexpr float ZOMBIE_TRUCK_IMPACT_FATAL_DAMAGE = 200.0f;
+	constexpr float ZOMBIE_TRUCK_IMPACT_BASE_IMPULSE = 260000.0f;
 	constexpr float ZOMBIE_PATH_RECALC_SECONDS = 0.75f;
 	constexpr float ZOMBIE_PATH_TARGET_REPATH_DISTANCE = 300.0f;
 	constexpr float ZOMBIE_WAYPOINT_REACHED_DISTANCE = 80.0f;
@@ -726,6 +731,44 @@ namespace
 	int64 MakeZombieNavCellKey(int32 x, int32 y)
 	{
 		return (static_cast<int64>(x) << 32) ^ static_cast<uint32>(y);
+	}
+
+	float NormalizeYawDegrees(float yaw)
+	{
+		if (!std::isfinite(yaw))
+			return 0.0f;
+
+		yaw = fmodf(yaw + 180.0f, 360.0f);
+		if (yaw < 0.0f)
+			yaw += 360.0f;
+
+		return yaw - 180.0f;
+	}
+
+	float FindDeltaYawDegrees(float fromYaw, float toYaw)
+	{
+		return NormalizeYawDegrees(toYaw - fromYaw);
+	}
+
+	float StepYawTowards(float currentYaw, float desiredYaw, float maxStepDegrees)
+	{
+		const float yawDelta = FindDeltaYawDegrees(currentYaw, desiredYaw);
+		const float clampedStep = maxStepDegrees > 0.0f ? maxStepDegrees : 0.0f;
+		if (fabsf(yawDelta) <= clampedStep)
+			return NormalizeYawDegrees(desiredYaw);
+
+		return NormalizeYawDegrees(currentYaw + (yawDelta > 0.0f ? clampedStep : -clampedStep));
+	}
+
+	float ClampFloat(float value, float minValue, float maxValue)
+	{
+		if (value < minValue)
+			return minValue;
+
+		if (value > maxValue)
+			return maxValue;
+
+		return value;
 	}
 
 	ZombieNavCell WorldToZombieNavCell(float x, float y)
@@ -1165,7 +1208,7 @@ bool Room::ShouldBroadcastZombieMove(const MonsterRef& monster, bool force)
 	const float dy = currentY - state.lastY;
 	const float dz = currentZ - state.lastZ;
 	const float distSq = dx * dx + dy * dy + dz * dz;
-	const float yawDelta = fabsf(currentYaw - state.lastYaw);
+	const float yawDelta = fabsf(FindDeltaYawDegrees(state.lastYaw, currentYaw));
 	if (distSq >= ZOMBIE_MOVE_BROADCAST_DISTANCE * ZOMBIE_MOVE_BROADCAST_DISTANCE)
 		return true;
 
@@ -1474,6 +1517,15 @@ void Room::UpdateZombies()
 		if (distSq <= attackRangeSq)
 		{
 			monster->posInfo->set_state(Protocol::MOVE_STATE_IDLE);
+			if (dx * dx + dy * dy > 0.001f)
+			{
+				const float desiredYaw = atan2f(dy, dx) * (180.0f / 3.1415926535f);
+				monster->posInfo->set_yaw(StepYawTowards(
+					monster->posInfo->yaw(),
+					desiredYaw,
+					ZOMBIE_YAW_TURN_RATE_DEGREES * aiDeltaSeconds));
+			}
+
 			const float separationSq = separationX * separationX + separationY * separationY;
 			if (separationSq > 0.001f)
 			{
@@ -1545,6 +1597,16 @@ void Room::UpdateZombies()
 			const float distance = sqrtf(pathDistSq);
 			if (distance > 0.001f)
 			{
+				const float pathDistSq2D = pathDx * pathDx + pathDy * pathDy;
+				if (pathDistSq2D > 0.001f)
+				{
+					const float desiredYaw = atan2f(pathDy, pathDx) * (180.0f / 3.1415926535f);
+					monster->posInfo->set_yaw(StepYawTowards(
+						monster->posInfo->yaw(),
+						desiredYaw,
+						ZOMBIE_YAW_TURN_RATE_DEGREES * aiDeltaSeconds));
+				}
+
 				const float moveStep = ZOMBIE_MOVE_SPEED * monster->GetMoveSpeedScale() * aiDeltaSeconds;
 				float moveX = pathDx / distance;
 				float moveY = pathDy / distance;
@@ -1569,7 +1631,6 @@ void Room::UpdateZombies()
 				monster->posInfo->set_x(monster->posInfo->x() + moveX * moveAlpha);
 				monster->posInfo->set_y(monster->posInfo->y() + moveY * moveAlpha);
 				monster->posInfo->set_z(monster->posInfo->z() + pathDz * ((moveAlpha < distance) ? (moveAlpha / distance) : 1.0f));
-				monster->posInfo->set_yaw(atan2f(moveY, moveX) * (180.0f / 3.1415926535f));
 			}
 
 			monster->posInfo->set_state(Protocol::MOVE_STATE_RUN);
@@ -1716,6 +1777,44 @@ void Room::HandleHitZombie(PlayerRef player, Protocol::C_HIT_ZOMBIE pkt)
 		return;
 
 	monster->ApplyDamage(damage);
+
+	const float hitNormalX = pkt.hit_normal_x();
+	const float hitNormalY = pkt.hit_normal_y();
+	const float hitNormalZ = pkt.hit_normal_z();
+	const float hitNormalLenSq = hitNormalX * hitNormalX + hitNormalY * hitNormalY + hitNormalZ * hitNormalZ;
+	const bool isTruckImpactHit =
+		pkt.hit_bone_name().empty() &&
+		damage >= ZOMBIE_TRUCK_IMPACT_EVENT_MIN_DAMAGE &&
+		hitNormalLenSq > 0.25f;
+	if (isTruckImpactHit)
+	{
+		const float hitNormalLen = sqrtf(hitNormalLenSq);
+		const float impactDirX = hitNormalX / hitNormalLen;
+		const float impactDirY = hitNormalY / hitNormalLen;
+		const float impactDirZ = hitNormalZ / hitNormalLen;
+		const float damageAlpha = ClampFloat(
+			(damage - ZOMBIE_TRUCK_IMPACT_BASE_DAMAGE) /
+			(ZOMBIE_TRUCK_IMPACT_FATAL_DAMAGE - ZOMBIE_TRUCK_IMPACT_BASE_DAMAGE),
+			0.0f,
+			1.0f);
+		const float knockbackScale = 1.0f + damageAlpha * 0.6f;
+
+		Protocol::S_ZOMBIE_DISMEMBER impactPkt;
+		impactPkt.set_zombie_id(zombieId);
+		impactPkt.set_bone_name(monster->IsDead() ? "__truck_impact_ragdoll__" : "__truck_impact__");
+		impactPkt.set_hit_x(pkt.hit_x());
+		impactPkt.set_hit_y(pkt.hit_y());
+		impactPkt.set_hit_z(pkt.hit_z());
+		impactPkt.set_impulse_x(impactDirX * ZOMBIE_TRUCK_IMPACT_BASE_IMPULSE * knockbackScale * 1.2f);
+		impactPkt.set_impulse_y(impactDirY * ZOMBIE_TRUCK_IMPACT_BASE_IMPULSE * knockbackScale * 1.2f);
+		impactPkt.set_impulse_z(
+			impactDirZ * ZOMBIE_TRUCK_IMPACT_BASE_IMPULSE * knockbackScale * 1.2f +
+			ZOMBIE_TRUCK_IMPACT_BASE_IMPULSE * 0.2f * knockbackScale);
+
+		SendBufferRef impactBuffer = ServerPacketHandler::MakeSendBuffer(impactPkt);
+		Broadcast(impactBuffer, player->objectInfo ? player->objectInfo->object_id() : 0);
+	}
+
 	std::string brokenBoneName;
 	if (monster->ApplyBoneDamage(pkt.hit_bone_name(), damage, brokenBoneName))
 	{

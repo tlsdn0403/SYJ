@@ -25,6 +25,7 @@
 #include "Perception/AISense_Hearing.h"
 #include "Perception/AISense_Sight.h"
 #include "HUD/InventoryWidget.h"
+#include "HUD/EffectUI.h"
 #include "Characters/FPSPlayerController.h"
 #include "FPSStage2WorldUtils.h"
 #include "Stage2/Stage2TileManager.h"
@@ -681,14 +682,14 @@ void ATruck::SetLocallyDriven(bool bLocallyDriven)
 
 	if (auto* MoveComp = Cast<UChaosWheeledVehicleMovementComponent>(GetVehicleMovement()))
 	{
-		MoveComp->SetComponentTickEnabled(bLocallyDriven);
+		MoveComp->SetComponentTickEnabled(bLocallyDriven && !bCinematicControlLocked);
 	}
 
 	ClearDrivingInput(!bLocallyDriven || bCinematicControlLocked);
 
 	if (USkeletalMeshComponent* TruckMesh = GetMesh())
 	{
-		if (bLocallyDriven)
+		if (bLocallyDriven && !bCinematicControlLocked)
 		{
 			EnsureVehicleMeshPhysicsReady(TruckMesh, true);
 		}
@@ -710,6 +711,30 @@ void ATruck::SetCinematicControlLocked(bool bLocked)
 	TruckMovePacketSendTimer = 0.0f;
 	DebugTransformLogTimer = 0.0f;
 	ClearDrivingInput(bCinematicControlLocked || !bIsLocallyDriven);
+
+	if (UChaosWheeledVehicleMovementComponent* MoveComp = Cast<UChaosWheeledVehicleMovementComponent>(GetVehicleMovement()))
+	{
+		MoveComp->SetComponentTickEnabled(bIsLocallyDriven && !bCinematicControlLocked);
+	}
+
+	if (USkeletalMeshComponent* TruckMesh = GetMesh())
+	{
+		if (bCinematicControlLocked)
+		{
+			MakeVehicleMeshKinematic(TruckMesh);
+		}
+		else if (bIsLocallyDriven)
+		{
+			EnsureVehicleMeshPhysicsReady(TruckMesh, true);
+			TruckMesh->SetPhysicsLinearVelocity(FVector::ZeroVector);
+			TruckMesh->SetPhysicsAngularVelocityInDegrees(FVector::ZeroVector);
+		}
+		else
+		{
+			MakeVehicleMeshKinematic(TruckMesh);
+		}
+	}
+
 	SetInteractionWidgetsHidden(bCinematicControlLocked);
 
 	if (!bCinematicControlLocked)
@@ -903,6 +928,7 @@ void ATruck::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 	PlayerInputComponent->BindAxis("Brake", this, &ATruck::Brake);
 	PlayerInputComponent->BindAction("Interact", IE_Pressed, this, &ATruck::ExitDriverSeat);
 	PlayerInputComponent->BindAction("UseHealPack", IE_Pressed, this, &ATruck::UseDriverHealPack);
+	PlayerInputComponent->BindAction("RecoverTruckUpright", IE_Pressed, this, &ATruck::RecoverTruckUpright);
 }
 
 float ATruck::GetTruckHealth() const
@@ -1326,6 +1352,150 @@ void ATruck::Brake(float Value)
 	}
 }
 
+void ATruck::RecoverTruckUpright()
+{
+	if (!CanRecoverTruckUpright())
+	{
+		return;
+	}
+
+	FVector RecoveryLocation = GetActorLocation();
+	if (!TryGetUprightRecoveryLocation(RecoveryLocation))
+	{
+		RecoveryLocation += FVector(0.0f, 0.0f, UprightRecoveryGroundClearance);
+	}
+
+	FRotator RecoveryRotation(0.0f, GetActorRotation().Yaw, 0.0f);
+	RecoveryRotation.Normalize();
+
+	ClearDrivingInput(false);
+	TruckMovePacketSendTimer = 0.0f;
+	DebugTransformLogTimer = 0.0f;
+
+	if (USkeletalMeshComponent* TruckMesh = GetMesh())
+	{
+		EnsureVehicleMeshPhysicsReady(TruckMesh, true);
+		TruckMesh->SetPhysicsLinearVelocity(FVector::ZeroVector);
+		TruckMesh->SetPhysicsAngularVelocityInDegrees(FVector::ZeroVector);
+	}
+
+	SetActorLocationAndRotation(
+		RecoveryLocation,
+		RecoveryRotation,
+		false,
+		nullptr,
+		ETeleportType::TeleportPhysics);
+
+	if (USkeletalMeshComponent* TruckMesh = GetMesh())
+	{
+		TruckMesh->SetPhysicsLinearVelocity(FVector::ZeroVector);
+		TruckMesh->SetPhysicsAngularVelocityInDegrees(FVector::ZeroVector);
+		TruckMesh->WakeAllRigidBodies();
+		RefreshVehicleMeshRenderState(TruckMesh);
+	}
+
+	if (AController* TruckController = GetController())
+	{
+		TruckController->SetControlRotation(RecoveryRotation);
+	}
+
+	TeleportOccupantsAfterUprightRecovery();
+	SendTruckMovePacket();
+
+	UE_LOG(LogTemp, Log,
+		TEXT("[TruckRecovery] Recovered upright. Truck=%s Location=%s Rotation=%s Driver=%s"),
+		*GetNameSafe(this),
+		*RecoveryLocation.ToString(),
+		*RecoveryRotation.ToString(),
+		*GetNameSafe(DriverCharacter));
+}
+
+bool ATruck::CanRecoverTruckUpright() const
+{
+	if (!bIsLocallyDriven || bCinematicControlLocked)
+	{
+		return false;
+	}
+
+	if (!IsValid(DriverCharacter) ||
+		!DriverCharacter->IsDrivingTruck() ||
+		DriverCharacter->CurrentTruck != this)
+	{
+		return false;
+	}
+
+	return GetActorUpVector().Z <= FMath::Clamp(UprightRecoveryMaxUpDot, -1.0f, 1.0f);
+}
+
+bool ATruck::TryGetUprightRecoveryLocation(FVector& OutRecoveryLocation) const
+{
+	const UWorld* World = GetWorld();
+	if (!World)
+	{
+		return false;
+	}
+
+	const FVector CurrentLocation = GetActorLocation();
+	const FVector TraceStart = CurrentLocation + FVector(0.0f, 0.0f, FMath::Max(0.0f, UprightRecoveryGroundTraceUpDistance));
+	const FVector TraceEnd = CurrentLocation - FVector(0.0f, 0.0f, FMath::Max(0.0f, UprightRecoveryGroundTraceDownDistance));
+
+	FHitResult GroundHit;
+	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(TruckUprightRecoveryGroundTrace), false, this);
+	QueryParams.AddIgnoredActor(this);
+	if (DriverCharacter)
+	{
+		QueryParams.AddIgnoredActor(DriverCharacter);
+	}
+
+	if (!World->LineTraceSingleByChannel(GroundHit, TraceStart, TraceEnd, ECC_Visibility, QueryParams))
+	{
+		return false;
+	}
+
+	float ActorOriginToBottom = 120.0f;
+	if (const USkeletalMeshComponent* TruckMesh = GetMesh())
+	{
+		const FBoxSphereBounds MeshBounds = TruckMesh->Bounds;
+		const float CurrentMeshBottomZ = MeshBounds.Origin.Z - MeshBounds.BoxExtent.Z;
+		ActorOriginToBottom = FMath::Max(ActorOriginToBottom, CurrentLocation.Z - CurrentMeshBottomZ);
+	}
+
+	OutRecoveryLocation = FVector(
+		CurrentLocation.X,
+		CurrentLocation.Y,
+		GroundHit.ImpactPoint.Z + ActorOriginToBottom + FMath::Max(0.0f, UprightRecoveryGroundClearance));
+	return true;
+}
+
+void ATruck::TeleportOccupantsAfterUprightRecovery()
+{
+	if (IsValid(DriverCharacter) && DriverCharacter->IsDrivingTruck() && DriverCharacter->CurrentTruck == this)
+	{
+		DriverCharacter->AttachToComponent(DriverSeatPoint, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+		DriverCharacter->SetActorRelativeLocation(FVector::ZeroVector);
+		DriverCharacter->SetActorRelativeRotation(FRotator::ZeroRotator);
+	}
+
+	if (IsValid(MountedWeaponUser) &&
+		MountedWeaponUser->IsUsingMountedWeapon() &&
+		MountedWeaponUser->CurrentTruck == this &&
+		TurretSeatPoint)
+	{
+		MountedWeaponUser->AttachToComponent(TurretSeatPoint, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+		MountedWeaponUser->SetActorRelativeLocation(FVector::ZeroVector);
+		MountedWeaponUser->SetActorRelativeRotation(FRotator::ZeroRotator);
+	}
+
+	if (MountedWeapon && TurretMountPoint)
+	{
+		MountedWeapon->AttachToComponent(TurretMountPoint, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+		MountedWeapon->SetActorRelativeLocation(MountedWeaponRelativeTransform.GetLocation());
+		MountedWeapon->SetActorRelativeRotation(MountedWeaponRelativeTransform.Rotator());
+		MountedWeapon->SetActorRelativeScale3D(MountedWeaponRelativeTransform.GetScale3D());
+		MountedWeapon->ConfigureOperatorSeat(TurretSeatPoint ? TurretSeatPoint->GetComponentTransform() : TurretMountPoint->GetComponentTransform());
+	}
+}
+
 void ATruck::CheckZombieImpactSweep()
 {
 	UWorld* World = GetWorld();
@@ -1335,25 +1505,12 @@ void ATruck::CheckZombieImpactSweep()
 		return;
 	}
 
-	FVector VehicleVelocity = GetVelocity();
 	if (!bIsLocallyDriven && NetworkTruckId != 0)
 	{
-		const float CurrentTime = World->GetTimeSeconds();
-		const FVector CurrentLocation = GetActorLocation();
-		if (bHasImpactSweepSample)
-		{
-			const float DeltaSeconds = CurrentTime - LastImpactSweepTime;
-			if (DeltaSeconds > KINDA_SMALL_NUMBER)
-			{
-				VehicleVelocity = (CurrentLocation - LastImpactSweepLocation) / DeltaSeconds;
-			}
-		}
-
-		LastImpactSweepLocation = CurrentLocation;
-		LastImpactSweepTime = CurrentTime;
-		bHasImpactSweepSample = true;
+		return;
 	}
 
+	FVector VehicleVelocity = GetVelocity();
 	const float ImpactSpeed = VehicleVelocity.Size();
 	if (ImpactSpeed < ZombieImpactMinSpeed)
 	{
@@ -1709,6 +1866,16 @@ bool ATruck::TryEnterMountedWeapon(AFPSBaseCharacter* Character)
 
 void ATruck::RefreshMachineGunAmmoFromCargo()
 {
+	SyncMachineGunReserveFromCargo();
+
+	if (!bMachineGunMagazineInitialized && MachineGunCurrentAmmo <= 0 && MachineGunTotalAmmo > 0)
+	{
+		ReloadMachineGun();
+	}
+}
+
+void ATruck::SyncMachineGunReserveFromCargo()
+{
 	const int32 SafeMaxAmmo = FMath::Max(MachineGunMaxAmmo, 0);
 	const int32 SafeMountedAmmoCount = FMath::Max(CurrentMountedAmmoCount, 0);
 	const int32 AmmoCountDelta = SafeMountedAmmoCount - LastSyncedMountedAmmoCount;
@@ -1725,10 +1892,6 @@ void ATruck::RefreshMachineGunAmmoFromCargo()
 	}
 
 	MachineGunCurrentAmmo = FMath::Clamp(MachineGunCurrentAmmo, 0, SafeMaxAmmo);
-	if (MachineGunCurrentAmmo <= 0 && MachineGunTotalAmmo > 0)
-	{
-		MachineGunCurrentAmmo = FMath::Min(SafeMaxAmmo, MachineGunTotalAmmo);
-	}
 }
 
 void ATruck::ApplyNetworkMachineGunAmmo(int32 TotalAmmo, int32 CurrentAmmo, int32 MaxAmmo)
@@ -1737,25 +1900,52 @@ void ATruck::ApplyNetworkMachineGunAmmo(int32 TotalAmmo, int32 CurrentAmmo, int3
 	MachineGunTotalAmmo = FMath::Max(TotalAmmo, 0);
 	MachineGunCurrentAmmo = FMath::Clamp(CurrentAmmo, 0, MachineGunMaxAmmo);
 	LastSyncedMountedAmmoCount = FMath::Max(CurrentMountedAmmoCount, 0);
+	bMachineGunMagazineInitialized = true;
+
+	if (MountedWeapon)
+	{
+		MountedWeapon->SetMagazineAmmo(MachineGunCurrentAmmo, MachineGunMaxAmmo);
+	}
 }
 
 bool ATruck::ConsumeMachineGunBullet()
 {
 	RefreshMachineGunAmmoFromCargo();
 
-	if (MachineGunTotalAmmo <= 0 || MachineGunCurrentAmmo <= 0)
+	if (MachineGunCurrentAmmo <= 0)
 	{
-		MachineGunTotalAmmo = FMath::Max(MachineGunTotalAmmo, 0);
 		MachineGunCurrentAmmo = 0;
 		return false;
 	}
 
-	--MachineGunTotalAmmo;
 	--MachineGunCurrentAmmo;
+	bMachineGunMagazineInitialized = true;
 
-	if (MachineGunCurrentAmmo <= 0 && MachineGunTotalAmmo > 0)
+	return true;
+}
+
+bool ATruck::ReloadMachineGun()
+{
+	SyncMachineGunReserveFromCargo();
+
+	MachineGunMaxAmmo = FMath::Max(MachineGunMaxAmmo, 0);
+	MachineGunCurrentAmmo = FMath::Clamp(MachineGunCurrentAmmo, 0, MachineGunMaxAmmo);
+
+	const int32 MissingAmmo = MachineGunMaxAmmo - MachineGunCurrentAmmo;
+	if (MachineGunMaxAmmo <= 0 || MissingAmmo <= 0 || MachineGunTotalAmmo <= 0)
 	{
-		MachineGunCurrentAmmo = FMath::Min(FMath::Max(MachineGunMaxAmmo, 0), MachineGunTotalAmmo);
+		bMachineGunMagazineInitialized = MachineGunCurrentAmmo > 0;
+		return false;
+	}
+
+	const int32 ReloadAmount = FMath::Min(MissingAmmo, MachineGunTotalAmmo);
+	MachineGunCurrentAmmo += ReloadAmount;
+	MachineGunTotalAmmo -= ReloadAmount;
+	bMachineGunMagazineInitialized = true;
+
+	if (MountedWeapon)
+	{
+		MountedWeapon->SetMagazineAmmo(MachineGunCurrentAmmo, MachineGunMaxAmmo);
 	}
 
 	return true;
@@ -1828,6 +2018,11 @@ void ATruck::OnTruckMeshHit(UPrimitiveComponent* HitComponent, AActor* OtherActo
 
 void ATruck::ProcessZombieImpact(ABaseZombie* Zombie, const FVector& ImpactPoint, const FVector& ImpactDirection, float ImpactSpeed)
 {
+	if (!bIsLocallyDriven && NetworkTruckId != 0)
+	{
+		return;
+	}
+
 	// 속도가 느리거나 좀비가 죽으면 무시
 	if (!Zombie || !Zombie->IsAlive() || ImpactSpeed < ZombieImpactMinSpeed)
 	{
@@ -1845,6 +2040,7 @@ void ATruck::ProcessZombieImpact(ABaseZombie* Zombie, const FVector& ImpactPoint
 	}
 	// LastZombieImpactTimes 맵에 좀비의 마지막 충돌 시간을 업데이트
 	LastZombieImpactTimes.Add(Zombie, CurrentTime);
+	PlayLocalDriverZombieImpactBloodEffect();
 
 	if (ZombieCrashSound)
 	{
@@ -1907,8 +2103,7 @@ void ATruck::ProcessZombieImpact(ABaseZombie* Zombie, const FVector& ImpactPoint
 	const bool bCanReportServerHit = bIsLocallyDriven || NetworkTruckId == 0;
 	const bool bNetworkHitSent = bCanReportServerHit &&
 		UFPSProjectGameInstance::SendZombieHitPacket(DriverCharacter, Zombie, Damage, ImpactPoint, NAME_None, ImpactFlingDirection);
-	const bool bRemoteNetworkTruckImpact = bNetworkZombie && NetworkTruckId != 0 && !bIsLocallyDriven;
-	if (bNetworkZombie && (bNetworkHitSent || bRemoteNetworkTruckImpact || NetworkTruckId != 0))
+	if (bNetworkZombie && (bNetworkHitSent || NetworkTruckId != 0))
 	{
 		Zombie->ApplyTruckImpactKnockback(
 			LaunchVelocity,
@@ -1950,6 +2145,40 @@ void ATruck::ProcessZombieImpact(ABaseZombie* Zombie, const FVector& ImpactPoint
 	{
 		ZombieMesh->AddImpulseAtLocation(WorldImpulse, ImpactPoint, FName(TEXT("pelvis")));
 	}
+}
+
+void ATruck::PlayLocalDriverZombieImpactBloodEffect()
+{
+	if (!FPSStage2WorldUtils::IsStage2World(GetWorld()) || !IsValid(DriverCharacter))
+	{
+		return;
+	}
+
+	if (DriverCharacter->CurrentTruck != this || !DriverCharacter->IsDrivingTruck())
+	{
+		return;
+	}
+
+	APlayerController* LocalPlayerController = UGameplayStatics::GetPlayerController(this, 0);
+	if (!LocalPlayerController)
+	{
+		return;
+	}
+
+	const bool bLocalControllerOwnsTruck = GetController() == LocalPlayerController;
+	const bool bLocalDriver = bIsLocallyDriven || bLocalControllerOwnsTruck;
+	if (!bLocalDriver)
+	{
+		return;
+	}
+
+	AFPSPlayerController* FPSPlayerController = Cast<AFPSPlayerController>(LocalPlayerController);
+	if (!FPSPlayerController || !FPSPlayerController->EffectW)
+	{
+		return;
+	}
+
+	FPSPlayerController->EffectW->SpawnBloodEffects();
 }
 
 void ATruck::EndMountedWeaponUse(AFPSBaseCharacter* Character)

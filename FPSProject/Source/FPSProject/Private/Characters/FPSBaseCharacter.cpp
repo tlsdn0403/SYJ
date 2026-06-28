@@ -35,6 +35,7 @@
 namespace
 {
 constexpr int32 Stage2BulletsPerAmmoBox = 40;
+constexpr int32 Stage2RifleMagazineCapacity = 40;
 
 EItemType NormalizeStageItemType(EItemType ItemType)
 {
@@ -495,6 +496,7 @@ void AFPSBaseCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 	PlayerInputComponent->BindAction("Jump", IE_Released, this, &AFPSBaseCharacter::StopJump);
 	PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &AFPSBaseCharacter::Fire);
 	PlayerInputComponent->BindAction("Fire", IE_Released, this, &AFPSBaseCharacter::StopFire);
+	PlayerInputComponent->BindAction("Reload", IE_Pressed, this, &AFPSBaseCharacter::Reload);
 	PlayerInputComponent->BindAction("Aim", IE_Pressed, this, &AFPSBaseCharacter::StartAim);
 	PlayerInputComponent->BindAction("Aim", IE_Released, this, &AFPSBaseCharacter::StopAim);
 	PlayerInputComponent->BindAction("Interact", IE_Pressed, this, &AFPSBaseCharacter::Interact);
@@ -1909,6 +1911,64 @@ bool AFPSBaseCharacter::ConsumeStage2AmmoBullet()
 	return true;
 }
 
+void AFPSBaseCharacter::Reload()
+{
+	if (bIsDead)
+	{
+		return;
+	}
+
+	if (bIsUsingMountedWeapon)
+	{
+		ReloadMountedMachineGun();
+		return;
+	}
+
+	if (GetCurrentWeapon())
+	{
+		ReloadStage2Rifle();
+	}
+}
+
+bool AFPSBaseCharacter::ReloadStage2Rifle()
+{
+	const UFPSProjectGameInstance* GameInstance = Cast<UFPSProjectGameInstance>(GetGameInstance());
+	if (GameInstance == nullptr || !GameInstance->IsInStage2World())
+	{
+		return false;
+	}
+
+	CurrentAmmoBulletCount = FMath::Clamp(CurrentAmmoBulletCount, 0, Stage2RifleMagazineCapacity);
+	MaxAmmoBulletCount = FMath::Max(MaxAmmoBulletCount, 0);
+
+	const int32 MissingAmmo = Stage2RifleMagazineCapacity - CurrentAmmoBulletCount;
+	if (MissingAmmo <= 0 || MaxAmmoBulletCount <= 0)
+	{
+		UpdateStage2AmmoUI();
+		return false;
+	}
+
+	const int32 ReloadAmount = FMath::Min(MissingAmmo, MaxAmmoBulletCount);
+	CurrentAmmoBulletCount += ReloadAmount;
+	MaxAmmoBulletCount -= ReloadAmount;
+	UpdateStage2AmmoUI();
+	return true;
+}
+
+bool AFPSBaseCharacter::ReloadMountedMachineGun()
+{
+	if (!CurrentTruck)
+	{
+		UpdateMachineGunUI(true);
+		return false;
+	}
+
+	StopFire();
+	const bool bReloaded = CurrentTruck->ReloadMachineGun();
+	UpdateMachineGunUI(true);
+	return bReloaded;
+}
+
 void AFPSBaseCharacter::UpdateStage2AmmoUI() const
 {
 	UFPSProjectGameInstance* GameInstance = Cast<UFPSProjectGameInstance>(GetGameInstance());
@@ -1920,6 +1980,7 @@ void AFPSBaseCharacter::UpdateStage2AmmoUI() const
 
 	if (PlayerController && PlayerController->BasicW)
 	{
+		PlayerController->BasicW->SetAmmoCount(MaxAmmoBulletCount);
 		PlayerController->BasicW->SetRemainingAmmoCount(CurrentAmmoBulletCount);
 	}
 }
@@ -2166,19 +2227,34 @@ void AFPSBaseCharacter::RefreshStage2ItemUI()
 		const int32 AmmoBoxCount =
 			GetInventoryItemCount(EItemType::Ammo) +
 			GetInventoryItemCount(EItemType::CharacterAmmo);
-		const int32 NewMaxAmmoBulletCount = FMath::Max(AmmoBoxCount, 0) * Stage2BulletsPerAmmoBox;
+		const int32 NewInventoryAmmoBulletCount = FMath::Max(AmmoBoxCount, 0) * Stage2BulletsPerAmmoBox;
+		const int32 AmmoInventoryDelta = NewInventoryAmmoBulletCount - LastStage2AmmoInventoryBulletCount;
 
-		if (MaxAmmoBulletCount != NewMaxAmmoBulletCount)
+		if (AmmoInventoryDelta > 0)
 		{
-			CurrentAmmoBulletCount = NewMaxAmmoBulletCount;
-			MaxAmmoBulletCount = NewMaxAmmoBulletCount;
+			MaxAmmoBulletCount += AmmoInventoryDelta;
+			if (CurrentAmmoBulletCount <= 0)
+			{
+				ReloadStage2Rifle();
+			}
 		}
-		else
+		else if (AmmoInventoryDelta < 0)
 		{
-			CurrentAmmoBulletCount = FMath::Clamp(CurrentAmmoBulletCount, 0, MaxAmmoBulletCount);
+			int32 AmmoToRemove = -AmmoInventoryDelta;
+			const int32 ReserveAmmoToRemove = FMath::Min(MaxAmmoBulletCount, AmmoToRemove);
+			MaxAmmoBulletCount -= ReserveAmmoToRemove;
+			AmmoToRemove -= ReserveAmmoToRemove;
+			if (AmmoToRemove > 0)
+			{
+				CurrentAmmoBulletCount = FMath::Max(CurrentAmmoBulletCount - AmmoToRemove, 0);
+			}
 		}
 
-		PlayerController->BasicW->SetAmmoCount(AmmoBoxCount);
+		LastStage2AmmoInventoryBulletCount = NewInventoryAmmoBulletCount;
+		CurrentAmmoBulletCount = FMath::Clamp(CurrentAmmoBulletCount, 0, Stage2RifleMagazineCapacity);
+		MaxAmmoBulletCount = FMath::Max(MaxAmmoBulletCount, 0);
+
+		PlayerController->BasicW->SetAmmoCount(MaxAmmoBulletCount);
 		PlayerController->BasicW->SetRemainingAmmoCount(CurrentAmmoBulletCount);
 	}
 }

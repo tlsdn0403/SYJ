@@ -237,6 +237,9 @@ public:
 	bool ConsumeMachineGunBullet();
 
 	UFUNCTION(BlueprintCallable, Category = "Turret|Ammo")
+	bool ReloadMachineGun();
+
+	UFUNCTION(BlueprintCallable, Category = "Turret|Ammo")
 	void RefreshMachineGunAmmoFromCargo();
 
 	UFUNCTION(BlueprintCallable, Category = "Turret|Ammo")
@@ -285,10 +288,12 @@ protected:
 	void MoveForward(float Value);
 	void MoveRight(float Value);
 	void Brake(float Value);
+	void RecoverTruckUpright();
 	void UseDriverHealPack();
 	void SendTruckMovePacket(bool bAllowHealthIncrease = false);
 	void CheckZombieImpactSweep();
 	void ProcessZombieImpact(ABaseZombie* Zombie, const FVector& ImpactPoint, const FVector& ImpactDirection, float ImpactSpeed);
+	void PlayLocalDriverZombieImpactBloodEffect();
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GameLogic")
 	int32 TotalLoadedItems = 0;
@@ -418,6 +423,18 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Vehicle|Stage2", meta = (ClampMin = "1.0"))
 	float Stage2EngineTorqueMultiplier = 1.5f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Vehicle|Recovery", meta = (ClampMin = "-1.0", ClampMax = "1.0"))
+	float UprightRecoveryMaxUpDot = 0.5f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Vehicle|Recovery", meta = (ClampMin = "0.0"))
+	float UprightRecoveryGroundTraceUpDistance = 1500.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Vehicle|Recovery", meta = (ClampMin = "0.0"))
+	float UprightRecoveryGroundTraceDownDistance = 5000.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Vehicle|Recovery", meta = (ClampMin = "0.0"))
+	float UprightRecoveryGroundClearance = 80.0f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
 	float BrakeSoundMinSpeed = 300.0f;
 
@@ -465,14 +482,11 @@ private:
 	float ZombieNoiseTimer = 0.0f;
 	float CurrentThrottleInput = 0.0f;
 	float OriginalEngineMaxTorque = 0.0f;
-	FVector LastImpactSweepLocation = FVector::ZeroVector;
-	float LastImpactSweepTime = 0.0f;
 	FVector LastNetworkSmokeLocation = FVector::ZeroVector;
 	float LastNetworkSmokeSampleTime = 0.0f;
 	float LastNetworkSmokeUpdateTime = 0.0f;
 	float NetworkSmokeSpeed = 0.0f;
 	bool bHasOriginalEngineMaxTorque = false;
-	bool bHasImpactSweepSample = false;
 	bool bHasNetworkSmokeSample = false;
 	bool bWhiteSmokeActive = false;
 	bool bBlackSmokeActive = false;
@@ -482,11 +496,15 @@ private:
 	void ResolveTruckSmokeComponents();
 	void RefreshTruckSmokeEffects();
 	void SetSmokeComponentActive(UNiagaraComponent* SmokeComponent, bool bShouldBeActive);
+	void SyncMachineGunReserveFromCargo();
 	void UpdateNetworkSmokeSpeedFromTransform(const FVector& TargetLocation);
 	float GetTruckSmokeEvaluationSpeed() const;
 	void ReportZombieAwarenessNoise(float DeltaTime);
 	void UpdateFuelConsumption(float DeltaTime);
 	void ClearDrivingInput(bool bHoldBrake);
+	bool CanRecoverTruckUpright() const;
+	bool TryGetUprightRecoveryLocation(FVector& OutRecoveryLocation) const;
+	void TeleportOccupantsAfterUprightRecovery();
 	void ConfigureVehiclePawnCollision();
 	bool IsLocalInteractionCharacter(const AFPSBaseCharacter* Character) const;
 	void SetInteractionWidgetsHidden(bool bShouldHide);
@@ -503,6 +521,8 @@ private:
 
 	UPROPERTY()
 	AFPSBaseCharacter* DriverCharacter = nullptr;
+
+	bool bMachineGunMagazineInitialized = false;
 
 	TMap<TObjectPtr<ABaseZombie>, float> LastZombieImpactTimes;
 };

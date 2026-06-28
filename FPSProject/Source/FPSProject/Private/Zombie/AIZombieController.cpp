@@ -314,7 +314,7 @@ void AAIZombieController::UpdateBlackboardTarget(UBlackboardComponent* Blackboar
 		return;
 	}
 
-	SetFocus(TargetActor);
+	ClearFocus(EAIFocusPriority::Gameplay);
 
 	if (BlackboardComponent->GetValueAsObject(TargetPlayerKey) != TargetActor)
 	{

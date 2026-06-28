@@ -168,6 +168,9 @@ protected:
 	void StopJump();
 	void Fire();
 	void StopFire();
+	void Reload();
+	bool ReloadStage2Rifle();
+	bool ReloadMountedMachineGun();
 	void StartAim();
 	void StopAim();
 	void HandleUseHealPackInput();
@@ -296,6 +299,9 @@ private:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FPS|Inventory", meta = (AllowPrivateAccess = "true"))
 	int32 MaxAmmoBulletCount = 0;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FPS|Inventory", meta = (AllowPrivateAccess = "true"))
+	int32 LastStage2AmmoInventoryBulletCount = 0;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FPS|Gameplay", meta = (AllowPrivateAccess = "true"))
 	FVector FirePosition;

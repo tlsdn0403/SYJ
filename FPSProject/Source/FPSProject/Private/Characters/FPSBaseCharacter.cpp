@@ -598,6 +598,7 @@ void AFPSBaseCharacter::Die(bool bBroadcastDeath)
 				{
 					PlayerController->SetViewTargetWithBlend(SpectateTarget, 0.25f);
 				}
+				GameInstance->EvaluateGameOverIfAllPlayersDead();
 			}
 		}
 	}

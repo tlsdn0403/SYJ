@@ -63,6 +63,22 @@ void SetAnimBoolIfPresent(UAnimInstance* AnimInstance, const TCHAR* PropertyName
 		BoolProperty->SetPropertyValue_InContainer(AnimInstance, bValue);
 	}
 }
+
+FRotator MakeBloodHitEffectRotation(const FVector& ImpactNormal, const FVector& FallbackDirection)
+{
+	FVector Direction = -ImpactNormal;
+	if (Direction.IsNearlyZero())
+	{
+		Direction = FallbackDirection;
+	}
+	if (Direction.IsNearlyZero())
+	{
+		Direction = FVector::ForwardVector;
+	}
+
+	// NS_Blood_p1 emits from its local Z axis, so align that axis to the incoming hit direction.
+	return FRotationMatrix::MakeFromZ(Direction.GetSafeNormal()).Rotator();
+}
 }
 
 ABaseZombie::ABaseZombie()
@@ -92,7 +108,7 @@ ABaseZombie::ABaseZombie()
 	}
 
 	static ConstructorHelpers::FObjectFinder<UNiagaraSystem> DefaultHitEffect(
-		TEXT("/Script/Niagara.NiagaraSystem'/Game/Niagara/NS_BloodEffect.NS_BloodEffect'"));
+		TEXT("/Script/Niagara.NiagaraSystem'/Game/Niagara/NS_Blood_p1.NS_Blood_p1'"));
 	if (DefaultHitEffect.Succeeded())
 	{
 		HitEffect = DefaultHitEffect.Object;
@@ -303,7 +319,7 @@ void ABaseZombie::HandleNetworkHit(float NewHealth, float MaxHealth)
 	if (HitEffect)
 	{
 		const FVector EffectLocation = GetActorLocation() + FVector(0.0f, 0.0f, 50.0f);
-		const FRotator Rotation = (-GetActorForwardVector()).Rotation();
+		const FRotator Rotation = MakeBloodHitEffectRotation(GetActorForwardVector(), -GetActorForwardVector());
 		UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), HitEffect, EffectLocation, Rotation);
 	}
 }
@@ -1061,15 +1077,11 @@ void ABaseZombie::OnZombieDamaged(float NewHealth, float Damage, const FHitResul
 
 	if (HitEffect)
 	{
-		FVector Direction = -Hit.ImpactNormal;
-		FRotator Rotation = Direction.Rotation();
-
-
 		UNiagaraFunctionLibrary::SpawnSystemAtLocation(
 			GetWorld(),
 			HitEffect,
 			EffectLocation,
-			Rotation
+			MakeBloodHitEffectRotation(Hit.ImpactNormal, -GetActorForwardVector())
 		);
 	}
 	// 분해 로직

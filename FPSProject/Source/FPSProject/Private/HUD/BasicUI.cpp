@@ -15,12 +15,12 @@ void UBasicUI::NativeConstruct()
 	Super::NativeConstruct();
 	if (ReB)
 	{
-		ReB->OnClicked.AddDynamic(this, &UBasicUI::OnResumeClicked);
+		ReB->OnClicked.AddUniqueDynamic(this, &UBasicUI::OnResumeClicked);
 	}
 
 	if (EndB)
 	{
-		EndB->OnClicked.AddDynamic(this, &UBasicUI::OnExitClicked);
+		EndB->OnClicked.AddUniqueDynamic(this, &UBasicUI::OnExitClicked);
 	}
 
 	if (NameText)
@@ -99,8 +99,8 @@ void UBasicUI::SetRemainingAmmoCount(int32 BulletCount)
 }
 void UBasicUI:: Play_ESC()
 { 
-	RemoveFromParent();
 	AddToViewport(1000);
+	SetVisibility(ESlateVisibility::Visible);
 
 	if (Ani_ESC)
 	{

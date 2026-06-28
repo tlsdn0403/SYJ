@@ -112,6 +112,8 @@ public:
 	void RegisterNetworkLootItem(ALootItemBase* LootItem);
 	void UnregisterNetworkLootItem(uint64 LootItemId);
 	bool IsNetworkLootItemInactive(uint64 LootItemId) const;
+	bool ShowGameOverScreen();
+	void EvaluateGameOverIfAllPlayersDead();
 
 	UFUNCTION(BlueprintCallable, Category = "Stage1|Cargo")
 	void ClearRecordedStage1CargoItems();
@@ -172,10 +174,19 @@ public:
 	UPROPERTY()
 	TSubclassOf<UUserWidget> EntryLoadingWidgetClass;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ending|UI")
+	TSubclassOf<UUserWidget> GameOverWidgetClass;
+
+	UPROPERTY()
+	TObjectPtr<UUserWidget> GameOverWidget = nullptr;
+
 	UPROPERTY()
 	FString PlayerNickname;
 
 private:
+	UFUNCTION()
+	void OnGameOverExitClicked();
+
 	UPROPERTY()
 	TObjectPtr<UFPSWorldObjectManager> WorldObjects;
 
@@ -199,4 +210,6 @@ private:
 	void TickNetwork();
 	void TickStageFlow();
 	bool RemovePlayerById(uint64 PlayerId);
+
+	bool bGameOverScreenShown = false;
 };

@@ -21,17 +21,71 @@
 #include "Components/CapsuleComponent.h"
 #include "Components/PrimitiveComponent.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "Components/Button.h"
 #include "Blueprint/UserWidget.h"
+#include "Blueprint/WidgetTree.h"
+#include "GameFramework/PlayerController.h"
 #include "UObject/ConstructorHelpers.h"
 #include "UObject/UObjectGlobals.h"
 #include "HUD/BaseUI.h"
 #include "HUD/LoadingUI.h"
+
+namespace
+{
+UButton* FindGameOverExitButton(UUserWidget* GameOverWidget)
+{
+	if (GameOverWidget == nullptr || GameOverWidget->WidgetTree == nullptr)
+	{
+		return nullptr;
+	}
+
+	static const FName ExitButtonNames[] =
+	{
+		TEXT("EndB"),
+		TEXT("ExitButton"),
+		TEXT("QuitButton"),
+		TEXT("LeaveButton"),
+		TEXT("ExitB"),
+		TEXT("QuitB")
+	};
+
+	for (const FName& ButtonName : ExitButtonNames)
+	{
+		if (UButton* Button = Cast<UButton>(GameOverWidget->WidgetTree->FindWidget(ButtonName)))
+		{
+			return Button;
+		}
+	}
+
+	TArray<UWidget*> Widgets;
+	GameOverWidget->WidgetTree->GetAllWidgets(Widgets);
+
+	UButton* OnlyButton = nullptr;
+	int32 ButtonCount = 0;
+	for (UWidget* Widget : Widgets)
+	{
+		if (UButton* Button = Cast<UButton>(Widget))
+		{
+			OnlyButton = Button;
+			++ButtonCount;
+		}
+	}
+
+	return ButtonCount == 1 ? OnlyButton : nullptr;
+}
+}
 
 UFPSProjectGameInstance::UFPSProjectGameInstance()
 {
 	NetworkManager = MakeShared<FFPSNetworkManager>();
 	SpawnManager = MakeShared<FFPSSpawnManager>(*this);
 	StageFlowManager = MakeShared<FFPSStageFlowManager>(*this);
+
+	static ConstructorHelpers::FClassFinder<UUserWidget> GameOverWidgetFinder(TEXT("/Game/HUD/WBP_GameOver"));
+	if (GameOverWidgetFinder.Succeeded())
+	{
+		GameOverWidgetClass = GameOverWidgetFinder.Class;
+	}
 
 	static ConstructorHelpers::FClassFinder<AFPSBaseCharacter> Character1Class(
 		TEXT("/Game/Characters/Blueprint/BP_FPSBaseCharacter"));
@@ -159,6 +213,8 @@ bool UFPSProjectGameInstance::SendZombieHitPacket(AFPSBaseCharacter* Attacker, A
 void UFPSProjectGameInstance::HandlePostLoadMap(UWorld* LoadedWorld)
 {
 	MyPlayer = nullptr;
+	GameOverWidget = nullptr;
+	bGameOverScreenShown = false;
 	if (WorldObjects)
 	{
 		WorldObjects->ClearAll();
@@ -657,6 +713,7 @@ void UFPSProjectGameInstance::HandleMove(const Protocol::S_MOVE& MovePkt)
 	{
 		Player->SetDestInfo(Info);
 		Player->Die(false);
+		EvaluateGameOverIfAllPlayersDead();
 		return;
 	}
 
@@ -855,6 +912,92 @@ void UFPSProjectGameInstance::GetValidRegisteredPlayers(TArray<TPair<uint64, AFP
 	OutPlayers.Reset();
 }
 
+bool UFPSProjectGameInstance::ShowGameOverScreen()
+{
+	if (bGameOverScreenShown)
+	{
+		return true;
+	}
+
+	UWorld* World = GetWorld();
+	if (World == nullptr || GameOverWidgetClass == nullptr)
+	{
+		return false;
+	}
+
+	APlayerController* PlayerController = UGameplayStatics::GetPlayerController(this, 0);
+	if (PlayerController == nullptr)
+	{
+		return false;
+	}
+
+	if (GameOverWidget == nullptr)
+	{
+		GameOverWidget = CreateWidget<UUserWidget>(PlayerController, GameOverWidgetClass);
+	}
+
+	if (GameOverWidget == nullptr)
+	{
+		return false;
+	}
+
+	if (!GameOverWidget->IsInViewport())
+	{
+		GameOverWidget->AddToViewport(1000);
+	}
+
+	if (UButton* ExitButton = FindGameOverExitButton(GameOverWidget))
+	{
+		ExitButton->OnClicked.AddUniqueDynamic(this, &UFPSProjectGameInstance::OnGameOverExitClicked);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("GameOver exit button was not found."));
+	}
+
+	FInputModeUIOnly InputMode;
+	InputMode.SetWidgetToFocus(GameOverWidget->TakeWidget());
+	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+	PlayerController->SetInputMode(InputMode);
+	PlayerController->bShowMouseCursor = true;
+	PlayerController->SetIgnoreMoveInput(true);
+	PlayerController->SetIgnoreLookInput(true);
+
+	bGameOverScreenShown = true;
+	return true;
+}
+
+void UFPSProjectGameInstance::EvaluateGameOverIfAllPlayersDead()
+{
+	if (bGameOverScreenShown)
+	{
+		return;
+	}
+
+	TArray<TPair<uint64, AFPSBaseCharacter*>> RegisteredPlayers;
+	GetValidRegisteredPlayers(RegisteredPlayers);
+	if (RegisteredPlayers.Num() <= 0)
+	{
+		return;
+	}
+
+	for (const TPair<uint64, AFPSBaseCharacter*>& PlayerEntry : RegisteredPlayers)
+	{
+		AFPSBaseCharacter* Player = PlayerEntry.Value;
+		if (IsValid(Player) && !Player->IsDead())
+		{
+			return;
+		}
+	}
+
+	ShowGameOverScreen();
+}
+
+void UFPSProjectGameInstance::OnGameOverExitClicked()
+{
+	QuitGame();
+}
+
 void UFPSProjectGameInstance::CacheTruckActors()
 {
 	if (WorldObjects)
@@ -1029,6 +1172,10 @@ void UFPSProjectGameInstance::HandleTruckMove(const Protocol::S_TRUCK_MOVE& pkt)
 	if (pkt.has_truck_health())
 	{
 		Truck->ApplyNetworkHealth(pkt.truck_hp(), pkt.truck_max_hp());
+		if (pkt.truck_hp() <= 0.0f)
+		{
+			ShowGameOverScreen();
+		}
 	}
 	Truck->ApplyNetworkTransform(TargetLocation, TargetRotation, pkt.is_correction());
 	if (pkt.has_turret_aim())

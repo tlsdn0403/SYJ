@@ -109,6 +109,8 @@ void ABaseZombie::BeginPlay()
 	{
 		StandingMeshRelativeLocation = ZombieMesh->GetRelativeLocation();
 		bHasStandingMeshRelativeLocation = true;
+		ZombieMesh->VisibilityBasedAnimTickOption = EVisibilityBasedAnimTickOption::OnlyTickPoseWhenRendered;
+		ZombieMesh->bEnableUpdateRateOptimizations = true;
 
 		ZombieMesh->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
 		ZombieMesh->SetCollisionResponseToChannel(ECC_GameTraceChannel1, ECR_Block);
@@ -148,7 +150,14 @@ float ABaseZombie::PlayDeathAnimationBeforeRagdoll()
 
 FVector ABaseZombie::GetCrawlingMeshRelativeLocation(const FVector& CurrentStandingMeshRelativeLocation) const
 {
-	return CurrentStandingMeshRelativeLocation;
+	FVector CrawlingMeshLocation = CurrentStandingMeshRelativeLocation;
+	if (const UCapsuleComponent* Capsule = GetCapsuleComponent())
+	{
+		const float GroundedMeshZ = -Capsule->GetUnscaledCapsuleHalfHeight();
+		CrawlingMeshLocation.Z = FMath::Max(CrawlingMeshLocation.Z, GroundedMeshZ);
+	}
+
+	return CrawlingMeshLocation;
 }
 
 void ABaseZombie::Attack()
@@ -212,6 +221,7 @@ void ABaseZombie::HandleNetworkDeath()
 	bAttackDamageApplied = false;
 	bShouldApplyCurrentNetworkAttackDamage = true;
 	CurrentAttackTarget = nullptr;
+	bWasCrawlingBeforeDeath = IsCrawling();
 	MovementState = EZombieMovementState::Dead;
 	GetWorldTimerManager().ClearTimer(AttackDamageTimerHandle);
 	GetWorldTimerManager().ClearTimer(AttackFinishTimerHandle);
@@ -249,6 +259,11 @@ void ABaseZombie::HandleNetworkDismember(FName BoneName, const FVector& Impulse,
 void ABaseZombie::SetNetworkMoveTarget(const FVector& TargetLocation, const FRotator& TargetRotation, bool bInIsMoving)
 {
 	if (!bIsAlive || IsActorBeingDestroyed() || TargetLocation.ContainsNaN() || TargetRotation.ContainsNaN())
+	{
+		return;
+	}
+
+	if (NetworkObjectId != 0 && GetWorld() && GetWorld()->GetTimeSeconds() < NetworkMovePausedUntilTime)
 	{
 		return;
 	}
@@ -313,6 +328,118 @@ void ABaseZombie::SetNetworkMoveTarget(const FVector& TargetLocation, const FRot
 	SetAnimBoolIfPresent(AnimInstance, TEXT("bIsMoving"), bShouldAnimateMoving);
 	SetAnimBoolIfPresent(AnimInstance, TEXT("HasAcceleration"), bShouldAnimateMoving);
 	SetAnimBoolIfPresent(AnimInstance, TEXT("bHasAcceleration"), bShouldAnimateMoving);
+}
+
+void ABaseZombie::ApplyTruckImpactKnockback(const FVector& LaunchVelocity, const FVector& RagdollImpulse, const FVector& ImpactPoint, bool bForceRagdoll, float NetworkMovePauseSeconds)
+{
+	if (IsActorBeingDestroyed())
+	{
+		return;
+	}
+
+	UWorld* World = GetWorld();
+	if (NetworkObjectId != 0 && World && NetworkMovePauseSeconds > 0.0f)
+	{
+		NetworkMovePausedUntilTime = World->GetTimeSeconds() + NetworkMovePauseSeconds;
+		GetWorldTimerManager().ClearTimer(NetworkImpactRecoveryTimerHandle);
+		GetWorldTimerManager().SetTimer(
+			NetworkImpactRecoveryTimerHandle,
+			this,
+			&ABaseZombie::ResumeNetworkMovementAfterImpact,
+			NetworkMovePauseSeconds,
+			false);
+	}
+
+	if (bForceRagdoll)
+	{
+		bIsAlive = false;
+		bIsAttacking = false;
+		bAttackDamageApplied = false;
+		bShouldApplyCurrentNetworkAttackDamage = true;
+		CurrentAttackTarget = nullptr;
+		bWasCrawlingBeforeDeath = IsCrawling();
+		MovementState = EZombieMovementState::Dead;
+		GetWorldTimerManager().ClearTimer(AttackDamageTimerHandle);
+		GetWorldTimerManager().ClearTimer(AttackFinishTimerHandle);
+		GetWorldTimerManager().ClearTimer(DeathRagdollTimerHandle);
+
+		if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
+		{
+			MoveComp->StopMovementImmediately();
+			MoveComp->DisableMovement();
+			MoveComp->SetComponentTickEnabled(false);
+		}
+
+		if (UCapsuleComponent* Capsule = GetCapsuleComponent())
+		{
+			Capsule->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		}
+
+		if (USkeletalMeshComponent* MeshComp = GetMesh())
+		{
+			MeshComp->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+			MeshComp->SetCollisionProfileName(TEXT("Ragdoll"));
+			EnableDeathRagdoll();
+			MeshComp->WakeAllRigidBodies();
+			MeshComp->AddImpulseAtLocation(RagdollImpulse, ImpactPoint, GetPhysicsRootBoneName());
+		}
+
+		SetLifeSpan(5.0f);
+		return;
+	}
+
+	if (!bIsAlive)
+	{
+		if (USkeletalMeshComponent* MeshComp = GetMesh())
+		{
+			MeshComp->AddImpulseAtLocation(RagdollImpulse, ImpactPoint, GetPhysicsRootBoneName());
+		}
+		return;
+	}
+
+	if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
+	{
+		if (NetworkObjectId != 0 && !MoveComp->IsComponentTickEnabled())
+		{
+			bNetworkImpactTemporarilyEnabledMovement = true;
+			MoveComp->SetComponentTickEnabled(true);
+		}
+
+		if (MoveComp->MovementMode == MOVE_None)
+		{
+			MoveComp->SetMovementMode(MOVE_Falling);
+		}
+	}
+
+	LaunchCharacter(LaunchVelocity, true, true);
+}
+
+void ABaseZombie::ResumeNetworkMovementAfterImpact()
+{
+	UWorld* World = GetWorld();
+	if (World && World->GetTimeSeconds() < NetworkMovePausedUntilTime - KINDA_SMALL_NUMBER)
+	{
+		GetWorldTimerManager().SetTimer(
+			NetworkImpactRecoveryTimerHandle,
+			this,
+			&ABaseZombie::ResumeNetworkMovementAfterImpact,
+			NetworkMovePausedUntilTime - World->GetTimeSeconds(),
+			false);
+		return;
+	}
+
+	if (NetworkObjectId != 0 && bNetworkImpactTemporarilyEnabledMovement)
+	{
+		if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
+		{
+			MoveComp->StopMovementImmediately();
+			MoveComp->DisableMovement();
+			MoveComp->SetComponentTickEnabled(false);
+		}
+	}
+
+	bNetworkImpactTemporarilyEnabledMovement = false;
+	NetworkMovePausedUntilTime = 0.0f;
 }
 
 void ABaseZombie::OnNetworkMoveAnimationUpdated()
@@ -748,6 +875,7 @@ void ABaseZombie::OnZombieDamaged(float NewHealth, float Damage, const FHitResul
 	{
 		// 맞은 뼈를 주요 분해 가능한 뼈 이름으로 변환
 		FName TargetBone = GetParentBoneForDamage(Hit.BoneName);
+		LastDeathHitBone = TargetBone;
 
 		// 뼈 내구도 깎기 및 분해 시도
 		// Hit.ImpactNormal * -1은 총알이 날아온 방향(충격 방향)을 의미
@@ -991,8 +1119,18 @@ void ABaseZombie::StartCrawling()
 	UCapsuleComponent* Capsule = GetCapsuleComponent();
 	if (Capsule)
 	{
-		Capsule->SetCapsuleHalfHeight(CrawlingCapsuleHalfHeight);
-		Capsule->SetCapsuleRadius(CrawlingCapsuleRadius);
+		const float OldBottomZ = Capsule->GetComponentLocation().Z - Capsule->GetScaledCapsuleHalfHeight();
+		const float NewRadius = FMath::Max(0.0f, CrawlingCapsuleRadius);
+		const float NewHalfHeight = FMath::Max(CrawlingCapsuleHalfHeight, NewRadius);
+
+		Capsule->SetCapsuleSize(NewRadius, NewHalfHeight, true);
+
+		const float NewBottomZ = Capsule->GetComponentLocation().Z - Capsule->GetScaledCapsuleHalfHeight();
+		const float GroundingOffsetZ = OldBottomZ - NewBottomZ;
+		if (!FMath::IsNearlyZero(GroundingOffsetZ))
+		{
+			AddActorWorldOffset(FVector(0.0f, 0.0f, GroundingOffsetZ), false, nullptr, ETeleportType::TeleportPhysics);
+		}
 	}
 
 	// 이동 속도 줄이기
@@ -1009,8 +1147,7 @@ void ABaseZombie::StartCrawling()
 		ApplyAvoidanceTuning();
 	}
 
-	// Preserve the blueprint-authored mesh offset. Forcing this to the new capsule half height
-	// lifts the zombie mesh after leg dismemberment, especially in crawling animations.
+	// Keep the mesh above the new crawling capsule floor after the capsule height changes.
 	USkeletalMeshComponent* MeshComp = GetMesh();
 	if (MeshComp)
 	{
@@ -1043,6 +1180,7 @@ void ABaseZombie::Die()
 	bIsAlive = false;
 	bIsAttacking = false;
 	bAttackDamageApplied = false;
+	bWasCrawlingBeforeDeath = IsCrawling();
 	MovementState = EZombieMovementState::Dead;
 	CurrentAttackTarget = nullptr;
 	GetWorldTimerManager().ClearTimer(AttackDamageTimerHandle);

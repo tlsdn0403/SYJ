@@ -34,7 +34,6 @@ void UStartScreenClass::NativeConstruct()
 
 	// [완전 자동화] 0.5초 뒤에 알아서 로그인 버튼을 클릭해버림! (클릭조차 하기 싫을 때)
 	FTimerHandle AutoLoginTimer;
-
 	GetWorld()->GetTimerManager().SetTimer(AutoLoginTimer, this, &UStartScreenClass::OnClickLogin, 0.5f, false);
 	//---------------------------------------------------------
 

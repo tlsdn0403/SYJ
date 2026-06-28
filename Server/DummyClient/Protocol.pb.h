@@ -653,8 +653,31 @@ class C_ENTER_GAME final :
   // accessors -------------------------------------------------------
 
   enum : int {
+    kStage2TileTypesFieldNumber = 2,
     kPlayerIndexFieldNumber = 1,
   };
+  // repeated int32 stage2_tile_types = 2;
+  int stage2_tile_types_size() const;
+  private:
+  int _internal_stage2_tile_types_size() const;
+  public:
+  void clear_stage2_tile_types();
+  private:
+  int32_t _internal_stage2_tile_types(int index) const;
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >&
+      _internal_stage2_tile_types() const;
+  void _internal_add_stage2_tile_types(int32_t value);
+  ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >*
+      _internal_mutable_stage2_tile_types();
+  public:
+  int32_t stage2_tile_types(int index) const;
+  void set_stage2_tile_types(int index, int32_t value);
+  void add_stage2_tile_types(int32_t value);
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >&
+      stage2_tile_types() const;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >*
+      mutable_stage2_tile_types();
+
   // uint64 playerIndex = 1;
   void clear_playerindex();
   uint64_t playerindex() const;
@@ -672,6 +695,8 @@ class C_ENTER_GAME final :
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
   struct Impl_ {
+    ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t > stage2_tile_types_;
+    mutable std::atomic<int> _stage2_tile_types_cached_byte_size_;
     uint64_t playerindex_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   };
@@ -6820,6 +6845,53 @@ inline void C_ENTER_GAME::_internal_set_playerindex(uint64_t value) {
 inline void C_ENTER_GAME::set_playerindex(uint64_t value) {
   _internal_set_playerindex(value);
   // @@protoc_insertion_point(field_set:Protocol.C_ENTER_GAME.playerIndex)
+}
+
+// repeated int32 stage2_tile_types = 2;
+inline int C_ENTER_GAME::_internal_stage2_tile_types_size() const {
+  return _impl_.stage2_tile_types_.size();
+}
+inline int C_ENTER_GAME::stage2_tile_types_size() const {
+  return _internal_stage2_tile_types_size();
+}
+inline void C_ENTER_GAME::clear_stage2_tile_types() {
+  _impl_.stage2_tile_types_.Clear();
+}
+inline int32_t C_ENTER_GAME::_internal_stage2_tile_types(int index) const {
+  return _impl_.stage2_tile_types_.Get(index);
+}
+inline int32_t C_ENTER_GAME::stage2_tile_types(int index) const {
+  // @@protoc_insertion_point(field_get:Protocol.C_ENTER_GAME.stage2_tile_types)
+  return _internal_stage2_tile_types(index);
+}
+inline void C_ENTER_GAME::set_stage2_tile_types(int index, int32_t value) {
+  _impl_.stage2_tile_types_.Set(index, value);
+  // @@protoc_insertion_point(field_set:Protocol.C_ENTER_GAME.stage2_tile_types)
+}
+inline void C_ENTER_GAME::_internal_add_stage2_tile_types(int32_t value) {
+  _impl_.stage2_tile_types_.Add(value);
+}
+inline void C_ENTER_GAME::add_stage2_tile_types(int32_t value) {
+  _internal_add_stage2_tile_types(value);
+  // @@protoc_insertion_point(field_add:Protocol.C_ENTER_GAME.stage2_tile_types)
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >&
+C_ENTER_GAME::_internal_stage2_tile_types() const {
+  return _impl_.stage2_tile_types_;
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >&
+C_ENTER_GAME::stage2_tile_types() const {
+  // @@protoc_insertion_point(field_list:Protocol.C_ENTER_GAME.stage2_tile_types)
+  return _internal_stage2_tile_types();
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >*
+C_ENTER_GAME::_internal_mutable_stage2_tile_types() {
+  return &_impl_.stage2_tile_types_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >*
+C_ENTER_GAME::mutable_stage2_tile_types() {
+  // @@protoc_insertion_point(field_mutable_list:Protocol.C_ENTER_GAME.stage2_tile_types)
+  return _internal_mutable_stage2_tile_types();
 }
 
 // -------------------------------------------------------------------

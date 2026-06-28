@@ -6,7 +6,20 @@
 #include "ObjectUtils.h"
 #include <algorithm>
 #include <cmath>
+#include <chrono>
 #include <limits>
+
+namespace
+{
+constexpr float TRUCK_STATE_EPSILON = 0.01f;
+constexpr auto TRUCK_ITEM_STALE_PACKET_GRACE = std::chrono::milliseconds(1000);
+
+bool IsRecentTruckItemUpdate(std::chrono::steady_clock::time_point LastUpdateTime)
+{
+	return LastUpdateTime.time_since_epoch().count() != 0 &&
+		std::chrono::steady_clock::now() - LastUpdateTime < TRUCK_ITEM_STALE_PACKET_GRACE;
+}
+}
 
 RoomRef GRoom = make_shared<Room>();
 
@@ -319,8 +332,10 @@ bool Room::HandleLeavePlayer(PlayerRef player)
 	return true;
 }
 
-void Room::HandleReadyPlayer(GameSessionRef session)
+void Room::HandleReadyPlayer(GameSessionRef session, Protocol::C_ENTER_GAME pkt)
 {
+	RecordStage2TileSequence(pkt);
+
 	if (session == nullptr || session->player.load() != nullptr)
 	{
 		return;
@@ -399,8 +414,10 @@ void Room::HandleReadyPlayer(GameSessionRef session)
 	}
 }
 
-void Room::HandleStageMapReady(GameSessionRef session)
+void Room::HandleStageMapReady(GameSessionRef session, Protocol::C_ENTER_GAME pkt)
 {
+	RecordStage2TileSequence(pkt);
+
 	if (session == nullptr)
 		return;
 
@@ -516,7 +533,7 @@ namespace
 	constexpr uint64 STAGE2_WEAPON_OBJECT_ID_START = 200001;
 	constexpr uint64 ZOMBIE_OBJECT_ID_START = 1000000;
 	constexpr float ZOMBIE_SERVER_TICK_SECONDS = 0.1f;
-	constexpr float ZOMBIE_MOVE_SPEED = 210.0f;
+	constexpr float ZOMBIE_MOVE_SPEED = 250.0f;
 	constexpr float ZOMBIE_AGGRO_RANGE = 5000.0f;
 	constexpr float ZOMBIE_AI_ACTIVE_RANGE = 5200.0f;
 	constexpr float ZOMBIE_ATTACK_RANGE = 140.0f;
@@ -525,15 +542,24 @@ namespace
 	constexpr float ZOMBIE_SEPARATION_RADIUS = 180.0f;
 	constexpr float ZOMBIE_SEPARATION_GRID_CELL_SIZE = ZOMBIE_SEPARATION_RADIUS;
 	constexpr float ZOMBIE_SEPARATION_WEIGHT = 1.35f;
+	constexpr int32 ZOMBIE_SEPARATION_MAX_NEIGHBORS = 8;
 	constexpr float ZOMBIE_PATH_RECALC_SECONDS = 0.75f;
 	constexpr float ZOMBIE_PATH_TARGET_REPATH_DISTANCE = 300.0f;
 	constexpr float ZOMBIE_WAYPOINT_REACHED_DISTANCE = 80.0f;
 	constexpr float ZOMBIE_NAV_GRID_CELL_SIZE = 300.0f;
 	constexpr int32 ZOMBIE_NAV_MAX_SEARCH_NODES = 512;
-	constexpr int32 STAGE2_ZOMBIES_TO_SPAWN_PER_TICK = 40;
-	constexpr float ZOMBIE_MOVE_BROADCAST_INTERVAL = 0.25f;
-	constexpr float ZOMBIE_MOVE_BROADCAST_DISTANCE = 80.0f;
-	constexpr float ZOMBIE_MOVE_BROADCAST_YAW_DELTA = 20.0f;
+	constexpr bool ZOMBIE_NAV_HAS_BLOCKED_CELLS = false;
+	constexpr int32 STAGE2_ZOMBIES_TO_SPAWN_PER_TICK = 10;
+	constexpr int32 STAGE2_ZOMBIE_GROUP_COLUMNS = 4;
+	constexpr int32 STAGE2_ZOMBIE_GROUP_ROWS = 10;
+	constexpr float ZOMBIE_AI_NEAR_RANGE = 1800.0f;
+	constexpr float ZOMBIE_AI_MID_RANGE = 3600.0f;
+	constexpr float ZOMBIE_AI_NEAR_UPDATE_INTERVAL = ZOMBIE_SERVER_TICK_SECONDS;
+	constexpr float ZOMBIE_AI_MID_UPDATE_INTERVAL = 0.2f;
+	constexpr float ZOMBIE_AI_FAR_UPDATE_INTERVAL = 0.4f;
+	constexpr float ZOMBIE_MOVE_BROADCAST_INTERVAL = 0.35f;
+	constexpr float ZOMBIE_MOVE_BROADCAST_DISTANCE = 120.0f;
+	constexpr float ZOMBIE_MOVE_BROADCAST_YAW_DELTA = 35.0f;
 	constexpr int32 STAGE2_ZOMBIE_TILE_WORLD = 0;
 	constexpr int32 STAGE2_ZOMBIE_TILE_STRAIGHT = 1;
 	constexpr int32 STAGE2_ZOMBIE_TILE_LEFT = 2;
@@ -618,6 +644,17 @@ namespace
 		return false;
 	}
 
+	float GetZombieAiUpdateInterval(float targetDistSq)
+	{
+		if (targetDistSq <= ZOMBIE_AI_NEAR_RANGE * ZOMBIE_AI_NEAR_RANGE)
+			return ZOMBIE_AI_NEAR_UPDATE_INTERVAL;
+
+		if (targetDistSq <= ZOMBIE_AI_MID_RANGE * ZOMBIE_AI_MID_RANGE)
+			return ZOMBIE_AI_MID_UPDATE_INTERVAL;
+
+		return ZOMBIE_AI_FAR_UPDATE_INTERVAL;
+	}
+
 	constexpr int32 EncodeStage2ZombieSpawnType(Protocol::ZombieType zombieType, int32 tileTypeCode, int32 tileOccurrenceIndex)
 	{
 		if (tileTypeCode == STAGE2_ZOMBIE_TILE_WORLD)
@@ -690,11 +727,11 @@ namespace
 
 	constexpr ZombieSpawnGroupInfo STAGE2_ZOMBIE_GROUPS[] =
 	{
-		{ -1810.0f, 16720.0f, 240.0f, 4, 5, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_START, STAGE2_START_TILE_OCCURRENCE_COUNT, 0x6A09E667u, 0xBB67AE85u },
-		{ -2010.0f, 9730.0f, 300.0f, 4, 5, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_START, STAGE2_START_TILE_OCCURRENCE_COUNT, 0x3C6EF372u, 0xA54FF53Au },
-		{ -4840.0f, 10210.0f, 310.0f, 4, 5, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_START, STAGE2_START_TILE_OCCURRENCE_COUNT, 0x510E527Fu, 0x9B05688Cu },
-		{ -1770.0f, 1060.0f, 170.0f, 4, 5, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_START, STAGE2_START_TILE_OCCURRENCE_COUNT, 0x1F83D9ABu, 0x5BE0CD19u },
-		{ -4570.0f, -19510.0f, 240.0f, 4, 5, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_START, STAGE2_START_TILE_OCCURRENCE_COUNT, 0x8C3D37C9u, 0x243F6A88u },
+		{ -1810.0f, 16720.0f, 240.0f, 8, 5, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_START, STAGE2_START_TILE_OCCURRENCE_COUNT, 0x6A09E667u, 0xBB67AE85u },
+		{ -2010.0f, 9730.0f, 300.0f, 8, 5, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_START, STAGE2_START_TILE_OCCURRENCE_COUNT, 0x3C6EF372u, 0xA54FF53Au },
+		{ -4840.0f, 10210.0f, 310.0f, 8, 5, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_START, STAGE2_START_TILE_OCCURRENCE_COUNT, 0x510E527Fu, 0x9B05688Cu },
+		{ -1770.0f, 1060.0f, 170.0f, 8, 5, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_START, STAGE2_START_TILE_OCCURRENCE_COUNT, 0x1F83D9ABu, 0x5BE0CD19u },
+		{ -4570.0f, -19510.0f, 240.0f, 8, 5, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_START, STAGE2_START_TILE_OCCURRENCE_COUNT, 0x8C3D37C9u, 0x243F6A88u },
 		{ -1810.0f, 16720.0f, 240.0f, 8, 5, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_STRAIGHT, STAGE2_STRAIGHT_TILE_OCCURRENCE_COUNT, 0xA24BAED5u, 0x9FB21C63u },
 		{ -2010.0f, 9730.0f, 300.0f, 8, 5, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_STRAIGHT, STAGE2_STRAIGHT_TILE_OCCURRENCE_COUNT, 0xC13FA9A9u, 0x5D588B65u },
 		{ -4840.0f, 10210.0f, 310.0f, 8, 5, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_STRAIGHT, STAGE2_STRAIGHT_TILE_OCCURRENCE_COUNT, 0x91E10DA5u, 0xB7E15162u },
@@ -708,10 +745,10 @@ namespace
 		{ 4800.0f, 5330.0f, 50.0f, 8, 5, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_LEFT, STAGE2_LEFT_TILE_OCCURRENCE_COUNT, 0x31415926u, 0x27182818u },
 		{ 4770.0f, 5360.0f, 50.0f, 8, 5, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_RIGHT, STAGE2_RIGHT_TILE_OCCURRENCE_COUNT, 0x41C64E6Du, 0xA341316Cu },
 		{ 15280.0f, 2310.0f, 230.0, 8, 5, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_RIGHT, STAGE2_RIGHT_TILE_OCCURRENCE_COUNT, 0x6D2B79F5u, 0x13A5C89Bu },
-		{ 21570.8f, 5466.7f, -367.0f, 5, 4, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_RIGHT, STAGE2_RIGHT_TILE_OCCURRENCE_COUNT, 0x9E3779B9u, 0xC2B2AE35u },
-		{ 25180.0f, 10670.0f, 380.0, 5, 4, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_RIGHT, STAGE2_RIGHT_TILE_OCCURRENCE_COUNT, 0x85EBCA6Bu, 0x27D4EB2Fu },
+		{ 21570.8f, 5466.7f, -367.0f, 8, 4, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_RIGHT, STAGE2_RIGHT_TILE_OCCURRENCE_COUNT, 0x9E3779B9u, 0xC2B2AE35u },
+		{ 25180.0f, 10670.0f, 380.0, 8, 4, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_RIGHT, STAGE2_RIGHT_TILE_OCCURRENCE_COUNT, 0x85EBCA6Bu, 0x27D4EB2Fu },
 		{ 19390.0f, 12080.0f, 310.0f, 8, 5, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_RIGHT, STAGE2_RIGHT_TILE_OCCURRENCE_COUNT, 0x165667B1u, 0xD3A2646Cu },
-		{ 16390.0f, 12830.0f, 260.0f, 5, 4, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_RIGHT, STAGE2_RIGHT_TILE_OCCURRENCE_COUNT, 0x27D4EB2Du, 0x94D049BBu },
+		{ 16390.0f, 12830.0f, 260.0f, 8, 4, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_RIGHT, STAGE2_RIGHT_TILE_OCCURRENCE_COUNT, 0x27D4EB2Du, 0x94D049BBu },
 	};
 
 	struct Stage2WeaponSpawnInfo
@@ -728,6 +765,54 @@ namespace
 		{ 120.0f, 0.0f, 0.0f, 0.0f },
 		{ 120.0f, 0.0f, 0.0f, 0.0f },
 	};
+}
+
+void Room::RecordStage2TileSequence(const Protocol::C_ENTER_GAME& pkt)
+{
+	if (_bHasStage2TileTypeSequence || pkt.stage2_tile_types_size() <= 0)
+		return;
+
+	vector<int32> tileTypeSequence;
+	tileTypeSequence.reserve(pkt.stage2_tile_types_size());
+
+	for (int32 tileTypeCode : pkt.stage2_tile_types())
+	{
+		switch (tileTypeCode)
+		{
+		case STAGE2_ZOMBIE_TILE_START:
+		case STAGE2_ZOMBIE_TILE_STRAIGHT:
+		case STAGE2_ZOMBIE_TILE_LEFT:
+		case STAGE2_ZOMBIE_TILE_RIGHT:
+			tileTypeSequence.push_back(tileTypeCode);
+			break;
+		default:
+			break;
+		}
+	}
+
+	if (tileTypeSequence.empty())
+		return;
+
+	_stage2TileTypeSequence = std::move(tileTypeSequence);
+	_bHasStage2TileTypeSequence = true;
+
+	cout << "[Stage2Tile] Recorded tile sequence count=" << _stage2TileTypeSequence.size()
+		<< " start=" << GetStage2TileOccurrenceCount(STAGE2_ZOMBIE_TILE_START, 0)
+		<< " straight=" << GetStage2TileOccurrenceCount(STAGE2_ZOMBIE_TILE_STRAIGHT, 0)
+		<< " left=" << GetStage2TileOccurrenceCount(STAGE2_ZOMBIE_TILE_LEFT, 0)
+		<< " right=" << GetStage2TileOccurrenceCount(STAGE2_ZOMBIE_TILE_RIGHT, 0)
+		<< endl;
+}
+
+int32 Room::GetStage2TileOccurrenceCount(int32 tileTypeCode, int32 fallbackOccurrenceCount) const
+{
+	if (!_bHasStage2TileTypeSequence)
+		return fallbackOccurrenceCount;
+
+	return static_cast<int32>(std::count(
+		_stage2TileTypeSequence.begin(),
+		_stage2TileTypeSequence.end(),
+		tileTypeCode));
 }
 
 void Room::SendStage2WeaponsToSession(const GameSessionRef& session) const
@@ -798,16 +883,19 @@ void Room::SpawnStage2Zombies()
 
 	for (const ZombieSpawnGroupInfo& groupInfo : STAGE2_ZOMBIE_GROUPS)
 	{
-		const float startX = groupInfo.centerX - (static_cast<float>(groupInfo.columns - 1) * groupInfo.spacingX * 0.5f);
-		const float startY = groupInfo.centerY - (static_cast<float>(groupInfo.rows - 1) * groupInfo.spacingY * 0.5f);
+		const int32 spawnColumns = STAGE2_ZOMBIE_GROUP_COLUMNS;
+		const int32 spawnRows = STAGE2_ZOMBIE_GROUP_ROWS;
+		const float startX = groupInfo.centerX - (static_cast<float>(spawnColumns - 1) * groupInfo.spacingX * 0.5f);
+		const float startY = groupInfo.centerY - (static_cast<float>(spawnRows - 1) * groupInfo.spacingY * 0.5f);
+		const int32 tileOccurrenceCount = GetStage2TileOccurrenceCount(groupInfo.tileTypeCode, groupInfo.tileOccurrenceCount);
 
-		for (int32 occurrenceIndex = 0; occurrenceIndex < groupInfo.tileOccurrenceCount; ++occurrenceIndex)
+		for (int32 occurrenceIndex = 0; occurrenceIndex < tileOccurrenceCount; ++occurrenceIndex)
 		{
-			for (int32 row = 0; row < groupInfo.rows; ++row)
+			for (int32 row = 0; row < spawnRows; ++row)
 			{
-				for (int32 column = 0; column < groupInfo.columns; ++column)
+				for (int32 column = 0; column < spawnColumns; ++column)
 				{
-					const int32 spawnIndex = occurrenceIndex * groupInfo.rows * groupInfo.columns + row * groupInfo.columns + column;
+					const int32 spawnIndex = occurrenceIndex * spawnRows * spawnColumns + row * spawnColumns + column;
 					QueueStage2ZombieSpawn(
 						startX + static_cast<float>(column) * groupInfo.spacingX,
 						startY + static_cast<float>(row) * groupInfo.spacingY,
@@ -968,6 +1056,9 @@ vector<Room::ZombiePathPoint> Room::FindZombiePath(const Protocol::PosInfo& star
 	vector<ZombiePathPoint> fallbackPath;
 	fallbackPath.push_back({ goal.x(), goal.y(), goal.z() });
 
+	if (!ZOMBIE_NAV_HAS_BLOCKED_CELLS)
+		return fallbackPath;
+
 	const ZombieNavCell startCell = WorldToZombieNavCell(start.x(), start.y());
 	const ZombieNavCell goalCell = WorldToZombieNavCell(goal.x(), goal.y());
 	if (startCell.x == goalCell.x && startCell.y == goalCell.y)
@@ -1126,6 +1217,7 @@ void Room::UpdateZombies()
 		if (monster->IsDead())
 		{
 			_zombiePaths.erase(item.first);
+			_zombieAiUpdateStates.erase(item.first);
 			continue;
 		}
 
@@ -1136,12 +1228,11 @@ void Room::UpdateZombies()
 			continue;
 		}
 
-		monster->TickCooldown(ZOMBIE_SERVER_TICK_SECONDS);
-
 		PlayerRef targetPlayer = FindNearestPlayer(*monster->posInfo, ZOMBIE_AI_ACTIVE_RANGE);
 		if (targetPlayer == nullptr)
 		{
 			_zombiePaths.erase(item.first);
+			_zombieAiUpdateStates.erase(item.first);
 			if (monster->posInfo->state() != Protocol::MOVE_STATE_IDLE)
 			{
 				monster->posInfo->set_state(Protocol::MOVE_STATE_IDLE);
@@ -1155,15 +1246,27 @@ void Room::UpdateZombies()
 		const float dy = targetPlayer->posInfo->y() - monster->posInfo->y();
 		const float dz = targetPlayer->posInfo->z() - monster->posInfo->z();
 		const float distSq = dx * dx + dy * dy + dz * dz;
+
+		ZombieAiUpdateState& aiUpdateState = _zombieAiUpdateStates[item.first];
+		aiUpdateState.elapsedSeconds += ZOMBIE_SERVER_TICK_SECONDS;
+		const float aiUpdateInterval = GetZombieAiUpdateInterval(distSq);
+		if (aiUpdateState.elapsedSeconds + 0.001f < aiUpdateInterval)
+			continue;
+
+		const float aiDeltaSeconds = aiUpdateState.elapsedSeconds;
+		aiUpdateState.elapsedSeconds = 0.0f;
+		monster->TickCooldown(aiDeltaSeconds);
+
 		const float attackRangeSq = ZOMBIE_ATTACK_RANGE * ZOMBIE_ATTACK_RANGE;
 		float separationX = 0.0f;
 		float separationY = 0.0f;
 		const float separationRadiusSq = ZOMBIE_SEPARATION_RADIUS * ZOMBIE_SEPARATION_RADIUS;
 
 		const ZombieNavCell separationCell = WorldToZombieSeparationCell(monster->posInfo->x(), monster->posInfo->y());
-		for (int32 cellY = separationCell.y - 1; cellY <= separationCell.y + 1; ++cellY)
+		int32 separationNeighborCount = 0;
+		for (int32 cellY = separationCell.y - 1; cellY <= separationCell.y + 1 && separationNeighborCount < ZOMBIE_SEPARATION_MAX_NEIGHBORS; ++cellY)
 		{
-			for (int32 cellX = separationCell.x - 1; cellX <= separationCell.x + 1; ++cellX)
+			for (int32 cellX = separationCell.x - 1; cellX <= separationCell.x + 1 && separationNeighborCount < ZOMBIE_SEPARATION_MAX_NEIGHBORS; ++cellX)
 			{
 				auto gridIt = separationGrid.find(MakeZombieNavCellKey(cellX, cellY));
 				if (gridIt == separationGrid.end())
@@ -1171,6 +1274,9 @@ void Room::UpdateZombies()
 
 				for (const MonsterRef& otherMonster : gridIt->second)
 				{
+					if (separationNeighborCount >= ZOMBIE_SEPARATION_MAX_NEIGHBORS)
+						break;
+
 					if (otherMonster == nullptr ||
 						otherMonster->objectInfo->object_id() == monster->objectInfo->object_id())
 					{
@@ -1188,6 +1294,7 @@ void Room::UpdateZombies()
 						const float fallbackAngle = static_cast<float>((item.first * 37 + otherMonster->objectInfo->object_id() * 17) % 360) * (3.1415926535f / 180.0f);
 						separationX += cosf(fallbackAngle);
 						separationY += sinf(fallbackAngle);
+						++separationNeighborCount;
 						continue;
 					}
 
@@ -1195,6 +1302,7 @@ void Room::UpdateZombies()
 					const float strength = (ZOMBIE_SEPARATION_RADIUS - otherDist) / ZOMBIE_SEPARATION_RADIUS;
 					separationX += (awayX / otherDist) * strength;
 					separationY += (awayY / otherDist) * strength;
+					++separationNeighborCount;
 				}
 			}
 		}
@@ -1219,7 +1327,7 @@ void Room::UpdateZombies()
 			if (separationSq > 0.001f)
 			{
 				const float separationLen = sqrtf(separationSq);
-				const float moveStep = ZOMBIE_MOVE_SPEED * monster->GetMoveSpeedScale() * ZOMBIE_SERVER_TICK_SECONDS;
+				const float moveStep = ZOMBIE_MOVE_SPEED * monster->GetMoveSpeedScale() * aiDeltaSeconds;
 				monster->posInfo->set_x(monster->posInfo->x() + (separationX / separationLen) * moveStep);
 				monster->posInfo->set_y(monster->posInfo->y() + (separationY / separationLen) * moveStep);
 			}
@@ -1238,7 +1346,7 @@ void Room::UpdateZombies()
 		else
 		{
 			ZombiePathState& pathState = _zombiePaths[item.first];
-			pathState.repathRemainingSeconds -= ZOMBIE_SERVER_TICK_SECONDS;
+			pathState.repathRemainingSeconds -= aiDeltaSeconds;
 
 			const float targetMoveX = targetPlayer->posInfo->x() - pathState.lastTargetX;
 			const float targetMoveY = targetPlayer->posInfo->y() - pathState.lastTargetY;
@@ -1286,7 +1394,7 @@ void Room::UpdateZombies()
 			const float distance = sqrtf(pathDistSq);
 			if (distance > 0.001f)
 			{
-				const float moveStep = ZOMBIE_MOVE_SPEED * monster->GetMoveSpeedScale() * ZOMBIE_SERVER_TICK_SECONDS;
+				const float moveStep = ZOMBIE_MOVE_SPEED * monster->GetMoveSpeedScale() * aiDeltaSeconds;
 				float moveX = pathDx / distance;
 				float moveY = pathDy / distance;
 				const float separationSq = separationX * separationX + separationY * separationY;
@@ -1577,6 +1685,15 @@ void Room::HandlePickupLootItem(PlayerRef player, Protocol::C_PICKUP_LOOT_ITEM p
 	}
 
 	_inactiveLootItemIds.insert(itemId);
+	_pendingLootItemRespawns.erase(
+		std::remove_if(
+			_pendingLootItemRespawns.begin(),
+			_pendingLootItemRespawns.end(),
+			[itemId](const PendingLootItemRespawn& pendingRespawn)
+			{
+				return pendingRespawn.itemId == itemId;
+			}),
+		_pendingLootItemRespawns.end());
 
 	Protocol::S_DESPAWN despawnPkt;
 	Protocol::DespawnInfo* despawnInfo = despawnPkt.add_despawn_infos();
@@ -1588,9 +1705,7 @@ void Room::HandlePickupLootItem(PlayerRef player, Protocol::C_PICKUP_LOOT_ITEM p
 
 	if (pkt.should_respawn() && pkt.respawn_delay() > 0.0f)
 	{
-		PendingLootItemRespawn& pendingRespawn = _pendingLootItemRespawns.emplace_back();
-		pendingRespawn.itemId = itemId;
-		pendingRespawn.remainingTime = pkt.respawn_delay();
+		cout << "[PickupLootItem] respawn request ignored for network loot itemId=" << itemId << endl;
 	}
 }
 
@@ -1678,11 +1793,6 @@ void Room::HandleEnterTruck(PlayerRef player, Protocol::C_ENTER_TRUCK pkt)
 	player->currentTruckId = truckId;
 	player->currentTruckSeatType = seatType;
 
-	// A new driver must start from the last server-approved truck pose, not from
-	// the player's standing position beside the truck.
-	if (seatType == Protocol::TRUCK_SEAT_DRIVER && truckState.hasTransform)
-		BroadcastTruckState(truckState, true);
-
 	BroadcastSeatChange(seatType);
 }
 
@@ -1734,6 +1844,22 @@ void Room::HandleTruckMove(PlayerRef player, Protocol::C_TRUCK_MOVE pkt)
 	if (truckState == nullptr)
 		return;
 
+	const bool bIsExplicitTruckItemUpdate = pkt.has_truck_health_repair();
+	const bool bFiniteTransform =
+		std::isfinite(incoming.x()) &&
+		std::isfinite(incoming.y()) &&
+		std::isfinite(incoming.z()) &&
+		std::isfinite(incoming.yaw()) &&
+		std::isfinite(incoming.pitch()) &&
+		std::isfinite(incoming.roll());
+	const bool bHasTruckStatePayload =
+		pkt.has_truck_fuel() ||
+		pkt.has_truck_health() ||
+		bIsExplicitTruckItemUpdate;
+	const bool bCanUseIncomingTransform =
+		bFiniteTransform &&
+		(!pkt.has_turret_aim() || bHasTruckStatePayload);
+
 	if (pkt.has_truck_health() &&
 		std::isfinite(pkt.truck_hp()) &&
 		std::isfinite(pkt.truck_max_hp()) &&
@@ -1741,20 +1867,52 @@ void Room::HandleTruckMove(PlayerRef player, Protocol::C_TRUCK_MOVE pkt)
 	{
 		const float incomingMaxHp = pkt.truck_max_hp();
 		const float incomingHp = (std::max)(0.0f, (std::min)(pkt.truck_hp(), incomingMaxHp));
-		constexpr float HEALTH_EPSILON = 0.01f;
-		const bool bIsHealthDecrease = truckState->hasHealth == false || incomingHp <= truckState->hp + HEALTH_EPSILON;
-		const bool bIsExplicitRepair = pkt.has_truck_health_repair();
+		const bool bHasPreviousHealth = truckState->hasHealth;
+		const bool bIsHealthIncrease = bHasPreviousHealth && incomingHp > truckState->hp + TRUCK_STATE_EPSILON;
+		const bool bIsHealthDecrease = bHasPreviousHealth == false || incomingHp <= truckState->hp + TRUCK_STATE_EPSILON;
+		const bool bIgnoreStalePostRepairHealth =
+			!bIsExplicitTruckItemUpdate &&
+			bHasPreviousHealth &&
+			incomingHp < truckState->hp - TRUCK_STATE_EPSILON &&
+			IsRecentTruckItemUpdate(truckState->lastHealthRepairUpdateTime);
 
-		if (bIsHealthDecrease || bIsExplicitRepair)
+		if ((bIsExplicitTruckItemUpdate && (bHasPreviousHealth == false || incomingHp >= truckState->hp - TRUCK_STATE_EPSILON)) ||
+			(!bIsExplicitTruckItemUpdate && bIsHealthDecrease && !bIgnoreStalePostRepairHealth))
 		{
 			truckState->hasHealth = true;
 			truckState->hp = incomingHp;
 			truckState->maxHp = incomingMaxHp;
+			if (bIsExplicitTruckItemUpdate && bIsHealthIncrease)
+			{
+				truckState->lastHealthRepairUpdateTime = std::chrono::steady_clock::now();
+			}
 		}
 	}
 
 	if (bPlayerInThisTruck == false)
 	{
+		if (bIsExplicitTruckItemUpdate &&
+			pkt.has_truck_fuel() &&
+			std::isfinite(pkt.fuel()) &&
+			pkt.fuel() >= 0.0f &&
+			(truckState->hasFuel == false || pkt.fuel() >= truckState->fuel - TRUCK_STATE_EPSILON))
+		{
+			const bool bIsFuelIncrease = truckState->hasFuel && pkt.fuel() > truckState->fuel + TRUCK_STATE_EPSILON;
+			truckState->hasFuel = true;
+			truckState->fuel = pkt.fuel();
+			if (bIsFuelIncrease)
+			{
+				truckState->lastFuelItemUpdateTime = std::chrono::steady_clock::now();
+			}
+		}
+
+		if (truckState->hasTransform == false && bCanUseIncomingTransform)
+		{
+			truckState->posInfo.CopyFrom(incoming);
+			truckState->posInfo.set_object_id(truckId);
+			truckState->hasTransform = true;
+		}
+
 		BroadcastTruckState(*truckState);
 		return;
 	}
@@ -1778,12 +1936,29 @@ void Room::HandleTruckMove(PlayerRef player, Protocol::C_TRUCK_MOVE pkt)
 	{
 		if (pkt.has_truck_fuel() &&
 			std::isfinite(pkt.fuel()) &&
-			pkt.fuel() >= 0.0f &&
-			(truckState->hasFuel == false || pkt.fuel() > truckState->fuel))
+			pkt.fuel() >= 0.0f)
 		{
-			truckState->hasFuel = true;
-			truckState->fuel = pkt.fuel();
+			const float incomingFuel = pkt.fuel();
+			if (bIsExplicitTruckItemUpdate &&
+				(truckState->hasFuel == false || incomingFuel >= truckState->fuel - TRUCK_STATE_EPSILON))
+			{
+				const bool bIsFuelIncrease = truckState->hasFuel && incomingFuel > truckState->fuel + TRUCK_STATE_EPSILON;
+				truckState->hasFuel = true;
+				truckState->fuel = incomingFuel;
+				if (bIsFuelIncrease)
+				{
+					truckState->lastFuelItemUpdateTime = std::chrono::steady_clock::now();
+				}
+			}
 		}
+
+		if (truckState->hasTransform == false && bCanUseIncomingTransform)
+		{
+			truckState->posInfo.CopyFrom(incoming);
+			truckState->posInfo.set_object_id(truckId);
+			truckState->hasTransform = true;
+		}
+
 		BroadcastTruckState(*truckState);
 		return;
 	}
@@ -1793,18 +1968,29 @@ void Room::HandleTruckMove(PlayerRef player, Protocol::C_TRUCK_MOVE pkt)
 
 	if (pkt.has_truck_fuel() && std::isfinite(pkt.fuel()) && pkt.fuel() >= 0.0f)
 	{
-		truckState->hasFuel = true;
-		truckState->fuel = pkt.fuel();
+		const float incomingFuel = pkt.fuel();
+		const bool bHasPreviousFuel = truckState->hasFuel;
+		const bool bIsFuelIncrease = bHasPreviousFuel && incomingFuel > truckState->fuel + TRUCK_STATE_EPSILON;
+		const bool bIsFuelDecrease = bHasPreviousFuel == false || incomingFuel <= truckState->fuel + TRUCK_STATE_EPSILON;
+		const bool bIgnoreStalePostRefuel =
+			!bIsExplicitTruckItemUpdate &&
+			bHasPreviousFuel &&
+			incomingFuel < truckState->fuel - TRUCK_STATE_EPSILON &&
+			IsRecentTruckItemUpdate(truckState->lastFuelItemUpdateTime);
+
+		if ((bIsExplicitTruckItemUpdate && (bHasPreviousFuel == false || incomingFuel >= truckState->fuel - TRUCK_STATE_EPSILON)) ||
+			(!bIsExplicitTruckItemUpdate && bIsFuelDecrease && !bIgnoreStalePostRefuel))
+		{
+			truckState->hasFuel = true;
+			truckState->fuel = incomingFuel;
+			if (bIsExplicitTruckItemUpdate && bIsFuelIncrease)
+			{
+				truckState->lastFuelItemUpdateTime = std::chrono::steady_clock::now();
+			}
+		}
 	}
 
-	const bool bFiniteTransform =
-		std::isfinite(incoming.x()) &&
-		std::isfinite(incoming.y()) &&
-		std::isfinite(incoming.z()) &&
-		std::isfinite(incoming.yaw()) &&
-		std::isfinite(incoming.pitch()) &&
-		std::isfinite(incoming.roll());
-	if (bFiniteTransform == false)
+	if (bCanUseIncomingTransform == false)
 	{
 		BroadcastTruckState(*truckState, true);
 		return;

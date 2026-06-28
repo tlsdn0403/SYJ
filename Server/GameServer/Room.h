@@ -15,8 +15,8 @@ public:
 	bool LeaveRoom(ObjectRef object);
 
 	bool HandleEnterPlayer(PlayerRef player);
-	void HandleReadyPlayer(GameSessionRef session);
-	void HandleStageMapReady(GameSessionRef session);
+	void HandleReadyPlayer(GameSessionRef session, Protocol::C_ENTER_GAME pkt);
+	void HandleStageMapReady(GameSessionRef session, Protocol::C_ENTER_GAME pkt);
 	void RemovePendingReadySession(GameSessionRef session);
 	bool HandleLeavePlayer(PlayerRef player);
 	void HandleMove(PlayerRef player, Protocol::C_MOVE pkt);
@@ -90,6 +90,11 @@ private:
 		bool hasLastMove = false;
 	};
 
+	struct ZombieAiUpdateState
+	{
+		float elapsedSeconds = 0.0f;
+	};
+
 	vector<ZombiePathPoint> FindZombiePath(const Protocol::PosInfo& start, const Protocol::PosInfo& goal) const;
 	bool AddObject(ObjectRef object);
 	bool RemoveObject(uint64 objectId);
@@ -104,6 +109,8 @@ private:
 	void SendStage1ItemSeedToSession(const GameSessionRef& session) const;
 	void SendStage2WeaponsToSession(const GameSessionRef& session) const;
 	int32 GetTruckLoadingPhaseRemainingSeconds() const;
+	void RecordStage2TileSequence(const Protocol::C_ENTER_GAME& pkt);
+	int32 GetStage2TileOccurrenceCount(int32 tileTypeCode, int32 fallbackOccurrenceCount) const;
 
 	struct TruckState
 	{
@@ -111,9 +118,11 @@ private:
 		bool hasTransform = false;
 		bool hasFuel = false;
 		float fuel = -1.0f;
+		std::chrono::steady_clock::time_point lastFuelItemUpdateTime{};
 		bool hasHealth = false;
 		float hp = 0.0f;
 		float maxHp = 0.0f;
+		std::chrono::steady_clock::time_point lastHealthRepairUpdateTime{};
 		bool hasTurretAim = false;
 		float turretYaw = 0.0f;
 		float turretPitch = 0.0f;
@@ -170,12 +179,15 @@ private:
 	vector<Stage2WeaponState> _stage2Weapons;
 	unordered_map<uint64, ZombiePathState> _zombiePaths;
 	unordered_map<uint64, ZombieMoveBroadcastState> _zombieMoveBroadcastStates;
+	unordered_map<uint64, ZombieAiUpdateState> _zombieAiUpdateStates;
 	unordered_set<uint64> _inactiveLootItemIds;
 	unordered_set<uint64> _stageTransitionReadyPlayerIds;
+	vector<int32> _stage2TileTypeSequence;
 	uint64 _nextStage2ZombieId = 0;
 	bool _bTruckLoadingPhaseActive = false;
 	bool _bStageTransitionStarted = false;
 	bool _bStage2ZombiesSpawned = false;
+	bool _bHasStage2TileTypeSequence = false;
 	std::chrono::steady_clock::time_point _truckLoadingPhaseEndTime;
 	int32 _lastBroadcastTruckLoadingRemainingSeconds = -1;
 	uint32 _stage1ItemSpawnSeed = 0;

@@ -114,6 +114,9 @@ public:
 		int32 TileOccurrenceIndex,
 		FTransform& OutTransform) const;
 
+	void GetActiveTileTypeCodes(TArray<int32>& OutTileTypeCodes) const;
+	void GetPlannedStage2ZombieTileTypeCodes(TArray<int32>& OutTileTypeCodes) const;
+
 	UPROPERTY(BlueprintAssignable, Category = "Stage2")
 	FStage2InitialTilesReadySignature OnInitialTilesReady;
 
@@ -238,6 +241,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stage2|Debug")
 	bool bVerboseLog = true;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stage2|Debug")
+	bool bDebugSpawnGoalAfterOnePlayableTile = true;
+
 	UPROPERTY(BlueprintReadOnly, Category = "Stage2")
 	TArray<FStage2LoadedTile> ActiveTiles;
 
@@ -258,13 +264,20 @@ private:
 	bool bTilePoolReady = false;
 	int32 ConsecutiveLeftTurns = 0;
 	int32 ConsecutiveRightTurns = 0;
+	int32 NextStartTileOccurrenceIndex = 0;
+	int32 NextStraightTileOccurrenceIndex = 0;
+	int32 NextLeftTileOccurrenceIndex = 0;
 	int32 NextRightTileOccurrenceIndex = 0;
+	int32 NextGoalTileOccurrenceIndex = 0;
 	int32 NextPoolParkingIndex = 0;
 	FRandomStream RandomStream;
 	TMap<TObjectKey<UPrimitiveComponent>, ECollisionEnabled::Type> CachedTileCollisionStates;
 
 	void PreloadTilePool();
-	void QueueTilePoolLevels(const TArray<TSoftObjectPtr<UWorld>>& LevelArray, EStage2TileType TileType);
+	void QueueTilePoolLevels(
+		const TArray<TSoftObjectPtr<UWorld>>& LevelArray,
+		EStage2TileType TileType,
+		int32 OverridePoolCount = INDEX_NONE);
 	void LoadPooledTileLevel(const TSoftObjectPtr<UWorld>& TileLevel, EStage2TileType TileType);
 	void TryFinalizePooledTiles();
 	void FinalizePooledTile(int32 PoolIndex);
@@ -310,6 +323,7 @@ private:
 	void SpawnZombiesForTile(FStage2LoadedTile& LoadedTile);
 	void DestroySpawnedZombiesForTile(FStage2LoadedTile& LoadedTile);
 	void UpdateTurnHistory(EStage2TileType TileType);
+	int32 GetEffectiveGoalAfterPlayableTileCount() const;
 	EStage2TileType ChooseNextTileType();
 	AStage2TileMarker* FindTileMarkerFromStreamingLevel(ULevelStreamingDynamic* StreamingLevel) const;
 	int32 GetInitializedTileCount() const;

@@ -501,6 +501,7 @@ void AWeaponBase::Fire()
 			{
 				if (ABaseZombie* HitZombie = ResolveWeaponHitZombie(AimHitActor, HitResult.GetComponent()))
 				{
+					HitZombie->PlayBloodHitEffect(HitResult.ImpactPoint, HitResult.ImpactNormal);
 					UFPSProjectGameInstance::SendZombieHitPacket(
 						Character,
 						HitZombie,

@@ -216,6 +216,10 @@ void AFPSProjectile::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor
 		{
 			HitZombie->PlayHeadHitSound(DamageHit.ImpactPoint);
 		}
+		if (HitZombie && HitZombie->IsAlive())
+		{
+			HitZombie->PlayBloodHitEffect(DamageHit.ImpactPoint, DamageHit.ImpactNormal);
+		}
 
 		const bool bSentZombieHitPacket =
 			InstigatorCharacter &&

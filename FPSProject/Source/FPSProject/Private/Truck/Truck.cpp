@@ -2226,6 +2226,7 @@ void ATruck::ProcessZombieImpact(ABaseZombie* Zombie, const FVector& ImpactPoint
 
 	const bool bNetworkZombie = Zombie->GetNetworkObjectId() != 0;
 	const bool bCanReportServerHit = bIsLocallyDriven || NetworkTruckId == 0;
+	Zombie->PlayBloodHitEffect(ImpactPoint, ImpactFlingDirection);
 	const bool bNetworkHitSent = bCanReportServerHit &&
 		UFPSProjectGameInstance::SendZombieHitPacket(DriverCharacter, Zombie, Damage, ImpactPoint, NAME_None, ImpactFlingDirection);
 	if (bNetworkZombie && (bNetworkHitSent || NetworkTruckId != 0))

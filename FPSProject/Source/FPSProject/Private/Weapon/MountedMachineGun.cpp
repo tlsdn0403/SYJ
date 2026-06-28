@@ -482,6 +482,7 @@ void AMountedMachineGun::Fire()
 				if (ABaseZombie* HitZombie = ResolveMountedGunHitZombie(HitResult.GetActor(), HitResult.GetComponent()))
 				{
 					const FHitResult DamageHit = BuildMountedGunZombieDamageHit(HitResult, HitZombie, ViewLocation, TraceEnd);
+					HitZombie->PlayBloodHitEffect(DamageHit.ImpactPoint, DamageHit.ImpactNormal);
 					UFPSProjectGameInstance::SendZombieHitPacket(
 						CurrentUser,
 						HitZombie,

@@ -15,6 +15,7 @@ class AMountedMachineGun;
 class UAIPerceptionStimuliSourceComponent;
 class UHealthComponent;
 class UBoxComponent;
+class UNiagaraComponent;
 class USceneComponent;
 class UPrimitiveComponent;
 class UStaticMeshComponent;
@@ -390,6 +391,27 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
 	float BrakeSoundMinSpeed = 300.0f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Effects|Smoke")
+	TObjectPtr<UNiagaraComponent> WhiteSmokeComponent = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Effects|Smoke")
+	TObjectPtr<UNiagaraComponent> BlackSmokeComponent = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Effects|Smoke")
+	FName WhiteSmokeComponentName = TEXT("Niagara");
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Effects|Smoke")
+	FName BlackSmokeComponentName = TEXT("Niagara1");
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Effects|Smoke", meta = (ClampMin = "0.0"))
+	float WhiteSmokeMinSpeed = 900.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Effects|Smoke", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	float BlackSmokeHealthRatioThreshold = 0.35f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Effects|Smoke", meta = (ClampMin = "0.0"))
+	float NetworkSmokeSpeedTimeout = 0.25f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Perception")
 	float ZombieNoiseMinSpeed = 200.0f;
 
@@ -415,11 +437,23 @@ private:
 	float OriginalEngineMaxTorque = 0.0f;
 	FVector LastImpactSweepLocation = FVector::ZeroVector;
 	float LastImpactSweepTime = 0.0f;
+	FVector LastNetworkSmokeLocation = FVector::ZeroVector;
+	float LastNetworkSmokeSampleTime = 0.0f;
+	float LastNetworkSmokeUpdateTime = 0.0f;
+	float NetworkSmokeSpeed = 0.0f;
 	bool bHasOriginalEngineMaxTorque = false;
 	bool bHasImpactSweepSample = false;
+	bool bHasNetworkSmokeSample = false;
+	bool bWhiteSmokeActive = false;
+	bool bBlackSmokeActive = false;
 	static constexpr float TRUCK_MOVE_PACKET_SEND_DELAY = 0.05f;
 
 	void ApplyStageVehicleTuning();
+	void ResolveTruckSmokeComponents();
+	void RefreshTruckSmokeEffects();
+	void SetSmokeComponentActive(UNiagaraComponent* SmokeComponent, bool bShouldBeActive);
+	void UpdateNetworkSmokeSpeedFromTransform(const FVector& TargetLocation);
+	float GetTruckSmokeEvaluationSpeed() const;
 	void ReportZombieAwarenessNoise(float DeltaTime);
 	void UpdateFuelConsumption(float DeltaTime);
 	void ClearDrivingInput(bool bHoldBrake);

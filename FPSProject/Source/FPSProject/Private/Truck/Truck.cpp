@@ -10,6 +10,8 @@
 #include "Blueprint/UserWidget.h"
 #include "HUD/InteractUIClass.h"
 #include "Kismet/GameplayStatics.h"
+#include "NiagaraComponent.h"
+#include "NiagaraSystem.h"
 #include "Sound/SoundBase.h"
 #include "Weapon/MountedMachineGun.h"
 #include "Zombie/BaseZombie.h"
@@ -113,6 +115,33 @@ void MakeVehicleMeshKinematic(USkeletalMeshComponent* TruckMesh)
 		TruckMesh->PutAllRigidBodiesToSleep();
 		TruckMesh->SetSimulatePhysics(false);
 	}
+}
+
+bool ComponentNameMatches(const UActorComponent* Component, const FName& ComponentName)
+{
+	return Component &&
+		!ComponentName.IsNone() &&
+		(Component->GetFName() == ComponentName ||
+			Component->GetName().Contains(ComponentName.ToString(), ESearchCase::IgnoreCase));
+}
+
+bool NiagaraIdentityContains(const UNiagaraComponent* Component, const TCHAR* Needle)
+{
+	if (!Component || !Needle)
+	{
+		return false;
+	}
+
+	FString Identity = Component->GetName();
+	if (const UNiagaraSystem* Asset = Component->GetAsset())
+	{
+		Identity += TEXT(" ");
+		Identity += Asset->GetName();
+		Identity += TEXT(" ");
+		Identity += Asset->GetPathName();
+	}
+
+	return Identity.Contains(Needle, ESearchCase::IgnoreCase);
 }
 }
 
@@ -359,6 +388,7 @@ void ATruck::BeginPlay()
 	Super::BeginPlay();
 	const FTransform PlacedTransform = GetActorTransform();
 	ConfigureVehiclePawnCollision();
+	ResolveTruckSmokeComponents();
 
 	if (HealthComponent)
 	{
@@ -478,6 +508,8 @@ void ATruck::BeginPlay()
 			MountedWeapon->ConfigureOperatorSeat(TurretSeatPoint->GetComponentTransform());
 		}
 	}
+
+	RefreshTruckSmokeEffects();
 }
 
 void ATruck::Tick(float DeltaTime)
@@ -485,6 +517,7 @@ void ATruck::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 
 	CheckZombieImpactSweep();
+	RefreshTruckSmokeEffects();
 
 	if (bIsLocallyDriven || NetworkTruckId == 0)
 	{
@@ -633,6 +666,11 @@ void ATruck::SetLocallyDriven(bool bLocallyDriven)
 {
 	bIsLocallyDriven = bLocallyDriven;
 	ApplyStageVehicleTuning();
+	if (bLocallyDriven)
+	{
+		bHasNetworkSmokeSample = false;
+		NetworkSmokeSpeed = 0.0f;
+	}
 
 	UE_LOG(LogTemp, Verbose,
 		TEXT("[TruckDebug] SetLocallyDriven Truck=%s bLocallyDriven=%d Controller=%s IsPlayerControlled=%d"),
@@ -727,6 +765,11 @@ void ATruck::ApplyNetworkTransform(const FVector& TargetLocation, const FRotator
 		return;
 	}
 
+	if (NetworkTruckId != 0)
+	{
+		UpdateNetworkSmokeSpeedFromTransform(TargetLocation);
+	}
+
 	if (USkeletalMeshComponent* TruckMesh = GetMesh())
 	{
 		MakeVehicleMeshKinematic(TruckMesh);
@@ -747,6 +790,8 @@ void ATruck::ApplyNetworkTransform(const FVector& TargetLocation, const FRotator
 		}
 		RefreshVehicleMeshRenderState(TruckMesh);
 	}
+
+	RefreshTruckSmokeEffects();
 }
 
 void ATruck::SetLoadingPhase(bool bLoadingPhase)
@@ -760,6 +805,7 @@ void ATruck::SetLoadingPhase(bool bLoadingPhase)
 	UE_LOG(LogTemp, Log, TEXT("[Truck] Loading phase changed. Truck=%s bIsLoadingPhase=%d"),
 		*GetNameSafe(this),
 		bIsLoadingPhase ? 1 : 0);
+	RefreshTruckSmokeEffects();
 	RefreshLocalInteractionWidgets();
 }
 
@@ -896,6 +942,7 @@ void ATruck::ApplyNetworkHealth(float CurrentHealth, float MaxHealth)
 		HealthComponent->SetCurrentHealth(ClampedCurrentHealth);
 	}
 	bApplyingNetworkHealth = false;
+	RefreshTruckSmokeEffects();
 }
 
 void ATruck::ResetVehiclePhysicsState(bool bReleaseBrake)
@@ -944,6 +991,185 @@ void ATruck::ApplyStageVehicleTuning()
 	MoveComp->SetMaxEngineTorque(TargetTorque);
 }
 
+void ATruck::ResolveTruckSmokeComponents()
+{
+	TArray<UNiagaraComponent*> NiagaraComponents;
+	GetComponents<UNiagaraComponent>(NiagaraComponents);
+
+	for (UNiagaraComponent* NiagaraComponent : NiagaraComponents)
+	{
+		if (!IsValid(NiagaraComponent))
+		{
+			continue;
+		}
+
+		NiagaraComponent->SetAutoActivate(false);
+		NiagaraComponent->SetVisibility(false, true);
+		NiagaraComponent->SetHiddenInGame(true, true);
+		if (NiagaraComponent->IsActive())
+		{
+			NiagaraComponent->Deactivate();
+		}
+
+		if (!WhiteSmokeComponent && ComponentNameMatches(NiagaraComponent, WhiteSmokeComponentName))
+		{
+			WhiteSmokeComponent = NiagaraComponent;
+		}
+		else if (!BlackSmokeComponent && ComponentNameMatches(NiagaraComponent, BlackSmokeComponentName))
+		{
+			BlackSmokeComponent = NiagaraComponent;
+		}
+	}
+
+	for (UNiagaraComponent* NiagaraComponent : NiagaraComponents)
+	{
+		if (!IsValid(NiagaraComponent))
+		{
+			continue;
+		}
+
+		if (!BlackSmokeComponent &&
+			(NiagaraIdentityContains(NiagaraComponent, TEXT("truck_attack")) ||
+				NiagaraIdentityContains(NiagaraComponent, TEXT("black")) ||
+				NiagaraIdentityContains(NiagaraComponent, TEXT("attack"))))
+		{
+			BlackSmokeComponent = NiagaraComponent;
+			continue;
+		}
+
+		if (!WhiteSmokeComponent &&
+			(NiagaraIdentityContains(NiagaraComponent, TEXT("white")) ||
+				NiagaraIdentityContains(NiagaraComponent, TEXT("NS_Smoke")) ||
+				NiagaraIdentityContains(NiagaraComponent, TEXT("smoke"))))
+		{
+			WhiteSmokeComponent = NiagaraComponent;
+		}
+	}
+
+	for (UNiagaraComponent* NiagaraComponent : NiagaraComponents)
+	{
+		if (!IsValid(NiagaraComponent))
+		{
+			continue;
+		}
+
+		if (!WhiteSmokeComponent && NiagaraComponent != BlackSmokeComponent)
+		{
+			WhiteSmokeComponent = NiagaraComponent;
+		}
+		else if (!BlackSmokeComponent && NiagaraComponent != WhiteSmokeComponent)
+		{
+			BlackSmokeComponent = NiagaraComponent;
+		}
+	}
+}
+
+void ATruck::RefreshTruckSmokeEffects()
+{
+	if (!WhiteSmokeComponent && !BlackSmokeComponent)
+	{
+		ResolveTruckSmokeComponents();
+	}
+
+	const bool bSmokeAllowed = FPSStage2WorldUtils::IsStage2World(GetWorld()) && !bIsLoadingPhase;
+	const float CurrentSpeed = GetTruckSmokeEvaluationSpeed();
+	const float MaxHealth = FMath::Max(GetTruckMaxHealth(), 1.0f);
+	const float HealthRatio = GetTruckHealth() / MaxHealth;
+
+	const bool bShouldShowWhiteSmoke =
+		bSmokeAllowed &&
+		!bTruckDestroyed &&
+		CurrentSpeed >= FMath::Max(0.0f, WhiteSmokeMinSpeed);
+	const bool bShouldShowBlackSmoke =
+		bSmokeAllowed &&
+		HealthRatio <= FMath::Clamp(BlackSmokeHealthRatioThreshold, 0.0f, 1.0f);
+
+	if (bWhiteSmokeActive != bShouldShowWhiteSmoke || !bShouldShowWhiteSmoke)
+	{
+		bWhiteSmokeActive = bShouldShowWhiteSmoke;
+		SetSmokeComponentActive(WhiteSmokeComponent.Get(), bWhiteSmokeActive);
+	}
+
+	if (bBlackSmokeActive != bShouldShowBlackSmoke || !bShouldShowBlackSmoke)
+	{
+		bBlackSmokeActive = bShouldShowBlackSmoke;
+		SetSmokeComponentActive(BlackSmokeComponent.Get(), bBlackSmokeActive);
+	}
+}
+
+void ATruck::SetSmokeComponentActive(UNiagaraComponent* SmokeComponent, bool bShouldBeActive)
+{
+	if (!IsValid(SmokeComponent))
+	{
+		return;
+	}
+
+	SmokeComponent->SetAutoActivate(false);
+	SmokeComponent->SetVisibility(bShouldBeActive, true);
+	SmokeComponent->SetHiddenInGame(!bShouldBeActive, true);
+
+	if (bShouldBeActive)
+	{
+		if (!SmokeComponent->IsActive())
+		{
+			SmokeComponent->Activate(true);
+		}
+		return;
+	}
+
+	if (SmokeComponent->IsActive())
+	{
+		SmokeComponent->Deactivate();
+	}
+}
+
+void ATruck::UpdateNetworkSmokeSpeedFromTransform(const FVector& TargetLocation)
+{
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+
+	const float CurrentTime = World->GetTimeSeconds();
+	if (bHasNetworkSmokeSample)
+	{
+		const float DeltaTime = CurrentTime - LastNetworkSmokeSampleTime;
+		if (DeltaTime > KINDA_SMALL_NUMBER)
+		{
+			NetworkSmokeSpeed = FVector::Dist(TargetLocation, LastNetworkSmokeLocation) / DeltaTime;
+			LastNetworkSmokeUpdateTime = CurrentTime;
+		}
+	}
+	else
+	{
+		LastNetworkSmokeUpdateTime = CurrentTime;
+		bHasNetworkSmokeSample = true;
+	}
+
+	LastNetworkSmokeLocation = TargetLocation;
+	LastNetworkSmokeSampleTime = CurrentTime;
+}
+
+float ATruck::GetTruckSmokeEvaluationSpeed() const
+{
+	if (bIsLocallyDriven || NetworkTruckId == 0)
+	{
+		return GetVelocity().Size();
+	}
+
+	const UWorld* World = GetWorld();
+	if (!World || !bHasNetworkSmokeSample)
+	{
+		return 0.0f;
+	}
+
+	const float TimeSinceLastServerUpdate = World->GetTimeSeconds() - LastNetworkSmokeUpdateTime;
+	return TimeSinceLastServerUpdate <= FMath::Max(0.0f, NetworkSmokeSpeedTimeout)
+		? NetworkSmokeSpeed
+		: 0.0f;
+}
+
 void ATruck::UseDriverHealPack()
 {
 	if (DriverCharacter)
@@ -955,6 +1181,7 @@ void ATruck::UseDriverHealPack()
 void ATruck::HandleTruckHealthChanged(float NewHealth, float Damage)
 {
 	OnTruckHealthChanged.Broadcast(NewHealth, GetTruckMaxHealth());
+	RefreshTruckSmokeEffects();
 	if (!bApplyingNetworkHealth && NetworkTruckId != 0)
 	{
 		SyncTruckStateToServer(Damage < 0.0f);
@@ -981,6 +1208,7 @@ void ATruck::HandleTruckHealthChanged(float NewHealth, float Damage)
 	}
 
 	OnTruckDestroyed.Broadcast();
+	RefreshTruckSmokeEffects();
 	UE_LOG(LogTemp, Warning, TEXT("Truck %s was destroyed."), *GetName());
 }
 

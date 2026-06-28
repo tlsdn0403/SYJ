@@ -22,8 +22,6 @@
 
 namespace
 {
-constexpr float NetworkTruckAttackRangeTolerance = 180.0f;
-
 void SetAnimFloatIfPresent(UAnimInstance* AnimInstance, const TCHAR* PropertyName, float Value)
 {
 	if (AnimInstance == nullptr)
@@ -448,11 +446,23 @@ void ABaseZombie::OnNetworkMoveAnimationUpdated()
 {
 }
 
+float ABaseZombie::GetTruckAttackStandOffDistance() const
+{
+	const UCapsuleComponent* Capsule = GetCapsuleComponent();
+	const float CapsuleRadius = Capsule ? Capsule->GetScaledCapsuleRadius() : 40.0f;
+	return CapsuleRadius + FMath::Max(0.0f, TruckAttackStandOffPadding);
+}
+
 FVector ABaseZombie::GetAttackPointForTarget(AActor* TargetActor) const
 {
 	if (!TargetActor)
 	{
 		return GetActorLocation();
+	}
+
+	if (const ATruck* Truck = Cast<ATruck>(TargetActor))
+	{
+		return Truck->GetClosestZombieInteractionPoint(GetActorLocation());
 	}
 
 	if (UPrimitiveComponent* PrimitiveComponent = Cast<UPrimitiveComponent>(TargetActor->GetRootComponent()))
@@ -472,6 +482,18 @@ bool ABaseZombie::IsTargetInAttackRange(AActor* TargetActor) const
 	if (!TargetActor)
 	{
 		return false;
+	}
+
+	if (const ATruck* Truck = Cast<ATruck>(TargetActor))
+	{
+		const FVector ApproachLocation = Truck->GetZombieApproachLocation(
+			GetActorLocation(),
+			GetTruckAttackStandOffDistance());
+		const float ApproachError = FVector::Dist2D(GetActorLocation(), ApproachLocation);
+		const float HeightError = FMath::Abs(GetActorLocation().Z - GetAttackPointForTarget(TargetActor).Z);
+		return
+			ApproachError <= FMath::Max(0.0f, TruckAttackPositionTolerance) &&
+			HeightError <= AttackRange;
 	}
 
 	const FVector AttackPoint = GetAttackPointForTarget(TargetActor);
@@ -800,12 +822,8 @@ void ABaseZombie::ApplyAttackDamage(AActor* TargetActor)
 		return;
 	}
 
-	const FVector AttackPoint = GetAttackPointForTarget(TargetActor);
-	const float Distance = FVector::Dist(GetActorLocation(), AttackPoint);
-	const float EffectiveAttackRange = NetworkObjectId != 0 && TargetActor->IsA<ATruck>()
-		? AttackRange + NetworkTruckAttackRangeTolerance
-		: AttackRange;
-	if (Distance > EffectiveAttackRange)
+	const bool bServerConfirmedTruckAttack = NetworkObjectId != 0 && TargetActor->IsA<ATruck>();
+	if (!bServerConfirmedTruckAttack && !IsTargetInAttackRange(TargetActor))
 	{
 		UE_LOG(LogTemp, Verbose, TEXT("Attack missed - target moved away"));
 		return;

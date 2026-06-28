@@ -3,6 +3,7 @@
 #include "Components/ArrowComponent.h"
 #include "Components/BoxComponent.h"
 #include "Components/PrimitiveComponent.h"
+#include "Truck/Truck.h"
 #include "Zombie/BaseZombie.h"
 
 namespace
@@ -22,6 +23,11 @@ namespace
 		if (!TargetActor)
 		{
 			return FromLocation;
+		}
+
+		if (const ATruck* Truck = Cast<ATruck>(TargetActor))
+		{
+			return Truck->GetClosestZombieInteractionPoint(FromLocation);
 		}
 
 		if (const UPrimitiveComponent* PrimitiveComponent = Cast<UPrimitiveComponent>(TargetActor->GetRootComponent()))
@@ -200,4 +206,3 @@ bool AZombieFallZone::CanGuideZombieTowardTarget(
 	OutScore = AlignmentScore * 1000.0f - ZoneDistancePenalty * 250.0f;
 	return true;
 }
-

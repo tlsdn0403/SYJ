@@ -10,6 +10,7 @@
 #include "LevelSequence.h"
 #include "LevelSequenceActor.h"
 #include "LevelSequencePlayer.h"
+#include "MovieSceneSequencePlayer.h"
 #include "MovieSceneSequencePlaybackSettings.h"
 #include "DefaultLevelSequenceInstanceData.h"
 #include "EngineUtils.h"
@@ -54,30 +55,37 @@ void AStage2FinalDoor::Interact_Implementation(AFPSBaseCharacter* Character)
 		return;
 	}
 
-	Super::Interact_Implementation(Character);
-
 	if (bEnableEndingOnInteract)
 	{
 		StartEndingSequence();
+		return;
 	}
+
+	Super::Interact_Implementation(Character);
 }
 
 void AStage2FinalDoor::ApplyDoorState(bool bShouldOpen)
 {
 	const bool bWasOpen = bOpen;
-	Super::ApplyDoorState(bShouldOpen);
 
 	if (bEnableEndingOnInteract)
 	{
+		bOpen = bShouldOpen;
+		Target = OriginalRotation;
+		SetActorTickEnabled(false);
 		UpdateFinalDoorInteractText();
+		OnFinalDoorStateChanged(bOpen);
+
+		if (!bWasOpen && bShouldOpen && !bEndingTriggered)
+		{
+			TriggerEndingSequence();
+		}
+		return;
 	}
+
+	Super::ApplyDoorState(bShouldOpen);
 
 	OnFinalDoorStateChanged(bOpen);
-
-	if (bEnableEndingOnInteract && !bWasOpen && bShouldOpen && !bEndingTriggered)
-	{
-		TriggerEndingSequence();
-	}
 }
 
 void AStage2FinalDoor::WidgetStart(AActor* OtherActor)
@@ -267,6 +275,7 @@ bool AStage2FinalDoor::TryPlayPlacedEndingSequence(ULevelSequence* SequenceToPla
 	bDestroyEndingSequenceActorOnFinish = false;
 	EndingSequencePlayer->OnFinished.RemoveDynamic(this, &AStage2FinalDoor::HandleEndingSequenceFinished);
 	EndingSequencePlayer->OnFinished.AddDynamic(this, &AStage2FinalDoor::HandleEndingSequenceFinished);
+	EndingSequencePlayer->SetPlaybackPosition(FMovieSceneSequencePlaybackParams(0.0f, EUpdatePositionMethod::Jump));
 	EndingSequencePlayer->Play();
 
 	UE_LOG(LogTemp, Log, TEXT("[Stage2FinalDoor] Playing placed ending sequence actor %s in level %s."),
@@ -412,6 +421,7 @@ void AStage2FinalDoor::TriggerEndingSequence()
 	}
 
 	EndingSequencePlayer->OnFinished.AddDynamic(this, &AStage2FinalDoor::HandleEndingSequenceFinished);
+	EndingSequencePlayer->SetPlaybackPosition(FMovieSceneSequencePlaybackParams(0.0f, EUpdatePositionMethod::Jump));
 	EndingSequencePlayer->Play();
 }
 
@@ -516,6 +526,6 @@ void AStage2FinalDoor::SetEndingCinematicMode(bool bEnable)
 
 	if (APlayerController* PlayerController = UGameplayStatics::GetPlayerController(this, 0))
 	{
-		PlayerController->SetCinematicMode(bEnable, false, true, true, true);
+		PlayerController->SetCinematicMode(bEnable, true, true, true, true);
 	}
 }

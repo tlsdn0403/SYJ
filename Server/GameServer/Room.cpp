@@ -978,9 +978,10 @@ PlayerRef Room::FindNearestPlayer(const Protocol::PosInfo& origin, float maxRang
 		if (player->posInfo->state() == Protocol::MOVE_STATE_DEAD)
 			continue;
 
-		const float dx = player->posInfo->x() - origin.x();
-		const float dy = player->posInfo->y() - origin.y();
-		const float dz = player->posInfo->z() - origin.z();
+		const Protocol::PosInfo targetPos = GetZombieTargetPosInfo(player);
+		const float dx = targetPos.x() - origin.x();
+		const float dy = targetPos.y() - origin.y();
+		const float dz = targetPos.z() - origin.z();
 		const float distSq = dx * dx + dy * dy + dz * dz;
 		if (distSq > nearestDistSq)
 			continue;
@@ -990,6 +991,29 @@ PlayerRef Room::FindNearestPlayer(const Protocol::PosInfo& origin, float maxRang
 	}
 
 	return nearestPlayer;
+}
+
+Protocol::PosInfo Room::GetZombieTargetPosInfo(const PlayerRef& player) const
+{
+	Protocol::PosInfo targetPos;
+	if (player == nullptr || player->posInfo == nullptr)
+		return targetPos;
+
+	targetPos.CopyFrom(*player->posInfo);
+
+	if (player->bIsInTruck == false || player->currentTruckId == 0)
+		return targetPos;
+
+	auto truckIt = _trucks.find(player->currentTruckId);
+	if (truckIt == _trucks.end() || truckIt->second.hasTransform == false)
+		return targetPos;
+
+	// While a player is seated, their character transform can be stale or
+	// relative to cargo movement. Zombies should target the vehicle body.
+	targetPos.CopyFrom(truckIt->second.posInfo);
+	targetPos.set_object_id(player->objectInfo ? player->objectInfo->object_id() : targetPos.object_id());
+	targetPos.set_state(player->posInfo->state());
+	return targetPos;
 }
 
 bool Room::ShouldBroadcastZombieMove(const MonsterRef& monster, bool force)
@@ -1242,9 +1266,10 @@ void Room::UpdateZombies()
 			continue;
 		}
 
-		const float dx = targetPlayer->posInfo->x() - monster->posInfo->x();
-		const float dy = targetPlayer->posInfo->y() - monster->posInfo->y();
-		const float dz = targetPlayer->posInfo->z() - monster->posInfo->z();
+		const Protocol::PosInfo targetPos = GetZombieTargetPosInfo(targetPlayer);
+		const float dx = targetPos.x() - monster->posInfo->x();
+		const float dy = targetPos.y() - monster->posInfo->y();
+		const float dz = targetPos.z() - monster->posInfo->z();
 		const float distSq = dx * dx + dy * dy + dz * dz;
 
 		ZombieAiUpdateState& aiUpdateState = _zombieAiUpdateStates[item.first];
@@ -1348,9 +1373,9 @@ void Room::UpdateZombies()
 			ZombiePathState& pathState = _zombiePaths[item.first];
 			pathState.repathRemainingSeconds -= aiDeltaSeconds;
 
-			const float targetMoveX = targetPlayer->posInfo->x() - pathState.lastTargetX;
-			const float targetMoveY = targetPlayer->posInfo->y() - pathState.lastTargetY;
-			const float targetMoveZ = targetPlayer->posInfo->z() - pathState.lastTargetZ;
+			const float targetMoveX = targetPos.x() - pathState.lastTargetX;
+			const float targetMoveY = targetPos.y() - pathState.lastTargetY;
+			const float targetMoveZ = targetPos.z() - pathState.lastTargetZ;
 			const float targetMoveDistSq = targetMoveX * targetMoveX + targetMoveY * targetMoveY + targetMoveZ * targetMoveZ;
 			const bool shouldRepath =
 				pathState.targetPlayerId != targetPlayer->objectInfo->object_id() ||
@@ -1362,12 +1387,12 @@ void Room::UpdateZombies()
 			if (shouldRepath)
 			{
 				pathState.targetPlayerId = targetPlayer->objectInfo->object_id();
-				pathState.waypoints = FindZombiePath(*monster->posInfo, *targetPlayer->posInfo);
+				pathState.waypoints = FindZombiePath(*monster->posInfo, targetPos);
 				pathState.waypointIndex = 0;
 				pathState.repathRemainingSeconds = ZOMBIE_PATH_RECALC_SECONDS;
-				pathState.lastTargetX = targetPlayer->posInfo->x();
-				pathState.lastTargetY = targetPlayer->posInfo->y();
-				pathState.lastTargetZ = targetPlayer->posInfo->z();
+				pathState.lastTargetX = targetPos.x();
+				pathState.lastTargetY = targetPos.y();
+				pathState.lastTargetZ = targetPos.z();
 			}
 
 			while (pathState.waypointIndex < pathState.waypoints.size())
@@ -1383,7 +1408,7 @@ void Room::UpdateZombies()
 				++pathState.waypointIndex;
 			}
 
-			ZombiePathPoint moveTarget = { targetPlayer->posInfo->x(), targetPlayer->posInfo->y(), targetPlayer->posInfo->z() };
+			ZombiePathPoint moveTarget = { targetPos.x(), targetPos.y(), targetPos.z() };
 			if (pathState.waypointIndex < pathState.waypoints.size())
 				moveTarget = pathState.waypoints[pathState.waypointIndex];
 

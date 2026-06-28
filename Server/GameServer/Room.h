@@ -41,6 +41,7 @@ public:
 private:
 	void UpdateZombies();
 	PlayerRef FindNearestPlayer(const Protocol::PosInfo& origin, float maxRange) const;
+	Protocol::PosInfo GetZombieTargetPosInfo(const PlayerRef& player) const;
 	void BroadcastZombieMove(const MonsterRef& monster, bool force = false);
 	bool ShouldBroadcastZombieMove(const MonsterRef& monster, bool force);
 	void QueueStage2ZombieSpawn(

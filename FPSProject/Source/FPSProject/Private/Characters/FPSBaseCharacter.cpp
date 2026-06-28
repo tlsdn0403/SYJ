@@ -1999,14 +1999,14 @@ void AFPSBaseCharacter::UpdateMachineGunUI(bool bShouldShow) const
 		return;
 	}
 
-	if (!FPSStage2WorldUtils::IsStage2World(GetWorld()))
+	/*if (!FPSStage2WorldUtils::IsStage2World(GetWorld()))
 	{
 		if (PlayerController->MachineGunW)
 		{
 			PlayerController->MachineGunW->SetVisibleState(false);
 		}
 		return;
-	}
+	}*/
 
 	if (!PlayerController->MachineGunW && PlayerController->MachineGunWidgetClass)
 	{

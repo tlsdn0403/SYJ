@@ -25,6 +25,7 @@
 #include "Perception/AISense_Hearing.h"
 #include "Perception/AISense_Sight.h"
 #include "HUD/InventoryWidget.h"
+#include "HUD/EffectUI.h"
 #include "Characters/FPSPlayerController.h"
 #include "FPSStage2WorldUtils.h"
 #include "Stage2/Stage2TileManager.h"
@@ -2014,6 +2015,7 @@ void ATruck::ProcessZombieImpact(ABaseZombie* Zombie, const FVector& ImpactPoint
 	}
 	// LastZombieImpactTimes 맵에 좀비의 마지막 충돌 시간을 업데이트
 	LastZombieImpactTimes.Add(Zombie, CurrentTime);
+	PlayLocalDriverZombieImpactBloodEffect();
 
 	if (ZombieCrashSound)
 	{
@@ -2119,6 +2121,40 @@ void ATruck::ProcessZombieImpact(ABaseZombie* Zombie, const FVector& ImpactPoint
 	{
 		ZombieMesh->AddImpulseAtLocation(WorldImpulse, ImpactPoint, FName(TEXT("pelvis")));
 	}
+}
+
+void ATruck::PlayLocalDriverZombieImpactBloodEffect()
+{
+	if (!FPSStage2WorldUtils::IsStage2World(GetWorld()) || !IsValid(DriverCharacter))
+	{
+		return;
+	}
+
+	if (DriverCharacter->CurrentTruck != this || !DriverCharacter->IsDrivingTruck())
+	{
+		return;
+	}
+
+	APlayerController* LocalPlayerController = UGameplayStatics::GetPlayerController(this, 0);
+	if (!LocalPlayerController)
+	{
+		return;
+	}
+
+	const bool bLocalControllerOwnsTruck = GetController() == LocalPlayerController;
+	const bool bLocalDriver = bIsLocallyDriven || bLocalControllerOwnsTruck;
+	if (!bLocalDriver)
+	{
+		return;
+	}
+
+	AFPSPlayerController* FPSPlayerController = Cast<AFPSPlayerController>(LocalPlayerController);
+	if (!FPSPlayerController || !FPSPlayerController->EffectW)
+	{
+		return;
+	}
+
+	FPSPlayerController->EffectW->SpawnBloodEffects();
 }
 
 void ATruck::EndMountedWeaponUse(AFPSBaseCharacter* Character)

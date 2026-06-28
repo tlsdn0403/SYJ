@@ -290,6 +290,7 @@ protected:
 	void SendTruckMovePacket(bool bAllowHealthIncrease = false);
 	void CheckZombieImpactSweep();
 	void ProcessZombieImpact(ABaseZombie* Zombie, const FVector& ImpactPoint, const FVector& ImpactDirection, float ImpactSpeed);
+	void PlayLocalDriverZombieImpactBloodEffect();
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GameLogic")
 	int32 TotalLoadedItems = 0;

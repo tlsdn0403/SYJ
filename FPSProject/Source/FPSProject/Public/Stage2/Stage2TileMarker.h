@@ -20,8 +20,6 @@ enum class EStage2TileType : uint8
 	Goal UMETA(DisplayName = "Goal")
 };
 
-
-
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FStage2TileTriggerSignature, AStage2TileMarker*, TileMarker, AActor*, TriggeringActor);
 
 UCLASS(Blueprintable)

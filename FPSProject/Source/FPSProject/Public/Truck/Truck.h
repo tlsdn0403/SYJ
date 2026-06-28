@@ -479,14 +479,11 @@ private:
 	float ZombieNoiseTimer = 0.0f;
 	float CurrentThrottleInput = 0.0f;
 	float OriginalEngineMaxTorque = 0.0f;
-	FVector LastImpactSweepLocation = FVector::ZeroVector;
-	float LastImpactSweepTime = 0.0f;
 	FVector LastNetworkSmokeLocation = FVector::ZeroVector;
 	float LastNetworkSmokeSampleTime = 0.0f;
 	float LastNetworkSmokeUpdateTime = 0.0f;
 	float NetworkSmokeSpeed = 0.0f;
 	bool bHasOriginalEngineMaxTorque = false;
-	bool bHasImpactSweepSample = false;
 	bool bHasNetworkSmokeSample = false;
 	bool bWhiteSmokeActive = false;
 	bool bBlackSmokeActive = false;

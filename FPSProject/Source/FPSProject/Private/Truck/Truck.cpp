@@ -681,14 +681,14 @@ void ATruck::SetLocallyDriven(bool bLocallyDriven)
 
 	if (auto* MoveComp = Cast<UChaosWheeledVehicleMovementComponent>(GetVehicleMovement()))
 	{
-		MoveComp->SetComponentTickEnabled(bLocallyDriven);
+		MoveComp->SetComponentTickEnabled(bLocallyDriven && !bCinematicControlLocked);
 	}
 
 	ClearDrivingInput(!bLocallyDriven || bCinematicControlLocked);
 
 	if (USkeletalMeshComponent* TruckMesh = GetMesh())
 	{
-		if (bLocallyDriven)
+		if (bLocallyDriven && !bCinematicControlLocked)
 		{
 			EnsureVehicleMeshPhysicsReady(TruckMesh, true);
 		}
@@ -710,6 +710,30 @@ void ATruck::SetCinematicControlLocked(bool bLocked)
 	TruckMovePacketSendTimer = 0.0f;
 	DebugTransformLogTimer = 0.0f;
 	ClearDrivingInput(bCinematicControlLocked || !bIsLocallyDriven);
+
+	if (UChaosWheeledVehicleMovementComponent* MoveComp = Cast<UChaosWheeledVehicleMovementComponent>(GetVehicleMovement()))
+	{
+		MoveComp->SetComponentTickEnabled(bIsLocallyDriven && !bCinematicControlLocked);
+	}
+
+	if (USkeletalMeshComponent* TruckMesh = GetMesh())
+	{
+		if (bCinematicControlLocked)
+		{
+			MakeVehicleMeshKinematic(TruckMesh);
+		}
+		else if (bIsLocallyDriven)
+		{
+			EnsureVehicleMeshPhysicsReady(TruckMesh, true);
+			TruckMesh->SetPhysicsLinearVelocity(FVector::ZeroVector);
+			TruckMesh->SetPhysicsAngularVelocityInDegrees(FVector::ZeroVector);
+		}
+		else
+		{
+			MakeVehicleMeshKinematic(TruckMesh);
+		}
+	}
+
 	SetInteractionWidgetsHidden(bCinematicControlLocked);
 
 	if (!bCinematicControlLocked)
@@ -903,6 +927,7 @@ void ATruck::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 	PlayerInputComponent->BindAxis("Brake", this, &ATruck::Brake);
 	PlayerInputComponent->BindAction("Interact", IE_Pressed, this, &ATruck::ExitDriverSeat);
 	PlayerInputComponent->BindAction("UseHealPack", IE_Pressed, this, &ATruck::UseDriverHealPack);
+	PlayerInputComponent->BindAction("RecoverTruckUpright", IE_Pressed, this, &ATruck::RecoverTruckUpright);
 }
 
 float ATruck::GetTruckHealth() const
@@ -1323,6 +1348,150 @@ void ATruck::Brake(float Value)
 		}
 
 		bBrakePressedLastFrame = bBrakePressed;
+	}
+}
+
+void ATruck::RecoverTruckUpright()
+{
+	if (!CanRecoverTruckUpright())
+	{
+		return;
+	}
+
+	FVector RecoveryLocation = GetActorLocation();
+	if (!TryGetUprightRecoveryLocation(RecoveryLocation))
+	{
+		RecoveryLocation += FVector(0.0f, 0.0f, UprightRecoveryGroundClearance);
+	}
+
+	FRotator RecoveryRotation(0.0f, GetActorRotation().Yaw, 0.0f);
+	RecoveryRotation.Normalize();
+
+	ClearDrivingInput(false);
+	TruckMovePacketSendTimer = 0.0f;
+	DebugTransformLogTimer = 0.0f;
+
+	if (USkeletalMeshComponent* TruckMesh = GetMesh())
+	{
+		EnsureVehicleMeshPhysicsReady(TruckMesh, true);
+		TruckMesh->SetPhysicsLinearVelocity(FVector::ZeroVector);
+		TruckMesh->SetPhysicsAngularVelocityInDegrees(FVector::ZeroVector);
+	}
+
+	SetActorLocationAndRotation(
+		RecoveryLocation,
+		RecoveryRotation,
+		false,
+		nullptr,
+		ETeleportType::TeleportPhysics);
+
+	if (USkeletalMeshComponent* TruckMesh = GetMesh())
+	{
+		TruckMesh->SetPhysicsLinearVelocity(FVector::ZeroVector);
+		TruckMesh->SetPhysicsAngularVelocityInDegrees(FVector::ZeroVector);
+		TruckMesh->WakeAllRigidBodies();
+		RefreshVehicleMeshRenderState(TruckMesh);
+	}
+
+	if (AController* TruckController = GetController())
+	{
+		TruckController->SetControlRotation(RecoveryRotation);
+	}
+
+	TeleportOccupantsAfterUprightRecovery();
+	SendTruckMovePacket();
+
+	UE_LOG(LogTemp, Log,
+		TEXT("[TruckRecovery] Recovered upright. Truck=%s Location=%s Rotation=%s Driver=%s"),
+		*GetNameSafe(this),
+		*RecoveryLocation.ToString(),
+		*RecoveryRotation.ToString(),
+		*GetNameSafe(DriverCharacter));
+}
+
+bool ATruck::CanRecoverTruckUpright() const
+{
+	if (!bIsLocallyDriven || bCinematicControlLocked)
+	{
+		return false;
+	}
+
+	if (!IsValid(DriverCharacter) ||
+		!DriverCharacter->IsDrivingTruck() ||
+		DriverCharacter->CurrentTruck != this)
+	{
+		return false;
+	}
+
+	return GetActorUpVector().Z <= FMath::Clamp(UprightRecoveryMaxUpDot, -1.0f, 1.0f);
+}
+
+bool ATruck::TryGetUprightRecoveryLocation(FVector& OutRecoveryLocation) const
+{
+	const UWorld* World = GetWorld();
+	if (!World)
+	{
+		return false;
+	}
+
+	const FVector CurrentLocation = GetActorLocation();
+	const FVector TraceStart = CurrentLocation + FVector(0.0f, 0.0f, FMath::Max(0.0f, UprightRecoveryGroundTraceUpDistance));
+	const FVector TraceEnd = CurrentLocation - FVector(0.0f, 0.0f, FMath::Max(0.0f, UprightRecoveryGroundTraceDownDistance));
+
+	FHitResult GroundHit;
+	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(TruckUprightRecoveryGroundTrace), false, this);
+	QueryParams.AddIgnoredActor(this);
+	if (DriverCharacter)
+	{
+		QueryParams.AddIgnoredActor(DriverCharacter);
+	}
+
+	if (!World->LineTraceSingleByChannel(GroundHit, TraceStart, TraceEnd, ECC_Visibility, QueryParams))
+	{
+		return false;
+	}
+
+	float ActorOriginToBottom = 120.0f;
+	if (const USkeletalMeshComponent* TruckMesh = GetMesh())
+	{
+		const FBoxSphereBounds MeshBounds = TruckMesh->Bounds;
+		const float CurrentMeshBottomZ = MeshBounds.Origin.Z - MeshBounds.BoxExtent.Z;
+		ActorOriginToBottom = FMath::Max(ActorOriginToBottom, CurrentLocation.Z - CurrentMeshBottomZ);
+	}
+
+	OutRecoveryLocation = FVector(
+		CurrentLocation.X,
+		CurrentLocation.Y,
+		GroundHit.ImpactPoint.Z + ActorOriginToBottom + FMath::Max(0.0f, UprightRecoveryGroundClearance));
+	return true;
+}
+
+void ATruck::TeleportOccupantsAfterUprightRecovery()
+{
+	if (IsValid(DriverCharacter) && DriverCharacter->IsDrivingTruck() && DriverCharacter->CurrentTruck == this)
+	{
+		DriverCharacter->AttachToComponent(DriverSeatPoint, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+		DriverCharacter->SetActorRelativeLocation(FVector::ZeroVector);
+		DriverCharacter->SetActorRelativeRotation(FRotator::ZeroRotator);
+	}
+
+	if (IsValid(MountedWeaponUser) &&
+		MountedWeaponUser->IsUsingMountedWeapon() &&
+		MountedWeaponUser->CurrentTruck == this &&
+		TurretSeatPoint)
+	{
+		MountedWeaponUser->AttachToComponent(TurretSeatPoint, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+		MountedWeaponUser->SetActorRelativeLocation(FVector::ZeroVector);
+		MountedWeaponUser->SetActorRelativeRotation(FRotator::ZeroRotator);
+	}
+
+	if (MountedWeapon && TurretMountPoint)
+	{
+		MountedWeapon->AttachToComponent(TurretMountPoint, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+		MountedWeapon->SetActorRelativeLocation(MountedWeaponRelativeTransform.GetLocation());
+		MountedWeapon->SetActorRelativeRotation(MountedWeaponRelativeTransform.Rotator());
+		MountedWeapon->SetActorRelativeScale3D(MountedWeaponRelativeTransform.GetScale3D());
+		MountedWeapon->ConfigureOperatorSeat(TurretSeatPoint ? TurretSeatPoint->GetComponentTransform() : TurretMountPoint->GetComponentTransform());
 	}
 }
 

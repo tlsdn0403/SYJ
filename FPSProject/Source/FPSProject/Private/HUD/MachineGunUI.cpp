@@ -1,11 +1,13 @@
 #include "HUD/MachineGunUI.h"
 
+#include "Components/RadialSlider.h"
 #include "Components/TextBlock.h"
 
 void UMachineGunUI::NativeConstruct()
 {
 	Super::NativeConstruct();
 	RefreshText();
+	RefreshAmmoSlider();
 }
 
 void UMachineGunUI::SetMachineGunAmmo(int32 TotalGunAmmo, int32 CurrentGunAmmo, int32 MaxGunAmmo)
@@ -14,6 +16,7 @@ void UMachineGunUI::SetMachineGunAmmo(int32 TotalGunAmmo, int32 CurrentGunAmmo, 
 	CachedMaxGunAmmo = FMath::Max(MaxGunAmmo, 0);
 	CachedCurrentGunAmmo = FMath::Clamp(CurrentGunAmmo, 0, CachedMaxGunAmmo);
 	RefreshText();
+	RefreshAmmoSlider();
 }
 
 void UMachineGunUI::SetVisibleState(bool bShouldShow)
@@ -37,4 +40,18 @@ void UMachineGunUI::RefreshText()
 	{
 		CurrentGun->SetText(FText::AsNumber(CachedCurrentGunAmmo));
 	}
+}
+
+void UMachineGunUI::RefreshAmmoSlider()
+{
+	if (!RadialSlider)
+	{
+		return;
+	}
+
+	const float AmmoRatio = CachedMaxGunAmmo > 0
+		? FMath::Clamp(static_cast<float>(CachedCurrentGunAmmo) / static_cast<float>(CachedMaxGunAmmo), 0.0f, 1.0f)
+		: 0.0f;
+
+	RadialSlider->SetValue(AmmoRatio);
 }

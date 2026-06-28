@@ -54,7 +54,7 @@ AFPSPlayerController::AFPSPlayerController()
 void AFPSPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
-	if (MachineGunWidgetClass && FPSStage2WorldUtils::IsStage2World(GetWorld()))
+	if (MachineGunWidgetClass)
 	{
 		MachineGunW = CreateWidget<UMachineGunUI>(this, MachineGunWidgetClass);
 		if (MachineGunW)

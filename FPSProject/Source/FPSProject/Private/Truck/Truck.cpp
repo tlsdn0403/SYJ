@@ -1658,10 +1658,10 @@ void ATruck::Interact_Implementation(AFPSBaseCharacter* Character)
 
 bool ATruck::TryEnterMountedWeapon(AFPSBaseCharacter* Character)
 {
-	if (!FPSStage2WorldUtils::IsStage2World(GetWorld()))
+	/*if (!FPSStage2WorldUtils::IsStage2World(GetWorld()))
 	{
 		return false;
-	}
+	}*/
 
 	if (!Character || !MountedWeapon || bIsLoadingPhase ||
 		!Character->IsOnTruckCargo() || Character->CurrentTruck != this)

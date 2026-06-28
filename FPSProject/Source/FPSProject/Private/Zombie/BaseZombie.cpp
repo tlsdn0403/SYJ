@@ -51,7 +51,8 @@ void SetAnimBoolIfPresent(UAnimInstance* AnimInstance, const TCHAR* PropertyName
 
 ABaseZombie::ABaseZombie()
 {
-	PrimaryActorTick.bCanEverTick = false;
+	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bStartWithTickEnabled = false;
 	bReplicates = true;
 	SetReplicateMovement(true);
 	bAlwaysRelevant = true;
@@ -89,6 +90,19 @@ ABaseZombie::ABaseZombie()
 		MoveComp->RotationRate = FRotator(0.0f, TurnRateYaw, 0.0f);
 		MoveComp->bCanWalkOffLedges = true;
 		MoveComp->LedgeCheckThreshold = 0.0f;
+	}
+}
+
+void ABaseZombie::SetNetworkObjectId(uint64 InNetworkObjectId)
+{
+	NetworkObjectId = InNetworkObjectId;
+
+	if (NetworkObjectId == 0)
+	{
+		bHasReceivedNetworkMoveTarget = false;
+		bHasNetworkMoveTarget = false;
+		LastNetworkMovePacketTime = 0.0f;
+		SetActorTickEnabled(false);
 	}
 }
 
@@ -136,6 +150,61 @@ void ABaseZombie::BeginPlay()
 	ApplyAnimationDesync();
 	ApplyMovementTuning();
 	InitializeBoneDurability();
+}
+
+void ABaseZombie::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+
+	if (NetworkObjectId == 0 || !bIsAlive || IsActorBeingDestroyed() || !bHasNetworkMoveTarget)
+	{
+		SetActorTickEnabled(false);
+		return;
+	}
+
+	UWorld* World = GetWorld();
+	if (World && World->GetTimeSeconds() < NetworkMovePausedUntilTime)
+	{
+		return;
+	}
+
+	const FVector CurrentLocation = GetActorLocation();
+	const FRotator CurrentRotation = GetActorRotation();
+	const float DistanceSq = FVector::DistSquared(CurrentLocation, NetworkTargetLocation);
+	const bool bShouldSnap = DistanceSq >= FMath::Square(NetworkMoveSnapDistance);
+
+	FVector NextLocation = bShouldSnap
+		? NetworkTargetLocation
+		: FMath::VInterpTo(CurrentLocation, NetworkTargetLocation, DeltaSeconds, NetworkMoveInterpSpeed);
+	FRotator NextRotation = bShouldSnap
+		? NetworkTargetRotation
+		: FMath::RInterpTo(CurrentRotation, NetworkTargetRotation, DeltaSeconds, NetworkRotationInterpSpeed);
+
+	if (!bShouldSnap && FVector::DistSquared(NextLocation, NetworkTargetLocation) <= FMath::Square(2.0f))
+	{
+		NextLocation = NetworkTargetLocation;
+	}
+
+	if (!bShouldSnap &&
+		FMath::Abs(FMath::FindDeltaAngleDegrees(NextRotation.Yaw, NetworkTargetRotation.Yaw)) <= 2.0f)
+	{
+		NextRotation = NetworkTargetRotation;
+	}
+
+	SetActorLocationAndRotation(
+		NextLocation,
+		NextRotation,
+		false,
+		nullptr,
+		bShouldSnap ? ETeleportType::TeleportPhysics : ETeleportType::None);
+
+	const bool bReachedTarget =
+		FVector::DistSquared(NextLocation, NetworkTargetLocation) <= FMath::Square(2.0f) &&
+		FMath::Abs(FMath::FindDeltaAngleDegrees(NextRotation.Yaw, NetworkTargetRotation.Yaw)) <= 2.0f;
+	if (bReachedTarget)
+	{
+		SetActorTickEnabled(false);
+	}
 }
 
 float ABaseZombie::GetDirectAttackAnimationDuration()
@@ -225,6 +294,7 @@ void ABaseZombie::HandleNetworkDeath()
 	MovementState = EZombieMovementState::Dead;
 	GetWorldTimerManager().ClearTimer(AttackDamageTimerHandle);
 	GetWorldTimerManager().ClearTimer(AttackFinishTimerHandle);
+	SetActorTickEnabled(false);
 
 	if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
 	{
@@ -269,17 +339,40 @@ void ABaseZombie::SetNetworkMoveTarget(const FVector& TargetLocation, const FRot
 	}
 
 	const FVector PreviousLocation = GetActorLocation();
-	const bool bMovedByPacket = FVector::DistSquared2D(TargetLocation, PreviousLocation) > FMath::Square(1.0f);
+	const FVector PreviousTargetLocation = bHasReceivedNetworkMoveTarget ? NetworkTargetLocation : PreviousLocation;
+	const bool bHadReceivedTarget = bHasReceivedNetworkMoveTarget;
+	const bool bMovedByPacket =
+		FVector::DistSquared2D(TargetLocation, PreviousLocation) > FMath::Square(1.0f) ||
+		FVector::DistSquared2D(TargetLocation, PreviousTargetLocation) > FMath::Square(1.0f);
 	const bool bShouldAnimateMoving = bInIsMoving || bMovedByPacket;
+	const bool bShouldSnap =
+		NetworkObjectId == 0 ||
+		!bHadReceivedTarget ||
+		FVector::DistSquared(TargetLocation, PreviousLocation) >= FMath::Square(NetworkMoveSnapDistance);
+
+	const UWorld* World = GetWorld();
+	const float CurrentPacketTime = World ? World->GetTimeSeconds() : 0.0f;
+	const float PacketDeltaSeconds =
+		(bHadReceivedTarget && LastNetworkMovePacketTime > 0.0f && CurrentPacketTime > LastNetworkMovePacketTime)
+		? FMath::Clamp(CurrentPacketTime - LastNetworkMovePacketTime, 0.05f, 0.5f)
+		: 0.1f;
 
 	NetworkTargetLocation = TargetLocation;
 	NetworkTargetRotation = TargetRotation;
 	bNetworkTargetIsMoving = bShouldAnimateMoving;
-	bHasNetworkMoveTarget = false;
+	bHasNetworkMoveTarget = NetworkObjectId != 0;
+	bHasReceivedNetworkMoveTarget = NetworkObjectId != 0;
+	LastNetworkMovePacketTime = CurrentPacketTime;
 
-	if (!SetActorLocationAndRotation(TargetLocation, TargetRotation, false, nullptr, ETeleportType::TeleportPhysics))
+	if (bShouldSnap &&
+		!SetActorLocationAndRotation(TargetLocation, TargetRotation, false, nullptr, ETeleportType::TeleportPhysics))
 	{
 		return;
+	}
+
+	if (NetworkObjectId != 0)
+	{
+		SetActorTickEnabled(!bShouldSnap && bHasNetworkMoveTarget);
 	}
 
 	UCharacterMovementComponent* MoveComp = GetCharacterMovement();
@@ -296,9 +389,12 @@ void ABaseZombie::SetNetworkMoveTarget(const FVector& TargetLocation, const FRot
 	}
 	else
 	{
-		constexpr float ZombieServerTickSeconds = 0.1f;
 		constexpr float NetworkZombieFallbackMaxSpeed = 210.0f;
-		FVector PacketVelocity = (TargetLocation - PreviousLocation) / ZombieServerTickSeconds;
+		FVector PacketVelocity = (TargetLocation - PreviousTargetLocation) / PacketDeltaSeconds;
+		if (PacketVelocity.SizeSquared2D() <= FMath::Square(1.0f))
+		{
+			PacketVelocity = (TargetLocation - PreviousLocation) / PacketDeltaSeconds;
+		}
 		const FVector AnimationVelocity = PacketVelocity.GetClampedToMaxSize(NetworkZombieFallbackMaxSpeed);
 		AnimSpeed = AnimationVelocity.Size2D();
 		MoveComp->Velocity = NetworkObjectId != 0
@@ -341,6 +437,8 @@ void ABaseZombie::ApplyTruckImpactKnockback(const FVector& LaunchVelocity, const
 	if (NetworkObjectId != 0 && World && NetworkMovePauseSeconds > 0.0f)
 	{
 		NetworkMovePausedUntilTime = World->GetTimeSeconds() + NetworkMovePauseSeconds;
+		bHasNetworkMoveTarget = false;
+		SetActorTickEnabled(false);
 		GetWorldTimerManager().ClearTimer(NetworkImpactRecoveryTimerHandle);
 		GetWorldTimerManager().SetTimer(
 			NetworkImpactRecoveryTimerHandle,
@@ -359,6 +457,7 @@ void ABaseZombie::ApplyTruckImpactKnockback(const FVector& LaunchVelocity, const
 		CurrentAttackTarget = nullptr;
 		bWasCrawlingBeforeDeath = IsCrawling();
 		MovementState = EZombieMovementState::Dead;
+		SetActorTickEnabled(false);
 		GetWorldTimerManager().ClearTimer(AttackDamageTimerHandle);
 		GetWorldTimerManager().ClearTimer(AttackFinishTimerHandle);
 		GetWorldTimerManager().ClearTimer(DeathRagdollTimerHandle);
@@ -1207,6 +1306,7 @@ void ABaseZombie::Die()
 	CurrentAttackTarget = nullptr;
 	GetWorldTimerManager().ClearTimer(AttackDamageTimerHandle);
 	GetWorldTimerManager().ClearTimer(AttackFinishTimerHandle);
+	SetActorTickEnabled(false);
 
 	UE_LOG(LogTemp, Verbose, TEXT("Zombie %s Died!"), *GetName());
 

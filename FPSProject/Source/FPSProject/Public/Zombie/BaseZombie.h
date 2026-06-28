@@ -30,7 +30,8 @@ public:
 	ABaseZombie();
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
-	void SetNetworkObjectId(uint64 InNetworkObjectId) { NetworkObjectId = InNetworkObjectId; }
+	virtual void Tick(float DeltaSeconds) override;
+	void SetNetworkObjectId(uint64 InNetworkObjectId);
 	uint64 GetNetworkObjectId() const { return NetworkObjectId; }
 	void SetZombieGroupSoundKey(int32 InZombieGroupSoundKey) { ZombieGroupSoundKey = InZombieGroupSoundKey; }
 	int32 GetZombieGroupSoundKey() const { return ZombieGroupSoundKey; }
@@ -244,9 +245,11 @@ private:
 	float AnimationRateScale = 1.0f;
 	FVector StandingMeshRelativeLocation = FVector::ZeroVector;
 	bool bHasStandingMeshRelativeLocation = false;
+	bool bHasReceivedNetworkMoveTarget = false;
 	bool bHasNetworkMoveTarget = false;
 	bool bNetworkTargetIsMoving = false;
 	float NetworkAnimationMoveSpeed2D = 0.0f;
+	float LastNetworkMovePacketTime = 0.0f;
 	FVector NetworkTargetLocation = FVector::ZeroVector;
 	FRotator NetworkTargetRotation = FRotator::ZeroRotator;
 	FTimerHandle AttackDamageTimerHandle;

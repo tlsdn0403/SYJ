@@ -693,9 +693,9 @@ namespace
 	constexpr float ZOMBIE_AI_NEAR_UPDATE_INTERVAL = ZOMBIE_SERVER_TICK_SECONDS;
 	constexpr float ZOMBIE_AI_MID_UPDATE_INTERVAL = 0.2f;
 	constexpr float ZOMBIE_AI_FAR_UPDATE_INTERVAL = 0.4f;
-	constexpr float ZOMBIE_MOVE_BROADCAST_INTERVAL = 0.35f;
-	constexpr float ZOMBIE_MOVE_BROADCAST_DISTANCE = 120.0f;
-	constexpr float ZOMBIE_MOVE_BROADCAST_YAW_DELTA = 35.0f;
+	constexpr float ZOMBIE_MOVE_BROADCAST_INTERVAL = 0.30f;
+	constexpr float ZOMBIE_MOVE_BROADCAST_DISTANCE = 90.0f;
+	constexpr float ZOMBIE_MOVE_BROADCAST_YAW_DELTA = 25.0f;
 	constexpr int32 STAGE2_ZOMBIE_TILE_WORLD = 0;
 	constexpr int32 STAGE2_ZOMBIE_TILE_STRAIGHT = 1;
 	constexpr int32 STAGE2_ZOMBIE_TILE_LEFT = 2;
@@ -1257,7 +1257,7 @@ Protocol::PosInfo Room::GetZombieTargetPosInfo(const PlayerRef& player, const Pr
 	return targetPos;
 }
 
-bool Room::ShouldBroadcastZombieMove(const MonsterRef& monster, bool force)
+bool Room::ShouldBroadcastZombieMove(const MonsterRef& monster, bool force, float elapsedSeconds)
 {
 	if (monster == nullptr)
 		return false;
@@ -1267,7 +1267,8 @@ bool Room::ShouldBroadcastZombieMove(const MonsterRef& monster, bool force)
 
 	const uint64 zombieId = monster->objectInfo->object_id();
 	ZombieMoveBroadcastState& state = _zombieMoveBroadcastStates[zombieId];
-	state.elapsedSeconds += ZOMBIE_SERVER_TICK_SECONDS;
+	const float broadcastElapsedSeconds = elapsedSeconds > 0.0f ? elapsedSeconds : ZOMBIE_SERVER_TICK_SECONDS;
+	state.elapsedSeconds += broadcastElapsedSeconds;
 
 	const float currentX = monster->posInfo->x();
 	const float currentY = monster->posInfo->y();
@@ -1293,12 +1294,12 @@ bool Room::ShouldBroadcastZombieMove(const MonsterRef& monster, bool force)
 	return state.elapsedSeconds >= ZOMBIE_MOVE_BROADCAST_INTERVAL;
 }
 
-void Room::BroadcastZombieMove(const MonsterRef& monster, bool force)
+void Room::BroadcastZombieMove(const MonsterRef& monster, bool force, float elapsedSeconds)
 {
 	if (monster == nullptr)
 		return;
 
-	if (!ShouldBroadcastZombieMove(monster, force))
+	if (!ShouldBroadcastZombieMove(monster, force, elapsedSeconds))
 		return;
 
 	Protocol::S_MOVE movePkt;
@@ -1719,7 +1720,7 @@ void Room::UpdateZombies()
 		}
 
 		monster->objectInfo->mutable_pos_info()->CopyFrom(*monster->posInfo);
-		BroadcastZombieMove(monster);
+		BroadcastZombieMove(monster, false, aiDeltaSeconds);
 	}
 }
 

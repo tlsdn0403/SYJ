@@ -483,6 +483,15 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Perception")
 	float ZombieNoiseInterval = 0.35f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interaction|Prompt", meta = (ClampMin = "0.0"))
+	float TruckInteractPromptShowDistance = 145.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interaction|Prompt", meta = (ClampMin = "0.0"))
+	float TruckInteractPromptKeepDistance = 215.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interaction|Prompt", meta = (ClampMin = "0.0"))
+	float TruckInteractPromptReappearCooldown = 0.75f;
 private:
 	bool bIsLocallyDriven = false;
 	bool bCinematicControlLocked = false;
@@ -499,10 +508,12 @@ private:
 	float LastNetworkSmokeSampleTime = 0.0f;
 	float LastNetworkSmokeUpdateTime = 0.0f;
 	float NetworkSmokeSpeed = 0.0f;
+	float LastInteractPromptHiddenTime = -100000.0f;
 	bool bHasOriginalEngineMaxTorque = false;
 	bool bHasNetworkSmokeSample = false;
 	bool bWhiteSmokeActive = false;
 	bool bBlackSmokeActive = false;
+	ETruckInteractType VisibleInteractPromptType = ETruckInteractType::None;
 	static constexpr float TRUCK_MOVE_PACKET_SEND_DELAY = 0.05f;
 
 	void ApplyStageVehicleTuning();

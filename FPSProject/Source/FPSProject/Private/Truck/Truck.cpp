@@ -219,6 +219,8 @@ ATruck::ATruck()
 	DriverSeatInteractWidget->SetupAttachment(DriverSeatInteractTrigger);
 	DriverSeatInteractWidget->SetTwoSided(true);
 	DriverSeatInteractWidget->SetWidgetSpace(EWidgetSpace::Screen);
+	DriverSeatInteractWidget->SetHiddenInGame(true);
+	DriverSeatInteractWidget->SetVisibility(false);
 
 	CargoSeatInteractTrigger = CreateDefaultSubobject<UInteractTriggerComponent>(TEXT("CargoSeatInteractTrigger"));
 	CargoSeatInteractTrigger->SetupAttachment(RootComponent);
@@ -229,6 +231,8 @@ ATruck::ATruck()
 	CargoSeatInteractWidget->SetupAttachment(CargoSeatInteractTrigger);
 	CargoSeatInteractWidget->SetTwoSided(true);
 	CargoSeatInteractWidget->SetWidgetSpace(EWidgetSpace::Screen);
+	CargoSeatInteractWidget->SetHiddenInGame(true);
+	CargoSeatInteractWidget->SetVisibility(false);
 
 	DriverSeatPoint = CreateDefaultSubobject<USceneComponent>(TEXT("DriverSeatPoint"));
 	DriverSeatPoint->SetupAttachment(RootComponent);
@@ -270,6 +274,8 @@ ATruck::ATruck()
 	TurretInteractWidget->SetupAttachment(TurretSeatInteractTrigger);
 	TurretInteractWidget->SetTwoSided(true);
 	TurretInteractWidget->SetWidgetSpace(EWidgetSpace::Screen);
+	TurretInteractWidget->SetHiddenInGame(true);
+	TurretInteractWidget->SetVisibility(false);
 
 	EngineAudioComponent = CreateDefaultSubobject<UAudioComponent>(TEXT("EngineAudio"));
 	EngineAudioComponent->SetupAttachment(RootComponent);
@@ -2457,6 +2463,15 @@ void ATruck::RefreshInteractionWidgetsForCharacter(AFPSBaseCharacter* Character)
 			const float DistanceSquared = FVector::DistSquared(
 				Character->GetActorLocation(),
 				PromptComponent->GetComponentLocation());
+			const bool bCurrentlyVisiblePrompt = VisibleInteractPromptType == Type;
+			const float AllowedPromptDistance = bCurrentlyVisiblePrompt
+				? FMath::Max(TruckInteractPromptShowDistance, TruckInteractPromptKeepDistance)
+				: TruckInteractPromptShowDistance;
+			if (AllowedPromptDistance > 0.0f && DistanceSquared > FMath::Square(AllowedPromptDistance))
+			{
+				return;
+			}
+
 			if (DistanceSquared < BestDistanceSquared)
 			{
 				BestDistanceSquared = DistanceSquared;
@@ -2479,26 +2494,49 @@ void ATruck::RefreshInteractionWidgetsForCharacter(AFPSBaseCharacter* Character)
 		Character->SetCurrentTruckInteractType(ETruckInteractType::None);
 	}
 
-	auto UpdatePrompt = [SelectedType](
+	const float CurrentTime = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0f;
+	const ETruckInteractType PreviousVisiblePromptType = VisibleInteractPromptType;
+	const bool bSuppressPromptReappear =
+		SelectedType != ETruckInteractType::None &&
+		VisibleInteractPromptType == ETruckInteractType::None &&
+		(CurrentTime - LastInteractPromptHiddenTime) < TruckInteractPromptReappearCooldown;
+
+	ETruckInteractType PromptTypeToShow = bSuppressPromptReappear ? ETruckInteractType::None : SelectedType;
+	const bool bPromptChanged = PromptTypeToShow != PreviousVisiblePromptType;
+	if (bPromptChanged)
+	{
+		if (PromptTypeToShow == ETruckInteractType::None)
+		{
+			LastInteractPromptHiddenTime = CurrentTime;
+		}
+
+		VisibleInteractPromptType = PromptTypeToShow;
+	}
+
+	auto UpdatePrompt = [PromptTypeToShow, bPromptChanged](
 		UWidgetComponent* WidgetComponent,
 		ETruckInteractType PromptType,
 		const FText& PromptText)
 		{
 			UInteractUIClass* UI = Cast<UInteractUIClass>(
 				WidgetComponent ? WidgetComponent->GetUserWidgetObject() : nullptr);
-			if (!UI)
+
+			const bool bShouldShowPrompt = PromptTypeToShow == PromptType;
+			if (WidgetComponent)
+			{
+				WidgetComponent->SetHiddenInGame(!bShouldShowPrompt, true);
+				WidgetComponent->SetVisibility(bShouldShowPrompt, true);
+			}
+
+			if (!UI || !bShouldShowPrompt)
 			{
 				return;
 			}
 
-			if (SelectedType == PromptType)
+			UI->SetInteractText(PromptText);
+			if (bPromptChanged)
 			{
-				UI->SetInteractText(PromptText);
 				UI->PlayAni_PopUp(false);
-			}
-			else
-			{
-				UI->RePlayAni_PopUp();
 			}
 		};
 
@@ -2569,6 +2607,12 @@ void ATruck::RefreshLocalInteractionWidgets()
 
 void ATruck::SetInteractionWidgetsHidden(bool bShouldHide)
 {
+	if (bShouldHide && VisibleInteractPromptType != ETruckInteractType::None)
+	{
+		VisibleInteractPromptType = ETruckInteractType::None;
+		LastInteractPromptHiddenTime = GetWorld() ? GetWorld()->GetTimeSeconds() : LastInteractPromptHiddenTime;
+	}
+
 	auto ApplyHidden = [bShouldHide](UWidgetComponent* WidgetComponent)
 		{
 			if (!WidgetComponent)

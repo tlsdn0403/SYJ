@@ -1474,6 +1474,52 @@ bool ATruck::TryEnterMountedWeapon(AFPSBaseCharacter* Character)
 	return Character->IsLocallyControlled();
 }
 
+void ATruck::RefreshMachineGunAmmoFromCargo()
+{
+	const int32 SafeMaxAmmo = FMath::Max(MachineGunMaxAmmo, 0);
+	const int32 SafeMountedAmmoCount = FMath::Max(CurrentMountedAmmoCount, 0);
+	const int32 AmmoCountDelta = SafeMountedAmmoCount - LastSyncedMountedAmmoCount;
+
+	if (AmmoCountDelta != 0)
+	{
+		MachineGunTotalAmmo = FMath::Max(MachineGunTotalAmmo + (AmmoCountDelta * SafeMaxAmmo), 0);
+		LastSyncedMountedAmmoCount = SafeMountedAmmoCount;
+	}
+	else if (LastSyncedMountedAmmoCount == 0 && MachineGunTotalAmmo == 0 && SafeMountedAmmoCount > 0)
+	{
+		MachineGunTotalAmmo = SafeMountedAmmoCount * SafeMaxAmmo;
+		LastSyncedMountedAmmoCount = SafeMountedAmmoCount;
+	}
+
+	MachineGunCurrentAmmo = FMath::Clamp(MachineGunCurrentAmmo, 0, SafeMaxAmmo);
+	if (MachineGunCurrentAmmo <= 0 && MachineGunTotalAmmo > 0)
+	{
+		MachineGunCurrentAmmo = FMath::Min(SafeMaxAmmo, MachineGunTotalAmmo);
+	}
+}
+
+bool ATruck::ConsumeMachineGunBullet()
+{
+	RefreshMachineGunAmmoFromCargo();
+
+	if (MachineGunTotalAmmo <= 0 || MachineGunCurrentAmmo <= 0)
+	{
+		MachineGunTotalAmmo = FMath::Max(MachineGunTotalAmmo, 0);
+		MachineGunCurrentAmmo = 0;
+		return false;
+	}
+
+	--MachineGunTotalAmmo;
+	--MachineGunCurrentAmmo;
+
+	if (MachineGunCurrentAmmo <= 0 && MachineGunTotalAmmo > 0)
+	{
+		MachineGunCurrentAmmo = FMath::Min(FMath::Max(MachineGunMaxAmmo, 0), MachineGunTotalAmmo);
+	}
+
+	return true;
+}
+
 void ATruck::ExitDriverSeat()
 {
 	if (!DriverCharacter)

@@ -232,6 +232,21 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Turret")
 	bool TryEnterMountedWeapon(AFPSBaseCharacter* Character);
 
+	UFUNCTION(BlueprintCallable, Category = "Turret|Ammo")
+	bool ConsumeMachineGunBullet();
+
+	UFUNCTION(BlueprintCallable, Category = "Turret|Ammo")
+	void RefreshMachineGunAmmoFromCargo();
+
+	UFUNCTION(BlueprintPure, Category = "Turret|Ammo")
+	int32 GetMachineGunTotalAmmo() const { return MachineGunTotalAmmo; }
+
+	UFUNCTION(BlueprintPure, Category = "Turret|Ammo")
+	int32 GetMachineGunCurrentAmmo() const { return MachineGunCurrentAmmo; }
+
+	UFUNCTION(BlueprintPure, Category = "Turret|Ammo")
+	int32 GetMachineGunMaxAmmo() const { return MachineGunMaxAmmo; }
+
 	void EndMountedWeaponUse(AFPSBaseCharacter* Character);
 	void RefreshInteractionWidgetsForCharacter(AFPSBaseCharacter* Character);
 
@@ -300,6 +315,18 @@ protected:
 	int32 CurrentFuelCount = 0;
 	int32 CurrentRepairKitCount = 0;
 	int32 CurrentMedKitCount = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Turret|Ammo")
+	int32 MachineGunMaxAmmo = 100;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Turret|Ammo")
+	int32 MachineGunTotalAmmo = 0;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Turret|Ammo")
+	int32 MachineGunCurrentAmmo = 0;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Turret|Ammo")
+	int32 LastSyncedMountedAmmoCount = 0;
 
 	void AddCargoVisual(EItemType ItemType);
 

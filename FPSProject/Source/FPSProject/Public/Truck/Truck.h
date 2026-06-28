@@ -237,6 +237,9 @@ public:
 	bool ConsumeMachineGunBullet();
 
 	UFUNCTION(BlueprintCallable, Category = "Turret|Ammo")
+	bool ReloadMachineGun();
+
+	UFUNCTION(BlueprintCallable, Category = "Turret|Ammo")
 	void RefreshMachineGunAmmoFromCargo();
 
 	UFUNCTION(BlueprintCallable, Category = "Turret|Ammo")
@@ -493,6 +496,7 @@ private:
 	void ResolveTruckSmokeComponents();
 	void RefreshTruckSmokeEffects();
 	void SetSmokeComponentActive(UNiagaraComponent* SmokeComponent, bool bShouldBeActive);
+	void SyncMachineGunReserveFromCargo();
 	void UpdateNetworkSmokeSpeedFromTransform(const FVector& TargetLocation);
 	float GetTruckSmokeEvaluationSpeed() const;
 	void ReportZombieAwarenessNoise(float DeltaTime);
@@ -517,6 +521,8 @@ private:
 
 	UPROPERTY()
 	AFPSBaseCharacter* DriverCharacter = nullptr;
+
+	bool bMachineGunMagazineInitialized = false;
 
 	TMap<TObjectPtr<ABaseZombie>, float> LastZombieImpactTimes;
 };

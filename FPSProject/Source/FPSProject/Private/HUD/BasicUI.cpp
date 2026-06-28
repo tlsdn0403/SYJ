@@ -82,17 +82,11 @@ void UBasicUI::SetHealth(float CurrentHP,float MaxHP) {
 
 void UBasicUI::SetAmmoCount(int32 AmmoBoxCount)
 {
-	constexpr int32 AmmoBulletsPerBoxForUI = 40;
-	const int32 BulletCount = FMath::Max(AmmoBoxCount, 0) * AmmoBulletsPerBoxForUI;
-
-	if (GunText)
-	{
-		GunText->SetText(FText::FromString(FString::FromInt(BulletCount)));
-	}
+	const int32 ReserveBulletCount = FMath::Max(AmmoBoxCount, 0);
 
 	if (GunMaxText)
 	{
-		GunMaxText->SetText(FText::FromString(FString::Printf(TEXT("/ %d"), BulletCount)));
+		GunMaxText->SetText(FText::FromString(FString::Printf(TEXT("/ %d"), ReserveBulletCount)));
 	}
 }
 

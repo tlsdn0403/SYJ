@@ -38,6 +38,7 @@ public:
 	void ConfigureOperatorSeat(const FTransform& SeatWorldTransform);
 	void AttachUserToOperatorSeat(AFPSBaseCharacter* User);
 	float GetFireInterval() const { return FireInterval; }
+	void SetMagazineAmmo(int32 CurrentAmmo, int32 MaxAmmo);
 
 protected:
 	virtual void BeginPlay() override;
@@ -184,7 +185,7 @@ protected:
 	TSubclassOf<AActor> MagazineActorClass;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mounted Gun|Magazine")
-	int32 MagazineCapacity = 50;
+	int32 MagazineCapacity = 100;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mounted Gun|Magazine")
 	FName MagazineFireEventName = TEXT("Play_Animate_Bullets_Inside_Magazine_TimeL_CE");

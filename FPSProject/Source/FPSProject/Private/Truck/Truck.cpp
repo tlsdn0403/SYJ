@@ -1866,6 +1866,16 @@ bool ATruck::TryEnterMountedWeapon(AFPSBaseCharacter* Character)
 
 void ATruck::RefreshMachineGunAmmoFromCargo()
 {
+	SyncMachineGunReserveFromCargo();
+
+	if (!bMachineGunMagazineInitialized && MachineGunCurrentAmmo <= 0 && MachineGunTotalAmmo > 0)
+	{
+		ReloadMachineGun();
+	}
+}
+
+void ATruck::SyncMachineGunReserveFromCargo()
+{
 	const int32 SafeMaxAmmo = FMath::Max(MachineGunMaxAmmo, 0);
 	const int32 SafeMountedAmmoCount = FMath::Max(CurrentMountedAmmoCount, 0);
 	const int32 AmmoCountDelta = SafeMountedAmmoCount - LastSyncedMountedAmmoCount;
@@ -1882,10 +1892,6 @@ void ATruck::RefreshMachineGunAmmoFromCargo()
 	}
 
 	MachineGunCurrentAmmo = FMath::Clamp(MachineGunCurrentAmmo, 0, SafeMaxAmmo);
-	if (MachineGunCurrentAmmo <= 0 && MachineGunTotalAmmo > 0)
-	{
-		MachineGunCurrentAmmo = FMath::Min(SafeMaxAmmo, MachineGunTotalAmmo);
-	}
 }
 
 void ATruck::ApplyNetworkMachineGunAmmo(int32 TotalAmmo, int32 CurrentAmmo, int32 MaxAmmo)
@@ -1894,25 +1900,52 @@ void ATruck::ApplyNetworkMachineGunAmmo(int32 TotalAmmo, int32 CurrentAmmo, int3
 	MachineGunTotalAmmo = FMath::Max(TotalAmmo, 0);
 	MachineGunCurrentAmmo = FMath::Clamp(CurrentAmmo, 0, MachineGunMaxAmmo);
 	LastSyncedMountedAmmoCount = FMath::Max(CurrentMountedAmmoCount, 0);
+	bMachineGunMagazineInitialized = true;
+
+	if (MountedWeapon)
+	{
+		MountedWeapon->SetMagazineAmmo(MachineGunCurrentAmmo, MachineGunMaxAmmo);
+	}
 }
 
 bool ATruck::ConsumeMachineGunBullet()
 {
 	RefreshMachineGunAmmoFromCargo();
 
-	if (MachineGunTotalAmmo <= 0 || MachineGunCurrentAmmo <= 0)
+	if (MachineGunCurrentAmmo <= 0)
 	{
-		MachineGunTotalAmmo = FMath::Max(MachineGunTotalAmmo, 0);
 		MachineGunCurrentAmmo = 0;
 		return false;
 	}
 
-	--MachineGunTotalAmmo;
 	--MachineGunCurrentAmmo;
+	bMachineGunMagazineInitialized = true;
 
-	if (MachineGunCurrentAmmo <= 0 && MachineGunTotalAmmo > 0)
+	return true;
+}
+
+bool ATruck::ReloadMachineGun()
+{
+	SyncMachineGunReserveFromCargo();
+
+	MachineGunMaxAmmo = FMath::Max(MachineGunMaxAmmo, 0);
+	MachineGunCurrentAmmo = FMath::Clamp(MachineGunCurrentAmmo, 0, MachineGunMaxAmmo);
+
+	const int32 MissingAmmo = MachineGunMaxAmmo - MachineGunCurrentAmmo;
+	if (MachineGunMaxAmmo <= 0 || MissingAmmo <= 0 || MachineGunTotalAmmo <= 0)
 	{
-		MachineGunCurrentAmmo = FMath::Min(FMath::Max(MachineGunMaxAmmo, 0), MachineGunTotalAmmo);
+		bMachineGunMagazineInitialized = MachineGunCurrentAmmo > 0;
+		return false;
+	}
+
+	const int32 ReloadAmount = FMath::Min(MissingAmmo, MachineGunTotalAmmo);
+	MachineGunCurrentAmmo += ReloadAmount;
+	MachineGunTotalAmmo -= ReloadAmount;
+	bMachineGunMagazineInitialized = true;
+
+	if (MountedWeapon)
+	{
+		MountedWeapon->SetMagazineAmmo(MachineGunCurrentAmmo, MachineGunMaxAmmo);
 	}
 
 	return true;

@@ -32,6 +32,11 @@ namespace
 			return FromLocation;
 		}
 
+		if (const ATruck* Truck = Cast<ATruck>(TargetActor))
+		{
+			return Truck->GetClosestZombieInteractionPoint(FromLocation);
+		}
+
 		if (UPrimitiveComponent* PrimitiveComponent = Cast<UPrimitiveComponent>(TargetActor->GetRootComponent()))
 		{
 			FVector ClosestPoint = TargetActor->GetActorLocation();
@@ -57,7 +62,9 @@ void UBTTask_ChaseHuman::ResetMoveRequestState()
 {
 	LastIssuedTargetActor.Reset();
 	LastIssuedFallZoneLocation = FVector::ZeroVector;
+	LastIssuedTruckApproachLocation = FVector::ZeroVector;
 	bHasLastIssuedFallZoneLocation = false;
+	bHasLastIssuedTruckApproachLocation = false;
 	bHasLastIssuedMovingTruckSetting = false;
 	bLastIssuedMovingTruckSetting = false;
 	LastEvaluatedTruckTarget.Reset();
@@ -65,9 +72,9 @@ void UBTTask_ChaseHuman::ResetMoveRequestState()
 	bTruckChaseMode = false;
 }
 
-bool UBTTask_ChaseHuman::RequestChaseMove(AAIController* AIController, AActor* TargetActor, bool bForceRequest)
+bool UBTTask_ChaseHuman::RequestChaseMove(AAIController* AIController, ABaseZombie* ZombieCharacter, AActor* TargetActor, bool bForceRequest)
 {
-	if (!AIController || !TargetActor)
+	if (!AIController || !ZombieCharacter || !TargetActor)
 	{
 		return false;
 	}
@@ -82,6 +89,48 @@ bool UBTTask_ChaseHuman::RequestChaseMove(AAIController* AIController, AActor* T
 		!bHasLastIssuedMovingTruckSetting ||
 		bLastIssuedMovingTruckSetting != bMovingTruckTarget;
 
+	if (ATruck* Truck = Cast<ATruck>(TargetActor); Truck && !bMovingTruckTarget)
+	{
+		const FVector ApproachLocation = Truck->GetZombieApproachLocation(
+			ZombieCharacter->GetActorLocation(),
+			ZombieCharacter->GetTruckAttackStandOffDistance());
+		const bool bApproachLocationChanged =
+			!bHasLastIssuedTruckApproachLocation ||
+			FVector::DistSquared2D(LastIssuedTruckApproachLocation, ApproachLocation) >= FMath::Square(TruckApproachRetargetDistance);
+
+		if (!bForceRequest &&
+			!bTargetChanged &&
+			!bMoveSettingsChanged &&
+			!bApproachLocationChanged &&
+			MoveStatus != EPathFollowingStatus::Idle)
+		{
+			return true;
+		}
+
+		const EPathFollowingRequestResult::Type RequestResult =
+			AIController->MoveToLocation(
+				ApproachLocation,
+				TruckApproachAcceptanceRadius,
+				true,
+				true,
+				true,
+				false,
+				nullptr,
+				true);
+
+		if (RequestResult != EPathFollowingRequestResult::Failed)
+		{
+			LastIssuedTargetActor = TargetActor;
+			LastIssuedTruckApproachLocation = ApproachLocation;
+			bHasLastIssuedTruckApproachLocation = true;
+			bHasLastIssuedMovingTruckSetting = true;
+			bLastIssuedMovingTruckSetting = bMovingTruckTarget;
+			return true;
+		}
+
+		return false;
+	}
+
 	// Avoid spamming the same MoveTo request every tick when nothing changed.
 	if (!bForceRequest && !bTargetChanged && !bMoveSettingsChanged && MoveStatus != EPathFollowingStatus::Idle)
 	{
@@ -95,6 +144,7 @@ bool UBTTask_ChaseHuman::RequestChaseMove(AAIController* AIController, AActor* T
 	if (RequestResult != EPathFollowingRequestResult::Failed)
 	{
 		LastIssuedTargetActor = TargetActor;
+		bHasLastIssuedTruckApproachLocation = false;
 		bHasLastIssuedMovingTruckSetting = true;
 		bLastIssuedMovingTruckSetting = bMovingTruckTarget;
 		return true;
@@ -178,6 +228,14 @@ bool UBTTask_ChaseHuman::IsTargetInStopDistance(ABaseZombie* ZombieCharacter, AA
 		return false;
 	}
 
+	if (const ATruck* Truck = Cast<ATruck>(TargetActor))
+	{
+		const FVector ApproachLocation = Truck->GetZombieApproachLocation(
+			ZombieCharacter->GetActorLocation(),
+			ZombieCharacter->GetTruckAttackStandOffDistance());
+		return FVector::Dist2D(ZombieCharacter->GetActorLocation(), ApproachLocation) <= TruckApproachAcceptanceRadius;
+	}
+
 	const FVector TargetPoint = GetClosestPointOnSimpleChaseTarget(TargetActor, ZombieCharacter->GetActorLocation());
 	return FVector::Dist(ZombieCharacter->GetActorLocation(), TargetPoint) <= StopDistance;
 }
@@ -255,7 +313,7 @@ EBTNodeResult::Type UBTTask_ChaseHuman::ExecuteTask(UBehaviorTreeComponent& Owne
 		return EBTNodeResult::InProgress;
 	}
 
-	return RequestChaseMove(AIController, TargetActor, true)
+	return RequestChaseMove(AIController, ZombieCharacter, TargetActor, true)
 		? EBTNodeResult::InProgress
 		: EBTNodeResult::Failed;
 }
@@ -300,7 +358,7 @@ void UBTTask_ChaseHuman::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* Node
 		return;
 	}
 
-	if (!RequestChaseMove(AIController, TargetActor, false))
+	if (!RequestChaseMove(AIController, ZombieCharacter, TargetActor, false))
 	{
 		FinishLatentTask(OwnerComp, EBTNodeResult::Failed);
 	}

@@ -42,7 +42,7 @@ private:
 	struct TruckState;
 	void UpdateZombies();
 	PlayerRef FindNearestPlayer(const Protocol::PosInfo& origin, float maxRange) const;
-	Protocol::PosInfo GetZombieTargetPosInfo(const PlayerRef& player) const;
+	Protocol::PosInfo GetZombieTargetPosInfo(const PlayerRef& player, const Protocol::PosInfo* zombiePos = nullptr) const;
 	void BroadcastZombieMove(const MonsterRef& monster, bool force = false);
 	bool ShouldBroadcastZombieMove(const MonsterRef& monster, bool force);
 	void QueueStage2ZombieSpawn(

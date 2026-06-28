@@ -162,6 +162,12 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Collision")
 	UBoxComponent* GetVehiclePawnCollision() const { return VehiclePawnCollision; }
 
+	UFUNCTION(BlueprintPure, Category = "Collision")
+	FVector GetClosestZombieInteractionPoint(const FVector& FromLocation) const;
+
+	UFUNCTION(BlueprintPure, Category = "Collision")
+	FVector GetZombieApproachLocation(const FVector& FromLocation, float StandOffDistance) const;
+
 	virtual void Interact_Implementation(class AFPSBaseCharacter* Character) override;
 
 	void UpdateEngineSound();

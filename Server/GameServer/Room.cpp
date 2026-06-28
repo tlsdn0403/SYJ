@@ -246,6 +246,7 @@ void Room::BroadcastMachineGunAmmo(const TruckState& truckState)
 	SendBufferRef sendBuffer = ServerPacketHandler::MakeSendBuffer(ammoPkt);
 	Broadcast(sendBuffer);
 }
+
 void Room::CaptureStage2MachineGunAmmoFromTruck(uint64 truckId)
 {
 	_bHasPendingStage2MachineGunAmmo = false;
@@ -670,6 +671,10 @@ namespace
 	constexpr float ZOMBIE_SEPARATION_WEIGHT = 1.35f;
 	constexpr int32 ZOMBIE_SEPARATION_MAX_NEIGHBORS = 8;
 	constexpr float ZOMBIE_YAW_TURN_RATE_DEGREES = 360.0f;
+	constexpr float ZOMBIE_TRUCK_BODY_HALF_LENGTH = 270.0f;
+	constexpr float ZOMBIE_TRUCK_BODY_HALF_WIDTH = 130.0f;
+	constexpr float ZOMBIE_TRUCK_TARGET_STANDOFF = 85.0f;
+	constexpr float ZOMBIE_TRUCK_ATTACK_RANGE = 45.0f;
 	constexpr float ZOMBIE_TRUCK_IMPACT_EVENT_MIN_DAMAGE = 35.0f;
 	constexpr float ZOMBIE_TRUCK_IMPACT_BASE_DAMAGE = 50.0f;
 	constexpr float ZOMBIE_TRUCK_IMPACT_FATAL_DAMAGE = 200.0f;
@@ -771,6 +776,64 @@ namespace
 		return value;
 	}
 
+	void GetTruckZombieApproachPoint(const Protocol::PosInfo& truckPos, const Protocol::PosInfo& zombiePos, float& outX, float& outY)
+	{
+		const float yawRadians = NormalizeYawDegrees(truckPos.yaw()) * (3.1415926535f / 180.0f);
+		const float forwardX = cosf(yawRadians);
+		const float forwardY = sinf(yawRadians);
+		const float rightX = -sinf(yawRadians);
+		const float rightY = cosf(yawRadians);
+
+		const float relX = zombiePos.x() - truckPos.x();
+		const float relY = zombiePos.y() - truckPos.y();
+		const float localX = relX * forwardX + relY * forwardY;
+		const float localY = relX * rightX + relY * rightY;
+		float surfaceX = ClampFloat(localX, -ZOMBIE_TRUCK_BODY_HALF_LENGTH, ZOMBIE_TRUCK_BODY_HALF_LENGTH);
+		float surfaceY = ClampFloat(localY, -ZOMBIE_TRUCK_BODY_HALF_WIDTH, ZOMBIE_TRUCK_BODY_HALF_WIDTH);
+
+		const bool outsideX = fabsf(localX) > ZOMBIE_TRUCK_BODY_HALF_LENGTH;
+		const bool outsideY = fabsf(localY) > ZOMBIE_TRUCK_BODY_HALF_WIDTH;
+		float normalX = 0.0f;
+		float normalY = 0.0f;
+
+		if (outsideX || outsideY)
+		{
+			normalX = localX - surfaceX;
+			normalY = localY - surfaceY;
+			const float normalLenSq = normalX * normalX + normalY * normalY;
+			if (normalLenSq > 0.001f)
+			{
+				const float normalLen = sqrtf(normalLenSq);
+				normalX /= normalLen;
+				normalY /= normalLen;
+			}
+		}
+
+		if (normalX * normalX + normalY * normalY <= 0.001f)
+		{
+			const float distanceToXFace = ZOMBIE_TRUCK_BODY_HALF_LENGTH - fabsf(localX);
+			const float distanceToYFace = ZOMBIE_TRUCK_BODY_HALF_WIDTH - fabsf(localY);
+			if (distanceToXFace < distanceToYFace)
+			{
+				const float sign = localX >= 0.0f ? 1.0f : -1.0f;
+				normalX = sign;
+				normalY = 0.0f;
+				surfaceX = sign * ZOMBIE_TRUCK_BODY_HALF_LENGTH;
+			}
+			else
+			{
+				const float sign = localY >= 0.0f ? 1.0f : -1.0f;
+				normalX = 0.0f;
+				normalY = sign;
+				surfaceY = sign * ZOMBIE_TRUCK_BODY_HALF_WIDTH;
+			}
+		}
+
+		const float approachLocalX = surfaceX + normalX * ZOMBIE_TRUCK_TARGET_STANDOFF;
+		const float approachLocalY = surfaceY + normalY * ZOMBIE_TRUCK_TARGET_STANDOFF;
+		outX = truckPos.x() + forwardX * approachLocalX + rightX * approachLocalY;
+		outY = truckPos.y() + forwardY * approachLocalX + rightY * approachLocalY;
+	}
 	ZombieNavCell WorldToZombieNavCell(float x, float y)
 	{
 		return
@@ -1162,7 +1225,7 @@ PlayerRef Room::FindNearestPlayer(const Protocol::PosInfo& origin, float maxRang
 	return nearestPlayer;
 }
 
-Protocol::PosInfo Room::GetZombieTargetPosInfo(const PlayerRef& player) const
+Protocol::PosInfo Room::GetZombieTargetPosInfo(const PlayerRef& player, const Protocol::PosInfo* zombiePos) const
 {
 	Protocol::PosInfo targetPos;
 	if (player == nullptr || player->posInfo == nullptr)
@@ -1180,6 +1243,15 @@ Protocol::PosInfo Room::GetZombieTargetPosInfo(const PlayerRef& player) const
 	// While a player is seated, their character transform can be stale or
 	// relative to cargo movement. Zombies should target the vehicle body.
 	targetPos.CopyFrom(truckIt->second.posInfo);
+	if (zombiePos != nullptr)
+	{
+		float approachX = targetPos.x();
+		float approachY = targetPos.y();
+		GetTruckZombieApproachPoint(truckIt->second.posInfo, *zombiePos, approachX, approachY);
+		targetPos.set_x(approachX);
+		targetPos.set_y(approachY);
+	}
+
 	targetPos.set_object_id(player->objectInfo ? player->objectInfo->object_id() : targetPos.object_id());
 	targetPos.set_state(player->posInfo->state());
 	return targetPos;
@@ -1435,7 +1507,16 @@ void Room::UpdateZombies()
 			continue;
 		}
 
-		const Protocol::PosInfo targetPos = GetZombieTargetPosInfo(targetPlayer);
+		const auto targetTruckIt = targetPlayer->currentTruckId != 0
+			? _trucks.find(targetPlayer->currentTruckId)
+			: _trucks.end();
+		const bool bTargetingTruck =
+			targetPlayer->bIsInTruck &&
+			targetTruckIt != _trucks.end() &&
+			targetTruckIt->second.hasTransform;
+		const Protocol::PosInfo targetPos = GetZombieTargetPosInfo(
+			targetPlayer,
+			bTargetingTruck ? monster->posInfo : nullptr);
 		const float dx = targetPos.x() - monster->posInfo->x();
 		const float dy = targetPos.y() - monster->posInfo->y();
 		const float dz = targetPos.z() - monster->posInfo->z();
@@ -1451,7 +1532,8 @@ void Room::UpdateZombies()
 		aiUpdateState.elapsedSeconds = 0.0f;
 		monster->TickCooldown(aiDeltaSeconds);
 
-		const float attackRangeSq = ZOMBIE_ATTACK_RANGE * ZOMBIE_ATTACK_RANGE;
+		const float attackRange = bTargetingTruck ? ZOMBIE_TRUCK_ATTACK_RANGE : ZOMBIE_ATTACK_RANGE;
+		const float attackRangeSq = attackRange * attackRange;
 		float separationX = 0.0f;
 		float separationY = 0.0f;
 		const float separationRadiusSq = ZOMBIE_SEPARATION_RADIUS * ZOMBIE_SEPARATION_RADIUS;
@@ -1527,7 +1609,7 @@ void Room::UpdateZombies()
 			}
 
 			const float separationSq = separationX * separationX + separationY * separationY;
-			if (separationSq > 0.001f)
+			if (!bTargetingTruck && separationSq > 0.001f)
 			{
 				const float separationLen = sqrtf(separationSq);
 				const float moveStep = ZOMBIE_MOVE_SPEED * monster->GetMoveSpeedScale() * aiDeltaSeconds;

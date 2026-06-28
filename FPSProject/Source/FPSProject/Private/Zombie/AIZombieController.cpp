@@ -42,6 +42,11 @@ namespace
 			return FromLocation;
 		}
 
+		if (const ATruck* Truck = Cast<ATruck>(TargetActor))
+		{
+			return Truck->GetClosestZombieInteractionPoint(FromLocation);
+		}
+
 		if (UPrimitiveComponent* PrimitiveComponent = Cast<UPrimitiveComponent>(TargetActor->GetRootComponent()))
 		{
 			FVector ClosestPoint = TargetActor->GetActorLocation();

@@ -118,6 +118,68 @@ void MakeVehicleMeshKinematic(USkeletalMeshComponent* TruckMesh)
 	}
 }
 
+FVector GetBoxSidePointForLocation(const UBoxComponent* Box, const FVector& FromLocation, FVector* OutSideNormal)
+{
+	if (!Box)
+	{
+		if (OutSideNormal)
+		{
+			*OutSideNormal = FVector::ForwardVector;
+		}
+		return FromLocation;
+	}
+
+	const FTransform BoxTransform = Box->GetComponentTransform();
+	const FVector Extent = Box->GetUnscaledBoxExtent();
+	const FVector LocalFrom = BoxTransform.InverseTransformPosition(FromLocation);
+	FVector LocalPoint(
+		FMath::Clamp(LocalFrom.X, -Extent.X, Extent.X),
+		FMath::Clamp(LocalFrom.Y, -Extent.Y, Extent.Y),
+		FMath::Clamp(LocalFrom.Z, -Extent.Z, Extent.Z));
+
+	const bool bOutsideX = FMath::Abs(LocalFrom.X) > Extent.X;
+	const bool bOutsideY = FMath::Abs(LocalFrom.Y) > Extent.Y;
+	FVector LocalNormal = FVector::ZeroVector;
+
+	if (bOutsideX || bOutsideY)
+	{
+		LocalNormal = FVector(LocalFrom.X - LocalPoint.X, LocalFrom.Y - LocalPoint.Y, 0.0f).GetSafeNormal();
+	}
+
+	if (LocalNormal.IsNearlyZero())
+	{
+		const float DistanceToXFace = Extent.X - FMath::Abs(LocalFrom.X);
+		const float DistanceToYFace = Extent.Y - FMath::Abs(LocalFrom.Y);
+		if (DistanceToXFace < DistanceToYFace)
+		{
+			const float Sign = LocalFrom.X >= 0.0f ? 1.0f : -1.0f;
+			LocalNormal = FVector(Sign, 0.0f, 0.0f);
+			LocalPoint.X = Sign * Extent.X;
+		}
+		else
+		{
+			const float Sign = LocalFrom.Y >= 0.0f ? 1.0f : -1.0f;
+			LocalNormal = FVector(0.0f, Sign, 0.0f);
+			LocalPoint.Y = Sign * Extent.Y;
+		}
+	}
+
+	FVector WorldNormal = BoxTransform.TransformVectorNoScale(LocalNormal);
+	WorldNormal.Z = 0.0f;
+	WorldNormal.Normalize();
+	if (WorldNormal.IsNearlyZero())
+	{
+		WorldNormal = Box->GetForwardVector().GetSafeNormal2D();
+	}
+
+	if (OutSideNormal)
+	{
+		*OutSideNormal = WorldNormal;
+	}
+
+	return BoxTransform.TransformPosition(LocalPoint);
+}
+
 bool ComponentNameMatches(const UActorComponent* Component, const FName& ComponentName)
 {
 	return Component &&
@@ -382,6 +444,62 @@ void ATruck::ConfigureVehiclePawnCollision()
 	VehiclePawnCollision->SetRelativeLocation(LocalBounds.Origin);
 	VehiclePawnCollision->SetRelativeRotation(FRotator::ZeroRotator);
 	VehiclePawnCollision->SetBoxExtent(LocalBounds.BoxExtent + SafePadding);
+}
+
+FVector ATruck::GetClosestZombieInteractionPoint(const FVector& FromLocation) const
+{
+	if (VehiclePawnCollision)
+	{
+		return GetBoxSidePointForLocation(VehiclePawnCollision, FromLocation, nullptr);
+	}
+
+	if (const UPrimitiveComponent* PrimitiveComponent = Cast<UPrimitiveComponent>(GetRootComponent()))
+	{
+		FVector ClosestPoint = GetActorLocation();
+		if (PrimitiveComponent->GetClosestPointOnCollision(FromLocation, ClosestPoint) >= 0.0f)
+		{
+			return ClosestPoint;
+		}
+	}
+
+	return GetActorLocation();
+}
+
+FVector ATruck::GetZombieApproachLocation(const FVector& FromLocation, float StandOffDistance) const
+{
+	const float SafeStandOffDistance = FMath::Max(0.0f, StandOffDistance);
+	FVector SideNormal = FVector::ZeroVector;
+	FVector SurfacePoint = GetActorLocation();
+
+	if (VehiclePawnCollision)
+	{
+		SurfacePoint = GetBoxSidePointForLocation(VehiclePawnCollision, FromLocation, &SideNormal);
+	}
+	else if (const UPrimitiveComponent* PrimitiveComponent = Cast<UPrimitiveComponent>(GetRootComponent()))
+	{
+		if (PrimitiveComponent->GetClosestPointOnCollision(FromLocation, SurfacePoint) < 0.0f)
+		{
+			SurfacePoint = GetActorLocation();
+		}
+
+		SideNormal = FromLocation - SurfacePoint;
+		SideNormal.Z = 0.0f;
+		SideNormal.Normalize();
+	}
+
+	if (SideNormal.IsNearlyZero())
+	{
+		SideNormal = (FromLocation - GetActorLocation()).GetSafeNormal2D();
+	}
+
+	if (SideNormal.IsNearlyZero())
+	{
+		SideNormal = GetActorForwardVector().GetSafeNormal2D();
+	}
+
+	FVector ApproachLocation = SurfacePoint + SideNormal * SafeStandOffDistance;
+	ApproachLocation.Z = FromLocation.Z;
+	return ApproachLocation;
 }
 
 void ATruck::BeginPlay()

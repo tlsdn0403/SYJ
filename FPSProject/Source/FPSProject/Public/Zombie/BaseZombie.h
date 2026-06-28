@@ -62,6 +62,7 @@ public:
 	void HandleNetworkDeath();
 	void HandleNetworkDismember(FName BoneName, const FVector& Impulse, const FVector& HitLocation);
 	void PlayHeadHitSound(const FVector& HitLocation);
+	void PlayBloodHitEffect(const FVector& HitLocation, const FVector& HitNormal);
 	void PlayZombieGroupAwarenessSound(const FVector& SoundLocation);
 	void SetNetworkMoveTarget(const FVector& TargetLocation, const FRotator& TargetRotation, bool bInIsMoving);
 	void ApplyTruckImpactKnockback(const FVector& LaunchVelocity, const FVector& RagdollImpulse, const FVector& ImpactPoint, bool bForceRagdoll, float NetworkMovePauseSeconds = 0.0f);

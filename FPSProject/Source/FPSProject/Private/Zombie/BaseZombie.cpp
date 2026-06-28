@@ -79,6 +79,30 @@ FRotator MakeBloodHitEffectRotation(const FVector& ImpactNormal, const FVector& 
 	// NS_Blood_p1 emits from its local Z axis, so align that axis to the incoming hit direction.
 	return FRotationMatrix::MakeFromZ(Direction.GetSafeNormal()).Rotator();
 }
+
+UNiagaraSystem* LoadBloodHitEffect()
+{
+	static TWeakObjectPtr<UNiagaraSystem> CachedBloodHitEffect;
+	if (!CachedBloodHitEffect.IsValid())
+	{
+		CachedBloodHitEffect = LoadObject<UNiagaraSystem>(
+			nullptr,
+			TEXT("/Game/Niagara/NS_Blood_p1.NS_Blood_p1"));
+	}
+
+	return CachedBloodHitEffect.Get();
+}
+
+FVector MakeBloodBurstDirection(const FVector& BaseDirection, int32 BurstIndex)
+{
+	const FVector Direction = BaseDirection.IsNearlyZero() ? FVector::ForwardVector : BaseDirection.GetSafeNormal();
+	if (BurstIndex == 0)
+	{
+		return Direction;
+	}
+
+	return FMath::VRandCone(Direction, FMath::DegreesToRadians(12.0f));
+}
 }
 
 ABaseZombie::ABaseZombie()
@@ -150,6 +174,11 @@ void ABaseZombie::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifet
 void ABaseZombie::BeginPlay()
 {
 	Super::BeginPlay();
+
+	if (UNiagaraSystem* BloodHitEffect = LoadBloodHitEffect())
+	{
+		HitEffect = BloodHitEffect;
+	}
 
 	if (ZombieMesh)
 	{
@@ -250,8 +279,7 @@ void ABaseZombie::HandleNetworkHit(float NewHealth, float MaxHealth)
 	if (HitEffect)
 	{
 		const FVector EffectLocation = GetActorLocation() + FVector(0.0f, 0.0f, 50.0f);
-		const FRotator Rotation = MakeBloodHitEffectRotation(GetActorForwardVector(), -GetActorForwardVector());
-		UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), HitEffect, EffectLocation, Rotation);
+		PlayBloodHitEffect(EffectLocation, GetActorForwardVector());
 	}
 }
 
@@ -322,6 +350,34 @@ void ABaseZombie::PlayHeadHitSound(const FVector& HitLocation)
 
 	UGameplayStatics::PlaySoundAtLocation(this, ZombieHeadHitSound, HitLocation);
 	LastHeadHitSoundTime = CurrentTime;
+}
+
+void ABaseZombie::PlayBloodHitEffect(const FVector& HitLocation, const FVector& HitNormal)
+{
+	UWorld* World = GetWorld();
+	UNiagaraSystem* BloodHitEffect = HitEffect ? HitEffect.Get() : LoadBloodHitEffect();
+	if (!World || !BloodHitEffect)
+	{
+		return;
+	}
+
+	const FVector IncomingDirection = HitNormal.IsNearlyZero()
+		? -GetActorForwardVector()
+		: -HitNormal.GetSafeNormal();
+
+	constexpr int32 BloodBurstCount = 2;
+	for (int32 BurstIndex = 0; BurstIndex < BloodBurstCount; ++BurstIndex)
+	{
+		const FVector BurstDirection = MakeBloodBurstDirection(IncomingDirection, BurstIndex);
+		const FVector BurstLocation = HitLocation + BurstDirection * static_cast<float>(BurstIndex) * 3.0f;
+		const FVector BurstScale = FVector(BurstIndex == 0 ? 1.0f : 0.65f);
+		UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+			World,
+			BloodHitEffect,
+			BurstLocation,
+			MakeBloodHitEffectRotation(-BurstDirection, -GetActorForwardVector()),
+			BurstScale);
+	}
 }
 
 void ABaseZombie::PlayZombieGroupAwarenessSound(const FVector& SoundLocation)
@@ -978,12 +1034,7 @@ void ABaseZombie::OnZombieDamaged(float NewHealth, float Damage, const FHitResul
 
 	if (HitEffect)
 	{
-		UNiagaraFunctionLibrary::SpawnSystemAtLocation(
-			GetWorld(),
-			HitEffect,
-			EffectLocation,
-			MakeBloodHitEffectRotation(Hit.ImpactNormal, -GetActorForwardVector())
-		);
+		PlayBloodHitEffect(EffectLocation, Hit.ImpactNormal);
 	}
 	// 분해 로직
 	

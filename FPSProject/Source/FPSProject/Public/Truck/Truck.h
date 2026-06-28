@@ -267,6 +267,7 @@ protected:
 	void MoveForward(float Value);
 	void MoveRight(float Value);
 	void Brake(float Value);
+	void RecoverTruckUpright();
 	void UseDriverHealPack();
 	void SendTruckMovePacket(bool bAllowHealthIncrease = false);
 	void CheckZombieImpactSweep();
@@ -388,6 +389,18 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Vehicle|Stage2", meta = (ClampMin = "1.0"))
 	float Stage2EngineTorqueMultiplier = 1.5f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Vehicle|Recovery", meta = (ClampMin = "-1.0", ClampMax = "1.0"))
+	float UprightRecoveryMaxUpDot = 0.5f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Vehicle|Recovery", meta = (ClampMin = "0.0"))
+	float UprightRecoveryGroundTraceUpDistance = 1500.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Vehicle|Recovery", meta = (ClampMin = "0.0"))
+	float UprightRecoveryGroundTraceDownDistance = 5000.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Vehicle|Recovery", meta = (ClampMin = "0.0"))
+	float UprightRecoveryGroundClearance = 80.0f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
 	float BrakeSoundMinSpeed = 300.0f;
 
@@ -457,6 +470,9 @@ private:
 	void ReportZombieAwarenessNoise(float DeltaTime);
 	void UpdateFuelConsumption(float DeltaTime);
 	void ClearDrivingInput(bool bHoldBrake);
+	bool CanRecoverTruckUpright() const;
+	bool TryGetUprightRecoveryLocation(FVector& OutRecoveryLocation) const;
+	void TeleportOccupantsAfterUprightRecovery();
 	void ConfigureVehiclePawnCollision();
 	bool IsLocalInteractionCharacter(const AFPSBaseCharacter* Character) const;
 	void SetInteractionWidgetsHidden(bool bShouldHide);

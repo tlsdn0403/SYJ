@@ -52,7 +52,11 @@ protected:
 	void TriggerEndingSequence();
 	void FinishEndingSequence();
 	bool ShowGameOverScreen();
+	void BindGameOverExitButton();
 	void SetEndingCinematicMode(bool bEnable);
+
+	UFUNCTION()
+	void OnGameOverExitClicked();
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ending")
 	TObjectPtr<ULevelSequence> EndingSequence;

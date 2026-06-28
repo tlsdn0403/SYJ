@@ -1,4 +1,5 @@
 #include "Stage2/Stage2FinalDoor.h"
+#include "Components/Button.h"
 #include "Components/InteractTriggerComponent.h"
 #include "Components/TextBlock.h"
 #include "Components/WidgetComponent.h"
@@ -16,7 +17,53 @@
 #include "Engine/Level.h"
 #include "Engine/LevelStreaming.h"
 #include "Kismet/GameplayStatics.h"
+#include "Kismet/KismetSystemLibrary.h"
 #include "UObject/ConstructorHelpers.h"
+
+namespace
+{
+UButton* FindGameOverExitButton(UUserWidget* GameOverWidget)
+{
+	if (GameOverWidget == nullptr || GameOverWidget->WidgetTree == nullptr)
+	{
+		return nullptr;
+	}
+
+	static const FName ExitButtonNames[] =
+	{
+		TEXT("EndB"),
+		TEXT("ExitButton"),
+		TEXT("QuitButton"),
+		TEXT("LeaveButton"),
+		TEXT("ExitB"),
+		TEXT("QuitB")
+	};
+
+	for (const FName& ButtonName : ExitButtonNames)
+	{
+		if (UButton* Button = Cast<UButton>(GameOverWidget->WidgetTree->FindWidget(ButtonName)))
+		{
+			return Button;
+		}
+	}
+
+	TArray<UWidget*> Widgets;
+	GameOverWidget->WidgetTree->GetAllWidgets(Widgets);
+
+	UButton* OnlyButton = nullptr;
+	int32 ButtonCount = 0;
+	for (UWidget* Widget : Widgets)
+	{
+		if (UButton* Button = Cast<UButton>(Widget))
+		{
+			OnlyButton = Button;
+			++ButtonCount;
+		}
+	}
+
+	return ButtonCount == 1 ? OnlyButton : nullptr;
+}
+}
 
 AStage2FinalDoor::AStage2FinalDoor()
 {
@@ -495,6 +542,7 @@ bool AStage2FinalDoor::ShowGameOverScreen()
 	}
 
 	GameOverWidget->AddToViewport(1000);
+	BindGameOverExitButton();
 
 	FInputModeUIOnly InputMode;
 	InputMode.SetWidgetToFocus(GameOverWidget->TakeWidget());
@@ -505,6 +553,29 @@ bool AStage2FinalDoor::ShowGameOverScreen()
 	PlayerController->SetIgnoreLookInput(true);
 
 	return true;
+}
+
+void AStage2FinalDoor::BindGameOverExitButton()
+{
+	UButton* ExitButton = FindGameOverExitButton(GameOverWidget);
+	if (ExitButton == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Stage2FinalDoor: GameOver exit button was not found."));
+		return;
+	}
+
+	ExitButton->OnClicked.AddUniqueDynamic(this, &AStage2FinalDoor::OnGameOverExitClicked);
+}
+
+void AStage2FinalDoor::OnGameOverExitClicked()
+{
+	if (UFPSProjectGameInstance* GameInstance = Cast<UFPSProjectGameInstance>(GetGameInstance()))
+	{
+		GameInstance->QuitGame();
+		return;
+	}
+
+	UKismetSystemLibrary::QuitGame(this, UGameplayStatics::GetPlayerController(this, 0), EQuitPreference::Quit, false);
 }
 
 void AStage2FinalDoor::SetEndingCinematicMode(bool bEnable)

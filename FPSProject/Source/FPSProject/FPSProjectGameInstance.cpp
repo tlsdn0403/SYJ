@@ -640,6 +640,10 @@ void UFPSProjectGameInstance::HandleMove(const Protocol::S_MOVE& MovePkt)
 		const FRotator ZombieRotation(0.0f, MovePkt.info().yaw(), 0.0f);
 		const bool bZombieMovedByPacket = FVector::DistSquared2D(ZombieLocation, Zombie->GetActorLocation()) > FMath::Square(1.0f);
 		const bool bZombieIsMoving = MovePkt.info().state() != Protocol::MOVE_STATE_IDLE || bZombieMovedByPacket;
+		if (MovePkt.info().state() != Protocol::MOVE_STATE_IDLE && Zombie->IsAlive())
+		{
+			Zombie->PlayZombieGroupAwarenessSound(ZombieLocation);
+		}
 		Zombie->SetNetworkMoveTarget(ZombieLocation, ZombieRotation, bZombieIsMoving);
 		return;
 	}
@@ -724,6 +728,7 @@ void UFPSProjectGameInstance::HandleZombieAttack(const Protocol::S_ZOMBIE_ATTACK
 	const bool bTargetIsLocalPlayer =
 		TargetPlayer && (TargetPlayer == MyPlayer || TargetPlayer->IsLocallyControlled());
 	const bool bShouldApplyDamage = TargetActor && (TargetActor->IsA<ATruck>() || bTargetIsLocalPlayer);
+	Zombie->PlayZombieGroupAwarenessSound(Zombie->GetActorLocation());
 	Zombie->HandleNetworkAttack(TargetActor, bShouldApplyDamage);
 }
 

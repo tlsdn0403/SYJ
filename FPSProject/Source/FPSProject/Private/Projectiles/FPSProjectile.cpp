@@ -212,9 +212,9 @@ void AFPSProjectile::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor
 
 		ABaseZombie* HitZombie = ResolveProjectileHitZombie(OtherActor, OtherComponent);
 		const FHitResult DamageHit = BuildProjectileZombieDamageHit(Hit, HitZombie);
-		if (HitZombie && HitZombie->IsAlive() && IsZombieHeadHit(DamageHit.BoneName) && ZombieHeadHitSound)
+		if (HitZombie && HitZombie->IsAlive() && IsZombieHeadHit(DamageHit.BoneName))
 		{
-			UGameplayStatics::PlaySoundAtLocation(this, ZombieHeadHitSound, DamageHit.ImpactPoint);
+			HitZombie->PlayHeadHitSound(DamageHit.ImpactPoint);
 		}
 
 		const bool bSentZombieHitPacket =

@@ -21,6 +21,7 @@ message ObjectInfo
 	ObjectType object_type = 2;	// 유저인지 좀비인지 아이템인지
 	PosInfo pos_info = 3;	// 현재 위치 및 상태
 	int32 weapon_type = 4;
+	string nickname = 5;
 }
 
 message DespawnInfo

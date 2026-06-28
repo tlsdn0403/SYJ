@@ -55,6 +55,8 @@ public:
 	static bool SendZombieHitPacket(class AFPSBaseCharacter* Attacker, class ABaseZombie* Zombie, float Damage, const FVector& HitLocation, FName HitBoneName = NAME_None, const FVector& HitNormal = FVector::ZeroVector);
 	void SetPlayerNickname(const FString& Nickname);
 	const FString& GetPlayerNickname() const { return PlayerNickname; }
+	FString GetPlayerNicknameById(uint64 PlayerId) const;
+	void GetSurvivingPlayerNicknames(TArray<FString>& OutNicknames) const;
 
 public:
 	void HandleSpawn(const Protocol::ObjectInfo& PlayerInfo, bool IsMine);
@@ -183,6 +185,8 @@ public:
 	UPROPERTY()
 	FString PlayerNickname;
 
+	TMap<uint64, FString> PlayerNicknamesById;
+
 private:
 	UFUNCTION()
 	void OnGameOverExitClicked();
@@ -198,6 +202,7 @@ private:
 	TSubclassOf<class AFPSBaseCharacter> ResolvePlayerCharacterClass(uint64 ObjectId) const;
 	void HandlePostLoadMap(UWorld* LoadedWorld);
 	void ApplyEntryLoadingReadyCount(int32 ReadyCount);
+	void CachePlayerNickname(const Protocol::ObjectInfo& ObjectInfo, bool bIsMine);
 	void ApplyStageTimerToLocalUI();
 	void ProcessSpawnObject(const Protocol::ObjectInfo& ObjectInfo, bool IsMine);
 	bool ShouldDelayStage2ActorSpawn() const;

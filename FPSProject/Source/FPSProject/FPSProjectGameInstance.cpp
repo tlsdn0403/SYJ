@@ -155,6 +155,7 @@ bool UFPSProjectGameInstance::RemovePlayerById(uint64 PlayerId)
 	}
 
 	PendingWeaponsByPlayer.Remove(PlayerId);
+	PlayerNicknamesById.Remove(PlayerId);
 
 	if (WorldObjects && WorldObjects->DestroyAndRemovePlayer(PlayerId))
 	{
@@ -222,6 +223,7 @@ void UFPSProjectGameInstance::HandlePostLoadMap(UWorld* LoadedWorld)
 	PendingWeaponsByPlayer.Empty();
 	PendingStage2SpawnInfos.Reset();
 	InactiveNetworkLootItemIds.Reset();
+	PlayerNicknamesById.Empty();
 	bProcessingPendingStage2Spawns = false;
 	bStage2StartupHoldApplied = false;
 
@@ -426,6 +428,8 @@ bool UFPSProjectGameInstance::TryExitTruckLocally(AFPSBaseCharacter* Character)
 
 void UFPSProjectGameInstance::HandleSpawn(const Protocol::ObjectInfo& ObjectInfo, bool IsMine)
 {
+	CachePlayerNickname(ObjectInfo, IsMine);
+
 	if (!bProcessingPendingStage2Spawns && ShouldDelayStage2ActorSpawn())
 	{
 		QueueStage2Spawn(ObjectInfo, IsMine);
@@ -1446,6 +1450,70 @@ void UFPSProjectGameInstance::HandleFire(const Protocol::S_FIRE& pkt)
 	else
 	{
 		UE_LOG(LogTemp, Error, TEXT("[FireDebug] ShooterId=%llu HasPlayer=false"), ShooterId);
+	}
+}
+
+void UFPSProjectGameInstance::CachePlayerNickname(const Protocol::ObjectInfo& ObjectInfo, bool bIsMine)
+{
+	const uint64 PlayerId = ObjectInfo.object_id();
+	if (PlayerId == 0)
+	{
+		return;
+	}
+
+	FString Nickname = UTF8_TO_TCHAR(ObjectInfo.nickname().c_str());
+	Nickname.TrimStartAndEndInline();
+
+	if (Nickname.IsEmpty() && bIsMine)
+	{
+		Nickname = PlayerNickname;
+		Nickname.TrimStartAndEndInline();
+	}
+
+	if (!Nickname.IsEmpty())
+	{
+		PlayerNicknamesById.FindOrAdd(PlayerId) = Nickname;
+	}
+}
+
+FString UFPSProjectGameInstance::GetPlayerNicknameById(uint64 PlayerId) const
+{
+	if (const FString* Nickname = PlayerNicknamesById.Find(PlayerId))
+	{
+		return *Nickname;
+	}
+
+	if (MyPlayer && MyPlayer->GetPlayerInfo() && MyPlayer->GetPlayerInfo()->object_id() == PlayerId)
+	{
+		return PlayerNickname;
+	}
+
+	return FString();
+}
+
+void UFPSProjectGameInstance::GetSurvivingPlayerNicknames(TArray<FString>& OutNicknames) const
+{
+	OutNicknames.Reset();
+
+	TArray<TPair<uint64, AFPSBaseCharacter*>> RegisteredPlayers;
+	GetValidRegisteredPlayers(RegisteredPlayers);
+
+	for (const TPair<uint64, AFPSBaseCharacter*>& PlayerEntry : RegisteredPlayers)
+	{
+		AFPSBaseCharacter* Player = PlayerEntry.Value;
+		if (!IsValid(Player) || Player->IsDead())
+		{
+			continue;
+		}
+
+		FString Nickname = GetPlayerNicknameById(PlayerEntry.Key);
+		Nickname.TrimStartAndEndInline();
+		if (Nickname.IsEmpty())
+		{
+			Nickname = FString::Printf(TEXT("Player %llu"), PlayerEntry.Key);
+		}
+
+		OutNicknames.Add(Nickname);
 	}
 }
 

@@ -66,6 +66,51 @@ UButton* FindEndingExitButton(UUserWidget* EndingWidget)
 
 	return ButtonCount == 1 ? OnlyButton : nullptr;
 }
+
+UTextBlock* FindGameClearSurvivorTextBlock(UUserWidget* EndingWidget)
+{
+	if (EndingWidget == nullptr || EndingWidget->WidgetTree == nullptr)
+	{
+		return nullptr;
+	}
+
+	static const FName SurvivorTextNames[] =
+	{
+		TEXT("SurvivorNameText"),
+		TEXT("SurvivorNamesText"),
+		TEXT("SurvivorText"),
+		TEXT("SurvivorListText"),
+		TEXT("AlivePlayerText"),
+		TEXT("AlivePlayersText"),
+		TEXT("AlivePlayerNameText"),
+		TEXT("PlayerNameText"),
+		TEXT("PlayerNamesText"),
+		TEXT("PlayerListText"),
+		TEXT("NameText"),
+		TEXT("NameListText")
+	};
+
+	for (const FName& TextName : SurvivorTextNames)
+	{
+		if (UTextBlock* TextBlock = Cast<UTextBlock>(EndingWidget->WidgetTree->FindWidget(TextName)))
+		{
+			return TextBlock;
+		}
+	}
+
+	TArray<UWidget*> Widgets;
+	EndingWidget->WidgetTree->GetAllWidgets(Widgets);
+	for (UWidget* Widget : Widgets)
+	{
+		UTextBlock* TextBlock = Cast<UTextBlock>(Widget);
+		if (TextBlock && TextBlock->GetText().ToString().Contains(TEXT("살아남은 플레이어")))
+		{
+			return TextBlock;
+		}
+	}
+
+	return nullptr;
+}
 }
 
 AStage2FinalDoor::AStage2FinalDoor()
@@ -573,6 +618,7 @@ bool AStage2FinalDoor::ShowGameClearScreen()
 	}
 
 	GameClearWidget->AddToViewport(1000);
+	ApplyGameClearSurvivorNames();
 	BindGameClearExitButton();
 
 	FInputModeUIOnly InputMode;
@@ -584,6 +630,43 @@ bool AStage2FinalDoor::ShowGameClearScreen()
 	PlayerController->SetIgnoreLookInput(true);
 
 	return true;
+}
+
+void AStage2FinalDoor::ApplyGameClearSurvivorNames()
+{
+	if (GameClearWidget == nullptr)
+	{
+		return;
+	}
+
+	UFPSProjectGameInstance* GameInstance = Cast<UFPSProjectGameInstance>(GetGameInstance());
+	if (GameInstance == nullptr)
+	{
+		return;
+	}
+
+	TArray<FString> SurvivorNames;
+	GameInstance->GetSurvivingPlayerNicknames(SurvivorNames);
+	if (SurvivorNames.Num() <= 0)
+	{
+		return;
+	}
+
+	UTextBlock* SurvivorTextBlock = FindGameClearSurvivorTextBlock(GameClearWidget);
+	if (SurvivorTextBlock == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Stage2FinalDoor: survivor name text block was not found in GameClear widget."));
+		return;
+	}
+
+	const FString JoinedNames = FString::Join(SurvivorNames, TEXT(" / "));
+	const FString CurrentText = SurvivorTextBlock->GetText().ToString();
+	const bool bTextBlockHasLabel = CurrentText.Contains(TEXT("살아남은 플레이어"));
+	const FString DisplayText = bTextBlockHasLabel
+		? FString::Printf(TEXT("살아남은 플레이어\n%s"), *JoinedNames)
+		: JoinedNames;
+
+	SurvivorTextBlock->SetText(FText::FromString(DisplayText));
 }
 
 void AStage2FinalDoor::BindGameClearExitButton()

@@ -18,4 +18,5 @@ public:
 
 public:
 	atomic<shared_ptr<Player>> player;
+	std::string nickname;
 };

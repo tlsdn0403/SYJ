@@ -2449,6 +2449,7 @@ void ATruck::RefreshInteractionWidgetsForCharacter(AFPSBaseCharacter* Character)
 	// Driver and cargo trigger volumes can overlap. Pick the nearest valid one so
 	// the prompt and the interaction performed by the character always agree.
 	ETruckInteractType SelectedType = ETruckInteractType::None;
+	const USceneComponent* SelectedPromptComponent = nullptr;
 	float BestDistanceSquared = TNumericLimits<float>::Max();
 	auto ConsiderPrompt = [&](bool bCanUse, ETruckInteractType Type, const USceneComponent* PromptComponent)
 		{
@@ -2460,19 +2461,11 @@ void ATruck::RefreshInteractionWidgetsForCharacter(AFPSBaseCharacter* Character)
 			const float DistanceSquared = FVector::DistSquared(
 				Character->GetActorLocation(),
 				PromptComponent->GetComponentLocation());
-			const bool bCurrentlyVisiblePrompt = VisibleInteractPromptType == Type;
-			const float AllowedPromptDistance = bCurrentlyVisiblePrompt
-				? FMath::Max(TruckInteractPromptShowDistance, TruckInteractPromptKeepDistance)
-				: TruckInteractPromptShowDistance;
-			if (AllowedPromptDistance > 0.0f && DistanceSquared > FMath::Square(AllowedPromptDistance))
-			{
-				return;
-			}
-
 			if (DistanceSquared < BestDistanceSquared)
 			{
 				BestDistanceSquared = DistanceSquared;
 				SelectedType = Type;
+				SelectedPromptComponent = PromptComponent;
 			}
 		};
 
@@ -2493,12 +2486,28 @@ void ATruck::RefreshInteractionWidgetsForCharacter(AFPSBaseCharacter* Character)
 
 	const float CurrentTime = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0f;
 	const ETruckInteractType PreviousVisiblePromptType = VisibleInteractPromptType;
+	ETruckInteractType PromptTypeToShow = SelectedType;
+	if (SelectedType != ETruckInteractType::None && SelectedPromptComponent)
+	{
+		const float SelectedDistanceSquared = FVector::DistSquared(
+			Character->GetActorLocation(),
+			SelectedPromptComponent->GetComponentLocation());
+		const bool bCurrentlyVisiblePrompt = VisibleInteractPromptType == SelectedType;
+		const float AllowedPromptDistance = bCurrentlyVisiblePrompt
+			? FMath::Max(TruckInteractPromptShowDistance, TruckInteractPromptKeepDistance)
+			: TruckInteractPromptShowDistance;
+		if (AllowedPromptDistance > 0.0f && SelectedDistanceSquared > FMath::Square(AllowedPromptDistance))
+		{
+			PromptTypeToShow = ETruckInteractType::None;
+		}
+	}
+
 	const bool bSuppressPromptReappear =
-		SelectedType != ETruckInteractType::None &&
-		VisibleInteractPromptType == ETruckInteractType::None &&
+		PromptTypeToShow != ETruckInteractType::None &&
+		PreviousVisiblePromptType == ETruckInteractType::None &&
 		(CurrentTime - LastInteractPromptHiddenTime) < TruckInteractPromptReappearCooldown;
 
-	ETruckInteractType PromptTypeToShow = bSuppressPromptReappear ? ETruckInteractType::None : SelectedType;
+	PromptTypeToShow = bSuppressPromptReappear ? ETruckInteractType::None : PromptTypeToShow;
 	const bool bPromptChanged = PromptTypeToShow != PreviousVisiblePromptType;
 	if (bPromptChanged)
 	{

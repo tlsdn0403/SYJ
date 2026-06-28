@@ -21,6 +21,7 @@ message ObjectInfo
 	ObjectType object_type = 2;
 	PosInfo pos_info = 3;
 	int32 weapon_type = 4;
+	string nickname = 5;
 }
 
 message DespawnInfo

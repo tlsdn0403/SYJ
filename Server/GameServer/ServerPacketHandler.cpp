@@ -20,6 +20,10 @@ bool Handle_INVALID(PacketSessionRef& session, BYTE* buffer, int32 len)
 bool Handle_C_LOGIN(PacketSessionRef& session, Protocol::C_LOGIN& pkt)
 {
 	std::string clientName = pkt.nickname();
+	if (auto gameSession = static_pointer_cast<GameSession>(session))
+	{
+		gameSession->nickname = clientName;
+	}
 	std::cout << "[Server] 로그인 요청 들어옴! 닉네임: " << clientName << std::endl;
 
 	Protocol::S_LOGIN loginPkt;

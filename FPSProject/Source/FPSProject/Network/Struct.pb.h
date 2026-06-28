@@ -411,11 +411,26 @@ class ObjectInfo final :
   // accessors -------------------------------------------------------
 
   enum : int {
+    kNicknameFieldNumber = 5,
     kPosInfoFieldNumber = 3,
     kObjectIdFieldNumber = 1,
     kObjectTypeFieldNumber = 2,
     kWeaponTypeFieldNumber = 4,
   };
+  // string nickname = 5;
+  void clear_nickname();
+  const std::string& nickname() const;
+  template <typename ArgT0 = const std::string&, typename... ArgT>
+  void set_nickname(ArgT0&& arg0, ArgT... args);
+  std::string* mutable_nickname();
+  PROTOBUF_NODISCARD std::string* release_nickname();
+  void set_allocated_nickname(std::string* nickname);
+  private:
+  const std::string& _internal_nickname() const;
+  inline PROTOBUF_ALWAYS_INLINE void _internal_set_nickname(const std::string& value);
+  std::string* _internal_mutable_nickname();
+  public:
+
   // .Protocol.PosInfo pos_info = 3;
   bool has_pos_info() const;
   private:
@@ -469,6 +484,7 @@ class ObjectInfo final :
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
   struct Impl_ {
+    ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr nickname_;
     ::Protocol::PosInfo* pos_info_;
     uint64_t object_id_;
     int object_type_;
@@ -960,6 +976,56 @@ inline void ObjectInfo::_internal_set_weapon_type(int32_t value) {
 inline void ObjectInfo::set_weapon_type(int32_t value) {
   _internal_set_weapon_type(value);
   // @@protoc_insertion_point(field_set:Protocol.ObjectInfo.weapon_type)
+}
+
+// string nickname = 5;
+inline void ObjectInfo::clear_nickname() {
+  _impl_.nickname_.ClearToEmpty();
+}
+inline const std::string& ObjectInfo::nickname() const {
+  // @@protoc_insertion_point(field_get:Protocol.ObjectInfo.nickname)
+  return _internal_nickname();
+}
+template <typename ArgT0, typename... ArgT>
+inline PROTOBUF_ALWAYS_INLINE
+void ObjectInfo::set_nickname(ArgT0&& arg0, ArgT... args) {
+ 
+ _impl_.nickname_.Set(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
+  // @@protoc_insertion_point(field_set:Protocol.ObjectInfo.nickname)
+}
+inline std::string* ObjectInfo::mutable_nickname() {
+  std::string* _s = _internal_mutable_nickname();
+  // @@protoc_insertion_point(field_mutable:Protocol.ObjectInfo.nickname)
+  return _s;
+}
+inline const std::string& ObjectInfo::_internal_nickname() const {
+  return _impl_.nickname_.Get();
+}
+inline void ObjectInfo::_internal_set_nickname(const std::string& value) {
+  
+  _impl_.nickname_.Set(value, GetArenaForAllocation());
+}
+inline std::string* ObjectInfo::_internal_mutable_nickname() {
+  
+  return _impl_.nickname_.Mutable(GetArenaForAllocation());
+}
+inline std::string* ObjectInfo::release_nickname() {
+  // @@protoc_insertion_point(field_release:Protocol.ObjectInfo.nickname)
+  return _impl_.nickname_.Release();
+}
+inline void ObjectInfo::set_allocated_nickname(std::string* nickname) {
+  if (nickname != nullptr) {
+    
+  } else {
+    
+  }
+  _impl_.nickname_.SetAllocated(nickname, GetArenaForAllocation());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (_impl_.nickname_.IsDefault()) {
+    _impl_.nickname_.Set("", GetArenaForAllocation());
+  }
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  // @@protoc_insertion_point(field_set_allocated:Protocol.ObjectInfo.nickname)
 }
 
 // -------------------------------------------------------------------

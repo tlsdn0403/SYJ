@@ -14,6 +14,11 @@ PlayerRef ObjectUtils::CreatePlayer(GameSessionRef session)
 	PlayerRef player = make_shared<Player>();
 	player->objectInfo->set_object_id(newId);
 	player->posInfo->set_object_id(newId);
+	if (session)
+	{
+		player->nickname = session->nickname;
+		player->objectInfo->set_nickname(player->nickname);
+	}
 
 	player->session = session;
 	session->player.store(player);

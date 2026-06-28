@@ -99,6 +99,7 @@ void UBasicUI::SetRemainingAmmoCount(int32 BulletCount)
 }
 void UBasicUI:: Play_ESC()
 { 
+	RemoveFromParent();
 	AddToViewport(1000);
 	SetVisibility(ESlateVisibility::Visible);
 
@@ -119,22 +120,24 @@ void UBasicUI:: Play_ESC()
 
 void UBasicUI::OnResumeClicked()
 {
-
-	if (AFPSPlayerController* PC = Cast<AFPSPlayerController>(GetOwningPlayer()))
+	if (Ani_ESC)
 	{
-		UKismetSystemLibrary::QuitGame(this, PC, EQuitPreference::Quit, false);
+		PlayAnimationReverse(Ani_ESC);
 	}
-}
-
-void UBasicUI::OnExitClicked()
-{
-	PlayAnimationReverse(Ani_ESC);
 
 	if (AFPSPlayerController* PC = Cast<AFPSPlayerController>(GetOwningPlayer()))
 	{
 		FInputModeGameOnly InputMode;
 		PC->SetInputMode(InputMode);
 		PC->bShowMouseCursor = false;
+	}
+}
+
+void UBasicUI::OnExitClicked()
+{
+	if (AFPSPlayerController* PC = Cast<AFPSPlayerController>(GetOwningPlayer()))
+	{
+		UKismetSystemLibrary::QuitGame(this, PC, EQuitPreference::Quit, false);
 	}
 }
 

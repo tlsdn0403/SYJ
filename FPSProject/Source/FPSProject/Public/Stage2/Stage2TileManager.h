@@ -242,7 +242,7 @@ protected:
 	bool bVerboseLog = true;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stage2|Debug")
-	bool bDebugSpawnGoalAfterOnePlayableTile = true;
+	bool bDebugSpawnGoalAfterOnePlayableTile = false;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Stage2")
 	TArray<FStage2LoadedTile> ActiveTiles;

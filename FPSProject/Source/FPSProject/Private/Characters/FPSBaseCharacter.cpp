@@ -32,7 +32,7 @@
 
 namespace
 {
-constexpr int32 BulletsPerAmmoBox = 40;
+constexpr int32 Stage2BulletsPerAmmoBox = 40;
 
 EItemType NormalizeStageItemType(EItemType ItemType)
 {
@@ -2038,7 +2038,7 @@ void AFPSBaseCharacter::RefreshStage2ItemUI()
 		const int32 AmmoBoxCount =
 			GetInventoryItemCount(EItemType::Ammo) +
 			GetInventoryItemCount(EItemType::CharacterAmmo);
-		const int32 NewMaxAmmoBulletCount = FMath::Max(AmmoBoxCount, 0) * BulletsPerAmmoBox;
+		const int32 NewMaxAmmoBulletCount = FMath::Max(AmmoBoxCount, 0) * Stage2BulletsPerAmmoBox;
 
 		if (MaxAmmoBulletCount != NewMaxAmmoBulletCount)
 		{

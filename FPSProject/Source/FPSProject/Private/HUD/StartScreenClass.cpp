@@ -35,8 +35,8 @@ void UStartScreenClass::NativeConstruct()
 	// [완전 자동화] 0.5초 뒤에 알아서 로그인 버튼을 클릭해버림! (클릭조차 하기 싫을 때)
 	FTimerHandle AutoLoginTimer;
 
-	// -------	GetWorld()->GetTimerManager().SetTimer(AutoLoginTimer, this, &UStartScreenClass::OnClickLogin, 0.5f, false);
-	 //---------------------------------------------------------
+	GetWorld()->GetTimerManager().SetTimer(AutoLoginTimer, this, &UStartScreenClass::OnClickLogin, 0.5f, false);
+	//---------------------------------------------------------
 
 }
 
@@ -46,10 +46,10 @@ void UStartScreenClass::PlayAni_Start() {
 	EndDelegate.BindDynamic(this, &UStartScreenClass::PlayAni_Click);
 	BindToAnimationFinished(StartPop, EndDelegate);
 
-	PlayAnimation(StartPop); 
+	PlayAnimation(StartPop);
 }
-void UStartScreenClass::PlayAni_Click() { 
-	PlayAnimation(Click); 
+void UStartScreenClass::PlayAni_Click() {
+	PlayAnimation(Click);
 }
 
 void UStartScreenClass::OnClickLogin()
@@ -80,7 +80,7 @@ void UStartScreenClass::OnClickLogin()
 		GameInstance->SetEntryLoadingWidgetClass(LoadingUIClass);
 		GameInstance->ShowEntryLoadingWidget();
 
-		this -> RemoveFromParent();
+		this->RemoveFromParent();
 
 		if (APlayerController* PC = GetWorld()->GetFirstPlayerController())
 		{

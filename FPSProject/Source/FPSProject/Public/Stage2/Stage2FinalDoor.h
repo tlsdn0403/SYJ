@@ -51,6 +51,7 @@ protected:
 	void ConfigureEndingSequenceActor(ALevelSequenceActor* SequenceActor);
 	void TriggerEndingSequence();
 	void FinishEndingSequence();
+	bool ShowGameOverScreen();
 	void SetEndingCinematicMode(bool bEnable);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ending")
@@ -67,6 +68,12 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ending")
 	bool bQuitGameAfterCinematic = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ending|UI")
+	TSubclassOf<UUserWidget> GameOverWidgetClass;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UUserWidget> GameOverWidget;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ending")
 	bool bDisableInteractionAfterTriggered = true;

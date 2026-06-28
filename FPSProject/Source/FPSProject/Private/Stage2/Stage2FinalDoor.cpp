@@ -16,12 +16,19 @@
 #include "Engine/Level.h"
 #include "Engine/LevelStreaming.h"
 #include "Kismet/GameplayStatics.h"
+#include "UObject/ConstructorHelpers.h"
 
 AStage2FinalDoor::AStage2FinalDoor()
 {
 	bQuitGameAfterCinematic = true;
 	NoSequenceFallbackDelay = 1.0f;
 	FinalDoorInteractText = FText::FromString(TEXT("\uBB38 \uC5F4\uAE30"));
+
+	static ConstructorHelpers::FClassFinder<UUserWidget> GameOverWidgetFinder(TEXT("/Game/HUD/WBP_GameOver"));
+	if (GameOverWidgetFinder.Succeeded())
+	{
+		GameOverWidgetClass = GameOverWidgetFinder.Class;
+	}
 }
 
 void AStage2FinalDoor::BeginPlay()
@@ -445,6 +452,11 @@ void AStage2FinalDoor::FinishEndingSequence()
 
 	if (bQuitGameAfterCinematic)
 	{
+		if (ShowGameOverScreen())
+		{
+			return;
+		}
+
 		if (UFPSProjectGameInstance* GameInstance = Cast<UFPSProjectGameInstance>(GetGameInstance()))
 		{
 			GameInstance->QuitGame();
@@ -453,6 +465,46 @@ void AStage2FinalDoor::FinishEndingSequence()
 	}
 
 	SetEndingCinematicMode(false);
+}
+
+bool AStage2FinalDoor::ShowGameOverScreen()
+{
+	SetEndingCinematicMode(false);
+
+	if (GameOverWidget && GameOverWidget->IsInViewport())
+	{
+		return true;
+	}
+
+	UWorld* World = GetWorld();
+	if (World == nullptr || GameOverWidgetClass == nullptr)
+	{
+		return false;
+	}
+
+	APlayerController* PlayerController = UGameplayStatics::GetPlayerController(this, 0);
+	if (PlayerController == nullptr)
+	{
+		return false;
+	}
+
+	GameOverWidget = CreateWidget<UUserWidget>(PlayerController, GameOverWidgetClass);
+	if (GameOverWidget == nullptr)
+	{
+		return false;
+	}
+
+	GameOverWidget->AddToViewport(1000);
+
+	FInputModeUIOnly InputMode;
+	InputMode.SetWidgetToFocus(GameOverWidget->TakeWidget());
+	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+	PlayerController->SetInputMode(InputMode);
+	PlayerController->bShowMouseCursor = true;
+	PlayerController->SetIgnoreMoveInput(true);
+	PlayerController->SetIgnoreLookInput(true);
+
+	return true;
 }
 
 void AStage2FinalDoor::SetEndingCinematicMode(bool bEnable)

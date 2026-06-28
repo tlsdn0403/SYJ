@@ -14,6 +14,7 @@
 #include "Net/UnrealNetwork.h"
 #include "NiagaraSystem.h"
 #include "Kismet/GameplayStatics.h"
+#include "Sound/SoundBase.h"
 #include "Truck/Truck.h"
 #include "Zombie/ZombieFallZone.h"
 #include "Animation/AnimInstance.h"
@@ -22,6 +23,21 @@
 
 namespace
 {
+struct FZombieGroupSoundState
+{
+	int32 PlayCount = 0;
+	float LastPlayTime = -100000.0f;
+};
+
+TMap<uint64, FZombieGroupSoundState> GZombieNetworkGroupSoundStates;
+
+uint64 BuildZombieNetworkGroupSoundStateKey(const UWorld* World, int32 GroupKey)
+{
+	const uint64 WorldHash = static_cast<uint64>(PointerHash(World));
+	const uint64 GroupHash = static_cast<uint32>(GroupKey);
+	return (WorldHash << 32) | GroupHash;
+}
+
 void SetAnimFloatIfPresent(UAnimInstance* AnimInstance, const TCHAR* PropertyName, float Value)
 {
 	if (AnimInstance == nullptr)
@@ -80,6 +96,20 @@ ABaseZombie::ABaseZombie()
 	if (DefaultHitEffect.Succeeded())
 	{
 		HitEffect = DefaultHitEffect.Object;
+	}
+
+	static ConstructorHelpers::FObjectFinder<USoundBase> DefaultHeadHitSound(
+		TEXT("/Game/Sound/bulletHit.bulletHit"));
+	if (DefaultHeadHitSound.Succeeded())
+	{
+		ZombieHeadHitSound = DefaultHeadHitSound.Object;
+	}
+
+	static ConstructorHelpers::FObjectFinder<USoundBase> DefaultGroupAwarenessSound(
+		TEXT("/Game/Sound/ZombieGroup.ZombieGroup"));
+	if (DefaultGroupAwarenessSound.Succeeded())
+	{
+		ZombieGroupAwarenessSound = DefaultGroupAwarenessSound.Object;
 	}
 
 	HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComponent"));
@@ -319,11 +349,63 @@ void ABaseZombie::HandleNetworkDismember(FName BoneName, const FVector& Impulse,
 	}
 
 	const FName VisualBoneName = GetParentBoneForDamage(BoneName);
+	if (IsHeadDismemberBone(VisualBoneName))
+	{
+		PlayHeadHitSound(HitLocation);
+	}
 	DismemberLimb(VisualBoneName, Impulse, HitLocation);
 	if (IsLegBone(VisualBoneName) && MovementState == EZombieMovementState::Normal)
 	{
 		StartCrawling();
 	}
+}
+
+void ABaseZombie::PlayHeadHitSound(const FVector& HitLocation)
+{
+	UWorld* World = GetWorld();
+	if (!World || !ZombieHeadHitSound)
+	{
+		return;
+	}
+
+	const float CurrentTime = World->GetTimeSeconds();
+	if ((CurrentTime - LastHeadHitSoundTime) < HeadHitSoundReplayDelay)
+	{
+		return;
+	}
+
+	UGameplayStatics::PlaySoundAtLocation(this, ZombieHeadHitSound, HitLocation);
+	LastHeadHitSoundTime = CurrentTime;
+}
+
+void ABaseZombie::PlayZombieGroupAwarenessSound(const FVector& SoundLocation)
+{
+	UWorld* World = GetWorld();
+	if (!World || !ZombieGroupAwarenessSound || MaxZombieGroupAwarenessSoundPlays <= 0)
+	{
+		return;
+	}
+
+	int32 GroupKey = ZombieGroupSoundKey;
+	if (GroupKey == 0)
+	{
+		const uint32 ObjectHash = NetworkObjectId != 0 ? GetTypeHash(NetworkObjectId) : GetTypeHash(GetFName());
+		GroupKey = ObjectHash != 0 ? static_cast<int32>(ObjectHash) : 1;
+	}
+
+	FZombieGroupSoundState& SoundState =
+		GZombieNetworkGroupSoundStates.FindOrAdd(BuildZombieNetworkGroupSoundStateKey(World, GroupKey));
+	const float CurrentTime = World->GetTimeSeconds();
+	if (SoundState.PlayCount >= MaxZombieGroupAwarenessSoundPlays ||
+		(CurrentTime - SoundState.LastPlayTime) < ZombieGroupAwarenessSoundCooldown)
+	{
+		return;
+	}
+
+	const FVector PlayLocation = SoundLocation.IsNearlyZero() ? GetActorLocation() : SoundLocation;
+	UGameplayStatics::PlaySoundAtLocation(this, ZombieGroupAwarenessSound, PlayLocation);
+	++SoundState.PlayCount;
+	SoundState.LastPlayTime = CurrentTime;
 }
 
 void ABaseZombie::SetNetworkMoveTarget(const FVector& TargetLocation, const FRotator& TargetRotation, bool bInIsMoving)
@@ -997,6 +1079,10 @@ void ABaseZombie::OnZombieDamaged(float NewHealth, float Damage, const FHitResul
 		// 맞은 뼈를 주요 분해 가능한 뼈 이름으로 변환
 		FName TargetBone = GetParentBoneForDamage(Hit.BoneName);
 		LastDeathHitBone = TargetBone;
+		if (IsHeadDismemberBone(TargetBone))
+		{
+			PlayHeadHitSound(Hit.ImpactPoint);
+		}
 
 		// 뼈 내구도 깎기 및 분해 시도
 		// Hit.ImpactNormal * -1은 총알이 날아온 방향(충격 방향)을 의미
@@ -1099,6 +1185,11 @@ FName ABaseZombie::GetPhysicsRootBoneName() const
 bool ABaseZombie::IsFatalDismemberBone(FName BoneName) const
 {
 	return BoneName == FName("head") || BoneName == FName("spine_01");
+}
+
+bool ABaseZombie::IsHeadDismemberBone(FName BoneName) const
+{
+	return BoneName.ToString().Contains(TEXT("head"), ESearchCase::IgnoreCase);
 }
 
 void ABaseZombie::ProcessBoneDamage(FName BoneName, float Damage, FVector ImpactPoint, FVector ImpactDirection)

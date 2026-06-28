@@ -10,6 +10,7 @@ class UAnimMontage;
 class UAnimInstance;
 class UParticleSystem;
 class UNiagaraSystem;
+class USoundBase;
 class AActor;
 
 /** 좀비 상태를 나타내는 열거형 */
@@ -61,6 +62,8 @@ public:
 	void HandleNetworkHit(float NewHealth, float MaxHealth);
 	void HandleNetworkDeath();
 	void HandleNetworkDismember(FName BoneName, const FVector& Impulse, const FVector& HitLocation);
+	void PlayHeadHitSound(const FVector& HitLocation);
+	void PlayZombieGroupAwarenessSound(const FVector& SoundLocation);
 	void SetNetworkMoveTarget(const FVector& TargetLocation, const FRotator& TargetRotation, bool bInIsMoving);
 	void ApplyTruckImpactKnockback(const FVector& LaunchVelocity, const FVector& RagdollImpulse, const FVector& ImpactPoint, bool bForceRagdoll, float NetworkMovePauseSeconds = 0.0f);
 
@@ -92,6 +95,12 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zombie|Effects")
 	TObjectPtr<UNiagaraSystem> HitEffect;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zombie|Audio")
+	TObjectPtr<USoundBase> ZombieHeadHitSound;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zombie|Audio")
+	TObjectPtr<USoundBase> ZombieGroupAwarenessSound;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zombie|Dismember")
 	TMap<FName, TSubclassOf<AActor>> DismemberChunkClasses;
 
@@ -118,6 +127,7 @@ protected:
 	virtual FName GetPhysicsRootBoneName() const;
 	virtual bool IsFatalDismemberBone(FName BoneName) const;
 	virtual bool IsLegBone(FName BoneName) const;
+	bool IsHeadDismemberBone(FName BoneName) const;
 
 	void ResetDismemberBones();
 	void RegisterDismemberBone(FName BoneName, float Durability);
@@ -209,6 +219,15 @@ private:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zombie|Attack", meta = (AllowPrivateAccess = "true", ClampMin = "0.0"))
 	float FallbackAttackDuration = 0.6f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zombie|Audio", meta = (AllowPrivateAccess = "true", ClampMin = "0.0"))
+	float HeadHitSoundReplayDelay = 0.50f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zombie|Audio", meta = (AllowPrivateAccess = "true", ClampMin = "1"))
+	int32 MaxZombieGroupAwarenessSoundPlays = 2;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zombie|Audio", meta = (AllowPrivateAccess = "true", ClampMin = "0.0"))
+	float ZombieGroupAwarenessSoundCooldown = 2.0f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zombie|Movement", meta = (AllowPrivateAccess = "true"))
 	float TurnRateYaw = 540.0f;
 
@@ -262,6 +281,7 @@ private:
 	bool bShouldApplyCurrentNetworkAttackDamage = true;
 	bool bNetworkImpactTemporarilyEnabledMovement = false;
 	float NetworkMovePausedUntilTime = 0.0f;
+	float LastHeadHitSoundTime = -100000.0f;
 
 	UFUNCTION()
 	void OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);

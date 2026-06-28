@@ -38,8 +38,16 @@ void UBasicUI::GetGunAR4() {
 		GunImage->SetRenderOpacity(1.f);
 		GunImage->SetColorAndOpacity(FLinearColor(1.f, 1.f, 1.f, 1.f));
 		GunImage->SetBrushTintColor(FSlateColor(FLinearColor(1.f, 1.f, 1.f, 1.f)));
+	}
+
+	if (GunText) {
 		GunText->SetRenderOpacity(1.f);
 		GunText->SetColorAndOpacity(FLinearColor(1.f, 1.f, 1.f, 1.f));
+	}
+
+	if (GunMaxText) {
+		GunMaxText->SetRenderOpacity(1.f);
+		GunMaxText->SetColorAndOpacity(FLinearColor(1.f, 1.f, 1.f, 1.f));
 	}
 }
 
@@ -72,14 +80,29 @@ void UBasicUI::SetHealth(float CurrentHP,float MaxHP) {
 }
 
 
-void UBasicUI::SetAmmoCount(int32 AmmoCount)
+void UBasicUI::SetAmmoCount(int32 AmmoBoxCount)
 {
+	constexpr int32 BulletsPerAmmoBox = 40;
+	const int32 BulletCount = FMath::Max(AmmoBoxCount, 0) * BulletsPerAmmoBox;
+
 	if (GunText)
 	{
-		GunText->SetText(FText::FromString(FString::FromInt(AmmoCount)));
+		GunText->SetText(FText::FromString(FString::FromInt(BulletCount)));
+	}
+
+	if (GunMaxText)
+	{
+		GunMaxText->SetText(FText::FromString(FString::Printf(TEXT("/ %d"), BulletCount)));
 	}
 }
 
+void UBasicUI::SetRemainingAmmoCount(int32 BulletCount)
+{
+	if (GunText)
+	{
+		GunText->SetText(FText::FromString(FString::FromInt(FMath::Max(BulletCount, 0))));
+	}
+}
 void UBasicUI:: Play_ESC()
 { 
 	RemoveFromParent();

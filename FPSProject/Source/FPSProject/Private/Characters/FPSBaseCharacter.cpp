@@ -32,6 +32,8 @@
 
 namespace
 {
+constexpr int32 BulletsPerAmmoBox = 40;
+
 EItemType NormalizeStageItemType(EItemType ItemType)
 {
 	return ItemType == EItemType::TT ? EItemType::HealPack : ItemType;
@@ -1165,6 +1167,11 @@ void AFPSBaseCharacter::Fire()
 
 	if (GetCurrentWeapon())
 	{
+		if (IsLocallyControlled() && !ConsumeStage2AmmoBullet())
+		{
+			return;
+		}
+
 		GetCurrentWeapon()->Fire();
 
 		if (IsLocallyControlled())
@@ -1817,6 +1824,41 @@ bool AFPSBaseCharacter::ConsumeInventoryItem(EItemType ItemType)
 	return true;
 }
 
+bool AFPSBaseCharacter::ConsumeStage2AmmoBullet()
+{
+	const UFPSProjectGameInstance* GameInstance = Cast<UFPSProjectGameInstance>(GetGameInstance());
+	if (GameInstance == nullptr || !GameInstance->IsInStage2World())
+	{
+		return true;
+	}
+
+	if (CurrentAmmoBulletCount <= 0)
+	{
+		CurrentAmmoBulletCount = 0;
+		UpdateStage2AmmoUI();
+		return false;
+	}
+
+	--CurrentAmmoBulletCount;
+	UpdateStage2AmmoUI();
+	return true;
+}
+
+void AFPSBaseCharacter::UpdateStage2AmmoUI() const
+{
+	UFPSProjectGameInstance* GameInstance = Cast<UFPSProjectGameInstance>(GetGameInstance());
+	AFPSPlayerController* PlayerController = Cast<AFPSPlayerController>(GetController());
+	if (PlayerController == nullptr && GameInstance && GameInstance->MyPlayer == this)
+	{
+		PlayerController = Cast<AFPSPlayerController>(UGameplayStatics::GetPlayerController(this, 0));
+	}
+
+	if (PlayerController && PlayerController->BasicW)
+	{
+		PlayerController->BasicW->SetRemainingAmmoCount(CurrentAmmoBulletCount);
+	}
+}
+
 int32 AFPSBaseCharacter::GetInventoryItemCount(EItemType ItemType) const
 {
 	ItemType = NormalizeStageItemType(ItemType);
@@ -1993,9 +2035,23 @@ void AFPSBaseCharacter::RefreshStage2ItemUI()
 
 	if (PlayerController->BasicW)
 	{
-		PlayerController->BasicW->SetAmmoCount(
+		const int32 AmmoBoxCount =
 			GetInventoryItemCount(EItemType::Ammo) +
-			GetInventoryItemCount(EItemType::CharacterAmmo));
+			GetInventoryItemCount(EItemType::CharacterAmmo);
+		const int32 NewMaxAmmoBulletCount = FMath::Max(AmmoBoxCount, 0) * BulletsPerAmmoBox;
+
+		if (MaxAmmoBulletCount != NewMaxAmmoBulletCount)
+		{
+			CurrentAmmoBulletCount = NewMaxAmmoBulletCount;
+			MaxAmmoBulletCount = NewMaxAmmoBulletCount;
+		}
+		else
+		{
+			CurrentAmmoBulletCount = FMath::Clamp(CurrentAmmoBulletCount, 0, MaxAmmoBulletCount);
+		}
+
+		PlayerController->BasicW->SetAmmoCount(AmmoBoxCount);
+		PlayerController->BasicW->SetRemainingAmmoCount(CurrentAmmoBulletCount);
 	}
 }
 

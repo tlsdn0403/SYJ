@@ -44,6 +44,11 @@ public:
 	UPROPERTY(meta = (BindWidget))
 	UTextBlock* GunText;
 
+
+	UPROPERTY(meta = (BindWidget))
+	UTextBlock* GunMaxText;
+
+
 	UPROPERTY(meta = (BindWidget))	//
 	UImage* HealthP;
 
@@ -55,7 +60,8 @@ public:
 
 	void GetGunAR4();
 	void SetHealth(float CurrentHP, float MaxHP);
-	void SetAmmoCount(int32 AmmoCount);
+	void SetAmmoCount(int32 AmmoBoxCount);
+	void SetRemainingAmmoCount(int32 BulletCount);
 
 	UFUNCTION()
 	void OnResumeClicked();

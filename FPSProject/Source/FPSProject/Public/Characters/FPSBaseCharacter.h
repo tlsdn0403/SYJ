@@ -69,6 +69,8 @@ public:
 	bool ConsumeInventoryItem(EItemType ItemType);
 	int32 GetInventoryItemCount(EItemType ItemType) const;
 	void RefreshStage2ItemUI();
+	bool ConsumeStage2AmmoBullet();
+	void UpdateStage2AmmoUI() const;
 
 	UFUNCTION(BlueprintCallable, Category = "FPS|Inventory")
 	bool UseHealPack();
@@ -287,6 +289,12 @@ private:
 	FRotator RecoilRecoveryRemaining = FRotator::ZeroRotator;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FPS|Inventory", meta = (AllowPrivateAccess = "true"))
 	TArray<EItemType> Inventory;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FPS|Inventory", meta = (AllowPrivateAccess = "true"))
+	int32 CurrentAmmoBulletCount = 0;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FPS|Inventory", meta = (AllowPrivateAccess = "true"))
+	int32 MaxAmmoBulletCount = 0;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FPS|Gameplay", meta = (AllowPrivateAccess = "true"))
 	FVector FirePosition;

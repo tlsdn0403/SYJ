@@ -23,9 +23,9 @@
 
 namespace
 {
-UButton* FindGameOverExitButton(UUserWidget* GameOverWidget)
+UButton* FindEndingExitButton(UUserWidget* EndingWidget)
 {
-	if (GameOverWidget == nullptr || GameOverWidget->WidgetTree == nullptr)
+	if (EndingWidget == nullptr || EndingWidget->WidgetTree == nullptr)
 	{
 		return nullptr;
 	}
@@ -42,14 +42,14 @@ UButton* FindGameOverExitButton(UUserWidget* GameOverWidget)
 
 	for (const FName& ButtonName : ExitButtonNames)
 	{
-		if (UButton* Button = Cast<UButton>(GameOverWidget->WidgetTree->FindWidget(ButtonName)))
+		if (UButton* Button = Cast<UButton>(EndingWidget->WidgetTree->FindWidget(ButtonName)))
 		{
 			return Button;
 		}
 	}
 
 	TArray<UWidget*> Widgets;
-	GameOverWidget->WidgetTree->GetAllWidgets(Widgets);
+	EndingWidget->WidgetTree->GetAllWidgets(Widgets);
 
 	UButton* OnlyButton = nullptr;
 	int32 ButtonCount = 0;
@@ -76,6 +76,12 @@ AStage2FinalDoor::AStage2FinalDoor()
 	if (GameOverWidgetFinder.Succeeded())
 	{
 		GameOverWidgetClass = GameOverWidgetFinder.Class;
+	}
+
+	static ConstructorHelpers::FClassFinder<UUserWidget> GameClearWidgetFinder(TEXT("/Game/HUD/WBP_GameClear"));
+	if (GameClearWidgetFinder.Succeeded())
+	{
+		GameClearWidgetClass = GameClearWidgetFinder.Class;
 	}
 }
 
@@ -509,7 +515,7 @@ void AStage2FinalDoor::FinishEndingSequence()
 
 	if (bQuitGameAfterCinematic)
 	{
-		if (ShowGameOverScreen())
+		if (ShowGameClearScreen())
 		{
 			return;
 		}
@@ -524,17 +530,17 @@ void AStage2FinalDoor::FinishEndingSequence()
 	SetEndingCinematicMode(false);
 }
 
-bool AStage2FinalDoor::ShowGameOverScreen()
+bool AStage2FinalDoor::ShowGameClearScreen()
 {
 	SetEndingCinematicMode(false);
 
-	if (GameOverWidget && GameOverWidget->IsInViewport())
+	if (GameClearWidget && GameClearWidget->IsInViewport())
 	{
 		return true;
 	}
 
 	UWorld* World = GetWorld();
-	if (World == nullptr || GameOverWidgetClass == nullptr)
+	if (World == nullptr || GameClearWidgetClass == nullptr)
 	{
 		return false;
 	}
@@ -545,17 +551,17 @@ bool AStage2FinalDoor::ShowGameOverScreen()
 		return false;
 	}
 
-	GameOverWidget = CreateWidget<UUserWidget>(PlayerController, GameOverWidgetClass);
-	if (GameOverWidget == nullptr)
+	GameClearWidget = CreateWidget<UUserWidget>(PlayerController, GameClearWidgetClass);
+	if (GameClearWidget == nullptr)
 	{
 		return false;
 	}
 
-	GameOverWidget->AddToViewport(1000);
-	BindGameOverExitButton();
+	GameClearWidget->AddToViewport(1000);
+	BindGameClearExitButton();
 
 	FInputModeUIOnly InputMode;
-	InputMode.SetWidgetToFocus(GameOverWidget->TakeWidget());
+	InputMode.SetWidgetToFocus(GameClearWidget->TakeWidget());
 	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
 	PlayerController->SetInputMode(InputMode);
 	PlayerController->bShowMouseCursor = true;
@@ -565,19 +571,19 @@ bool AStage2FinalDoor::ShowGameOverScreen()
 	return true;
 }
 
-void AStage2FinalDoor::BindGameOverExitButton()
+void AStage2FinalDoor::BindGameClearExitButton()
 {
-	UButton* ExitButton = FindGameOverExitButton(GameOverWidget);
+	UButton* ExitButton = FindEndingExitButton(GameClearWidget);
 	if (ExitButton == nullptr)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Stage2FinalDoor: GameOver exit button was not found."));
+		UE_LOG(LogTemp, Warning, TEXT("Stage2FinalDoor: GameClear exit button was not found."));
 		return;
 	}
 
-	ExitButton->OnClicked.AddUniqueDynamic(this, &AStage2FinalDoor::OnGameOverExitClicked);
+	ExitButton->OnClicked.AddUniqueDynamic(this, &AStage2FinalDoor::OnGameClearExitClicked);
 }
 
-void AStage2FinalDoor::OnGameOverExitClicked()
+void AStage2FinalDoor::OnGameClearExitClicked()
 {
 	if (UFPSProjectGameInstance* GameInstance = Cast<UFPSProjectGameInstance>(GetGameInstance()))
 	{

@@ -10,16 +10,20 @@
 #include "Engine/EngineTypes.h"
 #include "Engine/OverlapResult.h"
 #include "Engine/World.h"
+#include "EngineUtils.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/Pawn.h"
 #include "GameFramework/PlayerController.h"
 #include "Kismet/GameplayStatics.h"
 #include "NavigationSystem.h"
 #include "Stage2/Stage2TileManager.h"
+#include "Truck/Truck.h"
 #include "Zombie/BaseZombie.h"
 
 namespace
 {
+constexpr float Stage2ZombieMinTruckSpawnDistance = 1200.0f;
+
 bool TryProjectZombieLocationToGround(UWorld* World, ABaseZombie* Zombie, const FVector& CandidateLocation, FVector& OutActorLocation)
 {
 	if (World == nullptr || Zombie == nullptr)
@@ -46,9 +50,39 @@ bool TryProjectZombieLocationToGround(UWorld* World, ABaseZombie* Zombie, const 
 	return true;
 }
 
+bool IsZombiePlacementFarEnoughFromTrucks(UWorld* World, const FVector& ActorLocation)
+{
+	if (World == nullptr)
+	{
+		return true;
+	}
+
+	const float MinDistanceSq = FMath::Square(Stage2ZombieMinTruckSpawnDistance);
+	for (TActorIterator<ATruck> It(World); It; ++It)
+	{
+		ATruck* Truck = *It;
+		if (!IsValid(Truck) || Truck->IsActorBeingDestroyed())
+		{
+			continue;
+		}
+
+		if (FVector::DistSquared2D(Truck->GetActorLocation(), ActorLocation) < MinDistanceSq)
+		{
+			return false;
+		}
+	}
+
+	return true;
+}
+
 bool IsZombiePlacementClear(UWorld* World, ABaseZombie* Zombie, const FVector& ActorLocation)
 {
 	if (World == nullptr || Zombie == nullptr)
+	{
+		return false;
+	}
+
+	if (!IsZombiePlacementFarEnoughFromTrucks(World, ActorLocation))
 	{
 		return false;
 	}
@@ -64,6 +98,7 @@ bool IsZombiePlacementClear(UWorld* World, ABaseZombie* Zombie, const FVector& A
 	ObjectQueryParams.AddObjectTypesToQuery(ECC_WorldStatic);
 	ObjectQueryParams.AddObjectTypesToQuery(ECC_WorldDynamic);
 	ObjectQueryParams.AddObjectTypesToQuery(ECC_Pawn);
+	ObjectQueryParams.AddObjectTypesToQuery(ECC_Vehicle);
 
 	TArray<FOverlapResult> Overlaps;
 	if (!World->OverlapMultiByObjectType(
@@ -124,7 +159,7 @@ bool TryFindClearZombiePlacement(UWorld* World, ABaseZombie* Zombie, const FVect
 		FVector GroundedLocation;
 		if (TryProjectZombieLocationToGround(World, Zombie, CandidateLocation, GroundedLocation))
 		{
-			if (!bHasFallbackGroundedLocation)
+			if (!bHasFallbackGroundedLocation && IsZombiePlacementFarEnoughFromTrucks(World, GroundedLocation))
 			{
 				FallbackGroundedLocation = GroundedLocation;
 				bHasFallbackGroundedLocation = true;
@@ -148,7 +183,7 @@ bool TryFindClearZombiePlacement(UWorld* World, ABaseZombie* Zombie, const FVect
 					continue;
 				}
 
-				if (!bHasFallbackGroundedLocation)
+				if (!bHasFallbackGroundedLocation && IsZombiePlacementFarEnoughFromTrucks(World, NavGroundedLocation))
 				{
 					FallbackGroundedLocation = NavGroundedLocation;
 					bHasFallbackGroundedLocation = true;
@@ -355,7 +390,11 @@ void FFPSSpawnManager::ProcessPendingTileZombiePlacements()
 			TileWorldTransform))
 		{
 			FVector PlacementLocation = TileWorldTransform.GetLocation();
-			TryFindClearZombiePlacement(World, Zombie, TileWorldTransform.GetLocation(), PlacementLocation);
+			if (!TryFindClearZombiePlacement(World, Zombie, TileWorldTransform.GetLocation(), PlacementLocation))
+			{
+				continue;
+			}
+
 			Zombie->SetActorLocationAndRotation(PlacementLocation, TileWorldTransform.Rotator(), false, nullptr, ETeleportType::TeleportPhysics);
 			Zombie->SetActorHiddenInGame(false);
 			Zombie->SetActorEnableCollision(true);
@@ -460,11 +499,15 @@ void FFPSSpawnManager::SpawnZombie(UWorld* World, const Protocol::ObjectInfo& Ob
 		return;
 	}
 
+	bool bHasUsablePlacement = true;
 	if (TileTypeCode == 0 || bResolvedTileTransform)
 	{
 		FVector PlacementLocation = SpawnedZombie->GetActorLocation();
-		TryFindClearZombiePlacement(World, SpawnedZombie, ZombieLocation, PlacementLocation);
-		SpawnedZombie->SetActorLocationAndRotation(PlacementLocation, ZombieRotation, false, nullptr, ETeleportType::TeleportPhysics);
+		bHasUsablePlacement = TryFindClearZombiePlacement(World, SpawnedZombie, ZombieLocation, PlacementLocation);
+		if (bHasUsablePlacement)
+		{
+			SpawnedZombie->SetActorLocationAndRotation(PlacementLocation, ZombieRotation, false, nullptr, ETeleportType::TeleportPhysics);
+		}
 	}
 	SpawnedZombie->SetNetworkObjectId(ObjectId);
 	SpawnedZombie->SetActorTickEnabled(false);
@@ -479,7 +522,7 @@ void FFPSSpawnManager::SpawnZombie(UWorld* World, const Protocol::ObjectInfo& Ob
 	}
 
 	Owner.WorldObjects->RegisterZombie(ObjectId, SpawnedZombie);
-	if (TileTypeCode != 0 && !bResolvedTileTransform)
+	if (TileTypeCode != 0 && (!bResolvedTileTransform || !bHasUsablePlacement))
 	{
 		QueuePendingTileZombiePlacement(ObjectId, SpawnedZombie, RequestedZombieLocation, ObjectInfo.pos_info().yaw(), TileTypeCode, TileOccurrenceIndex);
 	}

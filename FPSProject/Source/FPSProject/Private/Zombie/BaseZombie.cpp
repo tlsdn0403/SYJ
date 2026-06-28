@@ -22,6 +22,8 @@
 
 namespace
 {
+constexpr float NetworkTruckAttackRangeTolerance = 180.0f;
+
 void SetAnimFloatIfPresent(UAnimInstance* AnimInstance, const TCHAR* PropertyName, float Value)
 {
 	if (AnimInstance == nullptr)
@@ -800,8 +802,10 @@ void ABaseZombie::ApplyAttackDamage(AActor* TargetActor)
 
 	const FVector AttackPoint = GetAttackPointForTarget(TargetActor);
 	const float Distance = FVector::Dist(GetActorLocation(), AttackPoint);
-	const bool bServerConfirmedTruckAttack = NetworkObjectId != 0 && TargetActor->IsA<ATruck>();
-	if (Distance > AttackRange && !bServerConfirmedTruckAttack)
+	const float EffectiveAttackRange = NetworkObjectId != 0 && TargetActor->IsA<ATruck>()
+		? AttackRange + NetworkTruckAttackRangeTolerance
+		: AttackRange;
+	if (Distance > EffectiveAttackRange)
 	{
 		UE_LOG(LogTemp, Verbose, TEXT("Attack missed - target moved away"));
 		return;

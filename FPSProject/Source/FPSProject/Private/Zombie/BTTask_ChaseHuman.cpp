@@ -90,7 +90,7 @@ bool UBTTask_ChaseHuman::RequestChaseMove(AAIController* AIController, AActor* T
 
 	const float AcceptanceRadius = GetChaseAcceptanceRadius(TargetActor);
 	const EPathFollowingRequestResult::Type RequestResult =
-		AIController->MoveToActor(TargetActor, AcceptanceRadius, !bMovingTruckTarget, true, true, nullptr, true);
+		AIController->MoveToActor(TargetActor, AcceptanceRadius, !bMovingTruckTarget, true, false, nullptr, true);
 
 	if (RequestResult != EPathFollowingRequestResult::Failed)
 	{
@@ -153,9 +153,6 @@ bool UBTTask_ChaseHuman::TryUseFallZone(AAIController* AIController, ABaseZombie
 	{
 		return false;
 	}
-	// 타겟에게 시선
-	AIController->SetFocus(TargetActor);
-
 	const float DistanceToApproach = FVector::Dist2D(ZombieCharacter->GetActorLocation(), ApproachLocation);
 	if (DistanceToApproach > FallZoneCommitDistance)
 	{
@@ -251,7 +248,7 @@ EBTNodeResult::Type UBTTask_ChaseHuman::ExecuteTask(UBehaviorTreeComponent& Owne
 		return EBTNodeResult::Failed;
 	}
 
-	AIController->SetFocus(TargetActor);
+	AIController->ClearFocus(EAIFocusPriority::Gameplay);
 	// Prefer a valid fall route before falling back to normal chase movement.
 	if (TryUseFallZone(AIController, ZombieCharacter, TargetActor))
 	{
@@ -288,7 +285,7 @@ void UBTTask_ChaseHuman::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* Node
 		return;
 	}
 
-	AIController->SetFocus(TargetActor);
+	AIController->ClearFocus(EAIFocusPriority::Gameplay);
 
 	// Re-evaluate fall usage every tick so the zombie can enter and leave the route naturally.
 	if (TryUseFallZone(AIController, ZombieCharacter, TargetActor))

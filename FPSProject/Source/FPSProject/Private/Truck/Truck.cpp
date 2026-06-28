@@ -1504,25 +1504,12 @@ void ATruck::CheckZombieImpactSweep()
 		return;
 	}
 
-	FVector VehicleVelocity = GetVelocity();
 	if (!bIsLocallyDriven && NetworkTruckId != 0)
 	{
-		const float CurrentTime = World->GetTimeSeconds();
-		const FVector CurrentLocation = GetActorLocation();
-		if (bHasImpactSweepSample)
-		{
-			const float DeltaSeconds = CurrentTime - LastImpactSweepTime;
-			if (DeltaSeconds > KINDA_SMALL_NUMBER)
-			{
-				VehicleVelocity = (CurrentLocation - LastImpactSweepLocation) / DeltaSeconds;
-			}
-		}
-
-		LastImpactSweepLocation = CurrentLocation;
-		LastImpactSweepTime = CurrentTime;
-		bHasImpactSweepSample = true;
+		return;
 	}
 
+	FVector VehicleVelocity = GetVelocity();
 	const float ImpactSpeed = VehicleVelocity.Size();
 	if (ImpactSpeed < ZombieImpactMinSpeed)
 	{
@@ -1938,6 +1925,11 @@ void ATruck::OnTruckMeshHit(UPrimitiveComponent* HitComponent, AActor* OtherActo
 
 void ATruck::ProcessZombieImpact(ABaseZombie* Zombie, const FVector& ImpactPoint, const FVector& ImpactDirection, float ImpactSpeed)
 {
+	if (!bIsLocallyDriven && NetworkTruckId != 0)
+	{
+		return;
+	}
+
 	// 속도가 느리거나 좀비가 죽으면 무시
 	if (!Zombie || !Zombie->IsAlive() || ImpactSpeed < ZombieImpactMinSpeed)
 	{
@@ -2017,8 +2009,7 @@ void ATruck::ProcessZombieImpact(ABaseZombie* Zombie, const FVector& ImpactPoint
 	const bool bCanReportServerHit = bIsLocallyDriven || NetworkTruckId == 0;
 	const bool bNetworkHitSent = bCanReportServerHit &&
 		UFPSProjectGameInstance::SendZombieHitPacket(DriverCharacter, Zombie, Damage, ImpactPoint, NAME_None, ImpactFlingDirection);
-	const bool bRemoteNetworkTruckImpact = bNetworkZombie && NetworkTruckId != 0 && !bIsLocallyDriven;
-	if (bNetworkZombie && (bNetworkHitSent || bRemoteNetworkTruckImpact || NetworkTruckId != 0))
+	if (bNetworkZombie && (bNetworkHitSent || NetworkTruckId != 0))
 	{
 		Zombie->ApplyTruckImpactKnockback(
 			LaunchVelocity,

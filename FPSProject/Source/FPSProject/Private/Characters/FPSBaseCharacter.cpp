@@ -1122,6 +1122,12 @@ void AFPSBaseCharacter::LeaveGame()
 		//	GI->QuitGame();
 		//}
 		AFPSPlayerController* PC = Cast<AFPSPlayerController>(GetController());
+		if (!PC || !PC->BasicW)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("LeaveGame ignored: player controller or basic UI is not ready."));
+			return;
+		}
+
 		PC->BasicW->Play_ESC();
 	}
 }

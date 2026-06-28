@@ -63,13 +63,26 @@ void AFPSPlayerController::BeginPlay()
 		}
 	}
 
-	if (!InvenWidgetClass || !TimerWidgetClass) return;
-
-	InventoryW = CreateWidget<UInventoryWidget>(this, InvenWidgetClass);
-	TimerW = CreateWidget<UBaseUI>(this, TimerWidgetClass);
-	BasicW = CreateWidget<UBasicUI>(this, BasicWidgetClass);
-	EffectW = CreateWidget<UEffectUI>(this, EffectWidgetClass);
-	L2BaseW = CreateWidget<UL2BaseUI>(this, L2BaseWidgetClass);
+	if (InvenWidgetClass)
+	{
+		InventoryW = CreateWidget<UInventoryWidget>(this, InvenWidgetClass);
+	}
+	if (TimerWidgetClass)
+	{
+		TimerW = CreateWidget<UBaseUI>(this, TimerWidgetClass);
+	}
+	if (BasicWidgetClass)
+	{
+		BasicW = CreateWidget<UBasicUI>(this, BasicWidgetClass);
+	}
+	if (EffectWidgetClass)
+	{
+		EffectW = CreateWidget<UEffectUI>(this, EffectWidgetClass);
+	}
+	if (L2BaseWidgetClass)
+	{
+		L2BaseW = CreateWidget<UL2BaseUI>(this, L2BaseWidgetClass);
+	}
 
 	if (AFPSBaseCharacter* ControlledCharacter = Cast<AFPSBaseCharacter>(GetPawn()))
 	{

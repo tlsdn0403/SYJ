@@ -39,6 +39,7 @@ public:
 	RoomRef GetRoomRef();
 
 private:
+	struct TruckState;
 	void UpdateZombies();
 	PlayerRef FindNearestPlayer(const Protocol::PosInfo& origin, float maxRange) const;
 	Protocol::PosInfo GetZombieTargetPosInfo(const PlayerRef& player) const;
@@ -106,6 +107,11 @@ private:
 	void BroadcastStageTransitionReadyCount();
 	void StartTruckLoadingPhase();
 	void BroadcastStageTimer();
+	void RefreshMachineGunAmmoFromCargo(TruckState& truckState);
+	bool ConsumeMachineGunBullet(TruckState& truckState);
+	void BroadcastMachineGunAmmo(const TruckState& truckState);
+	void CaptureStage2MachineGunAmmoFromTruck(uint64 truckId);
+	bool ApplyPendingStage2MachineGunAmmo(TruckState& truckState);
 	void SendStageTimerToSession(const GameSessionRef& session) const;
 	void SendStage1ItemSeedToSession(const GameSessionRef& session) const;
 	void SendStage2WeaponsToSession(const GameSessionRef& session) const;
@@ -128,9 +134,14 @@ private:
 		float turretYaw = 0.0f;
 		float turretPitch = 0.0f;
 		uint64 driverPlayerId = 0;
-		//[신우] cargo 좌석은 1인 좌석이 아니라 여러 명이 동시에 탈 수 있어서 set으로 관리한다.
+		//[?�우] cargo 좌석?� 1??좌석???�니???�러 명이 ?�시???????�어??set?�로 관리한??
 		unordered_set<uint64> cargoPlayerIds;
 		uint64 turretPlayerId = 0;
+		int32 mountedAmmoCount = 0;
+		int32 lastSyncedMountedAmmoCount = 0;
+		int32 machineGunMaxAmmo = 100;
+		int32 machineGunTotalAmmo = 0;
+		int32 machineGunCurrentAmmo = 0;
 	};
 
 	struct PendingZombieDespawn
@@ -165,7 +176,7 @@ private:
 	Stage2WeaponState* FindStage2Weapon(uint64 itemId);
 
 private:
-	//[신우] 현재 2스테이지 트럭 적재함은 최대 4명까지 타는 구조로 서버에서 제한한다.
+	//[?�우] ?�재 2?�테?��? ?�럭 ?�재?��? 최�? 4명까지 ?�??구조�??�버?�서 ?�한?�다.
 	static constexpr size_t MAX_CARGO_OCCUPANTS = 4;
 	static constexpr size_t REQUIRED_STAGE2_PLAYER_COUNT = 3;
 	static constexpr int32 TRUCK_LOADING_PHASE_DURATION_SECONDS = 120;
@@ -185,10 +196,16 @@ private:
 	unordered_set<uint64> _stageTransitionReadyPlayerIds;
 	vector<int32> _stage2TileTypeSequence;
 	uint64 _nextStage2ZombieId = 0;
+	uint64 _stageTransitionTruckId = 0;
 	bool _bTruckLoadingPhaseActive = false;
 	bool _bStageTransitionStarted = false;
 	bool _bStage2ZombiesSpawned = false;
 	bool _bHasStage2TileTypeSequence = false;
+	bool _bHasPendingStage2MachineGunAmmo = false;
+	int32 _pendingStage2MountedAmmoCount = 0;
+	int32 _pendingStage2MachineGunMaxAmmo = 100;
+	int32 _pendingStage2MachineGunTotalAmmo = 0;
+	int32 _pendingStage2MachineGunCurrentAmmo = 0;
 	std::chrono::steady_clock::time_point _truckLoadingPhaseEndTime;
 	int32 _lastBroadcastTruckLoadingRemainingSeconds = -1;
 	uint32 _stage1ItemSpawnSeed = 0;

@@ -49,6 +49,7 @@ enum : uint16
 	PKT_C_STAGE_TRANSITION_REQUEST = 1036,
 	PKT_S_STAGE_TRANSITION = 1037,
 	PKT_S_ZOMBIE_DISMEMBER = 1038,
+	PKT_S_MACHINE_GUN_AMMO = 1039,
 };
 
 // Custom Handlers
@@ -122,6 +123,7 @@ public:
 	static SendBufferRef MakeSendBuffer(Protocol::S_RESPAWN_LOOT_ITEM& pkt) { return MakeSendBuffer(pkt, PKT_S_RESPAWN_LOOT_ITEM); }
 	static SendBufferRef MakeSendBuffer(Protocol::S_STAGE_TRANSITION& pkt) { return MakeSendBuffer(pkt, PKT_S_STAGE_TRANSITION); }
 	static SendBufferRef MakeSendBuffer(Protocol::S_ZOMBIE_DISMEMBER& pkt) { return MakeSendBuffer(pkt, PKT_S_ZOMBIE_DISMEMBER); }
+	static SendBufferRef MakeSendBuffer(Protocol::S_MACHINE_GUN_AMMO& pkt) { return MakeSendBuffer(pkt, PKT_S_MACHINE_GUN_AMMO); }
 
 private:
 	template<typename PacketType, typename ProcessFunc>

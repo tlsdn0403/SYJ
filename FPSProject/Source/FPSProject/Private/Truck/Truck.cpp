@@ -1827,6 +1827,11 @@ void ATruck::Interact_Implementation(AFPSBaseCharacter* Character)
 
 bool ATruck::TryEnterMountedWeapon(AFPSBaseCharacter* Character)
 {
+	if (!FPSStage2WorldUtils::IsStage2World(GetWorld()))
+	{
+		return false;
+	}
+
 	if (!Character || !MountedWeapon || bIsLoadingPhase ||
 		!Character->IsOnTruckCargo() || Character->CurrentTruck != this)
 	{
@@ -1869,6 +1874,60 @@ bool ATruck::TryEnterMountedWeapon(AFPSBaseCharacter* Character)
 		SEND_PACKET(EnterPkt);
 	}
 	return Character->IsLocallyControlled();
+}
+
+void ATruck::RefreshMachineGunAmmoFromCargo()
+{
+	const int32 SafeMaxAmmo = FMath::Max(MachineGunMaxAmmo, 0);
+	const int32 SafeMountedAmmoCount = FMath::Max(CurrentMountedAmmoCount, 0);
+	const int32 AmmoCountDelta = SafeMountedAmmoCount - LastSyncedMountedAmmoCount;
+
+	if (AmmoCountDelta != 0)
+	{
+		MachineGunTotalAmmo = FMath::Max(MachineGunTotalAmmo + (AmmoCountDelta * SafeMaxAmmo), 0);
+		LastSyncedMountedAmmoCount = SafeMountedAmmoCount;
+	}
+	else if (LastSyncedMountedAmmoCount == 0 && MachineGunTotalAmmo == 0 && SafeMountedAmmoCount > 0)
+	{
+		MachineGunTotalAmmo = SafeMountedAmmoCount * SafeMaxAmmo;
+		LastSyncedMountedAmmoCount = SafeMountedAmmoCount;
+	}
+
+	MachineGunCurrentAmmo = FMath::Clamp(MachineGunCurrentAmmo, 0, SafeMaxAmmo);
+	if (MachineGunCurrentAmmo <= 0 && MachineGunTotalAmmo > 0)
+	{
+		MachineGunCurrentAmmo = FMath::Min(SafeMaxAmmo, MachineGunTotalAmmo);
+	}
+}
+
+void ATruck::ApplyNetworkMachineGunAmmo(int32 TotalAmmo, int32 CurrentAmmo, int32 MaxAmmo)
+{
+	MachineGunMaxAmmo = FMath::Max(MaxAmmo, 0);
+	MachineGunTotalAmmo = FMath::Max(TotalAmmo, 0);
+	MachineGunCurrentAmmo = FMath::Clamp(CurrentAmmo, 0, MachineGunMaxAmmo);
+	LastSyncedMountedAmmoCount = FMath::Max(CurrentMountedAmmoCount, 0);
+}
+
+bool ATruck::ConsumeMachineGunBullet()
+{
+	RefreshMachineGunAmmoFromCargo();
+
+	if (MachineGunTotalAmmo <= 0 || MachineGunCurrentAmmo <= 0)
+	{
+		MachineGunTotalAmmo = FMath::Max(MachineGunTotalAmmo, 0);
+		MachineGunCurrentAmmo = 0;
+		return false;
+	}
+
+	--MachineGunTotalAmmo;
+	--MachineGunCurrentAmmo;
+
+	if (MachineGunCurrentAmmo <= 0 && MachineGunTotalAmmo > 0)
+	{
+		MachineGunCurrentAmmo = FMath::Min(FMath::Max(MachineGunMaxAmmo, 0), MachineGunTotalAmmo);
+	}
+
+	return true;
 }
 
 void ATruck::ExitDriverSeat()

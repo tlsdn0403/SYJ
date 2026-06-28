@@ -13,6 +13,7 @@
 #include "HUD/EffectUI.h"
 #include "HUD/BaseUI.h"
 #include "HUD/L2BaseUI.h"
+#include "HUD/MachineGunUI.h"
 #include "Characters/FPSPlayerController.h"
 #include "Interface/InteractInterface.h"
 #include "Truck/Truck.h"
@@ -871,6 +872,7 @@ void AFPSBaseCharacter::EnterMountedWeapon(ATruck* Truck, AMountedMachineGun* Mo
 	}
 
 	Truck->RefreshInteractionWidgetsForCharacter(this);
+	UpdateMachineGunUI(true);
 }
 
 void AFPSBaseCharacter::ExitMountedWeapon(bool bReturnToCargo)
@@ -931,6 +933,7 @@ void AFPSBaseCharacter::ExitMountedWeapon(bool bReturnToCargo)
 	}
 
 	Truck->EndMountedWeaponUse(this);
+	UpdateMachineGunUI(false);
 	CurrentMountedWeapon = nullptr;
 	bIsUsingMountedWeapon = false;
 	SetHeldWeaponVehicleVisibility(false);
@@ -1181,6 +1184,16 @@ void AFPSBaseCharacter::Fire()
 {
 	if (bIsUsingMountedWeapon && CurrentMountedWeapon)
 	{
+		if (IsLocallyControlled())
+		{
+			if (!CurrentTruck || !CurrentTruck->ConsumeMachineGunBullet())
+			{
+				UpdateMachineGunUI(true);
+				return;
+			}
+			UpdateMachineGunUI(true);
+		}
+
 		CurrentMountedWeapon->SetWeaponUser(this);
 		CurrentMountedWeapon->Fire();
 
@@ -1305,6 +1318,18 @@ void AFPSBaseCharacter::HandleMountedWeaponAutoFire()
 	}
 
 	CurrentMountedWeapon->SetWeaponUser(this);
+
+	if (IsLocallyControlled())
+	{
+		if (!CurrentTruck || !CurrentTruck->ConsumeMachineGunBullet())
+		{
+			UpdateMachineGunUI(true);
+			StopFire();
+			return;
+		}
+		UpdateMachineGunUI(true);
+	}
+
 	CurrentMountedWeapon->Fire();
 
 	if (IsLocallyControlled())
@@ -1897,6 +1922,59 @@ void AFPSBaseCharacter::UpdateStage2AmmoUI() const
 	{
 		PlayerController->BasicW->SetRemainingAmmoCount(CurrentAmmoBulletCount);
 	}
+}
+
+void AFPSBaseCharacter::UpdateMachineGunUI(bool bShouldShow) const
+{
+	UFPSProjectGameInstance* GameInstance = Cast<UFPSProjectGameInstance>(GetGameInstance());
+	AFPSPlayerController* PlayerController = Cast<AFPSPlayerController>(GetController());
+	if (PlayerController == nullptr && GameInstance && GameInstance->MyPlayer == this)
+	{
+		PlayerController = Cast<AFPSPlayerController>(UGameplayStatics::GetPlayerController(this, 0));
+	}
+
+	if (!PlayerController)
+	{
+		return;
+	}
+
+	if (!FPSStage2WorldUtils::IsStage2World(GetWorld()))
+	{
+		if (PlayerController->MachineGunW)
+		{
+			PlayerController->MachineGunW->SetVisibleState(false);
+		}
+		return;
+	}
+
+	if (!PlayerController->MachineGunW && PlayerController->MachineGunWidgetClass)
+	{
+		PlayerController->MachineGunW = CreateWidget<UMachineGunUI>(PlayerController, PlayerController->MachineGunWidgetClass);
+	}
+
+	if (!PlayerController->MachineGunW)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("MachineGun UI is not shown because MachineGunWidgetClass is not set."));
+		return;
+	}
+
+	if (!bShouldShow || !CurrentTruck)
+	{
+		PlayerController->MachineGunW->SetVisibleState(false);
+		return;
+	}
+
+	CurrentTruck->RefreshMachineGunAmmoFromCargo();
+	PlayerController->MachineGunW->SetMachineGunAmmo(
+		CurrentTruck->GetMachineGunTotalAmmo(),
+		CurrentTruck->GetMachineGunCurrentAmmo(),
+		CurrentTruck->GetMachineGunMaxAmmo());
+
+	if (!PlayerController->MachineGunW->IsInViewport())
+	{
+		PlayerController->MachineGunW->AddToViewport(100);
+	}
+	PlayerController->MachineGunW->SetVisibleState(true);
 }
 
 int32 AFPSBaseCharacter::GetInventoryItemCount(EItemType ItemType) const

@@ -126,6 +126,9 @@ extern S_LOAD_TRUCK_ITEMDefaultTypeInternal _S_LOAD_TRUCK_ITEM_default_instance_
 class S_LOGIN;
 struct S_LOGINDefaultTypeInternal;
 extern S_LOGINDefaultTypeInternal _S_LOGIN_default_instance_;
+class S_MACHINE_GUN_AMMO;
+struct S_MACHINE_GUN_AMMODefaultTypeInternal;
+extern S_MACHINE_GUN_AMMODefaultTypeInternal _S_MACHINE_GUN_AMMO_default_instance_;
 class S_MOVE;
 struct S_MOVEDefaultTypeInternal;
 extern S_MOVEDefaultTypeInternal _S_MOVE_default_instance_;
@@ -193,6 +196,7 @@ template<> ::Protocol::S_FIRE* Arena::CreateMaybeMessage<::Protocol::S_FIRE>(Are
 template<> ::Protocol::S_LEAVE_GAME* Arena::CreateMaybeMessage<::Protocol::S_LEAVE_GAME>(Arena*);
 template<> ::Protocol::S_LOAD_TRUCK_ITEM* Arena::CreateMaybeMessage<::Protocol::S_LOAD_TRUCK_ITEM>(Arena*);
 template<> ::Protocol::S_LOGIN* Arena::CreateMaybeMessage<::Protocol::S_LOGIN>(Arena*);
+template<> ::Protocol::S_MACHINE_GUN_AMMO* Arena::CreateMaybeMessage<::Protocol::S_MACHINE_GUN_AMMO>(Arena*);
 template<> ::Protocol::S_MOVE* Arena::CreateMaybeMessage<::Protocol::S_MOVE>(Arena*);
 template<> ::Protocol::S_RESPAWN_LOOT_ITEM* Arena::CreateMaybeMessage<::Protocol::S_RESPAWN_LOOT_ITEM>(Arena*);
 template<> ::Protocol::S_SPAWN* Arena::CreateMaybeMessage<::Protocol::S_SPAWN>(Arena*);
@@ -6701,6 +6705,187 @@ class S_ZOMBIE_DISMEMBER final :
   union { Impl_ _impl_; };
   friend struct ::TableStruct_Protocol_2eproto;
 };
+// -------------------------------------------------------------------
+
+class S_MACHINE_GUN_AMMO final :
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:Protocol.S_MACHINE_GUN_AMMO) */ {
+ public:
+  inline S_MACHINE_GUN_AMMO() : S_MACHINE_GUN_AMMO(nullptr) {}
+  ~S_MACHINE_GUN_AMMO() override;
+  explicit PROTOBUF_CONSTEXPR S_MACHINE_GUN_AMMO(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized);
+
+  S_MACHINE_GUN_AMMO(const S_MACHINE_GUN_AMMO& from);
+  S_MACHINE_GUN_AMMO(S_MACHINE_GUN_AMMO&& from) noexcept
+    : S_MACHINE_GUN_AMMO() {
+    *this = ::std::move(from);
+  }
+
+  inline S_MACHINE_GUN_AMMO& operator=(const S_MACHINE_GUN_AMMO& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline S_MACHINE_GUN_AMMO& operator=(S_MACHINE_GUN_AMMO&& from) noexcept {
+    if (this == &from) return *this;
+    if (GetOwningArena() == from.GetOwningArena()
+  #ifdef PROTOBUF_FORCE_COPY_IN_MOVE
+        && GetOwningArena() != nullptr
+  #endif  // !PROTOBUF_FORCE_COPY_IN_MOVE
+    ) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* descriptor() {
+    return GetDescriptor();
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Reflection* GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const S_MACHINE_GUN_AMMO& default_instance() {
+    return *internal_default_instance();
+  }
+  static inline const S_MACHINE_GUN_AMMO* internal_default_instance() {
+    return reinterpret_cast<const S_MACHINE_GUN_AMMO*>(
+               &_S_MACHINE_GUN_AMMO_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    39;
+
+  friend void swap(S_MACHINE_GUN_AMMO& a, S_MACHINE_GUN_AMMO& b) {
+    a.Swap(&b);
+  }
+  inline void Swap(S_MACHINE_GUN_AMMO* other) {
+    if (other == this) return;
+  #ifdef PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() != nullptr &&
+        GetOwningArena() == other->GetOwningArena()) {
+   #else  // PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() == other->GetOwningArena()) {
+  #endif  // !PROTOBUF_FORCE_COPY_IN_SWAP
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(S_MACHINE_GUN_AMMO* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetOwningArena() == other->GetOwningArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  S_MACHINE_GUN_AMMO* New(::PROTOBUF_NAMESPACE_ID::Arena* arena = nullptr) const final {
+    return CreateMaybeMessage<S_MACHINE_GUN_AMMO>(arena);
+  }
+  using ::PROTOBUF_NAMESPACE_ID::Message::CopyFrom;
+  void CopyFrom(const S_MACHINE_GUN_AMMO& from);
+  using ::PROTOBUF_NAMESPACE_ID::Message::MergeFrom;
+  void MergeFrom( const S_MACHINE_GUN_AMMO& from) {
+    S_MACHINE_GUN_AMMO::MergeImpl(*this, from);
+  }
+  private:
+  static void MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg);
+  public:
+  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
+  uint8_t* _InternalSerialize(
+      uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
+  int GetCachedSize() const final { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::PROTOBUF_NAMESPACE_ID::Arena* arena, bool is_message_owned);
+  void SharedDtor();
+  void SetCachedSize(int size) const final;
+  void InternalSwap(S_MACHINE_GUN_AMMO* other);
+
+  private:
+  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
+  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
+    return "Protocol.S_MACHINE_GUN_AMMO";
+  }
+  protected:
+  explicit S_MACHINE_GUN_AMMO(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                       bool is_message_owned = false);
+  public:
+
+  static const ClassData _class_data_;
+  const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*GetClassData() const final;
+
+  ::PROTOBUF_NAMESPACE_ID::Metadata GetMetadata() const final;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  enum : int {
+    kTruckIdFieldNumber = 1,
+    kTotalAmmoFieldNumber = 2,
+    kCurrentAmmoFieldNumber = 3,
+    kMaxAmmoFieldNumber = 4,
+  };
+  // uint64 truck_id = 1;
+  void clear_truck_id();
+  uint64_t truck_id() const;
+  void set_truck_id(uint64_t value);
+  private:
+  uint64_t _internal_truck_id() const;
+  void _internal_set_truck_id(uint64_t value);
+  public:
+
+  // int32 total_ammo = 2;
+  void clear_total_ammo();
+  int32_t total_ammo() const;
+  void set_total_ammo(int32_t value);
+  private:
+  int32_t _internal_total_ammo() const;
+  void _internal_set_total_ammo(int32_t value);
+  public:
+
+  // int32 current_ammo = 3;
+  void clear_current_ammo();
+  int32_t current_ammo() const;
+  void set_current_ammo(int32_t value);
+  private:
+  int32_t _internal_current_ammo() const;
+  void _internal_set_current_ammo(int32_t value);
+  public:
+
+  // int32 max_ammo = 4;
+  void clear_max_ammo();
+  int32_t max_ammo() const;
+  void set_max_ammo(int32_t value);
+  private:
+  int32_t _internal_max_ammo() const;
+  void _internal_set_max_ammo(int32_t value);
+  public:
+
+  // @@protoc_insertion_point(class_scope:Protocol.S_MACHINE_GUN_AMMO)
+ private:
+  class _Internal;
+
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  struct Impl_ {
+    uint64_t truck_id_;
+    int32_t total_ammo_;
+    int32_t current_ammo_;
+    int32_t max_ammo_;
+    mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_Protocol_2eproto;
+};
 // ===================================================================
 
 
@@ -9455,9 +9640,95 @@ inline void S_ZOMBIE_DISMEMBER::set_impulse_z(float value) {
   // @@protoc_insertion_point(field_set:Protocol.S_ZOMBIE_DISMEMBER.impulse_z)
 }
 
+// -------------------------------------------------------------------
+
+// S_MACHINE_GUN_AMMO
+
+// uint64 truck_id = 1;
+inline void S_MACHINE_GUN_AMMO::clear_truck_id() {
+  _impl_.truck_id_ = uint64_t{0u};
+}
+inline uint64_t S_MACHINE_GUN_AMMO::_internal_truck_id() const {
+  return _impl_.truck_id_;
+}
+inline uint64_t S_MACHINE_GUN_AMMO::truck_id() const {
+  // @@protoc_insertion_point(field_get:Protocol.S_MACHINE_GUN_AMMO.truck_id)
+  return _internal_truck_id();
+}
+inline void S_MACHINE_GUN_AMMO::_internal_set_truck_id(uint64_t value) {
+  
+  _impl_.truck_id_ = value;
+}
+inline void S_MACHINE_GUN_AMMO::set_truck_id(uint64_t value) {
+  _internal_set_truck_id(value);
+  // @@protoc_insertion_point(field_set:Protocol.S_MACHINE_GUN_AMMO.truck_id)
+}
+
+// int32 total_ammo = 2;
+inline void S_MACHINE_GUN_AMMO::clear_total_ammo() {
+  _impl_.total_ammo_ = 0;
+}
+inline int32_t S_MACHINE_GUN_AMMO::_internal_total_ammo() const {
+  return _impl_.total_ammo_;
+}
+inline int32_t S_MACHINE_GUN_AMMO::total_ammo() const {
+  // @@protoc_insertion_point(field_get:Protocol.S_MACHINE_GUN_AMMO.total_ammo)
+  return _internal_total_ammo();
+}
+inline void S_MACHINE_GUN_AMMO::_internal_set_total_ammo(int32_t value) {
+  
+  _impl_.total_ammo_ = value;
+}
+inline void S_MACHINE_GUN_AMMO::set_total_ammo(int32_t value) {
+  _internal_set_total_ammo(value);
+  // @@protoc_insertion_point(field_set:Protocol.S_MACHINE_GUN_AMMO.total_ammo)
+}
+
+// int32 current_ammo = 3;
+inline void S_MACHINE_GUN_AMMO::clear_current_ammo() {
+  _impl_.current_ammo_ = 0;
+}
+inline int32_t S_MACHINE_GUN_AMMO::_internal_current_ammo() const {
+  return _impl_.current_ammo_;
+}
+inline int32_t S_MACHINE_GUN_AMMO::current_ammo() const {
+  // @@protoc_insertion_point(field_get:Protocol.S_MACHINE_GUN_AMMO.current_ammo)
+  return _internal_current_ammo();
+}
+inline void S_MACHINE_GUN_AMMO::_internal_set_current_ammo(int32_t value) {
+  
+  _impl_.current_ammo_ = value;
+}
+inline void S_MACHINE_GUN_AMMO::set_current_ammo(int32_t value) {
+  _internal_set_current_ammo(value);
+  // @@protoc_insertion_point(field_set:Protocol.S_MACHINE_GUN_AMMO.current_ammo)
+}
+
+// int32 max_ammo = 4;
+inline void S_MACHINE_GUN_AMMO::clear_max_ammo() {
+  _impl_.max_ammo_ = 0;
+}
+inline int32_t S_MACHINE_GUN_AMMO::_internal_max_ammo() const {
+  return _impl_.max_ammo_;
+}
+inline int32_t S_MACHINE_GUN_AMMO::max_ammo() const {
+  // @@protoc_insertion_point(field_get:Protocol.S_MACHINE_GUN_AMMO.max_ammo)
+  return _internal_max_ammo();
+}
+inline void S_MACHINE_GUN_AMMO::_internal_set_max_ammo(int32_t value) {
+  
+  _impl_.max_ammo_ = value;
+}
+inline void S_MACHINE_GUN_AMMO::set_max_ammo(int32_t value) {
+  _internal_set_max_ammo(value);
+  // @@protoc_insertion_point(field_set:Protocol.S_MACHINE_GUN_AMMO.max_ammo)
+}
+
 #ifdef __GNUC__
   #pragma GCC diagnostic pop
 #endif  // __GNUC__
+// -------------------------------------------------------------------
+
 // -------------------------------------------------------------------
 
 // -------------------------------------------------------------------

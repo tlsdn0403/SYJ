@@ -1924,12 +1924,6 @@ void AFPSBaseCharacter::Reload()
 		return;
 	}
 
-	if (bIsUsingMountedWeapon)
-	{
-		ReloadMountedMachineGun();
-		return;
-	}
-
 	if (GetCurrentWeapon())
 	{
 		ReloadStage2Rifle();
@@ -1959,20 +1953,6 @@ bool AFPSBaseCharacter::ReloadStage2Rifle()
 	MaxAmmoBulletCount -= ReloadAmount;
 	UpdateStage2AmmoUI();
 	return true;
-}
-
-bool AFPSBaseCharacter::ReloadMountedMachineGun()
-{
-	if (!CurrentTruck)
-	{
-		UpdateMachineGunUI(true);
-		return false;
-	}
-
-	StopFire();
-	const bool bReloaded = CurrentTruck->ReloadMachineGun();
-	UpdateMachineGunUI(true);
-	return bReloaded;
 }
 
 void AFPSBaseCharacter::UpdateStage2AmmoUI() const

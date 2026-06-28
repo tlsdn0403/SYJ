@@ -6,6 +6,7 @@
 #include "Characters/FPSBaseCharacter.h"
 #include "Blueprint/UserWidget.h"
 #include "Blueprint/WidgetTree.h"
+#include "ClientPacketHandler.h"
 #include "FPSProjectGameInstance.h"
 #include "HUD/InteractUIClass.h"
 #include "LevelSequence.h"
@@ -19,6 +20,7 @@
 #include "Engine/LevelStreaming.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "Protocol.pb.h"
 #include "UObject/ConstructorHelpers.h"
 
 namespace
@@ -103,14 +105,26 @@ void AStage2FinalDoor::BeginPlay()
 
 void AStage2FinalDoor::Interact_Implementation(AFPSBaseCharacter* Character)
 {
-	if (bEndingTriggered)
+	if (bEndingTriggered || bEndingStartRequested)
 	{
 		return;
 	}
 
 	if (bEnableEndingOnInteract)
 	{
-		StartEndingSequence();
+		if (UFPSProjectGameInstance* GameInstance = Cast<UFPSProjectGameInstance>(Character->GetGameInstance()))
+		{
+			if (GameInstance->ShouldUseLocalInteractionFallback() || NetworkDoorId == 0)
+			{
+				StartEndingSequence();
+				return;
+			}
+		}
+
+		Protocol::C_TOGGLE_DOOR ToggleDoorPkt;
+		ToggleDoorPkt.set_door_id(NetworkDoorId);
+		bEndingStartRequested = true;
+		SEND_PACKET(ToggleDoorPkt);
 		return;
 	}
 
@@ -404,6 +418,7 @@ void AStage2FinalDoor::ConfigureEndingSequenceActor(ALevelSequenceActor* Sequenc
 
 void AStage2FinalDoor::TriggerEndingSequence()
 {
+	bEndingStartRequested = true;
 	bEndingTriggered = true;
 
 	if (bDisableInteractionAfterTriggered)

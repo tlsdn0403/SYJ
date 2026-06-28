@@ -2296,7 +2296,7 @@ void ATruck::PlayLocalDriverZombieImpactBloodEffect()
 		return;
 	}
 
-	FPSPlayerController->EffectW->SpawnBloodEffects();
+	FPSPlayerController->EffectW->SpawnBloodEffects(0.45f);
 }
 
 void ATruck::EndMountedWeaponUse(AFPSBaseCharacter* Character)

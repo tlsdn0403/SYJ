@@ -47,7 +47,8 @@ public:
 
 	//void PlayAni_Edge() { PlayAnimation(B_EdgeAni); }
 	void PlayAni_Effect(bool re);
-	void SpawnBloodEffects();
+	void SpawnBloodEffects(float Intensity = 1.0f);
 
 
 };
+

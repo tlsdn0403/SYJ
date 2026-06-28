@@ -97,6 +97,9 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ending")
 	bool bEndingTriggered = false;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ending")
+	bool bEndingStartRequested = false;
+
 	UPROPERTY(Transient)
 	TObjectPtr<ULevelSequencePlayer> EndingSequencePlayer;
 

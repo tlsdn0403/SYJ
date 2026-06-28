@@ -38,11 +38,13 @@ void UEffectUI::PlayAni_Effect(bool re)
 	}
 }
 
-void UEffectUI::SpawnBloodEffects()
+void UEffectUI::SpawnBloodEffects(float Intensity)
 {
     if (!BloodWidgetClass || !BaseCanvas || !GEngine || !GEngine->GameViewport) return;
 
-    int32 BloodCount = FMath::RandRange(1, 5);
+    const float SafeIntensity = FMath::Clamp(Intensity, 0.05f, 1.0f);
+    const int32 MaxBloodCount = FMath::Max(1, FMath::CeilToInt(5.0f * SafeIntensity));
+    int32 BloodCount = FMath::RandRange(1, MaxBloodCount);
 
     for (int32 i = 0; i < BloodCount; ++i)
     {
@@ -72,6 +74,7 @@ void UEffectUI::SpawnBloodEffects()
         Transform.Scale = FVector2D(RandomScale, RandomScale);
 
         BloodWidget->SetRenderTransform(Transform);
+        BloodWidget->SetRenderOpacity(SafeIntensity);
         BloodWidget->PlayAni_Ef();
     }
 }

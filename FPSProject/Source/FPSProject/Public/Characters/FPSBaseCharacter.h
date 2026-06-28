@@ -170,7 +170,6 @@ protected:
 	void StopFire();
 	void Reload();
 	bool ReloadStage2Rifle();
-	bool ReloadMountedMachineGun();
 	void StartAim();
 	void StopAim();
 	void HandleUseHealPackInput();

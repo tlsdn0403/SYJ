@@ -52,6 +52,7 @@ protected:
 	void TriggerEndingSequence();
 	void FinishEndingSequence();
 	bool ShowGameClearScreen();
+	void UpdateGameClearSurvivorNames();
 	void BindGameClearExitButton();
 	void SetEndingCinematicMode(bool bEnable);
 

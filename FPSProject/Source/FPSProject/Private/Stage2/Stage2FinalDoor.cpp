@@ -573,6 +573,7 @@ bool AStage2FinalDoor::ShowGameClearScreen()
 	}
 
 	GameClearWidget->AddToViewport(1000);
+	UpdateGameClearSurvivorNames();
 	BindGameClearExitButton();
 
 	FInputModeUIOnly InputMode;
@@ -584,6 +585,51 @@ bool AStage2FinalDoor::ShowGameClearScreen()
 	PlayerController->SetIgnoreLookInput(true);
 
 	return true;
+}
+
+void AStage2FinalDoor::UpdateGameClearSurvivorNames()
+{
+	if (GameClearWidget == nullptr || GameClearWidget->WidgetTree == nullptr)
+	{
+		return;
+	}
+
+	static const FName PlayerTextNames[] =
+	{
+		TEXT("Player1"),
+		TEXT("Player2"),
+		TEXT("Player3")
+	};
+
+	TArray<UTextBlock*> PlayerTexts;
+	PlayerTexts.Reserve(UE_ARRAY_COUNT(PlayerTextNames));
+	for (const FName& PlayerTextName : PlayerTextNames)
+	{
+		if (UTextBlock* PlayerText = Cast<UTextBlock>(GameClearWidget->WidgetTree->FindWidget(PlayerTextName)))
+		{
+			PlayerText->SetVisibility(ESlateVisibility::Collapsed);
+			PlayerTexts.Add(PlayerText);
+		}
+	}
+
+	if (PlayerTexts.Num() == 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Stage2FinalDoor: GameClear survivor text blocks were not found."));
+		return;
+	}
+
+	TArray<FString> AlivePlayerNames;
+	if (UFPSProjectGameInstance* GameInstance = Cast<UFPSProjectGameInstance>(GetGameInstance()))
+	{
+		GameInstance->GetAlivePlayerDisplayNames(AlivePlayerNames);
+	}
+
+	const int32 DisplayCount = FMath::Min(PlayerTexts.Num(), AlivePlayerNames.Num());
+	for (int32 Index = 0; Index < DisplayCount; ++Index)
+	{
+		PlayerTexts[Index]->SetText(FText::FromString(AlivePlayerNames[Index]));
+		PlayerTexts[Index]->SetVisibility(ESlateVisibility::Visible);
+	}
 }
 
 void AStage2FinalDoor::BindGameClearExitButton()

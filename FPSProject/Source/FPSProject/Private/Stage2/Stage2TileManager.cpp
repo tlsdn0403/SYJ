@@ -1055,7 +1055,7 @@ void AStage2TileManager::RefreshLandscapeProxyState(ALandscapeProxy* LandscapePr
 		}
 
 		LandscapeComponent->UpdateComponentToWorld(EUpdateTransformFlags::None, ETeleportType::TeleportPhysics);
-		LandscapeComponent->UpdateCachedBounds();
+		LandscapeComponent->UpdateBounds();
 
 		RefreshLandscapeCollisionComponent(
 			LandscapeComponent->GetCollisionComponent(),

@@ -5,6 +5,7 @@
 #include "Characters/FPSBaseCharacter.h"
 #include "Characters/FPSPlayerController.h"
 #include "Blueprint/UserWidget.h"
+#include "Blueprint/WidgetBlueprintGeneratedClass.h"
 #include "Camera/CameraActor.h"
 #include "EngineUtils.h"
 #include "HUD/BaseUI.h"
@@ -193,6 +194,30 @@ void FFPSStageFlowManager::RegisterEntryLoadingWidget(UUserWidget* Widget)
 {
 	Owner.EntryLoadingWidget = Widget;
 	ApplyEntryLoadingReadyCount(CachedEntryLoadingReadyCount);
+}
+
+void FFPSStageFlowManager::PlayEntryLoadingWidgetAnimations(bool bLoop)
+{
+	UUserWidget* Widget = Owner.EntryLoadingWidget;
+	if (Widget == nullptr)
+	{
+		return;
+	}
+
+	const UWidgetBlueprintGeneratedClass* WidgetClass = Cast<UWidgetBlueprintGeneratedClass>(Widget->GetClass());
+	if (WidgetClass == nullptr)
+	{
+		return;
+	}
+
+	const int32 LoopCount = bLoop ? 0 : 1;
+	for (UWidgetAnimation* Animation : WidgetClass->Animations)
+	{
+		if (Animation)
+		{
+			Widget->PlayAnimation(Animation, 0.0f, LoopCount);
+		}
+	}
 }
 
 void FFPSStageFlowManager::RemoveEntryLoadingWidget()
@@ -635,7 +660,22 @@ void FFPSStageFlowManager::OpenPendingStageTransitionLevel()
 	}
 
 	bWaitingForStage2MapLoad = FPSStage2WorldUtils::IsStage2LevelName(PendingStageTransitionLevelName);
+	if (bWaitingForStage2MapLoad)
+	{
+		ShowStageTransitionLoadingWidget();
+	}
 	UGameplayStatics::OpenLevel(&Owner, FName(*PendingStageTransitionLevelName));
+}
+
+void FFPSStageFlowManager::ShowStageTransitionLoadingWidget()
+{
+	if (Owner.StageTransitionLoadingWidgetClass)
+	{
+		SetEntryLoadingWidgetClass(Owner.StageTransitionLoadingWidgetClass);
+	}
+
+	ShowEntryLoadingWidget();
+	PlayEntryLoadingWidgetAnimations(true);
 }
 
 void FFPSStageFlowManager::SetStageTransitionCinematicMode(bool bEnable)

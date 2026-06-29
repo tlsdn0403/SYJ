@@ -24,6 +24,7 @@ public:
 	void HandlePostLoadMap(UWorld* LoadedWorld);
 	void CompleteStage2MapLoad();
 	void ApplyEntryLoadingReadyCount(int32 ReadyCount);
+	void PlayEntryLoadingWidgetAnimations(bool bLoop);
 	void ProcessPendingStage2Spawns();
 	void TryDistributeStage1CargoItemsToPlayers();
 	void HandleStageTimer(const Protocol::S_STAGE_TIMER& Pkt);
@@ -39,6 +40,7 @@ private:
 	bool TryPlayStageTransitionCinematic(const TCHAR* SequencePath, const TCHAR* SequenceLogName, bool bOpenLevelAfterCinematic);
 	void FinishStageTransitionCinematic();
 	void OpenPendingStageTransitionLevel();
+	void ShowStageTransitionLoadingWidget();
 	void SetStageTransitionCinematicMode(bool bEnable);
 	void PrepareStageTransitionCinematicActors();
 	void HideStageTransitionCameraActors();

@@ -87,6 +87,12 @@ UFPSProjectGameInstance::UFPSProjectGameInstance()
 		GameOverWidgetClass = GameOverWidgetFinder.Class;
 	}
 
+	static ConstructorHelpers::FClassFinder<UUserWidget> StageTransitionLoadingWidgetFinder(TEXT("/Game/HUD/WBP_Loading2"));
+	if (StageTransitionLoadingWidgetFinder.Succeeded())
+	{
+		StageTransitionLoadingWidgetClass = StageTransitionLoadingWidgetFinder.Class;
+	}
+
 	static ConstructorHelpers::FClassFinder<AFPSBaseCharacter> Character1Class(
 		TEXT("/Game/Characters/Blueprint/BP_FPSBaseCharacter"));
 	static ConstructorHelpers::FClassFinder<AFPSBaseCharacter> Character2Class(

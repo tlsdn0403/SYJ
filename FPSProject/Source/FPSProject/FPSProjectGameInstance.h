@@ -176,6 +176,9 @@ public:
 	UPROPERTY()
 	TSubclassOf<UUserWidget> EntryLoadingWidgetClass;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stage|UI")
+	TSubclassOf<UUserWidget> StageTransitionLoadingWidgetClass;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ending|UI")
 	TSubclassOf<UUserWidget> GameOverWidgetClass;
 

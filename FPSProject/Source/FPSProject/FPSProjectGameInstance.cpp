@@ -1546,10 +1546,25 @@ void UFPSProjectGameInstance::Tick(float DeltaTime)
 void UFPSProjectGameInstance::TickNetwork()
 {
 	TrySendEnterGamePacket();
-	HandleRecvPackets();
+	if (NetworkManager && NetworkManager->HasPendingRecvPackets())
+	{
+		HandleRecvPackets();
+	}
 }
 
 TStatId UFPSProjectGameInstance::GetStatId() const
 {
 	RETURN_QUICK_DECLARE_CYCLE_STAT(UFPSProjectGameInstance, STATGROUP_Tickables);
+}
+
+bool UFPSProjectGameInstance::IsTickable() const
+{
+	return !HasAnyFlags(RF_ClassDefaultObject) && HasTickWork();
+}
+
+bool UFPSProjectGameInstance::HasTickWork() const
+{
+	return (NetworkManager && NetworkManager->HasPendingRecvPackets()) ||
+		(StageFlowManager && StageFlowManager->HasTickWork()) ||
+		(SpawnManager && SpawnManager->HasPendingWork());
 }

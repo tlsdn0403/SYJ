@@ -53,6 +53,20 @@ void PacketSession::SendPacket(SendBufferRef SendBuffer)
 	}
 
 	SendPacketQueue.Enqueue(SendBuffer);
+	if (SendWorkerThread)
+	{
+		SendWorkerThread->NotifyPacketQueued();
+	}
+}
+
+bool PacketSession::HasPendingRecvPackets() const
+{
+	return !RecvPacketQueue.IsEmpty();
+}
+
+bool PacketSession::HasPendingSendPackets() const
+{
+	return !SendPacketQueue.IsEmpty();
 }
 
 bool PacketSession::SendPacketNow(SendBufferRef SendBuffer, float TimeoutSeconds)

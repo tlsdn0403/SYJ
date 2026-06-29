@@ -349,16 +349,22 @@ bool Room::EnterRoom(ObjectRef object, bool randPos /*= true*/)
 	{
 		Protocol::S_SPAWN spawnPkt;
 
-		for (auto& item : _objects)
+		for (const auto& item : _players)
 		{
-			if (item.second->IsPlayer() == false && item.second->IsMonster() == false)
-				continue;
-
 			if (item.second == object)
 				continue;
 
 			Protocol::ObjectInfo* playerInfo = spawnPkt.add_players();
 			playerInfo->CopyFrom(*item.second->objectInfo);
+		}
+
+		for (const auto& item : _monsters)
+		{
+			if (item.second == object)
+				continue;
+
+			Protocol::ObjectInfo* monsterInfo = spawnPkt.add_players();
+			monsterInfo->CopyFrom(*item.second->objectInfo);
 		}
 
 		SendBufferRef sendBuffer = ServerPacketHandler::MakeSendBuffer(spawnPkt);
@@ -565,9 +571,9 @@ void Room::HandleStageMapReady(GameSessionRef session, Protocol::C_ENTER_GAME pk
 
 	vector<PlayerRef> readyPlayers;
 	readyPlayers.reserve(REQUIRED_STAGE2_PLAYER_COUNT);
-	for (const auto& item : _objects)
+	for (const auto& item : _players)
 	{
-		PlayerRef player = dynamic_pointer_cast<Player>(item.second);
+		PlayerRef player = item.second;
 		if (player == nullptr)
 			continue;
 
@@ -1201,9 +1207,9 @@ PlayerRef Room::FindNearestPlayer(const Protocol::PosInfo& origin, float maxRang
 	PlayerRef nearestPlayer = nullptr;
 	float nearestDistSq = maxRange * maxRange;
 
-	for (const auto& item : _objects)
+	for (const auto& item : _players)
 	{
-		PlayerRef player = dynamic_pointer_cast<Player>(item.second);
+		PlayerRef player = item.second;
 		if (player == nullptr)
 			continue;
 
@@ -1459,11 +1465,11 @@ vector<Room::ZombiePathPoint> Room::FindZombiePath(const Protocol::PosInfo& star
 void Room::UpdateZombies()
 {
 	unordered_map<int64, vector<MonsterRef>> separationGrid;
-	separationGrid.reserve(_objects.size());
+	separationGrid.reserve(_monsters.size());
 
-	for (auto& item : _objects)
+	for (const auto& item : _monsters)
 	{
-		MonsterRef monster = dynamic_pointer_cast<Monster>(item.second);
+		MonsterRef monster = item.second;
 		if (monster == nullptr || monster->IsDead())
 			continue;
 
@@ -1474,9 +1480,9 @@ void Room::UpdateZombies()
 		separationGrid[MakeZombieNavCellKey(cell.x, cell.y)].push_back(monster);
 	}
 
-	for (auto& item : _objects)
+	for (const auto& item : _monsters)
 	{
-		MonsterRef monster = dynamic_pointer_cast<Monster>(item.second);
+		MonsterRef monster = item.second;
 		if (monster == nullptr)
 			continue;
 
@@ -2536,10 +2542,23 @@ RoomRef Room::GetRoomRef()
 bool Room::AddObject(ObjectRef object)
 {
 	// 있다면 문제가 있다.
-	if (_objects.find(object->objectInfo->object_id()) != _objects.end())
+	if (object == nullptr || object->objectInfo == nullptr)
 		return false;
 
-	_objects.insert(make_pair(object->objectInfo->object_id(), object));
+	const uint64 objectId = object->objectInfo->object_id();
+	if (_objects.find(objectId) != _objects.end())
+		return false;
+
+	_objects.insert(make_pair(objectId, object));
+
+	if (PlayerRef player = dynamic_pointer_cast<Player>(object))
+	{
+		_players.insert(make_pair(objectId, player));
+	}
+	else if (MonsterRef monster = dynamic_pointer_cast<Monster>(object))
+	{
+		_monsters.insert(make_pair(objectId, monster));
+	}
 
 	object->room.store(GetRoomRef());
 
@@ -2554,16 +2573,23 @@ bool Room::RemoveObject(uint64 objectId)
 
 	ObjectRef object = _objects[objectId];
 	PlayerRef player = dynamic_pointer_cast<Player>(object);
+	MonsterRef monster = dynamic_pointer_cast<Monster>(object);
 	if (player)
 	{
+		_players.erase(objectId);
 		player->room.store(weak_ptr<Room>());
 		ClearPlayerTruckState(player);
 	}
+	else if (monster)
+	{
+		_monsters.erase(objectId);
+	}
 
-	if (objectId >= ZOMBIE_OBJECT_ID_START)
+	if (monster || objectId >= ZOMBIE_OBJECT_ID_START)
 	{
 		_zombiePaths.erase(objectId);
 		_zombieMoveBroadcastStates.erase(objectId);
+		_zombieAiUpdateStates.erase(objectId);
 	}
 
 	_objects.erase(objectId);
@@ -2573,9 +2599,9 @@ bool Room::RemoveObject(uint64 objectId)
 
 void Room::Broadcast(SendBufferRef sendBuffer, uint64 exceptId)
 {
-	for (auto& item : _objects)
+	for (const auto& item : _players)
 	{
-		PlayerRef player = dynamic_pointer_cast<Player>(item.second);
+		PlayerRef player = item.second;
 		if (player == nullptr)
 			continue;
 		if (player->objectInfo->object_id() == exceptId)

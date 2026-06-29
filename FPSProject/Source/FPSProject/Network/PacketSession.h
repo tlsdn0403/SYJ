@@ -21,6 +21,8 @@ public:
 
 	void SendPacket(SendBufferRef SendBuffer);
 	bool SendPacketNow(SendBufferRef SendBuffer, float TimeoutSeconds = 0.25f);
+	bool HasPendingRecvPackets() const;
+	bool HasPendingSendPackets() const;
 
 	void Disconnect();
 

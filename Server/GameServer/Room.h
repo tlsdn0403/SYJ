@@ -181,6 +181,8 @@ private:
 	static constexpr int32 TRUCK_LOADING_PHASE_DURATION_SECONDS = 120;
 
 	unordered_map<uint64, ObjectRef> _objects;
+	unordered_map<uint64, PlayerRef> _players;
+	unordered_map<uint64, MonsterRef> _monsters;
 	unordered_map<uint64, TruckState> _trucks;
 	unordered_map<uint64, bool> _doors;
 	vector<weak_ptr<GameSession>> _pendingReadySessions;

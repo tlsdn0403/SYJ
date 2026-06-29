@@ -7,6 +7,7 @@
 #include "FPSProject.h"
 
 class FSocket;
+class FEvent;
 
 struct FPSPROJECT_API FPacketHeader
 {
@@ -67,6 +68,7 @@ public:
 	virtual void Exit() override;
 
 	bool SendPacket(SendBufferRef SendBuffer);
+	void NotifyPacketQueued();
 
 	void Destroy();
 	void StopAndWait();
@@ -76,6 +78,7 @@ private:
 
 protected:
 	FRunnableThread* Thread = nullptr;
+	FEvent* WorkEvent = nullptr;
 	FThreadSafeBool Running = true;
 	FSocket* Socket;
 	TWeakPtr<class PacketSession> SessionRef;

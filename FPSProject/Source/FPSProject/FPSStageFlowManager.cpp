@@ -564,6 +564,18 @@ void FFPSStageFlowManager::TickStageFlow()
 	TryDistributeStage1CargoItemsToPlayers();
 }
 
+bool FFPSStageFlowManager::HasTickWork() const
+{
+	return (bPendingEnterGameRequest && !bEnterGamePacketSent) ||
+		bWaitingForStage2MapLoad ||
+		bStageTransitionCinematicPlaying ||
+		Owner.PendingStage2SpawnInfos.Num() > 0 ||
+		Owner.bStage2StartupHoldApplied ||
+		ShouldDelayEnterGameRequest() ||
+		(bHasStage1ItemSpawnSeed && !bHasAppliedStage1ItemSpawns) ||
+		(Owner.RecordedStage1CargoItems.Num() > 0 && !bHasDistributedStage1CargoItems);
+}
+
 void FFPSStageFlowManager::ApplyStageTimerToLocalUI()
 {
 	if (CachedStageTimerRemainingSeconds == INDEX_NONE)

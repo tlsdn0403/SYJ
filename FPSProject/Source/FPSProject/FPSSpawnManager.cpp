@@ -261,6 +261,11 @@ void FFPSSpawnManager::Tick(float DeltaTime)
 	ProcessPendingTileZombiePlacements();
 }
 
+bool FFPSSpawnManager::HasPendingWork() const
+{
+	return PendingTileZombiePlacements.Num() > 0;
+}
+
 bool FFPSSpawnManager::TryBuildPlayerSpawnContext(
 	UWorld* World,
 	const Protocol::ObjectInfo& ObjectInfo,

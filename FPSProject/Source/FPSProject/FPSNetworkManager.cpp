@@ -95,3 +95,8 @@ bool FFPSNetworkManager::IsConnected() const
 {
 	return Socket != nullptr && GameServerSession != nullptr;
 }
+
+bool FFPSNetworkManager::HasPendingRecvPackets() const
+{
+	return IsConnected() && GameServerSession->HasPendingRecvPackets();
+}

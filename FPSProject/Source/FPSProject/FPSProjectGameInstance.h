@@ -131,7 +131,7 @@ public:
 	virtual void Shutdown() override;
 	virtual void Tick(float DeltaTime) override;
 	virtual TStatId GetStatId() const override;
-	virtual bool IsTickable() const override { return true; }
+	virtual bool IsTickable() const override;
 
 public:
 	UPROPERTY(EditAnywhere, Category = "Network")
@@ -215,6 +215,7 @@ private:
 	void TryDistributeStage1CargoItemsToPlayers();
 	bool IsRegisteredPlayer(class AFPSBaseCharacter* Player) const;
 	void GetValidRegisteredPlayers(TArray<TPair<uint64, class AFPSBaseCharacter*>>& OutPlayers) const;
+	bool HasTickWork() const;
 	void TickNetwork();
 	void TickStageFlow();
 	bool RemovePlayerById(uint64 PlayerId);

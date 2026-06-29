@@ -5,6 +5,19 @@
 #include "Sockets.h"
 #include "Serialization/ArrayWriter.h"
 #include "PacketSession.h"
+#include "HAL/Event.h"
+#include "HAL/PlatformProcess.h"
+
+namespace
+{
+constexpr uint32 WorkerWaitMilliseconds = 10;
+constexpr float WorkerFallbackSleepSeconds = WorkerWaitMilliseconds / 1000.0f;
+
+FTimespan GetSocketWaitTimeout()
+{
+	return FTimespan::FromMilliseconds(WorkerWaitMilliseconds);
+}
+}
 
 RecvWorker::RecvWorker(FSocket* Socket, TSharedPtr<class PacketSession> Session) : Socket(Socket), SessionRef(Session)
 {
@@ -36,7 +49,7 @@ uint32 RecvWorker::Run()
 		}
 		else
 		{
-			FPlatformProcess::SleepNoStats(0.001f);
+			FPlatformProcess::SleepNoStats(WorkerFallbackSleepSeconds);
 		}
 	}
 
@@ -122,7 +135,7 @@ bool RecvWorker::ReceiveDesiredBytes(uint8* Results, int32 Size)
 		uint32 PendingDataSize = 0;
 		if (Socket->HasPendingData(PendingDataSize) == false || PendingDataSize <= 0)
 		{
-			FPlatformProcess::SleepNoStats(0.001f);
+			Socket->Wait(ESocketWaitConditions::WaitForRead, GetSocketWaitTimeout());
 			continue;
 		}
 
@@ -135,7 +148,7 @@ bool RecvWorker::ReceiveDesiredBytes(uint8* Results, int32 Size)
 
 		if (NumRead <= 0)
 		{
-			FPlatformProcess::SleepNoStats(0.001f);
+			Socket->Wait(ESocketWaitConditions::WaitForRead, GetSocketWaitTimeout());
 			continue;
 		}
 
@@ -149,6 +162,7 @@ bool RecvWorker::ReceiveDesiredBytes(uint8* Results, int32 Size)
 // SendWorker
 SendWorker::SendWorker(FSocket* Socket, TSharedPtr<PacketSession> Session) : Socket(Socket), SessionRef(Session)
 {
+	WorkEvent = FPlatformProcess::GetSynchEventFromPool(false);
 	Thread = FRunnableThread::Create(this, TEXT("SendWorkerThread"));
 }
 
@@ -176,12 +190,26 @@ uint32 SendWorker::Run()
 			}
 			else
 			{
-				FPlatformProcess::SleepNoStats(0.001f);
+				if (WorkEvent)
+				{
+					WorkEvent->Wait(WorkerWaitMilliseconds);
+				}
+				else
+				{
+					FPlatformProcess::SleepNoStats(WorkerFallbackSleepSeconds);
+				}
 			}
 		}
 		else
 		{
-			FPlatformProcess::SleepNoStats(0.001f);
+			if (WorkEvent)
+			{
+				WorkEvent->Wait(WorkerWaitMilliseconds);
+			}
+			else
+			{
+				FPlatformProcess::SleepNoStats(WorkerFallbackSleepSeconds);
+			}
 		}
 	}
 
@@ -196,6 +224,10 @@ void SendWorker::Exit()
 void SendWorker::Stop()
 {
 	Running = false;
+	if (WorkEvent)
+	{
+		WorkEvent->Trigger();
+	}
 }
 
 bool SendWorker::SendPacket(SendBufferRef SendBuffer)
@@ -206,6 +238,14 @@ bool SendWorker::SendPacket(SendBufferRef SendBuffer)
 	return true;
 }
 
+void SendWorker::NotifyPacketQueued()
+{
+	if (WorkEvent)
+	{
+		WorkEvent->Trigger();
+	}
+}
+
 void SendWorker::Destroy()
 {
 	StopAndWait();
@@ -214,12 +254,22 @@ void SendWorker::Destroy()
 void SendWorker::StopAndWait()
 {
 	Running = false;
+	if (WorkEvent)
+	{
+		WorkEvent->Trigger();
+	}
 
 	if (Thread)
 	{
 		Thread->WaitForCompletion();
 		delete Thread;
 		Thread = nullptr;
+	}
+
+	if (WorkEvent)
+	{
+		FPlatformProcess::ReturnSynchEventToPool(WorkEvent);
+		WorkEvent = nullptr;
 	}
 }
 
@@ -233,7 +283,7 @@ bool SendWorker::SendDesiredBytes(const uint8* Buffer, int32 Size)
 		int32 BytesSent = 0;
 		if (Socket->Send(Buffer, Size, BytesSent) == false || BytesSent <= 0)
 		{
-			FPlatformProcess::SleepNoStats(0.001f);
+			Socket->Wait(ESocketWaitConditions::WaitForWrite, GetSocketWaitTimeout());
 			continue;
 		}
 

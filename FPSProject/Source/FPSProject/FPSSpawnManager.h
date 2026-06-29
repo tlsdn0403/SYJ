@@ -13,6 +13,7 @@ public:
 
 	void ProcessSpawnObject(const Protocol::ObjectInfo& ObjectInfo, bool bIsMine);
 	void Tick(float DeltaTime);
+	bool HasPendingWork() const;
 
 private:
 	struct FPlayerSpawnContext

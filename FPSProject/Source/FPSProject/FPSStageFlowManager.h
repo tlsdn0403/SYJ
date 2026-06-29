@@ -31,6 +31,7 @@ public:
 	void HandleStage1ItemSeed(const Protocol::S_STAGE1_ITEM_SEED& Pkt);
 	void HandleStageTransition(const Protocol::S_STAGE_TRANSITION& Pkt);
 	void TickStageFlow();
+	bool HasTickWork() const;
 	void ApplyStageTimerToLocalUI();
 
 private:

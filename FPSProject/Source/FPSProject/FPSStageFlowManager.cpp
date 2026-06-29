@@ -101,6 +101,7 @@ void FFPSStageFlowManager::RequestEnterGameWhenReady()
 	bPendingEnterGameRequest = true;
 	bEnterGamePacketSent = false;
 	bShouldShowEntryLoadingWidget = true;
+	bLoopEntryLoadingWidgetAnimations = false;
 	bStageTimerExpiredCinematicPlayed = false;
 	CachedEntryLoadingReadyCount = 0;
 	CachedStage1ItemSpawnSeed = 0;
@@ -194,6 +195,10 @@ void FFPSStageFlowManager::RegisterEntryLoadingWidget(UUserWidget* Widget)
 {
 	Owner.EntryLoadingWidget = Widget;
 	ApplyEntryLoadingReadyCount(CachedEntryLoadingReadyCount);
+	if (bLoopEntryLoadingWidgetAnimations)
+	{
+		PlayEntryLoadingWidgetAnimations(true);
+	}
 }
 
 void FFPSStageFlowManager::PlayEntryLoadingWidgetAnimations(bool bLoop)
@@ -223,6 +228,7 @@ void FFPSStageFlowManager::PlayEntryLoadingWidgetAnimations(bool bLoop)
 void FFPSStageFlowManager::RemoveEntryLoadingWidget()
 {
 	bShouldShowEntryLoadingWidget = false;
+	bLoopEntryLoadingWidgetAnimations = false;
 
 	if (Owner.EntryLoadingWidget)
 	{
@@ -671,9 +677,15 @@ void FFPSStageFlowManager::ShowStageTransitionLoadingWidget()
 {
 	if (Owner.StageTransitionLoadingWidgetClass)
 	{
+		if (Owner.EntryLoadingWidget && Owner.EntryLoadingWidget->GetClass() != Owner.StageTransitionLoadingWidgetClass)
+		{
+			Owner.EntryLoadingWidget->RemoveFromParent();
+			Owner.EntryLoadingWidget = nullptr;
+		}
 		SetEntryLoadingWidgetClass(Owner.StageTransitionLoadingWidgetClass);
 	}
 
+	bLoopEntryLoadingWidgetAnimations = true;
 	ShowEntryLoadingWidget();
 	PlayEntryLoadingWidgetAnimations(true);
 }

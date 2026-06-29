@@ -49,6 +49,7 @@ private:
 	bool bPendingEnterGameRequest = false;
 	bool bEnterGamePacketSent = false;
 	bool bShouldShowEntryLoadingWidget = false;
+	bool bLoopEntryLoadingWidgetAnimations = false;
 	bool bWaitingForStage2MapLoad = false;
 	bool bStageTransitionCinematicPlaying = false;
 	bool bOpenLevelAfterStageTransitionCinematic = true;

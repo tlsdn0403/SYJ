@@ -997,33 +997,6 @@ void UFPSProjectGameInstance::EvaluateGameOverIfAllPlayersDead()
 	ShowGameOverScreen();
 }
 
-void UFPSProjectGameInstance::GetAlivePlayerDisplayNames(TArray<FString>& OutDisplayNames) const
-{
-	OutDisplayNames.Reset();
-
-	TArray<TPair<uint64, AFPSBaseCharacter*>> RegisteredPlayers;
-	GetValidRegisteredPlayers(RegisteredPlayers);
-
-	const uint64 LocalPlayerId = (MyPlayer && MyPlayer->GetPlayerInfo()) ? MyPlayer->GetPlayerInfo()->object_id() : 0;
-	for (const TPair<uint64, AFPSBaseCharacter*>& PlayerEntry : RegisteredPlayers)
-	{
-		AFPSBaseCharacter* Player = PlayerEntry.Value;
-		if (!IsValid(Player) || Player->IsDead())
-		{
-			continue;
-		}
-
-		if (PlayerEntry.Key == LocalPlayerId && !PlayerNickname.IsEmpty())
-		{
-			OutDisplayNames.Add(PlayerNickname);
-		}
-		else
-		{
-			OutDisplayNames.Add(FString::Printf(TEXT("Player %llu"), PlayerEntry.Key));
-		}
-	}
-}
-
 void UFPSProjectGameInstance::OnGameOverExitClicked()
 {
 	QuitGame();

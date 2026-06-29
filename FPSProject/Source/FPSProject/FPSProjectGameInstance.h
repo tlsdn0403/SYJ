@@ -116,7 +116,6 @@ public:
 	bool IsNetworkLootItemInactive(uint64 LootItemId) const;
 	bool ShowGameOverScreen();
 	void EvaluateGameOverIfAllPlayersDead();
-	void GetAlivePlayerDisplayNames(TArray<FString>& OutDisplayNames) const;
 
 	UFUNCTION(BlueprintCallable, Category = "Stage1|Cargo")
 	void ClearRecordedStage1CargoItems();

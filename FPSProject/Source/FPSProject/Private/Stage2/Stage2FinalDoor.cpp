@@ -67,50 +67,6 @@ UButton* FindEndingExitButton(UUserWidget* EndingWidget)
 	return ButtonCount == 1 ? OnlyButton : nullptr;
 }
 
-UTextBlock* FindGameClearSurvivorTextBlock(UUserWidget* EndingWidget)
-{
-	if (EndingWidget == nullptr || EndingWidget->WidgetTree == nullptr)
-	{
-		return nullptr;
-	}
-
-	static const FName SurvivorTextNames[] =
-	{
-		TEXT("SurvivorNameText"),
-		TEXT("SurvivorNamesText"),
-		TEXT("SurvivorText"),
-		TEXT("SurvivorListText"),
-		TEXT("AlivePlayerText"),
-		TEXT("AlivePlayersText"),
-		TEXT("AlivePlayerNameText"),
-		TEXT("PlayerNameText"),
-		TEXT("PlayerNamesText"),
-		TEXT("PlayerListText"),
-		TEXT("NameText"),
-		TEXT("NameListText")
-	};
-
-	for (const FName& TextName : SurvivorTextNames)
-	{
-		if (UTextBlock* TextBlock = Cast<UTextBlock>(EndingWidget->WidgetTree->FindWidget(TextName)))
-		{
-			return TextBlock;
-		}
-	}
-
-	TArray<UWidget*> Widgets;
-	EndingWidget->WidgetTree->GetAllWidgets(Widgets);
-	for (UWidget* Widget : Widgets)
-	{
-		UTextBlock* TextBlock = Cast<UTextBlock>(Widget);
-		if (TextBlock && TextBlock->GetText().ToString().Contains(TEXT("살아남은 플레이어")))
-		{
-			return TextBlock;
-		}
-	}
-
-	return nullptr;
-}
 }
 
 AStage2FinalDoor::AStage2FinalDoor()
@@ -634,39 +590,47 @@ bool AStage2FinalDoor::ShowGameClearScreen()
 
 void AStage2FinalDoor::ApplyGameClearSurvivorNames()
 {
-	if (GameClearWidget == nullptr)
+	if (GameClearWidget == nullptr || GameClearWidget->WidgetTree == nullptr)
 	{
 		return;
 	}
 
-	UFPSProjectGameInstance* GameInstance = Cast<UFPSProjectGameInstance>(GetGameInstance());
-	if (GameInstance == nullptr)
+	static const FName PlayerTextNames[] =
 	{
+		TEXT("Player1"),
+		TEXT("Player2"),
+		TEXT("Player3")
+	};
+
+	TArray<UTextBlock*> PlayerTexts;
+	PlayerTexts.Reserve(UE_ARRAY_COUNT(PlayerTextNames));
+	for (const FName& PlayerTextName : PlayerTextNames)
+	{
+		if (UTextBlock* PlayerText = Cast<UTextBlock>(GameClearWidget->WidgetTree->FindWidget(PlayerTextName)))
+		{
+			PlayerText->SetVisibility(ESlateVisibility::Collapsed);
+			PlayerTexts.Add(PlayerText);
+		}
+	}
+
+	if (PlayerTexts.Num() == 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Stage2FinalDoor: Player1/Player2/Player3 text blocks were not found in GameClear widget."));
 		return;
 	}
 
 	TArray<FString> SurvivorNames;
-	GameInstance->GetSurvivingPlayerNicknames(SurvivorNames);
-	if (SurvivorNames.Num() <= 0)
+	if (UFPSProjectGameInstance* GameInstance = Cast<UFPSProjectGameInstance>(GetGameInstance()))
 	{
-		return;
+		GameInstance->GetSurvivingPlayerNicknames(SurvivorNames);
 	}
 
-	UTextBlock* SurvivorTextBlock = FindGameClearSurvivorTextBlock(GameClearWidget);
-	if (SurvivorTextBlock == nullptr)
+	const int32 DisplayCount = FMath::Min(PlayerTexts.Num(), SurvivorNames.Num());
+	for (int32 Index = 0; Index < DisplayCount; ++Index)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Stage2FinalDoor: survivor name text block was not found in GameClear widget."));
-		return;
+		PlayerTexts[Index]->SetText(FText::FromString(SurvivorNames[Index]));
+		PlayerTexts[Index]->SetVisibility(ESlateVisibility::Visible);
 	}
-
-	const FString JoinedNames = FString::Join(SurvivorNames, TEXT(" / "));
-	const FString CurrentText = SurvivorTextBlock->GetText().ToString();
-	const bool bTextBlockHasLabel = CurrentText.Contains(TEXT("살아남은 플레이어"));
-	const FString DisplayText = bTextBlockHasLabel
-		? FString::Printf(TEXT("살아남은 플레이어\n%s"), *JoinedNames)
-		: JoinedNames;
-
-	SurvivorTextBlock->SetText(FText::FromString(DisplayText));
 }
 
 void AStage2FinalDoor::BindGameClearExitButton()

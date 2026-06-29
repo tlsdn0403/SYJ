@@ -4,6 +4,7 @@
 #include "ClientPacketHandler.h"
 #include "Characters/FPSBaseCharacter.h"
 #include "Characters/FPSPlayerController.h"
+#include "Animation/WidgetAnimation.h"
 #include "Blueprint/UserWidget.h"
 #include "Blueprint/WidgetBlueprintGeneratedClass.h"
 #include "Camera/CameraActor.h"
@@ -27,9 +28,84 @@
 #include "Stage2/Stage2TileManager.h"
 #include "Truck/Truck.h"
 #include "Algo/Sort.h"
+#include "UObject/UnrealType.h"
 
 namespace
 {
+const FName StageTransitionLoadingAnimationName(TEXT("Ani_truckimage"));
+
+bool DoesAnimationNameMatch(const UWidgetAnimation* Animation, const FName TargetName)
+{
+	if (Animation == nullptr || TargetName.IsNone())
+	{
+		return false;
+	}
+
+	const FString TargetNameString = TargetName.ToString();
+	if (Animation->GetFName() == TargetName ||
+		Animation->GetName().Contains(TargetNameString, ESearchCase::IgnoreCase))
+	{
+		return true;
+	}
+
+	if (const UMovieScene* AnimationMovieScene = Animation->GetMovieScene())
+	{
+		return AnimationMovieScene->GetFName() == TargetName ||
+			AnimationMovieScene->GetName().Contains(TargetNameString, ESearchCase::IgnoreCase);
+	}
+
+	return false;
+}
+
+UWidgetAnimation* FindWidgetAnimationByName(UUserWidget* Widget, const FName AnimationName)
+{
+	if (Widget == nullptr || AnimationName.IsNone())
+	{
+		return nullptr;
+	}
+
+	const FString AnimationNameString = AnimationName.ToString();
+	for (TFieldIterator<FObjectProperty> PropertyIt(Widget->GetClass()); PropertyIt; ++PropertyIt)
+	{
+		FObjectProperty* ObjectProperty = *PropertyIt;
+		if (ObjectProperty == nullptr ||
+			ObjectProperty->PropertyClass == nullptr ||
+			!ObjectProperty->PropertyClass->IsChildOf(UWidgetAnimation::StaticClass()))
+		{
+			continue;
+		}
+
+		UWidgetAnimation* Animation = Cast<UWidgetAnimation>(ObjectProperty->GetObjectPropertyValue_InContainer(Widget));
+		if (Animation == nullptr)
+		{
+			continue;
+		}
+
+		if (ObjectProperty->GetFName() == AnimationName ||
+			ObjectProperty->GetName().Contains(AnimationNameString, ESearchCase::IgnoreCase) ||
+			DoesAnimationNameMatch(Animation, AnimationName))
+		{
+			return Animation;
+		}
+	}
+
+	const UWidgetBlueprintGeneratedClass* WidgetClass = Cast<UWidgetBlueprintGeneratedClass>(Widget->GetClass());
+	if (WidgetClass == nullptr)
+	{
+		return nullptr;
+	}
+
+	for (UWidgetAnimation* Animation : WidgetClass->Animations)
+	{
+		if (DoesAnimationNameMatch(Animation, AnimationName))
+		{
+			return Animation;
+		}
+	}
+
+	return nullptr;
+}
+
 bool ShouldShowComponentForStageTransitionCinematic(const UPrimitiveComponent* PrimitiveComponent)
 {
 	if (!PrimitiveComponent)
@@ -198,6 +274,16 @@ void FFPSStageFlowManager::RegisterEntryLoadingWidget(UUserWidget* Widget)
 	if (bLoopEntryLoadingWidgetAnimations)
 	{
 		PlayEntryLoadingWidgetAnimations(true);
+		if (UWorld* World = Owner.GetWorld())
+		{
+			World->GetTimerManager().SetTimerForNextTick(
+				FTimerDelegate::CreateRaw(this, &FFPSStageFlowManager::PlayEntryLoadingWidgetAnimations, true));
+			World->GetTimerManager().SetTimer(
+				EntryLoadingAnimationRetryTimerHandle,
+				FTimerDelegate::CreateRaw(this, &FFPSStageFlowManager::PlayEntryLoadingWidgetAnimations, true),
+				0.1f,
+				false);
+		}
 	}
 }
 
@@ -209,13 +295,28 @@ void FFPSStageFlowManager::PlayEntryLoadingWidgetAnimations(bool bLoop)
 		return;
 	}
 
-	const UWidgetBlueprintGeneratedClass* WidgetClass = Cast<UWidgetBlueprintGeneratedClass>(Widget->GetClass());
-	if (WidgetClass == nullptr)
+	const int32 LoopCount = bLoop ? 0 : 1;
+	if (UWidgetAnimation* TruckImageAnimation = FindWidgetAnimationByName(Widget, StageTransitionLoadingAnimationName))
 	{
+		Widget->StopAnimation(TruckImageAnimation);
+		Widget->PlayAnimation(TruckImageAnimation, 0.0f, LoopCount);
+		UE_LOG(LogTemp, Log, TEXT("[StageTransition] Playing loading widget animation '%s' loop=%d widget=%s"),
+			*StageTransitionLoadingAnimationName.ToString(),
+			bLoop ? 1 : 0,
+			*GetNameSafe(Widget));
 		return;
 	}
 
-	const int32 LoopCount = bLoop ? 0 : 1;
+	const UWidgetBlueprintGeneratedClass* WidgetClass = Cast<UWidgetBlueprintGeneratedClass>(Widget->GetClass());
+	if (WidgetClass == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[StageTransition] Loading widget animation '%s' not found. widget=%s class=%s"),
+			*StageTransitionLoadingAnimationName.ToString(),
+			*GetNameSafe(Widget),
+			*GetNameSafe(Widget->GetClass()));
+		return;
+	}
+
 	for (UWidgetAnimation* Animation : WidgetClass->Animations)
 	{
 		if (Animation)
@@ -223,12 +324,23 @@ void FFPSStageFlowManager::PlayEntryLoadingWidgetAnimations(bool bLoop)
 			Widget->PlayAnimation(Animation, 0.0f, LoopCount);
 		}
 	}
+
+	UE_LOG(LogTemp, Warning, TEXT("[StageTransition] Loading widget animation '%s' not found by name; played %d fallback animations. widget=%s class=%s"),
+		*StageTransitionLoadingAnimationName.ToString(),
+		WidgetClass->Animations.Num(),
+		*GetNameSafe(Widget),
+		*GetNameSafe(Widget->GetClass()));
 }
 
 void FFPSStageFlowManager::RemoveEntryLoadingWidget()
 {
 	bShouldShowEntryLoadingWidget = false;
 	bLoopEntryLoadingWidgetAnimations = false;
+
+	if (UWorld* World = Owner.GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(EntryLoadingAnimationRetryTimerHandle);
+	}
 
 	if (Owner.EntryLoadingWidget)
 	{

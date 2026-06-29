@@ -55,6 +55,7 @@ private:
 	bool bOpenLevelAfterStageTransitionCinematic = true;
 	FString PendingStageTransitionLevelName;
 	FTimerHandle StageTransitionCinematicTimerHandle;
+	FTimerHandle EntryLoadingAnimationRetryTimerHandle;
 	TWeakObjectPtr<ALevelSequenceActor> StageTransitionSequenceActor;
 	TWeakObjectPtr<ULevelSequencePlayer> StageTransitionSequencePlayer;
 	int32 CachedEntryLoadingReadyCount = 0;

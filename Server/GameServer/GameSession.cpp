@@ -11,12 +11,20 @@ void GameSession::OnConnected()
 
 void GameSession::OnDisconnected()
 {
+	GameSessionRef session = static_pointer_cast<GameSession>(shared_from_this());
+	PlayerRef disconnectedPlayer = player.load();
+	player.store(nullptr);
+
 	if (GRoom)
 	{
-		GRoom->DoAsync(&Room::RemovePendingReadySession, static_pointer_cast<GameSession>(shared_from_this()));
+		GRoom->DoAsync(&Room::RemovePendingReadySession, session);
+		if (disconnectedPlayer)
+		{
+			GRoom->DoAsync(&Room::HandleLeavePlayer, disconnectedPlayer);
+		}
 	}
 
-	GSessionManager.Remove(static_pointer_cast<GameSession>(shared_from_this()));
+	GSessionManager.Remove(session);
 }
 
 void GameSession::OnRecvPacket(BYTE* buffer, int32 len)

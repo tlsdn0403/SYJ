@@ -17,6 +17,7 @@ public:
 	void SendPacket(TSharedPtr<SendBuffer> SendBuffer);
 	bool IsConnected() const;
 	bool HasPendingRecvPackets() const;
+	bool HasPendingWork() const;
 
 private:
 	FSocket* Socket = nullptr;

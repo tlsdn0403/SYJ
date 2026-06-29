@@ -47,7 +47,7 @@ void PacketSession::HandleRecvPackets()
 
 void PacketSession::SendPacket(SendBufferRef SendBuffer)
 {
-	if (Socket == nullptr)
+	if (Socket == nullptr || IsConnectionClosed())
 	{
 		return;
 	}
@@ -69,9 +69,19 @@ bool PacketSession::HasPendingSendPackets() const
 	return !SendPacketQueue.IsEmpty();
 }
 
+bool PacketSession::IsConnectionClosed() const
+{
+	return bConnectionClosed;
+}
+
+void PacketSession::NotifyConnectionClosed()
+{
+	bConnectionClosed = true;
+}
+
 bool PacketSession::SendPacketNow(SendBufferRef SendBuffer, float TimeoutSeconds)
 {
-	if (Socket == nullptr || SendBuffer == nullptr)
+	if (Socket == nullptr || SendBuffer == nullptr || IsConnectionClosed())
 	{
 		return false;
 	}
@@ -98,6 +108,8 @@ bool PacketSession::SendPacketNow(SendBufferRef SendBuffer, float TimeoutSeconds
 
 void PacketSession::Disconnect()
 {
+	bConnectionClosed = true;
+
 	if (RecvWorkerThread)
 	{
 		RecvWorkerThread->StopAndWait();

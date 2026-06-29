@@ -1546,7 +1546,7 @@ void UFPSProjectGameInstance::Tick(float DeltaTime)
 void UFPSProjectGameInstance::TickNetwork()
 {
 	TrySendEnterGamePacket();
-	if (NetworkManager && NetworkManager->HasPendingRecvPackets())
+	if (NetworkManager && NetworkManager->HasPendingWork())
 	{
 		HandleRecvPackets();
 	}
@@ -1564,7 +1564,7 @@ bool UFPSProjectGameInstance::IsTickable() const
 
 bool UFPSProjectGameInstance::HasTickWork() const
 {
-	return (NetworkManager && NetworkManager->HasPendingRecvPackets()) ||
+	return (NetworkManager && NetworkManager->HasPendingWork()) ||
 		(StageFlowManager && StageFlowManager->HasTickWork()) ||
 		(SpawnManager && SpawnManager->HasPendingWork());
 }

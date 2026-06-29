@@ -23,6 +23,8 @@ public:
 	bool SendPacketNow(SendBufferRef SendBuffer, float TimeoutSeconds = 0.25f);
 	bool HasPendingRecvPackets() const;
 	bool HasPendingSendPackets() const;
+	bool IsConnectionClosed() const;
+	void NotifyConnectionClosed();
 
 	void Disconnect();
 
@@ -35,4 +37,5 @@ public:
 	// GameThread와 NetworkThread가 데이터 주고 받는 공용 큐.
 	TQueue<TArray<uint8>> RecvPacketQueue;
 	TQueue<SendBufferRef> SendPacketQueue;
+	FThreadSafeBool bConnectionClosed = false;
 };

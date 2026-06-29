@@ -73,12 +73,17 @@ void FFPSNetworkManager::DisconnectFromGameServer(bool bSendLeavePacket)
 
 void FFPSNetworkManager::HandleRecvPackets()
 {
-	if (!IsConnected())
+	if (GameServerSession == nullptr)
 	{
 		return;
 	}
 
 	GameServerSession->HandleRecvPackets();
+
+	if (GameServerSession && GameServerSession->IsConnectionClosed())
+	{
+		DisconnectFromGameServer(false);
+	}
 }
 
 void FFPSNetworkManager::SendPacket(TSharedPtr<SendBuffer> SendBuffer)
@@ -93,10 +98,16 @@ void FFPSNetworkManager::SendPacket(TSharedPtr<SendBuffer> SendBuffer)
 
 bool FFPSNetworkManager::IsConnected() const
 {
-	return Socket != nullptr && GameServerSession != nullptr;
+	return Socket != nullptr && GameServerSession != nullptr && !GameServerSession->IsConnectionClosed();
 }
 
 bool FFPSNetworkManager::HasPendingRecvPackets() const
 {
-	return IsConnected() && GameServerSession->HasPendingRecvPackets();
+	return GameServerSession && GameServerSession->HasPendingRecvPackets();
+}
+
+bool FFPSNetworkManager::HasPendingWork() const
+{
+	return GameServerSession &&
+		(GameServerSession->HasPendingRecvPackets() || GameServerSession->IsConnectionClosed());
 }

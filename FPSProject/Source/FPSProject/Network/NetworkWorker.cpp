@@ -49,7 +49,11 @@ uint32 RecvWorker::Run()
 		}
 		else
 		{
-			FPlatformProcess::SleepNoStats(WorkerFallbackSleepSeconds);
+			if (TSharedPtr<PacketSession> Session = SessionRef.Pin())
+			{
+				Session->NotifyConnectionClosed();
+			}
+			Running = false;
 		}
 	}
 
@@ -136,6 +140,10 @@ bool RecvWorker::ReceiveDesiredBytes(uint8* Results, int32 Size)
 		if (Socket->HasPendingData(PendingDataSize) == false || PendingDataSize <= 0)
 		{
 			Socket->Wait(ESocketWaitConditions::WaitForRead, GetSocketWaitTimeout());
+			if (Running && Socket->GetConnectionState() != SCS_Connected)
+			{
+				return false;
+			}
 			continue;
 		}
 
@@ -148,6 +156,11 @@ bool RecvWorker::ReceiveDesiredBytes(uint8* Results, int32 Size)
 
 		if (NumRead <= 0)
 		{
+			if (Socket->GetConnectionState() != SCS_Connected)
+			{
+				return false;
+			}
+
 			Socket->Wait(ESocketWaitConditions::WaitForRead, GetSocketWaitTimeout());
 			continue;
 		}

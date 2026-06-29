@@ -308,6 +308,27 @@ bool Room::ApplyPendingStage2MachineGunAmmo(TruckState& truckState)
 bool Room::EnterRoom(ObjectRef object, bool randPos /*= true*/)
 {
 	bool success = AddObject(object);
+	if (success == false)
+	{
+		if (auto player = dynamic_pointer_cast<Player>(object))
+		{
+			Protocol::S_ENTER_GAME enterGamePkt;
+			enterGamePkt.set_success(false);
+
+			if (object != nullptr && object->objectInfo != nullptr)
+			{
+				Protocol::ObjectInfo* playerInfo = new Protocol::ObjectInfo();
+				playerInfo->CopyFrom(*object->objectInfo);
+				enterGamePkt.set_allocated_player(playerInfo);
+			}
+
+			SendBufferRef sendBuffer = ServerPacketHandler::MakeSendBuffer(enterGamePkt);
+			if (auto session = player->session.lock())
+				session->Send(sendBuffer);
+		}
+
+		return false;
+	}
 
 	// 플레이어 위치
 	if (randPos)
@@ -416,7 +437,15 @@ bool Room::HandleEnterPlayer(PlayerRef player)
 	bool success = EnterRoom(player, true);
 
 	if (success == false)
+	{
+		if (player)
+		{
+			if (auto session = player->session.lock())
+				session->player.store(nullptr);
+			player->session.reset();
+		}
 		return false;
+	}
 
 	if (auto session = player->session.lock())
 	{
@@ -441,6 +470,8 @@ bool Room::HandleLeavePlayer(PlayerRef player)
 {
 	if (player == nullptr) return false;
 
+	GameSessionRef session = player->session.lock();
+
 	ForceExitTruck(player);
 
 	// 나가는 유저의 ID를 미리 기억해둠
@@ -451,6 +482,10 @@ bool Room::HandleLeavePlayer(PlayerRef player)
 
 	// 퇴장에 실패했거나 이미 나간 유저라면 여기서 끝냄
 	if (success == false) return false;
+
+	if (session)
+		session->player.store(nullptr);
+	player->session.reset();
 
 	// 방에 남아있는 다른 사람들에게 "얘 나갔다"고 소문내기!
 	Protocol::S_LEAVE_GAME leavePkt;
@@ -2577,6 +2612,7 @@ bool Room::RemoveObject(uint64 objectId)
 	if (player)
 	{
 		_players.erase(objectId);
+		_stageTransitionReadyPlayerIds.erase(objectId);
 		player->room.store(weak_ptr<Room>());
 		ClearPlayerTruckState(player);
 	}

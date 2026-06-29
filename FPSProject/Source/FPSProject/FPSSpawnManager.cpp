@@ -23,6 +23,55 @@
 namespace
 {
 constexpr float Stage2ZombieMinTruckSpawnDistance = 1200.0f;
+constexpr int32 MaxPendingTileZombiePlacementAttemptsPerTick = 2;
+constexpr float Stage2ZombiePlacementSearchRadii[] = { 240.0f, 480.0f, 720.0f, 960.0f, 1280.0f, 1600.0f, 2000.0f, 2400.0f, 3000.0f, 3600.0f };
+constexpr int32 Stage2ZombiePlacementAnglesPerRing = 16;
+
+const TArray<FVector>& GetZombiePlacementCandidateOffsets()
+{
+	static const TArray<FVector> CandidateOffsets = []()
+	{
+		TArray<FVector> Offsets;
+		Offsets.Reserve(1 + UE_ARRAY_COUNT(Stage2ZombiePlacementSearchRadii) * Stage2ZombiePlacementAnglesPerRing);
+		Offsets.Add(FVector::ZeroVector);
+
+		for (float Radius : Stage2ZombiePlacementSearchRadii)
+		{
+			for (int32 AngleIndex = 0; AngleIndex < Stage2ZombiePlacementAnglesPerRing; ++AngleIndex)
+			{
+				const float RingOffset = FMath::Fmod(Radius / 240.0f, 2.0f) * 0.5f;
+				const float AngleRadians =
+					(2.0f * PI * (static_cast<float>(AngleIndex) + RingOffset)) /
+					static_cast<float>(Stage2ZombiePlacementAnglesPerRing);
+				Offsets.Add(FVector(FMath::Cos(AngleRadians) * Radius, FMath::Sin(AngleRadians) * Radius, 0.0f));
+			}
+		}
+
+		return Offsets;
+	}();
+
+	return CandidateOffsets;
+}
+
+void GatherTruckLocations(UWorld* World, TArray<FVector>& OutTruckLocations)
+{
+	OutTruckLocations.Reset();
+	if (World == nullptr)
+	{
+		return;
+	}
+
+	for (TActorIterator<ATruck> It(World); It; ++It)
+	{
+		ATruck* Truck = *It;
+		if (!IsValid(Truck) || Truck->IsActorBeingDestroyed())
+		{
+			continue;
+		}
+
+		OutTruckLocations.Add(Truck->GetActorLocation());
+	}
+}
 
 bool TryProjectZombieLocationToGround(UWorld* World, ABaseZombie* Zombie, const FVector& CandidateLocation, FVector& OutActorLocation)
 {
@@ -50,23 +99,12 @@ bool TryProjectZombieLocationToGround(UWorld* World, ABaseZombie* Zombie, const 
 	return true;
 }
 
-bool IsZombiePlacementFarEnoughFromTrucks(UWorld* World, const FVector& ActorLocation)
+bool IsZombiePlacementFarEnoughFromTrucks(const TArray<FVector>& TruckLocations, const FVector& ActorLocation)
 {
-	if (World == nullptr)
-	{
-		return true;
-	}
-
 	const float MinDistanceSq = FMath::Square(Stage2ZombieMinTruckSpawnDistance);
-	for (TActorIterator<ATruck> It(World); It; ++It)
+	for (const FVector& TruckLocation : TruckLocations)
 	{
-		ATruck* Truck = *It;
-		if (!IsValid(Truck) || Truck->IsActorBeingDestroyed())
-		{
-			continue;
-		}
-
-		if (FVector::DistSquared2D(Truck->GetActorLocation(), ActorLocation) < MinDistanceSq)
+		if (FVector::DistSquared2D(TruckLocation, ActorLocation) < MinDistanceSq)
 		{
 			return false;
 		}
@@ -75,14 +113,18 @@ bool IsZombiePlacementFarEnoughFromTrucks(UWorld* World, const FVector& ActorLoc
 	return true;
 }
 
-bool IsZombiePlacementClear(UWorld* World, ABaseZombie* Zombie, const FVector& ActorLocation)
+bool IsZombiePlacementClear(
+	UWorld* World,
+	ABaseZombie* Zombie,
+	const FVector& ActorLocation,
+	const TArray<FVector>& TruckLocations)
 {
 	if (World == nullptr || Zombie == nullptr)
 	{
 		return false;
 	}
 
-	if (!IsZombiePlacementFarEnoughFromTrucks(World, ActorLocation))
+	if (!IsZombiePlacementFarEnoughFromTrucks(TruckLocations, ActorLocation))
 	{
 		return false;
 	}
@@ -130,21 +172,10 @@ bool TryFindClearZombiePlacement(UWorld* World, ABaseZombie* Zombie, const FVect
 		return false;
 	}
 
-	TArray<FVector> CandidateOffsets;
-	CandidateOffsets.Reserve(257);
-	CandidateOffsets.Add(FVector::ZeroVector);
-
-	static constexpr float SearchRadii[] = { 240.0f, 480.0f, 720.0f, 960.0f, 1280.0f, 1600.0f, 2000.0f, 2400.0f, 3000.0f, 3600.0f };
-	static constexpr int32 AnglesPerRing = 16;
-	for (float Radius : SearchRadii)
-	{
-		for (int32 AngleIndex = 0; AngleIndex < AnglesPerRing; ++AngleIndex)
-		{
-			const float RingOffset = FMath::Fmod(Radius / 240.0f, 2.0f) * 0.5f;
-			const float AngleRadians = (2.0f * PI * (static_cast<float>(AngleIndex) + RingOffset)) / static_cast<float>(AnglesPerRing);
-			CandidateOffsets.Add(FVector(FMath::Cos(AngleRadians) * Radius, FMath::Sin(AngleRadians) * Radius, 0.0f));
-		}
-	}
+	const TArray<FVector>& CandidateOffsets = GetZombiePlacementCandidateOffsets();
+	TArray<FVector> TruckLocations;
+	TruckLocations.Reserve(4);
+	GatherTruckLocations(World, TruckLocations);
 
 	const UCapsuleComponent* Capsule = Zombie->GetCapsuleComponent();
 	const float NavExtentZ = Capsule ? Capsule->GetScaledCapsuleHalfHeight() * 3.0f : 300.0f;
@@ -159,13 +190,13 @@ bool TryFindClearZombiePlacement(UWorld* World, ABaseZombie* Zombie, const FVect
 		FVector GroundedLocation;
 		if (TryProjectZombieLocationToGround(World, Zombie, CandidateLocation, GroundedLocation))
 		{
-			if (!bHasFallbackGroundedLocation && IsZombiePlacementFarEnoughFromTrucks(World, GroundedLocation))
+			if (!bHasFallbackGroundedLocation && IsZombiePlacementFarEnoughFromTrucks(TruckLocations, GroundedLocation))
 			{
 				FallbackGroundedLocation = GroundedLocation;
 				bHasFallbackGroundedLocation = true;
 			}
 
-			if (IsZombiePlacementClear(World, Zombie, GroundedLocation))
+			if (IsZombiePlacementClear(World, Zombie, GroundedLocation, TruckLocations))
 			{
 				OutActorLocation = GroundedLocation;
 				return true;
@@ -183,13 +214,13 @@ bool TryFindClearZombiePlacement(UWorld* World, ABaseZombie* Zombie, const FVect
 					continue;
 				}
 
-				if (!bHasFallbackGroundedLocation && IsZombiePlacementFarEnoughFromTrucks(World, NavGroundedLocation))
+				if (!bHasFallbackGroundedLocation && IsZombiePlacementFarEnoughFromTrucks(TruckLocations, NavGroundedLocation))
 				{
 					FallbackGroundedLocation = NavGroundedLocation;
 					bHasFallbackGroundedLocation = true;
 				}
 
-				if (IsZombiePlacementClear(World, Zombie, NavGroundedLocation))
+				if (IsZombiePlacementClear(World, Zombie, NavGroundedLocation, TruckLocations))
 				{
 					OutActorLocation = NavGroundedLocation;
 					return true;
@@ -256,9 +287,9 @@ void FFPSSpawnManager::ProcessSpawnObject(const Protocol::ObjectInfo& ObjectInfo
 	}
 }
 
-void FFPSSpawnManager::Tick(float DeltaTime)
+void FFPSSpawnManager::Tick(float /*DeltaTime*/)
 {
-	ProcessPendingTileZombiePlacements();
+	ProcessPendingTileZombiePlacements(MaxPendingTileZombiePlacementAttemptsPerTick);
 }
 
 bool FFPSSpawnManager::TryBuildPlayerSpawnContext(
@@ -362,7 +393,7 @@ void FFPSSpawnManager::QueuePendingTileZombiePlacement(
 	Zombie->SetActorEnableCollision(false);
 }
 
-void FFPSSpawnManager::ProcessPendingTileZombiePlacements()
+void FFPSSpawnManager::ProcessPendingTileZombiePlacements(int32 MaxPlacementAttempts)
 {
 	UWorld* World = Owner.GetWorld();
 	if (World == nullptr || PendingTileZombiePlacements.Num() == 0)
@@ -370,6 +401,7 @@ void FFPSSpawnManager::ProcessPendingTileZombiePlacements()
 		return;
 	}
 
+	int32 PlacementAttempts = 0;
 	for (int32 Index = PendingTileZombiePlacements.Num() - 1; Index >= 0; --Index)
 	{
 		FPendingTileZombiePlacement& PendingPlacement = PendingTileZombiePlacements[Index];
@@ -378,6 +410,11 @@ void FFPSSpawnManager::ProcessPendingTileZombiePlacements()
 		{
 			PendingTileZombiePlacements.RemoveAtSwap(Index);
 			continue;
+		}
+
+		if (MaxPlacementAttempts > 0 && PlacementAttempts >= MaxPlacementAttempts)
+		{
+			break;
 		}
 
 		FTransform TileWorldTransform;
@@ -389,6 +426,7 @@ void FFPSSpawnManager::ProcessPendingTileZombiePlacements()
 			PendingPlacement.LocalYaw,
 			TileWorldTransform))
 		{
+			++PlacementAttempts;
 			FVector PlacementLocation = TileWorldTransform.GetLocation();
 			if (!TryFindClearZombiePlacement(World, Zombie, TileWorldTransform.GetLocation(), PlacementLocation))
 			{

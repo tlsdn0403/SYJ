@@ -504,7 +504,7 @@ bool AStage2TileManager::TryActivatePooledTile(EStage2TileType TileType, const F
 	const FTransform LevelTransformToApply = EntryLocalTransform.Inverse() * EntryTransform;
 
 	// 이제 실제로 타일을 위치로 옮겨줌
-	if (!TryMoveTileTolocation(ActivatedTile, LevelTransformToApply))
+	if (!TryMoveTileTolocation(ActivatedTile, LevelTransformToApply, false))
 	{
 		TilePool.Add(ActivatedTile);
 		return false;
@@ -726,7 +726,10 @@ void AStage2TileManager::UnloadLandscapeLevelsForTile(FStage2LoadedTile& LoadedT
 	LoadedTile.LandscapeLevels.Empty();
 }
 
-bool AStage2TileManager::TryMoveTileTolocation(FStage2LoadedTile& LoadedTile, const FTransform& NewLevelTransform)
+bool AStage2TileManager::TryMoveTileTolocation(
+	FStage2LoadedTile& LoadedTile,
+	const FTransform& NewLevelTransform,
+	bool bRefreshCollisionAfterMove)
 {
 	if (!LoadedTile.StreamingLevel)
 	{
@@ -780,7 +783,10 @@ bool AStage2TileManager::TryMoveTileTolocation(FStage2LoadedTile& LoadedTile, co
 
 	LoadedTile.StreamingLevel->LevelTransform = NewLevelTransform;
 	LoadedTile.AppliedLevelTransform = NewLevelTransform;
-	RefreshTilePhysicsState(LoadedTile);
+	if (bRefreshCollisionAfterMove)
+	{
+		RefreshLandscapeState(LoadedTile, true);
+	}
 	return true;
 }
 
@@ -1013,8 +1019,10 @@ void AStage2TileManager::SetTileCollisionEnabled(const FStage2LoadedTile& Loaded
 		}
 	}
 
-	RefreshLandscapeState(LoadedTile, bEnabled);
-	RefreshTilePhysicsState(LoadedTile);
+	if (bEnabled)
+	{
+		RefreshLandscapeState(LoadedTile, true);
+	}
 }
 
 void AStage2TileManager::RefreshLandscapeState(const FStage2LoadedTile& LoadedTile, bool bRecreateCollision) const
@@ -1099,61 +1107,6 @@ void AStage2TileManager::RefreshLandscapeCollisionComponent(
 	{
 		CollisionComponent->RecreatePhysicsState();
 	}
-}
-
-void AStage2TileManager::RefreshTilePhysicsState(const FStage2LoadedTile& LoadedTile) const
-{
-	if (!LoadedTile.StreamingLevel)
-	{
-		return;
-	}
-
-	ULevel* LoadedLevel = LoadedTile.StreamingLevel->GetLoadedLevel();
-	if (!LoadedLevel)
-	{
-		return;
-	}
-
-	for (UModelComponent* ModelComponent : LoadedLevel->ModelComponents)
-	{
-		if (!ModelComponent || !ModelComponent->IsRegistered())
-		{
-			continue;
-		}
-
-		ModelComponent->UpdateComponentToWorld(EUpdateTransformFlags::None, ETeleportType::TeleportPhysics);
-		if (ModelComponent->GetCollisionEnabled() != ECollisionEnabled::NoCollision)
-		{
-			ModelComponent->RecreatePhysicsState();
-		}
-	}
-
-	for (AActor* LevelActor : LoadedLevel->Actors)
-	{
-		if (!IsValid(LevelActor))
-		{
-			continue;
-		}
-
-		TInlineComponentArray<UPrimitiveComponent*> PrimitiveComponents(LevelActor);
-		LevelActor->GetComponents(PrimitiveComponents);
-
-		for (UPrimitiveComponent* PrimitiveComponent : PrimitiveComponents)
-		{
-			if (!IsValid(PrimitiveComponent) || !PrimitiveComponent->IsRegistered())
-			{
-				continue;
-			}
-
-			PrimitiveComponent->UpdateComponentToWorld(EUpdateTransformFlags::None, ETeleportType::TeleportPhysics);
-			if (PrimitiveComponent->GetCollisionEnabled() != ECollisionEnabled::NoCollision)
-			{
-				PrimitiveComponent->RecreatePhysicsState();
-			}
-		}
-	}
-
-	RefreshLandscapeState(LoadedTile, true);
 }
 
 void AStage2TileManager::ForgetTileCollisionStates(const FStage2LoadedTile& LoadedTile)
@@ -1356,7 +1309,7 @@ void AStage2TileManager::RecycleActiveTileAt(int32 TileIndex)
 	SetTileRenderingEnabled(RecycledTile, false);
 	SetTileCollisionEnabled(RecycledTile, false);
 	UnloadLandscapeLevelsForTile(RecycledTile);
-	TryMoveTileTolocation(RecycledTile, MakePoolParkingTransform());
+	TryMoveTileTolocation(RecycledTile, MakePoolParkingTransform(), false);
 	RecycledTile.RequestedEntryTransform = RecycledTile.AppliedLevelTransform;
 	RecycledTile.bInitialized = true;
 	TilePool.Add(RecycledTile);

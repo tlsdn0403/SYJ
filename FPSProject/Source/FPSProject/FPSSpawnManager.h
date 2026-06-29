@@ -37,7 +37,7 @@ private:
 	bool TryBuildPlayerSpawnContext(UWorld* World, const Protocol::ObjectInfo& ObjectInfo, FPlayerSpawnContext& OutContext) const;
 	bool TryResolveTileZombieTransform(UWorld* World, int32 TileTypeCode, int32 TileOccurrenceIndex, const FVector& LocalLocation, float LocalYaw, FTransform& OutTransform) const;
 	void QueuePendingTileZombiePlacement(uint64 ObjectId, ABaseZombie* Zombie, const FVector& LocalLocation, float LocalYaw, int32 TileTypeCode, int32 TileOccurrenceIndex);
-	void ProcessPendingTileZombiePlacements();
+	void ProcessPendingTileZombiePlacements(int32 MaxPlacementAttempts);
 	void SendZombiePlacementCorrection(uint64 ObjectId, const FVector& WorldLocation, const FRotator& WorldRotation);
 	void SpawnZombie(UWorld* World, const Protocol::ObjectInfo& ObjectInfo);
 	void SpawnLocalPlayer(UWorld* World, const FPlayerSpawnContext& SpawnContext);

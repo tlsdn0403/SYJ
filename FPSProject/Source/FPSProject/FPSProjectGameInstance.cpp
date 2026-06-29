@@ -700,11 +700,16 @@ void UFPSProjectGameInstance::HandleMove(const Protocol::S_MOVE& MovePkt)
 		}
 
 		FVector ZombieLocation(MovePkt.info().x(), MovePkt.info().y(), MovePkt.info().z());
-		const UCapsuleComponent* ZombieCapsule = Zombie->GetCapsuleComponent();
-		const float ZombieGroundOffset = ZombieCapsule ? ZombieCapsule->GetScaledCapsuleHalfHeight() + 2.0f : 90.0f;
-		FPSStage2WorldUtils::TryProjectLocationToGround(World, ZombieLocation, ZombieGroundOffset, ZombieLocation, Zombie);
+		const FVector CurrentZombieLocation = Zombie->GetActorLocation();
+		static constexpr float Stage2ZombieGroundProjectionZThreshold = 50.0f;
+		if (FMath::Abs(ZombieLocation.Z - CurrentZombieLocation.Z) > Stage2ZombieGroundProjectionZThreshold)
+		{
+			const UCapsuleComponent* ZombieCapsule = Zombie->GetCapsuleComponent();
+			const float ZombieGroundOffset = ZombieCapsule ? ZombieCapsule->GetScaledCapsuleHalfHeight() + 2.0f : 90.0f;
+			FPSStage2WorldUtils::TryProjectLocationToGround(World, ZombieLocation, ZombieGroundOffset, ZombieLocation, Zombie);
+		}
 		const FRotator ZombieRotation(0.0f, MovePkt.info().yaw(), 0.0f);
-		const bool bZombieMovedByPacket = FVector::DistSquared2D(ZombieLocation, Zombie->GetActorLocation()) > FMath::Square(1.0f);
+		const bool bZombieMovedByPacket = FVector::DistSquared2D(ZombieLocation, CurrentZombieLocation) > FMath::Square(1.0f);
 		const bool bZombieIsMoving = MovePkt.info().state() != Protocol::MOVE_STATE_IDLE || bZombieMovedByPacket;
 		if (MovePkt.info().state() != Protocol::MOVE_STATE_IDLE && Zombie->IsAlive())
 		{

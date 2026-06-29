@@ -149,7 +149,7 @@ bool FFPSStageFlowManager::TrySendEnterGamePacket()
 void FFPSStageFlowManager::RefreshStage2StartupActorHold()
 {
 	const bool bShouldHold = Owner.ShouldDelayStage2ActorSpawn();
-	if (bShouldHold || Owner.bStage2StartupHoldApplied)
+	if (bShouldHold != Owner.bStage2StartupHoldApplied)
 	{
 		Owner.ApplyStage2StartupActorHold(bShouldHold);
 	}

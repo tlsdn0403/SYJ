@@ -294,7 +294,10 @@ private:
 	bool HasPendingLandscapeLevels() const;
 	bool AreLandscapeLevelsReady(const FStage2LoadedTile& LoadedTile) const;
 	void UnloadLandscapeLevelsForTile(FStage2LoadedTile& LoadedTile);
-	bool TryMoveTileTolocation(FStage2LoadedTile& LoadedTile, const FTransform& NewLevelTransform);
+	bool TryMoveTileTolocation(
+		FStage2LoadedTile& LoadedTile,
+		const FTransform& NewLevelTransform,
+		bool bRefreshCollisionAfterMove = true);
 	void SetTileRenderingEnabled(const FStage2LoadedTile& LoadedTile, bool bEnabled) const;
 	void SetTileCollisionEnabled(const FStage2LoadedTile& LoadedTile, bool bEnabled);
 	void ApplyTilePerformanceSettings(const FStage2LoadedTile& LoadedTile) const;
@@ -310,7 +313,6 @@ private:
 		ULandscapeHeightfieldCollisionComponent* CollisionComponent,
 		TSet<ULandscapeHeightfieldCollisionComponent*>& RefreshedCollisionComponents,
 		bool bRecreateCollision) const;
-	void RefreshTilePhysicsState(const FStage2LoadedTile& LoadedTile) const;
 	void ForgetTileCollisionStates(const FStage2LoadedTile& LoadedTile);
 	FTransform GetManagerTileTransform() const;
 	FTransform MakePoolParkingTransform();

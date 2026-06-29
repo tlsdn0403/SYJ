@@ -9,6 +9,12 @@
 #include "Stage2/Stage2TileManager.h"
 #include "Truck/Truck.h"
 
+namespace
+{
+	TWeakObjectPtr<UWorld> CachedStage2TileManagerWorld;
+	TWeakObjectPtr<AStage2TileManager> CachedStage2TileManager;
+}
+
 namespace FPSStage2WorldUtils
 {
 	void RestoreNetworkCharacterVisibility(AFPSBaseCharacter* Character)
@@ -69,11 +75,25 @@ namespace FPSStage2WorldUtils
 			return nullptr;
 		}
 
+		if (CachedStage2TileManagerWorld.Get() == World && CachedStage2TileManager.IsValid())
+		{
+			return CachedStage2TileManager.Get();
+		}
+
+		if (CachedStage2TileManagerWorld.Get() != World)
+		{
+			CachedStage2TileManagerWorld = World;
+			CachedStage2TileManager.Reset();
+		}
+
 		for (TActorIterator<AStage2TileManager> It(World); It; ++It)
 		{
+			CachedStage2TileManagerWorld = World;
+			CachedStage2TileManager = *It;
 			return *It;
 		}
 
+		CachedStage2TileManager.Reset();
 		return nullptr;
 	}
 

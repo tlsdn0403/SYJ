@@ -728,7 +728,7 @@ namespace
 	constexpr bool ZOMBIE_NAV_HAS_BLOCKED_CELLS = false;
 	constexpr int32 STAGE2_ZOMBIES_TO_SPAWN_PER_TICK = 10;
 	constexpr int32 STAGE2_ZOMBIE_GROUP_COLUMNS = 4;
-	constexpr int32 STAGE2_ZOMBIE_GROUP_ROWS = 10;
+	constexpr int32 STAGE2_ZOMBIE_GROUP_ROWS = 5;
 	constexpr float ZOMBIE_AI_NEAR_RANGE = 1800.0f;
 	constexpr float ZOMBIE_AI_MID_RANGE = 3600.0f;
 	constexpr float ZOMBIE_AI_NEAR_UPDATE_INTERVAL = ZOMBIE_SERVER_TICK_SECONDS;

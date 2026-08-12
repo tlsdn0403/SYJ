@@ -1,4 +1,0 @@
-SECTION_CLASS=MovieScene3DTransformSection
-get_all_channels
-get_channel
-get_channels_by_type

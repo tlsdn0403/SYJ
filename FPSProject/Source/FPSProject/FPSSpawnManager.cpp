@@ -609,6 +609,10 @@ void FFPSSpawnManager::SpawnLocalPlayer(UWorld* World, const FPlayerSpawnContext
 		MoveComp->StopMovementImmediately();
 		MoveComp->SetMovementMode(MOVE_Walking);
 	}
+	if (ATruck* Stage2Truck = FPSStage2WorldUtils::EnsureStaticStage2Truck(World))
+	{
+		FPSStage2WorldUtils::PlaceStaticStage2TruckNearPlayer(Stage2Truck, Owner.MyPlayer);
+	}
 
 	Owner.WorldObjects->RegisterPlayer(SpawnContext.ObjectId, Owner.MyPlayer);
 	Owner.RetryPendingWeapon(SpawnContext.ObjectId);

@@ -232,6 +232,10 @@ void UFPSProjectGameInstance::HandlePostLoadMap(UWorld* LoadedWorld)
 	PlayerNicknamesById.Empty();
 	bProcessingPendingStage2Spawns = false;
 	bStage2StartupHoldApplied = false;
+	if (FPSStage2WorldUtils::IsStaticStage2World(LoadedWorld))
+	{
+		CacheTruckActors();
+	}
 
 	if (StageFlowManager)
 	{
@@ -1012,6 +1016,7 @@ void UFPSProjectGameInstance::CacheTruckActors()
 {
 	if (WorldObjects)
 	{
+		FPSStage2WorldUtils::EnsureStaticStage2Truck(GetWorld());
 		WorldObjects->CacheTruckActors(GetWorld(), [](ATruck* Truck)
 			{
 				FPSStage2WorldUtils::ApplyInitialTruckPlacement(Truck);

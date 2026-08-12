@@ -1,9 +1,0 @@
-CHANNEL_CLASS=MovieSceneScriptingDoubleChannel
-KEY_CLASS=MovieSceneScriptingDoubleKey
-KEY_VALUE=59918.0
-get_interpolation_mode
-get_time
-get_value
-set_interpolation_mode
-set_time
-set_value

@@ -620,12 +620,40 @@ void Room::HandleStageMapReady(GameSessionRef session, Protocol::C_ENTER_GAME pk
 	}
 
 	CaptureStage2MachineGunAmmoFromTruck(_stageTransitionTruckId);
+	TruckState stage2TruckState;
+	bool bHasStage2TruckState = false;
+	if (TruckState* transitionTruckState = FindTruckState(_stageTransitionTruckId))
+	{
+		stage2TruckState = *transitionTruckState;
+		bHasStage2TruckState = true;
+	}
 
 	for (const PlayerRef& player : readyPlayers)
 	{
 		ClearPlayerTruckState(player);
 	}
 	_trucks.clear();
+	if (bHasStage2TruckState)
+	{
+		stage2TruckState.driverPlayerId = 0;
+		stage2TruckState.cargoPlayerIds.clear();
+		stage2TruckState.turretPlayerId = 0;
+		stage2TruckState.hasTurretAim = false;
+		stage2TruckState.posInfo.Clear();
+		stage2TruckState.posInfo.set_object_id(_stageTransitionTruckId);
+		stage2TruckState.posInfo.set_x(-3065.368f);
+		stage2TruckState.posInfo.set_y(15748.147f);
+		stage2TruckState.posInfo.set_z(100.0f);
+		stage2TruckState.posInfo.set_yaw(-90.0f);
+		stage2TruckState.posInfo.set_pitch(0.0f);
+		stage2TruckState.posInfo.set_roll(0.0f);
+		stage2TruckState.posInfo.set_state(Protocol::MOVE_STATE_IDLE);
+		stage2TruckState.hasTransform = true;
+		stage2TruckState.hasFuel = true;
+		stage2TruckState.fuel = 100.0f;
+		_trucks.emplace(_stageTransitionTruckId, std::move(stage2TruckState));
+	}
+	const uint64 stage2TruckId = _stageTransitionTruckId;
 	_stageTransitionTruckId = 0;
 
 	for (const PlayerRef& player : readyPlayers)
@@ -658,6 +686,12 @@ void Room::HandleStageMapReady(GameSessionRef session, Protocol::C_ENTER_GAME pk
 
 		if (spawnPkt.players_size() > 0)
 			playerSession->Send(ServerPacketHandler::MakeSendBuffer(spawnPkt));
+	}
+
+	if (TruckState* truckState = FindTruckState(stage2TruckId))
+	{
+		BroadcastTruckState(*truckState, true);
+		BroadcastMachineGunAmmo(*truckState);
 	}
 
 	_stageTransitionReadyPlayerIds.clear();

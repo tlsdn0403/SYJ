@@ -1,3 +1,0 @@
-SEQUENCE=<Object '/Game/Maps/map_level2/LS_Ending.LS_Ending' (0x0000021879FDC6C0) Class 'LevelSequence'>
-SK_Insurgent_P7 section=0 first_location=(20554.740115, -142206.006102, 121.0) first_yaw=90.0
-SK_Insurgent_P8 section=0 first_location=(20522.740115, -140514.006102, 115.0) first_yaw=90.0

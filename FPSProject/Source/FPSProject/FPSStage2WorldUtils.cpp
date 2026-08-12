@@ -2,7 +2,13 @@
 
 #include "Characters/FPSBaseCharacter.h"
 #include "Algo/Sort.h"
+#include "Camera/CameraComponent.h"
+#include "Components/BillboardComponent.h"
+#include "Components/DrawFrustumComponent.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "Components/PrimitiveComponent.h"
+#include "Components/SceneComponent.h"
+#include "Components/ShapeComponent.h"
 #include "Components/WidgetComponent.h"
 #include "EngineUtils.h"
 #include "Engine/World.h"
@@ -13,6 +19,81 @@
 
 namespace FPSStage2WorldUtils
 {
+	static bool TryGetStaticPlayerStartTransform(UWorld* World, FTransform& OutTransform);
+
+	static void HideTruckHelperVisuals(ATruck* Truck)
+	{
+		TArray<UCameraComponent*> CameraComponents;
+		Truck->GetComponents<UCameraComponent>(CameraComponents);
+		for (UCameraComponent* CameraComponent : CameraComponents)
+		{
+			if (IsValid(CameraComponent))
+			{
+				CameraComponent->SetHiddenInGame(true, true);
+#if WITH_EDITORONLY_DATA
+				CameraComponent->bDrawFrustumAllowed = false;
+				CameraComponent->bCameraMeshHiddenInGame = true;
+#endif
+			}
+		}
+
+		TArray<UBillboardComponent*> BillboardComponents;
+		Truck->GetComponents<UBillboardComponent>(BillboardComponents);
+		for (UBillboardComponent* BillboardComponent : BillboardComponents)
+		{
+			if (IsValid(BillboardComponent))
+			{
+				BillboardComponent->SetHiddenInGame(true, true);
+				BillboardComponent->SetVisibility(false, true);
+			}
+		}
+
+		TArray<UDrawFrustumComponent*> FrustumComponents;
+		Truck->GetComponents<UDrawFrustumComponent>(FrustumComponents);
+		for (UDrawFrustumComponent* FrustumComponent : FrustumComponents)
+		{
+			if (IsValid(FrustumComponent))
+			{
+				FrustumComponent->SetHiddenInGame(true, true);
+				FrustumComponent->SetVisibility(false, true);
+			}
+		}
+
+		TArray<UShapeComponent*> ShapeComponents;
+		Truck->GetComponents<UShapeComponent>(ShapeComponents);
+		for (UShapeComponent* ShapeComponent : ShapeComponents)
+		{
+			if (IsValid(ShapeComponent))
+			{
+				ShapeComponent->SetHiddenInGame(true, true);
+				ShapeComponent->SetVisibility(false, true);
+			}
+		}
+
+		TArray<USceneComponent*> SceneComponents;
+		Truck->GetComponents<USceneComponent>(SceneComponents);
+		for (USceneComponent* SceneComponent : SceneComponents)
+		{
+			if (!IsValid(SceneComponent))
+			{
+				continue;
+			}
+
+			const FString ComponentName = SceneComponent->GetName();
+			if (!ComponentName.Contains(TEXT("Camera"), ESearchCase::IgnoreCase) &&
+				!ComponentName.Contains(TEXT("SpringArm"), ESearchCase::IgnoreCase))
+			{
+				continue;
+			}
+
+			SceneComponent->SetHiddenInGame(true, true);
+			if (UPrimitiveComponent* PrimitiveComponent = Cast<UPrimitiveComponent>(SceneComponent))
+			{
+				PrimitiveComponent->SetVisibility(false, true);
+			}
+		}
+	}
+
 	void RestoreNetworkCharacterVisibility(AFPSBaseCharacter* Character)
 	{
 		if (!IsValid(Character))
@@ -88,6 +169,148 @@ namespace FPSStage2WorldUtils
 		}
 
 		return nullptr;
+	}
+
+	ATruck* EnsureStaticStage2Truck(UWorld* World)
+	{
+		if (!IsStaticStage2World(World))
+		{
+			return nullptr;
+		}
+
+		for (TActorIterator<ATruck> It(World); It; ++It)
+		{
+			if (ATruck* ExistingTruck = *It; IsValid(ExistingTruck))
+			{
+				return ExistingTruck;
+			}
+		}
+
+		UClass* TruckClass = LoadClass<ATruck>(nullptr, TEXT("/Game/Truck/BP_Truck.BP_Truck_C"));
+		if (!TruckClass)
+		{
+			UE_LOG(LogTemp, Error, TEXT("[Stage2Truck] Failed to load BP_Truck class."));
+			return nullptr;
+		}
+
+		FTransform PlayerStartTransform;
+		if (!TryGetStaticPlayerStartTransform(World, PlayerStartTransform))
+		{
+			UE_LOG(LogTemp, Error, TEXT("[Stage2Truck] Static map has no PlayerStart."));
+			return nullptr;
+		}
+
+		static constexpr float TruckSpawnSideOffset = 500.0f;
+		FVector TruckSpawnLocation =
+			PlayerStartTransform.GetLocation() +
+			PlayerStartTransform.GetRotation().GetRightVector() * TruckSpawnSideOffset +
+			FVector(0.0f, 0.0f, 300.0f);
+		FRotator TruckSpawnRotation = PlayerStartTransform.Rotator();
+		TruckSpawnRotation.Yaw -= 90.0f;
+		FTransform SpawnTransform(TruckSpawnRotation, TruckSpawnLocation);
+		ATruck* Truck = World->SpawnActorDeferred<ATruck>(
+			TruckClass,
+			SpawnTransform,
+			nullptr,
+			nullptr,
+			ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
+		if (!Truck)
+		{
+			UE_LOG(LogTemp, Error, TEXT("[Stage2Truck] Failed to spawn BP_Truck."));
+			return nullptr;
+		}
+
+		Truck->NetworkTruckId = 3;
+		Truck->FinishSpawning(SpawnTransform);
+
+		FVector GroundedLocation;
+		const bool bPlacedOnGround = TryPlaceTruckOnGround(Truck, TruckSpawnLocation, 8.0f, GroundedLocation);
+		if (bPlacedOnGround)
+		{
+			Truck->SetActorLocation(GroundedLocation, false, nullptr, ETeleportType::TeleportPhysics);
+		}
+		Truck->SetActorHiddenInGame(false);
+		Truck->SetActorEnableCollision(true);
+		HideTruckHelperVisuals(Truck);
+		if (USkeletalMeshComponent* TruckMesh = Truck->GetMesh())
+		{
+			TruckMesh->SetHiddenInGame(false, true);
+			TruckMesh->SetVisibility(true, true);
+			TruckMesh->SetEnableGravity(true);
+		}
+		Truck->ResetVehiclePhysicsState(true);
+
+		UE_LOG(LogTemp, Log,
+			TEXT("[Stage2Truck] Spawned near PlayerStart. PlayerStart=%s Truck=%s Grounded=%d"),
+			*PlayerStartTransform.GetLocation().ToString(),
+			*Truck->GetActorLocation().ToString(),
+			bPlacedOnGround ? 1 : 0);
+		return Truck;
+	}
+
+	void PlaceStaticStage2TruckNearPlayer(ATruck* Truck, const AActor* PlayerActor)
+	{
+		if (!IsValid(Truck) || !IsValid(PlayerActor) || !IsStaticStage2World(Truck->GetWorld()))
+		{
+			return;
+		}
+
+		static const FName PlayerPlacementTag(TEXT("Stage2PlayerTruckPlacementApplied"));
+		if (Truck->Tags.Contains(PlayerPlacementTag))
+		{
+			return;
+		}
+
+		FTransform PlayerStartTransform;
+		if (!TryGetStaticPlayerStartTransform(Truck->GetWorld(), PlayerStartTransform))
+		{
+			return;
+		}
+
+		static constexpr float PlayerSpawnForwardOffset = 100.0f;
+		static constexpr float TruckSpawnForwardOffset = 500.0f;
+		static constexpr float TruckSpawnLeftOffset = 500.0f;
+		const FVector SpawnForwardVector = -PlayerStartTransform.GetRotation().GetRightVector();
+		const FVector SpawnRightVector = PlayerStartTransform.GetRotation().GetForwardVector();
+		FVector TargetLocation =
+			PlayerStartTransform.GetLocation() +
+			SpawnForwardVector * (PlayerSpawnForwardOffset + TruckSpawnForwardOffset) +
+			SpawnRightVector * -TruckSpawnLeftOffset +
+			FVector(0.0f, 0.0f, 300.0f);
+		FVector GroundedLocation;
+		const bool bPlacedOnGround = TryPlaceTruckOnGround(Truck, TargetLocation, 8.0f, GroundedLocation);
+		if (bPlacedOnGround)
+		{
+			TargetLocation = GroundedLocation;
+		}
+
+		FRotator TargetRotation = PlayerStartTransform.Rotator();
+		TargetRotation.Yaw -= 90.0f;
+		TargetRotation.Pitch = 0.0f;
+		TargetRotation.Roll = 0.0f;
+		Truck->SetActorLocationAndRotation(
+			TargetLocation,
+			TargetRotation,
+			false,
+			nullptr,
+			ETeleportType::TeleportPhysics);
+		Truck->SetActorHiddenInGame(false);
+		Truck->SetActorEnableCollision(true);
+		HideTruckHelperVisuals(Truck);
+		if (USkeletalMeshComponent* TruckMesh = Truck->GetMesh())
+		{
+			TruckMesh->SetHiddenInGame(false, true);
+			TruckMesh->SetVisibility(true, true);
+			TruckMesh->SetEnableGravity(true);
+		}
+		Truck->ResetVehiclePhysicsState(true);
+		Truck->Tags.Add(PlayerPlacementTag);
+
+		UE_LOG(LogTemp, Log,
+			TEXT("[Stage2Truck] Placed near local player. Player=%s Truck=%s Grounded=%d"),
+			*PlayerActor->GetActorLocation().ToString(),
+			*Truck->GetActorLocation().ToString(),
+			bPlacedOnGround ? 1 : 0);
 	}
 
 	static bool TryGetStaticPlayerStartTransform(UWorld* World, FTransform& OutTransform)
@@ -212,6 +435,12 @@ namespace FPSStage2WorldUtils
 
 		TryProjectLocationToGround(World, SpawnLocation, 18.0f, SpawnLocation);
 		OutTransform.SetLocation(SpawnLocation);
+		if (IsStaticStage2World(World))
+		{
+			FRotator WeaponRotation = OutTransform.Rotator();
+			WeaponRotation.Yaw -= 90.0f;
+			OutTransform.SetRotation(WeaponRotation.Quaternion());
+		}
 		return true;
 	}
 
@@ -343,6 +572,22 @@ namespace FPSStage2WorldUtils
 		static const FName Stage2InitialTruckPlacementTag(TEXT("Stage2InitialTruckPlacementApplied"));
 		if (Truck->Tags.Contains(Stage2InitialTruckPlacementTag))
 		{
+			return;
+		}
+
+		if (IsStaticStage2World(World))
+		{
+			Truck->SetActorHiddenInGame(false);
+			Truck->SetActorEnableCollision(true);
+			HideTruckHelperVisuals(Truck);
+			if (USkeletalMeshComponent* TruckMesh = Truck->GetMesh())
+			{
+				TruckMesh->SetHiddenInGame(false, true);
+				TruckMesh->SetVisibility(true, true);
+				TruckMesh->SetEnableGravity(true);
+			}
+			Truck->ResetVehiclePhysicsState(true);
+			Truck->Tags.Add(Stage2InitialTruckPlacementTag);
 			return;
 		}
 

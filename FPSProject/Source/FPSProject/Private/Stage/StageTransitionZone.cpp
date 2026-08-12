@@ -75,8 +75,6 @@ void AStageTransitionZone::TravelToTargetLevel(ATruck* TriggerTruck)
 		return;
 	}
 
-	bHasTriggered = true;
-
 	if (UFPSProjectGameInstance* GameInstance = GetGameInstance<UFPSProjectGameInstance>())
 	{
 		if (GameInstance->IsConnectedToGameServer())
@@ -89,6 +87,7 @@ void AStageTransitionZone::TravelToTargetLevel(ATruck* TriggerTruck)
 		}
 	}
 
+	bHasTriggered = true;
 	UGameplayStatics::OpenLevel(this, ResolvedTargetLevelName);
 }
 

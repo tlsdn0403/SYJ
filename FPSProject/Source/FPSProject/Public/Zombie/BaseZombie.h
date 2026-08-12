@@ -11,6 +11,7 @@ class UAnimInstance;
 class UParticleSystem;
 class UNiagaraSystem;
 class USoundBase;
+class USoundAttenuation;
 class AActor;
 
 /** 좀비 상태를 나타내는 열거형 */
@@ -101,6 +102,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zombie|Audio")
 	TObjectPtr<USoundBase> ZombieGroupAwarenessSound;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Zombie|Audio", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<USoundAttenuation> ZombieSpatialAttenuation;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zombie|Dismember")
 	TMap<FName, TSubclassOf<AActor>> DismemberChunkClasses;
@@ -227,7 +231,7 @@ private:
 	int32 MaxZombieGroupAwarenessSoundPlays = 1;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zombie|Audio", meta = (AllowPrivateAccess = "true", ClampMin = "0.0"))
-	float ZombieGroupAwarenessSoundCooldown = 2.0f;
+	float ZombieGroupAwarenessSoundCooldown = 6.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zombie|Movement", meta = (AllowPrivateAccess = "true"))
 	float TurnRateYaw = 540.0f;

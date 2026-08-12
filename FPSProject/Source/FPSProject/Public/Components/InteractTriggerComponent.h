@@ -24,6 +24,9 @@ class FPSPROJECT_API UInteractTriggerComponent : public USphereComponent
 {
 	GENERATED_BODY()
 	
+public:
+	UInteractTriggerComponent();
+
 protected:
 	virtual void BeginPlay() override;
 

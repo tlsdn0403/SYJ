@@ -200,8 +200,8 @@ void AFPSBaseCharacter::SetCinematicViewMode(bool bEnable)
 
 	if (USkeletalMeshComponent* CharacterMesh = GetMesh())
 	{
-		CharacterMesh->SetHiddenInGame(false, true);
-		CharacterMesh->SetVisibility(true, true);
+		CharacterMesh->SetHiddenInGame(false, false);
+		CharacterMesh->SetVisibility(true, false);
 		CharacterMesh->SetOwnerNoSee(false);
 		CharacterMesh->SetOnlyOwnerSee(false);
 	}

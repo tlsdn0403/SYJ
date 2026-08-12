@@ -6,6 +6,12 @@
 #include "GameFramework/Actor.h"
 #include "Truck/Truck.h"
 
+UInteractTriggerComponent::UInteractTriggerComponent()
+{
+	SetHiddenInGame(true);
+	SetVisibility(false);
+}
+
 bool UInteractTriggerComponent::IsAvailableForCharacter(const AFPSBaseCharacter* Character) const
 {
 	if (Character == nullptr)
@@ -55,6 +61,9 @@ bool UInteractTriggerComponent::IsAvailableForCharacter(const AFPSBaseCharacter*
 void UInteractTriggerComponent::BeginPlay()
 {
 	Super::BeginPlay();
+
+	SetHiddenInGame(true);
+	SetVisibility(false);
 
 	OnComponentBeginOverlap.AddDynamic(this, &UInteractTriggerComponent::OnOverlapBegin);
 	OnComponentEndOverlap.AddDynamic(this, &UInteractTriggerComponent::OnOverlapEnd);

@@ -1,0 +1,3 @@
+SEQUENCE=<Object '/Game/Maps/map_level2/LS_Ending.LS_Ending' (0x000002448435CBC0) Class 'LevelSequence'>
+SK_Insurgent_P7 section=0 first_location=(20554.740115, -142206.006102, 101.0)
+SK_Insurgent_P8 section=0 first_location=(22246.740115, -142174.006102, 95.0)

@@ -25,6 +25,8 @@
 namespace
 {
 constexpr float Stage2ZombieMinTruckSpawnDistance = 1200.0f;
+constexpr uint64 Stage2ZombieObjectIdStart = 1000000;
+constexpr uint64 StaticStage2ZombiesPerSpawnArea = 20;
 
 void HideStaticStage2ZombieSpawnMarkers(UWorld* World)
 {
@@ -564,8 +566,17 @@ void FFPSSpawnManager::SpawnZombie(UWorld* World, const Protocol::ObjectInfo& Ob
 	}
 	else
 	{
-		const uint32 ObjectGroupHash = GetTypeHash(ObjectId);
-		SpawnedZombie->SetZombieGroupSoundKey(ObjectGroupHash != 0 ? static_cast<int32>(ObjectGroupHash) : 1);
+		if (FPSStage2WorldUtils::IsStaticStage2World(World) && ObjectId >= Stage2ZombieObjectIdStart)
+		{
+			const int32 SpawnAreaGroup = static_cast<int32>(
+				(ObjectId - Stage2ZombieObjectIdStart) / StaticStage2ZombiesPerSpawnArea) + 1;
+			SpawnedZombie->SetZombieGroupSoundKey(SpawnAreaGroup);
+		}
+		else
+		{
+			const uint32 ObjectGroupHash = GetTypeHash(ObjectId);
+			SpawnedZombie->SetZombieGroupSoundKey(ObjectGroupHash != 0 ? static_cast<int32>(ObjectGroupHash) : 1);
+		}
 	}
 	SpawnedZombie->SetActorTickEnabled(false);
 	if (UCharacterMovementComponent* MoveComp = SpawnedZombie->GetCharacterMovement())

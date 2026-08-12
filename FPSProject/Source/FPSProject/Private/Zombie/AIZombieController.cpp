@@ -360,7 +360,12 @@ void AAIZombieController::TryPlayZombieGroupAwarenessSound(AActor* TargetActor, 
 	const FVector SoundLocation = ZombiePawn->GetActorLocation().IsNearlyZero()
 		? KnownLocation
 		: ZombiePawn->GetActorLocation();
-	UGameplayStatics::PlaySoundAtLocation(this, ZombieGroupAwarenessSound, SoundLocation);
+	UGameplayStatics::PlaySoundAtLocation(
+		this,
+		ZombieGroupAwarenessSound,
+		SoundLocation,
+		FRotator::ZeroRotator,
+		0.4f);
 	++SoundState.PlayCount;
 	SoundState.LastPlayTime = CurrentTime;
 }

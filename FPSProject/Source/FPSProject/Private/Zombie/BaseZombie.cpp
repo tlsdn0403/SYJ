@@ -475,7 +475,12 @@ void ABaseZombie::PlayZombieGroupAwarenessSound(const FVector& SoundLocation)
 	}
 
 	const FVector PlayLocation = SoundLocation.IsNearlyZero() ? GetActorLocation() : SoundLocation;
-	UGameplayStatics::PlaySoundAtLocation(this, ZombieGroupAwarenessSound, PlayLocation);
+	UGameplayStatics::PlaySoundAtLocation(
+		this,
+		ZombieGroupAwarenessSound,
+		PlayLocation,
+		FRotator::ZeroRotator,
+		0.4f);
 	++SoundState.PlayCount;
 	SoundState.LastPlayTime = CurrentTime;
 }

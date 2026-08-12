@@ -736,8 +736,8 @@ namespace
 	constexpr uint64 ZOMBIE_OBJECT_ID_START = 1000000;
 	constexpr float ZOMBIE_SERVER_TICK_SECONDS = 0.1f;
 	constexpr float ZOMBIE_MOVE_SPEED = 250.0f;
-	constexpr float ZOMBIE_AGGRO_RANGE = 5000.0f;
-	constexpr float ZOMBIE_AI_ACTIVE_RANGE = 5200.0f;
+	constexpr float ZOMBIE_AGGRO_RANGE = 8000.0f;
+	constexpr float ZOMBIE_AI_ACTIVE_RANGE = 8200.0f;
 	constexpr float ZOMBIE_ATTACK_RANGE = 140.0f;
 	constexpr float ZOMBIE_ATTACK_COOLDOWN_SECONDS = 1.0f;
 	constexpr float ZOMBIE_DESPAWN_DELAY_SECONDS = 3.0f;
@@ -1030,6 +1030,7 @@ namespace
 		int32 tileOccurrenceCount;
 		uint32 typeSeed;
 		uint32 yawSeed;
+		float formationYawDegrees = 0.0f;
 	};
 
 	constexpr ZombieSpawnGroupInfo STAGE2_ZOMBIE_GROUPS[] =
@@ -1060,14 +1061,32 @@ namespace
 
 	constexpr ZombieSpawnGroupInfo STAGE2_STATIC_MAP_ZOMBIE_GROUPS[] =
 	{
-		{ -6200.0f, -137800.0f, 250.0f, 4, 5, 220.0f, 220.0f, STAGE2_ZOMBIE_TILE_WORLD, 1, 0x8F1BBCDCu, 0xD1310BA6u },
-		{ -14200.0f, -128500.0f, 250.0f, 4, 5, 220.0f, 220.0f, STAGE2_ZOMBIE_TILE_WORLD, 1, 0xA4093822u, 0x299F31D0u },
-		{ -23000.0f, -116000.0f, 250.0f, 4, 5, 220.0f, 220.0f, STAGE2_ZOMBIE_TILE_WORLD, 1, 0x082EFA98u, 0xEC4E6C89u },
-		{ -29200.0f, -84800.0f, 250.0f, 4, 5, 220.0f, 220.0f, STAGE2_ZOMBIE_TILE_WORLD, 1, 0x452821E6u, 0x38D01377u },
-		{ -35400.0f, -52000.0f, 180.0f, 4, 5, 220.0f, 220.0f, STAGE2_ZOMBIE_TILE_WORLD, 1, 0xBE5466CFu, 0x34E90C6Cu },
-		{ 5200.0f, -140800.0f, 170.0f, 4, 5, 220.0f, 220.0f, STAGE2_ZOMBIE_TILE_WORLD, 1, 0xC0AC29B7u, 0xC97C50DDu },
-		{ 20000.0f, -141300.0f, 160.0f, 4, 5, 220.0f, 220.0f, STAGE2_ZOMBIE_TILE_WORLD, 1, 0x3F84D5B5u, 0xB5470917u },
-		{ 30500.0f, -139900.0f, 160.0f, 4, 5, 220.0f, 220.0f, STAGE2_ZOMBIE_TILE_WORLD, 1, 0x9216D5D9u, 0x8979FB1Bu },
+		// Cube2 and Cube4-Cube26 are the hand-placed white 2000x2000 spawn areas.
+		// All 24 areas use a 4x5 formation, for 20 zombies per area and 480 total.
+		{   -483.0f,    9843.0f, 313.0f, 4, 5, 450.0f, 400.0f, STAGE2_ZOMBIE_TILE_WORLD, 1, 0x8F1BBCDCu, 0xD1310BA6u },
+		{   -154.0f,    3052.0f, 313.0f, 4, 5, 450.0f, 400.0f, STAGE2_ZOMBIE_TILE_WORLD, 1, 0xA4093822u, 0x299F31D0u },
+		{   -918.0f,  -21179.0f, 313.0f, 4, 5, 450.0f, 400.0f, STAGE2_ZOMBIE_TILE_WORLD, 1, 0x082EFA98u, 0xEC4E6C89u },
+		{  -8702.0f,  -33934.0f, 313.0f, 4, 5, 450.0f, 400.0f, STAGE2_ZOMBIE_TILE_WORLD, 1, 0x452821E6u, 0x38D01377u },
+		{ -10625.0f,  -39371.0f, 313.0f, 4, 5, 450.0f, 400.0f, STAGE2_ZOMBIE_TILE_WORLD, 1, 0xBE5466CFu, 0x34E90C6Cu },
+		{  -9679.0f,  -43771.0f, 313.0f, 4, 5, 450.0f, 400.0f, STAGE2_ZOMBIE_TILE_WORLD, 1, 0xC0AC29B7u, 0xC97C50DDu },
+		{   1257.0f,  -44164.0f, 313.0f, 4, 5, 450.0f, 400.0f, STAGE2_ZOMBIE_TILE_WORLD, 1, 0x3F84D5B5u, 0xB5470917u },
+		{  -2834.0f,  -55479.0f, 313.0f, 4, 5, 450.0f, 400.0f, STAGE2_ZOMBIE_TILE_WORLD, 1, 0x9216D5D9u, 0x8979FB1Bu },
+		{  -3136.0f,  -37238.0f, 313.0f, 4, 5, 450.0f, 400.0f, STAGE2_ZOMBIE_TILE_WORLD, 1, 0x6A09E667u, 0xBB67AE85u },
+		{ -30515.0f,  -52358.0f, 313.0f, 4, 5, 450.0f, 400.0f, STAGE2_ZOMBIE_TILE_WORLD, 1, 0x3C6EF372u, 0xA54FF53Au },
+		{ -33867.0f,  -63345.0f, 313.0f, 4, 5, 450.0f, 400.0f, STAGE2_ZOMBIE_TILE_WORLD, 1, 0x510E527Fu, 0x9B05688Cu },
+		{ -23567.0f,  -64471.0f, 313.0f, 4, 5, 450.0f, 400.0f, STAGE2_ZOMBIE_TILE_WORLD, 1, 0x1F83D9ABu, 0x5BE0CD19u },
+		{ -22128.0f,  -68049.0f, 313.0f, 4, 5, 450.0f, 400.0f, STAGE2_ZOMBIE_TILE_WORLD, 1, 0x8C3D37C9u, 0x243F6A88u },
+		{ -23693.0f,  -73510.0f, 313.0f, 4, 5, 450.0f, 400.0f, STAGE2_ZOMBIE_TILE_WORLD, 1, 0xA24BAED5u, 0x9FB21C63u },
+		{ -27038.0f,  -84945.0f, 313.0f, 4, 5, 450.0f, 400.0f, STAGE2_ZOMBIE_TILE_WORLD, 1, 0xC13FA9A9u, 0x5D588B65u },
+		{ -32743.0f,  -90709.0f, 313.0f, 4, 5, 450.0f, 400.0f, STAGE2_ZOMBIE_TILE_WORLD, 1, 0x91E10DA5u, 0xB7E15162u },
+		{ -27254.0f,  -90840.0f, 313.0f, 4, 5, 450.0f, 400.0f, STAGE2_ZOMBIE_TILE_WORLD, 1, 0x7F4A7C15u, 0xD1B54A32u },
+		{ -27758.0f, -104192.0f, 313.0f, 4, 5, 450.0f, 400.0f, STAGE2_ZOMBIE_TILE_WORLD, 1, 0xF00DBA11u, 0x10203040u },
+		{ -32186.0f, -115082.0f, 313.0f, 4, 5, 450.0f, 400.0f, STAGE2_ZOMBIE_TILE_WORLD, 1, 0xC001D00Du, 0x55667788u },
+		{ -31853.0f, -135490.0f, 313.0f, 4, 5, 450.0f, 400.0f, STAGE2_ZOMBIE_TILE_WORLD, 1, 0xA5A5F00Du, 0x89ABCDEFu },
+		{ -15163.0f, -137329.0f, 313.0f, 4, 5, 450.0f, 400.0f, STAGE2_ZOMBIE_TILE_WORLD, 1, 0x1BADB002u, 0x76543210u },
+		{ -18702.0f, -146501.0f, 313.0f, 4, 5, 450.0f, 400.0f, STAGE2_ZOMBIE_TILE_WORLD, 1, 0xDEADC0DEu, 0x0F1E2D3Cu },
+		{ -30467.0f, -144044.0f, 313.0f, 4, 5, 450.0f, 400.0f, STAGE2_ZOMBIE_TILE_WORLD, 1, 0x31415926u, 0x27182818u },
+		{ -23193.0f, -142256.0f, 313.0f, 4, 5, 450.0f, 400.0f, STAGE2_ZOMBIE_TILE_WORLD, 1, 0x41C64E6Du, 0xA341316Cu },
 	};
 	struct Stage2WeaponSpawnInfo
 	{
@@ -1208,10 +1227,11 @@ void Room::SpawnStage2Zombies()
 	for (int32 groupIndex = 0; groupIndex < zombieGroupCount; ++groupIndex)
 	{
 		const ZombieSpawnGroupInfo& groupInfo = zombieGroups[groupIndex];
-		const int32 spawnColumns = STAGE2_ZOMBIE_GROUP_COLUMNS;
-		const int32 spawnRows = STAGE2_ZOMBIE_GROUP_ROWS;
-		const float startX = groupInfo.centerX - (static_cast<float>(spawnColumns - 1) * groupInfo.spacingX * 0.5f);
-		const float startY = groupInfo.centerY - (static_cast<float>(spawnRows - 1) * groupInfo.spacingY * 0.5f);
+		const int32 spawnColumns = std::max<int32>(1, groupInfo.columns);
+		const int32 spawnRows = std::max<int32>(1, groupInfo.rows);
+		const float formationYawRadians = groupInfo.formationYawDegrees * 3.14159265358979323846f / 180.0f;
+		const float formationCos = cosf(formationYawRadians);
+		const float formationSin = sinf(formationYawRadians);
 		const int32 tileOccurrenceCount = _bHasStage2TileTypeSequence
 			? GetStage2TileOccurrenceCount(groupInfo.tileTypeCode, groupInfo.tileOccurrenceCount)
 			: groupInfo.tileOccurrenceCount;
@@ -1223,9 +1243,13 @@ void Room::SpawnStage2Zombies()
 				for (int32 column = 0; column < spawnColumns; ++column)
 				{
 					const int32 spawnIndex = occurrenceIndex * spawnRows * spawnColumns + row * spawnColumns + column;
+					const float localX = (static_cast<float>(column) - static_cast<float>(spawnColumns - 1) * 0.5f) * groupInfo.spacingX;
+					const float localY = (static_cast<float>(row) - static_cast<float>(spawnRows - 1) * 0.5f) * groupInfo.spacingY;
+					const float worldX = groupInfo.centerX + localX * formationCos - localY * formationSin;
+					const float worldY = groupInfo.centerY + localX * formationSin + localY * formationCos;
 					QueueStage2ZombieSpawn(
-						startX + static_cast<float>(column) * groupInfo.spacingX,
-						startY + static_cast<float>(row) * groupInfo.spacingY,
+						worldX,
+						worldY,
 						groupInfo.centerZ,
 						PickStage2ZombieYaw(groupInfo.yawSeed, spawnIndex),
 						PickStage2ZombieType(groupInfo.typeSeed, spawnIndex),

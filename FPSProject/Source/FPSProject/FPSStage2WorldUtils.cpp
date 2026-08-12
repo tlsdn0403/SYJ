@@ -231,14 +231,14 @@ namespace FPSStage2WorldUtils
 		}
 		Truck->SetActorHiddenInGame(false);
 		Truck->SetActorEnableCollision(true);
-		HideTruckHelperVisuals(Truck);
 		if (USkeletalMeshComponent* TruckMesh = Truck->GetMesh())
 		{
-			TruckMesh->SetHiddenInGame(false, true);
-			TruckMesh->SetVisibility(true, true);
+			TruckMesh->SetHiddenInGame(false, false);
+			TruckMesh->SetVisibility(true, false);
 			TruckMesh->SetEnableGravity(true);
 		}
 		Truck->ResetVehiclePhysicsState(true);
+		HideTruckHelperVisuals(Truck);
 
 		UE_LOG(LogTemp, Log,
 			TEXT("[Stage2Truck] Spawned near PlayerStart. PlayerStart=%s Truck=%s Grounded=%d"),
@@ -296,14 +296,14 @@ namespace FPSStage2WorldUtils
 			ETeleportType::TeleportPhysics);
 		Truck->SetActorHiddenInGame(false);
 		Truck->SetActorEnableCollision(true);
-		HideTruckHelperVisuals(Truck);
 		if (USkeletalMeshComponent* TruckMesh = Truck->GetMesh())
 		{
-			TruckMesh->SetHiddenInGame(false, true);
-			TruckMesh->SetVisibility(true, true);
+			TruckMesh->SetHiddenInGame(false, false);
+			TruckMesh->SetVisibility(true, false);
 			TruckMesh->SetEnableGravity(true);
 		}
 		Truck->ResetVehiclePhysicsState(true);
+		HideTruckHelperVisuals(Truck);
 		Truck->Tags.Add(PlayerPlacementTag);
 
 		UE_LOG(LogTemp, Log,
@@ -579,14 +579,14 @@ namespace FPSStage2WorldUtils
 		{
 			Truck->SetActorHiddenInGame(false);
 			Truck->SetActorEnableCollision(true);
-			HideTruckHelperVisuals(Truck);
 			if (USkeletalMeshComponent* TruckMesh = Truck->GetMesh())
 			{
-				TruckMesh->SetHiddenInGame(false, true);
-				TruckMesh->SetVisibility(true, true);
+				TruckMesh->SetHiddenInGame(false, false);
+				TruckMesh->SetVisibility(true, false);
 				TruckMesh->SetEnableGravity(true);
 			}
 			Truck->ResetVehiclePhysicsState(true);
+			HideTruckHelperVisuals(Truck);
 			Truck->Tags.Add(Stage2InitialTruckPlacementTag);
 			return;
 		}

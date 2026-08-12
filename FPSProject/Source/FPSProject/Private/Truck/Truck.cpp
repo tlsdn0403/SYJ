@@ -702,17 +702,22 @@ void ATruck::Tick(float DeltaTime)
 			SendTruckMovePacket();
 		}
 
-		if (!EngineAudioComponent->IsPlaying())
-		{
-			EngineAudioComponent->Play();
-		}
-
-		UpdateEngineSound();
 		UpdateBrakeSound();
 	}
-	else
+
+	const bool bShouldPlayEngineSound =
+		!bCinematicControlLocked && IsValid(DriverCharacter);
+	if (EngineAudioComponent)
 	{
-		if (EngineAudioComponent && EngineAudioComponent->IsPlaying())
+		if (bShouldPlayEngineSound)
+		{
+			if (!EngineAudioComponent->IsPlaying())
+			{
+				EngineAudioComponent->Play();
+			}
+			UpdateEngineSound();
+		}
+		else if (EngineAudioComponent->IsPlaying())
 		{
 			EngineAudioComponent->Stop();
 		}
@@ -2661,9 +2666,18 @@ bool ATruck::IsLocalInteractionCharacter(const AFPSBaseCharacter* Character) con
 void ATruck::UpdateEngineSound()
 {
 	auto* MoveComp = Cast<UChaosWheeledVehicleMovementComponent>(GetVehicleMovement());
-	if (MoveComp)
+	if (MoveComp && EngineAudioComponent)
 	{
 		float CurrentRPM = MoveComp->GetEngineRotationSpeed();
+		if (!bIsLocallyDriven && NetworkTruckId != 0)
+		{
+			const float MaxRPM = FMath::Max(1.0f, MoveComp->GetEngineMaxRotationSpeed());
+			const float SpeedRatio = FMath::Clamp(
+				GetTruckSmokeEvaluationSpeed() / FMath::Max(1.0f, ZombieNoiseMaxSpeed),
+				0.0f,
+				1.0f);
+			CurrentRPM = FMath::Lerp(MaxRPM * 0.15f, MaxRPM, SpeedRatio);
+		}
 		EngineAudioComponent->SetFloatParameter(TEXT("RPM"), CurrentRPM);
 	}
 }

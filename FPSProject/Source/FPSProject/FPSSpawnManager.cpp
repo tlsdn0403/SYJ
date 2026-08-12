@@ -7,8 +7,10 @@
 #include "AIController.h"
 #include "Characters/FPSBaseCharacter.h"
 #include "Components/CapsuleComponent.h"
+#include "Components/StaticMeshComponent.h"
 #include "Engine/EngineTypes.h"
 #include "Engine/OverlapResult.h"
+#include "Engine/StaticMeshActor.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -23,6 +25,43 @@
 namespace
 {
 constexpr float Stage2ZombieMinTruckSpawnDistance = 1200.0f;
+
+void HideStaticStage2ZombieSpawnMarkers(UWorld* World)
+{
+	static TSet<TWeakObjectPtr<UWorld>> ProcessedWorlds;
+	ProcessedWorlds.Remove(nullptr);
+	if (World == nullptr || ProcessedWorlds.Contains(World) || !FPSStage2WorldUtils::IsStaticStage2World(World))
+	{
+		return;
+	}
+
+	for (TActorIterator<AStaticMeshActor> It(World); It; ++It)
+	{
+		AStaticMeshActor* MarkerActor = *It;
+		UStaticMeshComponent* MeshComponent = MarkerActor ? MarkerActor->GetStaticMeshComponent() : nullptr;
+		if (!IsValid(MeshComponent) ||
+			!GetNameSafe(MeshComponent->GetStaticMesh()).Contains(TEXT("Cube"), ESearchCase::IgnoreCase))
+		{
+			continue;
+		}
+
+		FVector BoundsOrigin;
+		FVector BoundsExtent;
+		MarkerActor->GetActorBounds(false, BoundsOrigin, BoundsExtent);
+		const bool bMatchesSpawnMarkerSize = BoundsExtent.Equals(FVector(1000.0f), 5.0f);
+		const bool bMatchesSpawnMarkerHeight = FMath::IsNearlyEqual(MarkerActor->GetActorLocation().Z, 313.0f, 5.0f);
+		if (!bMatchesSpawnMarkerSize || !bMatchesSpawnMarkerHeight)
+		{
+			continue;
+		}
+
+		MarkerActor->SetActorHiddenInGame(true);
+		MarkerActor->SetActorEnableCollision(false);
+		MeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	}
+
+	ProcessedWorlds.Add(World);
+}
 
 bool TryProjectZombieLocationToGround(UWorld* World, ABaseZombie* Zombie, const FVector& CandidateLocation, FVector& OutActorLocation)
 {
@@ -435,6 +474,7 @@ void FFPSSpawnManager::SpawnZombie(UWorld* World, const Protocol::ObjectInfo& Ob
 	{
 		return;
 	}
+	HideStaticStage2ZombieSpawnMarkers(World);
 
 	const uint64 ObjectId = ObjectInfo.object_id();
 	if (Owner.WorldObjects->FindZombie(ObjectId) != nullptr)

@@ -699,6 +699,7 @@ void AFPSBaseCharacter::EnterTruckDriverSeat(ATruck* Truck)
 	GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
 	PlayDrivingAnimation();
+	ResetTruckSeatMovementState(false);
 	Truck->RefreshInteractionWidgetsForCharacter(this);
 }
 
@@ -736,6 +737,7 @@ void AFPSBaseCharacter::ExitTruckDriverSeat()
 	SetHeldWeaponVehicleVisibility(false);
 	RefreshTruckInteractionState(Truck);
 	Truck->RefreshInteractionWidgetsForCharacter(this);
+	ResetTruckSeatMovementState(false);
 
 	ApplyDefaultAnimationClass();
 }
@@ -783,6 +785,7 @@ void AFPSBaseCharacter::EnterTruckCargo(ATruck* Truck)
 	BeginTruckCargoWalk(Truck);
 	RefreshTruckInteractionState(Truck);
 	Truck->RefreshInteractionWidgetsForCharacter(this);
+	ResetTruckSeatMovementState(true);
 }
 
 void AFPSBaseCharacter::ExitTruckCargo()
@@ -820,6 +823,7 @@ void AFPSBaseCharacter::ExitTruckCargo()
 	bHasLastTruckCargoLocalLocationForMoveState = false;
 	RefreshTruckInteractionState(Truck);
 	Truck->RefreshInteractionWidgetsForCharacter(this);
+	ResetTruckSeatMovementState(false);
 
 	if (IsLocallyControlled())
 	{
@@ -908,6 +912,7 @@ void AFPSBaseCharacter::EnterMountedWeapon(ATruck* Truck, AMountedMachineGun* Mo
 	}
 
 	Truck->RefreshInteractionWidgetsForCharacter(this);
+	ResetTruckSeatMovementState(false);
 	UpdateMachineGunUI(true);
 }
 
@@ -1030,6 +1035,7 @@ void AFPSBaseCharacter::ExitMountedWeapon(bool bReturnToCargo)
 	RefreshTruckInteractionState(Truck);
 	Truck->RefreshInteractionWidgetsForCharacter(this);
 	bHasSavedTruckCargoLocalLocation = false;
+	ResetTruckSeatMovementState(bIsOnTruckCargo);
 
 	ApplyDefaultAnimationClass();
 
@@ -1045,6 +1051,37 @@ void AFPSBaseCharacter::SyncMovementToServer()
 	{
 		SendMovePacket();
 	}
+}
+
+void AFPSBaseCharacter::ResetTruckSeatMovementState(bool bUseCargoLocalCoordinates)
+{
+	if (!PlayerInfo || !DestInfo)
+	{
+		return;
+	}
+
+	FVector MovementLocation = GetActorLocation();
+	if (bUseCargoLocalCoordinates && CurrentTruck)
+	{
+		if (UBoxComponent* CargoBounds = CurrentTruck->GetCargoMoveBoundsComponent())
+		{
+			MovementLocation = CargoBounds->GetComponentTransform().InverseTransformPosition(GetActorLocation());
+		}
+	}
+
+	Protocol::PosInfo SeatInfo;
+	SeatInfo.set_object_id(PlayerInfo->object_id());
+	SeatInfo.set_x(MovementLocation.X);
+	SeatInfo.set_y(MovementLocation.Y);
+	SeatInfo.set_z(MovementLocation.Z);
+	SeatInfo.set_yaw(GetActorRotation().Yaw);
+	SeatInfo.set_pitch(0.0f);
+	SeatInfo.set_roll(0.0f);
+	SeatInfo.set_state(Protocol::MOVE_STATE_IDLE);
+
+	PlayerInfo->CopyFrom(SeatInfo);
+	DestInfo->CopyFrom(SeatInfo);
+	RemoteLastState = Protocol::MOVE_STATE_IDLE;
 }
 
 bool AFPSBaseCharacter::CanInteractWithMountedWeapon() const

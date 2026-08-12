@@ -356,6 +356,7 @@ protected:
 	void EndTruckCargoWalk();
 	void ConstrainToTruckCargoBounds();
 	void SetTruckMeshMovementIgnored(ATruck* Truck, bool bShouldIgnore);
+	void ResetTruckSeatMovementState(bool bUseCargoLocalCoordinates);
 	void SetHeldWeaponVehicleVisibility(bool bShouldHide);
 	void UpdateIronSightFirstPersonView(bool bEnable);
 	void ClearTruckInteractionState();

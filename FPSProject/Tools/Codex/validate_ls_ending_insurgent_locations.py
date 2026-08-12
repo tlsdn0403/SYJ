@@ -3,6 +3,7 @@ import unreal
 SEQUENCE_PATH = "/Game/Maps/map_level2/LS_Ending"
 OUTPUT_PATH = r"D:\SYJ\FPSProject\Tools\Codex\validate_ls_ending_result.txt"
 TARGET_BINDINGS = {"SK_Insurgent_P7", "SK_Insurgent_P8"}
+YAW_CHANNEL = 5
 
 lines = []
 
@@ -34,9 +35,12 @@ for binding in sequence.get_bindings():
                     continue
                 values.append(keys[0].get_value())
 
+            yaw_keys = channels[YAW_CHANNEL].get_keys()
+            first_yaw = yaw_keys[0].get_value() if yaw_keys else None
             emit(
                 f"{binding_name} section={section_index} "
-                f"first_location=({values[0]}, {values[1]}, {values[2]})"
+                f"first_location=({values[0]}, {values[1]}, {values[2]}) "
+                f"first_yaw={first_yaw}"
             )
 
 with open(OUTPUT_PATH, "w", encoding="utf-8") as output_file:

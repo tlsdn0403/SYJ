@@ -1,11 +1,13 @@
 #include "FPSStage2WorldUtils.h"
 
 #include "Characters/FPSBaseCharacter.h"
+#include "Algo/Sort.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/WidgetComponent.h"
 #include "EngineUtils.h"
 #include "Engine/World.h"
 #include "GameFramework/Actor.h"
+#include "GameFramework/PlayerStart.h"
 #include "Stage2/Stage2TileManager.h"
 #include "Truck/Truck.h"
 
@@ -54,12 +56,23 @@ namespace FPSStage2WorldUtils
 	{
 		return LevelName.Contains(TEXT("map_level2"), ESearchCase::IgnoreCase) ||
 			LevelName.Contains(TEXT("level2"), ESearchCase::IgnoreCase) ||
-			LevelName.Contains(TEXT("stage2"), ESearchCase::IgnoreCase);
+			LevelName.Contains(TEXT("stage2"), ESearchCase::IgnoreCase) ||
+			IsStaticStage2LevelName(LevelName);
+	}
+
+	bool IsStaticStage2LevelName(const FString& LevelName)
+	{
+		return LevelName.Contains(TEXT("0812_NEWMAP_Ba"), ESearchCase::IgnoreCase);
 	}
 
 	bool IsStage2World(const UWorld* World)
 	{
 		return World && IsStage2LevelName(World->GetMapName());
+	}
+
+	bool IsStaticStage2World(const UWorld* World)
+	{
+		return World && IsStaticStage2LevelName(World->GetMapName());
 	}
 
 	AStage2TileManager* FindStage2TileManager(UWorld* World)
@@ -77,6 +90,41 @@ namespace FPSStage2WorldUtils
 		return nullptr;
 	}
 
+	static bool TryGetStaticPlayerStartTransform(UWorld* World, FTransform& OutTransform)
+	{
+		if (!World)
+		{
+			return false;
+		}
+
+		TArray<APlayerStart*> PlayerStarts;
+		for (TActorIterator<APlayerStart> It(World); It; ++It)
+		{
+			if (APlayerStart* PlayerStart = *It)
+			{
+				PlayerStarts.Add(PlayerStart);
+			}
+		}
+
+		Algo::SortBy(PlayerStarts, [](const APlayerStart* PlayerStart)
+		{
+			return GetPathNameSafe(PlayerStart);
+		});
+
+		for (APlayerStart* PlayerStart : PlayerStarts)
+		{
+			if (!IsValid(PlayerStart))
+			{
+				continue;
+			}
+
+			OutTransform = PlayerStart->GetActorTransform();
+			return true;
+		}
+
+		return false;
+	}
+
 	bool TryGetPlayerSpawnTransform(UWorld* World, uint64 ObjectId, FTransform& OutTransform)
 	{
 		if (!IsStage2World(World))
@@ -84,14 +132,21 @@ namespace FPSStage2WorldUtils
 			return false;
 		}
 
+		FTransform InitialSpawnTransform;
+		bool bHasInitialSpawnTransform = false;
+
 		const AStage2TileManager* Stage2TileManager = FindStage2TileManager(World);
-		if (!Stage2TileManager || !Stage2TileManager->AreInitialTilesReady())
+		if (Stage2TileManager && Stage2TileManager->AreInitialTilesReady())
 		{
-			return false;
+			bHasInitialSpawnTransform = Stage2TileManager->TryGetInitialPlayerSpawnTransform(InitialSpawnTransform);
 		}
 
-		FTransform InitialSpawnTransform;
-		if (!Stage2TileManager->TryGetInitialPlayerSpawnTransform(InitialSpawnTransform))
+		if (!bHasInitialSpawnTransform)
+		{
+			bHasInitialSpawnTransform = TryGetStaticPlayerStartTransform(World, InitialSpawnTransform);
+		}
+
+		if (!bHasInitialSpawnTransform)
 		{
 			return false;
 		}
@@ -294,11 +349,21 @@ namespace FPSStage2WorldUtils
 		static constexpr float TruckSpawnForwardOffset = 700.0f;
 		static constexpr float TruckGroundClearance = 8.0f;
 
-		FTransform InitialSpawnTransform;
 		const AStage2TileManager* Stage2TileManager = FindStage2TileManager(World);
-		if (!Stage2TileManager ||
-			!Stage2TileManager->AreInitialTilesReady() ||
-			!Stage2TileManager->TryGetInitialPlayerSpawnTransform(InitialSpawnTransform))
+		FTransform InitialSpawnTransform;
+		bool bHasInitialSpawnTransform = false;
+
+		if (Stage2TileManager && Stage2TileManager->AreInitialTilesReady())
+		{
+			bHasInitialSpawnTransform = Stage2TileManager->TryGetInitialPlayerSpawnTransform(InitialSpawnTransform);
+		}
+
+		if (!bHasInitialSpawnTransform)
+		{
+			bHasInitialSpawnTransform = TryGetStaticPlayerStartTransform(World, InitialSpawnTransform);
+		}
+
+		if (!bHasInitialSpawnTransform)
 		{
 			return;
 		}

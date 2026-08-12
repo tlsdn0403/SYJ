@@ -12,7 +12,9 @@ namespace FPSStage2WorldUtils
 {
 	void RestoreNetworkCharacterVisibility(AFPSBaseCharacter* Character);
 	bool IsStage2LevelName(const FString& LevelName);
+	bool IsStaticStage2LevelName(const FString& LevelName);
 	bool IsStage2World(const UWorld* World);
+	bool IsStaticStage2World(const UWorld* World);
 	AStage2TileManager* FindStage2TileManager(UWorld* World);
 	bool TryGetPlayerSpawnTransform(UWorld* World, uint64 ObjectId, FTransform& OutTransform);
 	bool TryGetWeaponSpawnTransform(UWorld* World, uint64 ItemObjectId, const FVector& LocalOffset, FTransform& OutTransform);

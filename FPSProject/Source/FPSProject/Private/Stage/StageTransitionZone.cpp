@@ -7,6 +7,27 @@
 #include "Protocol.pb.h"
 #include "Truck/Truck.h"
 
+namespace
+{
+	const FName StaticStage2LevelName(TEXT("/Game/Maps/map_level2/0812_NEWMAP_Ba"));
+
+	FName ResolveStageTransitionTargetLevelName(const FName& TargetLevelName)
+	{
+		if (TargetLevelName.IsNone())
+		{
+			return TargetLevelName;
+		}
+
+		const FString TargetLevelString = TargetLevelName.ToString();
+		if (TargetLevelString.Contains(TEXT("map_level2_test"), ESearchCase::IgnoreCase))
+		{
+			return StaticStage2LevelName;
+		}
+
+		return TargetLevelName;
+	}
+}
+
 AStageTransitionZone::AStageTransitionZone()
 {
 	// 매 프레임 tick 함수 호출 X
@@ -41,7 +62,8 @@ void AStageTransitionZone::TravelToTargetLevel(ATruck* TriggerTruck)
 		return;
 	}
 
-	if (!TriggerTruck || TargetLevelName.IsNone())
+	const FName ResolvedTargetLevelName = ResolveStageTransitionTargetLevelName(TargetLevelName);
+	if (!TriggerTruck || ResolvedTargetLevelName.IsNone())
 	{
 		return;
 	}
@@ -61,13 +83,13 @@ void AStageTransitionZone::TravelToTargetLevel(ATruck* TriggerTruck)
 		{
 			Protocol::C_STAGE_TRANSITION_REQUEST RequestPkt;
 			RequestPkt.set_truck_id(TriggerTruck->NetworkTruckId);
-			RequestPkt.set_target_level(TCHAR_TO_UTF8(*TargetLevelName.ToString()));
+			RequestPkt.set_target_level(TCHAR_TO_UTF8(*ResolvedTargetLevelName.ToString()));
 			GameInstance->SendPacket(ClientPacketHandler::MakeSendBuffer(RequestPkt));
 			return;
 		}
 	}
 
-	UGameplayStatics::OpenLevel(this, TargetLevelName);
+	UGameplayStatics::OpenLevel(this, ResolvedTargetLevelName);
 }
 
 void AStageTransitionZone::HandleTransitionBoxBeginOverlap(

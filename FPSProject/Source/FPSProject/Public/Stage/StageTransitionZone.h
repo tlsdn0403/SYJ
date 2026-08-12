@@ -20,7 +20,7 @@ public:
 	TObjectPtr<UBoxComponent> TransitionBox;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stage Transition")
-	FName TargetLevelName = TEXT("map_level2_test");
+	FName TargetLevelName = TEXT("/Game/Maps/map_level2/0812_NEWMAP_Ba");
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stage Transition")
 	bool bTriggerOnce = true;

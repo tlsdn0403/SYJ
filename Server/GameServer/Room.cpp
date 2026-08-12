@@ -1024,6 +1024,17 @@ namespace
 		{ 16390.0f, 12830.0f, 260.0f, 2, 4, 180.0f, 180.0f, STAGE2_ZOMBIE_TILE_RIGHT, STAGE2_RIGHT_TILE_OCCURRENCE_COUNT, 0x27D4EB2Du, 0x94D049BBu },
 	};
 
+	constexpr ZombieSpawnGroupInfo STAGE2_STATIC_MAP_ZOMBIE_GROUPS[] =
+	{
+		{ -6200.0f, -137800.0f, 250.0f, 4, 5, 220.0f, 220.0f, STAGE2_ZOMBIE_TILE_WORLD, 1, 0x8F1BBCDCu, 0xD1310BA6u },
+		{ -14200.0f, -128500.0f, 250.0f, 4, 5, 220.0f, 220.0f, STAGE2_ZOMBIE_TILE_WORLD, 1, 0xA4093822u, 0x299F31D0u },
+		{ -23000.0f, -116000.0f, 250.0f, 4, 5, 220.0f, 220.0f, STAGE2_ZOMBIE_TILE_WORLD, 1, 0x082EFA98u, 0xEC4E6C89u },
+		{ -29200.0f, -84800.0f, 250.0f, 4, 5, 220.0f, 220.0f, STAGE2_ZOMBIE_TILE_WORLD, 1, 0x452821E6u, 0x38D01377u },
+		{ -35400.0f, -52000.0f, 180.0f, 4, 5, 220.0f, 220.0f, STAGE2_ZOMBIE_TILE_WORLD, 1, 0xBE5466CFu, 0x34E90C6Cu },
+		{ 5200.0f, -140800.0f, 170.0f, 4, 5, 220.0f, 220.0f, STAGE2_ZOMBIE_TILE_WORLD, 1, 0xC0AC29B7u, 0xC97C50DDu },
+		{ 20000.0f, -141300.0f, 160.0f, 4, 5, 220.0f, 220.0f, STAGE2_ZOMBIE_TILE_WORLD, 1, 0x3F84D5B5u, 0xB5470917u },
+		{ 30500.0f, -139900.0f, 160.0f, 4, 5, 220.0f, 220.0f, STAGE2_ZOMBIE_TILE_WORLD, 1, 0x9216D5D9u, 0x8979FB1Bu },
+	};
 	struct Stage2WeaponSpawnInfo
 	{
 		float x;
@@ -1154,13 +1165,22 @@ void Room::SpawnStage2Zombies()
 	_nextStage2ZombieId = ZOMBIE_OBJECT_ID_START;
 	_pendingStage2ZombieSpawns.clear();
 
-	for (const ZombieSpawnGroupInfo& groupInfo : STAGE2_ZOMBIE_GROUPS)
+	const ZombieSpawnGroupInfo* zombieGroups = _bHasStage2TileTypeSequence ? STAGE2_ZOMBIE_GROUPS : STAGE2_STATIC_MAP_ZOMBIE_GROUPS;
+	const int32 zombieGroupCount = _bHasStage2TileTypeSequence
+		? static_cast<int32>(sizeof(STAGE2_ZOMBIE_GROUPS) / sizeof(STAGE2_ZOMBIE_GROUPS[0]))
+		: static_cast<int32>(sizeof(STAGE2_STATIC_MAP_ZOMBIE_GROUPS) / sizeof(STAGE2_STATIC_MAP_ZOMBIE_GROUPS[0]));
+	const char* spawnMode = _bHasStage2TileTypeSequence ? "tile" : "static";
+
+	for (int32 groupIndex = 0; groupIndex < zombieGroupCount; ++groupIndex)
 	{
+		const ZombieSpawnGroupInfo& groupInfo = zombieGroups[groupIndex];
 		const int32 spawnColumns = STAGE2_ZOMBIE_GROUP_COLUMNS;
 		const int32 spawnRows = STAGE2_ZOMBIE_GROUP_ROWS;
 		const float startX = groupInfo.centerX - (static_cast<float>(spawnColumns - 1) * groupInfo.spacingX * 0.5f);
 		const float startY = groupInfo.centerY - (static_cast<float>(spawnRows - 1) * groupInfo.spacingY * 0.5f);
-		const int32 tileOccurrenceCount = GetStage2TileOccurrenceCount(groupInfo.tileTypeCode, groupInfo.tileOccurrenceCount);
+		const int32 tileOccurrenceCount = _bHasStage2TileTypeSequence
+			? GetStage2TileOccurrenceCount(groupInfo.tileTypeCode, groupInfo.tileOccurrenceCount)
+			: groupInfo.tileOccurrenceCount;
 
 		for (int32 occurrenceIndex = 0; occurrenceIndex < tileOccurrenceCount; ++occurrenceIndex)
 		{
@@ -1184,7 +1204,7 @@ void Room::SpawnStage2Zombies()
 
 	reverse(_pendingStage2ZombieSpawns.begin(), _pendingStage2ZombieSpawns.end());
 	ProcessPendingStage2ZombieSpawns();
-	cout << "[Stage2Zombie] queued=" << _pendingStage2ZombieSpawns.size() << endl;
+	cout << "[Stage2Zombie] mode=" << spawnMode << " queued=" << _pendingStage2ZombieSpawns.size() << endl;
 }
 
 void Room::QueueStage2ZombieSpawn(
@@ -2512,6 +2532,8 @@ void Room::HandleStageTransitionRequest(PlayerRef player, Protocol::C_STAGE_TRAN
 	_bStageTransitionStarted = true;
 	_stageTransitionTruckId = truckId;
 	_stageTransitionReadyPlayerIds.clear();
+	_stage2TileTypeSequence.clear();
+	_bHasStage2TileTypeSequence = false;
 
 	Protocol::S_STAGE_TRANSITION transitionPkt;
 	transitionPkt.set_target_level(pkt.target_level());

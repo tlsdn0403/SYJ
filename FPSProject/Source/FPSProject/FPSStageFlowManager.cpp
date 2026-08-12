@@ -161,10 +161,17 @@ bool FFPSStageFlowManager::ShouldDelayEnterGameRequest() const
 
 	if (bWaitingForStage2MapLoad && FPSStage2WorldUtils::IsStage2LevelName(PendingStageTransitionLevelName))
 	{
+		if (FPSStage2WorldUtils::IsStaticStage2LevelName(PendingStageTransitionLevelName) &&
+			FPSStage2WorldUtils::IsStaticStage2World(Owner.GetWorld()))
+		{
+			return false;
+		}
+
 		return true;
 	}
 
-	if (FPSStage2WorldUtils::IsStage2World(Owner.GetWorld()))
+	if (FPSStage2WorldUtils::IsStage2World(Owner.GetWorld()) &&
+		!FPSStage2WorldUtils::IsStaticStage2World(Owner.GetWorld()))
 	{
 		return true;
 	}

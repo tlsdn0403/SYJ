@@ -606,7 +606,7 @@ void AFPSBaseCharacter::Die(bool bBroadcastDeath)
 // 2스테이지 맵으로 이동
 void AFPSBaseCharacter::TravelToStage2Map()
 {
-	UGameplayStatics::OpenLevel(this, FName(TEXT("map_level2_test")));
+	UGameplayStatics::OpenLevel(this, FName(TEXT("/Game/Maps/map_level2/0812_NEWMAP_Ba")));
 }
 
 void AFPSBaseCharacter::SendEnterGamePacket()

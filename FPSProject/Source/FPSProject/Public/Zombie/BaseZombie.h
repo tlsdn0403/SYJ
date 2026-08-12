@@ -224,7 +224,7 @@ private:
 	float HeadHitSoundReplayDelay = 0.50f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zombie|Audio", meta = (AllowPrivateAccess = "true", ClampMin = "1"))
-	int32 MaxZombieGroupAwarenessSoundPlays = 2;
+	int32 MaxZombieGroupAwarenessSoundPlays = 1;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zombie|Audio", meta = (AllowPrivateAccess = "true", ClampMin = "0.0"))
 	float ZombieGroupAwarenessSoundCooldown = 2.0f;

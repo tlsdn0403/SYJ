@@ -95,7 +95,7 @@ private:
 	int32 MaxZombieGroupAwarenessSoundPlays = 1;
 
 	UPROPERTY(EditAnywhere, Category = "AI|Awareness|Sound", meta = (ClampMin = "0.0"))
-	float ZombieGroupAwarenessSoundCooldown = 2.0f;
+	float ZombieGroupAwarenessSoundCooldown = 6.0f;
 
 	UPROPERTY(EditAnywhere, Category = "AI|Awareness|Sound", meta = (ClampMin = "100.0"))
 	float ZombieGroupFallbackCellSize = 3000.0f;

@@ -15,6 +15,7 @@
 #include "NiagaraSystem.h"
 #include "Kismet/GameplayStatics.h"
 #include "Sound/SoundBase.h"
+#include "Sound/SoundAttenuation.h"
 #include "Truck/Truck.h"
 #include "Zombie/ZombieFallZone.h"
 #include "Animation/AnimInstance.h"
@@ -152,6 +153,14 @@ ABaseZombie::ABaseZombie()
 	{
 		ZombieGroupAwarenessSound = DefaultGroupAwarenessSound.Object;
 	}
+
+	ZombieSpatialAttenuation = CreateDefaultSubobject<USoundAttenuation>(TEXT("ZombieSpatialAttenuation"));
+	ZombieSpatialAttenuation->Attenuation.bAttenuate = true;
+	ZombieSpatialAttenuation->Attenuation.bSpatialize = true;
+	ZombieSpatialAttenuation->Attenuation.DistanceAlgorithm = EAttenuationDistanceModel::Linear;
+	ZombieSpatialAttenuation->Attenuation.AttenuationShape = EAttenuationShape::Sphere;
+	ZombieSpatialAttenuation->Attenuation.AttenuationShapeExtents = FVector(500.0f, 0.0f, 0.0f);
+	ZombieSpatialAttenuation->Attenuation.FalloffDistance = 4000.0f;
 
 	HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComponent"));
 
@@ -419,7 +428,15 @@ void ABaseZombie::PlayHeadHitSound(const FVector& HitLocation)
 		return;
 	}
 
-	UGameplayStatics::PlaySoundAtLocation(this, ZombieHeadHitSound, HitLocation);
+	UGameplayStatics::PlaySoundAtLocation(
+		this,
+		ZombieHeadHitSound,
+		HitLocation,
+		FRotator::ZeroRotator,
+		1.0f,
+		1.0f,
+		0.0f,
+		ZombieSpatialAttenuation);
 	LastHeadHitSoundTime = CurrentTime;
 }
 
@@ -488,9 +505,10 @@ void ABaseZombie::PlayZombieGroupAwarenessSound(const FVector& SoundLocation)
 	}
 
 	const TWeakObjectPtr<UWorld> WorldKey(World);
+	const float EffectiveCooldown = FMath::Max(6.0f, ZombieGroupAwarenessSoundCooldown);
 	if (const float* LastWorldPlayTime = GZombieWorldLastGroupSoundPlayTimes.Find(WorldKey))
 	{
-		if ((CurrentTime - *LastWorldPlayTime) < ZombieGroupAwarenessSoundCooldown)
+		if ((CurrentTime - *LastWorldPlayTime) < EffectiveCooldown)
 		{
 			return;
 		}
@@ -502,7 +520,10 @@ void ABaseZombie::PlayZombieGroupAwarenessSound(const FVector& SoundLocation)
 		ZombieGroupAwarenessSound,
 		PlayLocation,
 		FRotator::ZeroRotator,
-		0.4f);
+		0.4f,
+		1.0f,
+		0.0f,
+		ZombieSpatialAttenuation);
 	++SoundState.PlayCount;
 	SoundState.LastPlayTime = CurrentTime;
 	GZombieWorldLastGroupSoundPlayTimes.FindOrAdd(WorldKey) = CurrentTime;

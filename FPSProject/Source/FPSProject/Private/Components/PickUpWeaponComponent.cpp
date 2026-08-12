@@ -16,11 +16,16 @@ UPickUpWeaponComponent::UPickUpWeaponComponent()
 	SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	SetCollisionResponseToAllChannels(ECR_Ignore);
 	SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
+	SetHiddenInGame(true);
+	SetVisibility(false);
 }
 
 void UPickUpWeaponComponent::BeginPlay()
 {
 	Super::BeginPlay();
+
+	SetHiddenInGame(true);
+	SetVisibility(false);
 
 	OnComponentBeginOverlap.AddDynamic(this, &UPickUpWeaponComponent::OnSphereBeginOverlap);
 }

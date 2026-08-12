@@ -26,7 +26,7 @@ namespace
 {
 constexpr float Stage2ZombieMinTruckSpawnDistance = 1200.0f;
 constexpr uint64 Stage2ZombieObjectIdStart = 1000000;
-constexpr uint64 StaticStage2ZombiesPerSpawnArea = 20;
+constexpr uint64 StaticStage2ZombiesPerSpawnArea = 10;
 
 void HideStaticStage2ZombieSpawnMarkers(UWorld* World)
 {
@@ -50,9 +50,8 @@ void HideStaticStage2ZombieSpawnMarkers(UWorld* World)
 		FVector BoundsOrigin;
 		FVector BoundsExtent;
 		MarkerActor->GetActorBounds(false, BoundsOrigin, BoundsExtent);
-		const bool bMatchesSpawnMarkerSize = BoundsExtent.Equals(FVector(1000.0f), 5.0f);
-		const bool bMatchesSpawnMarkerHeight = FMath::IsNearlyEqual(MarkerActor->GetActorLocation().Z, 313.0f, 5.0f);
-		if (!bMatchesSpawnMarkerSize || !bMatchesSpawnMarkerHeight)
+		const bool bMatchesSpawnMarkerSize = BoundsExtent.Equals(FVector(50.0f), 5.0f);
+		if (!bMatchesSpawnMarkerSize)
 		{
 			continue;
 		}

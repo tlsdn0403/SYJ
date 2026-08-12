@@ -2172,10 +2172,7 @@ void ATruck::ProcessZombieImpact(ABaseZombie* Zombie, const FVector& ImpactPoint
 	ApplyZombieImpactSpeedPenalty(ImpactSpeed);
 	PlayLocalDriverZombieImpactBloodEffect();
 
-	if (ZombieCrashSound)
-	{
-		UGameplayStatics::PlaySoundAtLocation(this, ZombieCrashSound, ImpactPoint);
-	}
+	PlayZombieImpactSound(ImpactPoint);
 
 	// 전달받은 충돌 방향이 거의 0 이면 트럭 전방으로 간주
 	const FVector SafeImpactDirection = ImpactDirection.IsNearlyZero() ? GetActorForwardVector() : ImpactDirection.GetSafeNormal();
@@ -2275,6 +2272,14 @@ void ATruck::ProcessZombieImpact(ABaseZombie* Zombie, const FVector& ImpactPoint
 	if (USkeletalMeshComponent* ZombieMesh = Zombie->GetMesh())
 	{
 		ZombieMesh->AddImpulseAtLocation(WorldImpulse, ImpactPoint, FName(TEXT("pelvis")));
+	}
+}
+
+void ATruck::PlayZombieImpactSound(const FVector& ImpactPoint) const
+{
+	if (ZombieCrashSound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(this, ZombieCrashSound, ImpactPoint);
 	}
 }
 

@@ -178,7 +178,7 @@ private:
 private:
 	static constexpr size_t MAX_CARGO_OCCUPANTS = 4;
 	static constexpr size_t REQUIRED_STAGE2_PLAYER_COUNT = 3;
-	static constexpr int32 TRUCK_LOADING_PHASE_DURATION_SECONDS = 10;
+	static constexpr int32 TRUCK_LOADING_PHASE_DURATION_SECONDS = 120;
 
 	unordered_map<uint64, ObjectRef> _objects;
 	unordered_map<uint64, PlayerRef> _players;

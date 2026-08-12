@@ -172,6 +172,7 @@ public:
 
 	void UpdateEngineSound();
 	void UpdateBrakeSound();
+	void PlayZombieImpactSound(const FVector& ImpactPoint) const;
 
 	UFUNCTION(BlueprintCallable, Category = "Cargo|Ride")
 	FVector GetCargoRideLocation() const;

@@ -858,6 +858,28 @@ void UFPSProjectGameInstance::HandleZombieDismember(const Protocol::S_ZOMBIE_DIS
 	const bool bTruckImpactRagdoll = BoneNameString == TEXT("__truck_impact_ragdoll__");
 	if (bTruckImpact || bTruckImpactRagdoll)
 	{
+		ATruck* ClosestTruck = nullptr;
+		float ClosestTruckDistanceSq = TNumericLimits<float>::Max();
+		for (TActorIterator<ATruck> It(GetWorld()); It; ++It)
+		{
+			ATruck* Truck = *It;
+			if (!IsValid(Truck))
+			{
+				continue;
+			}
+
+			const float DistanceSq = FVector::DistSquared(Truck->GetActorLocation(), HitLocation);
+			if (DistanceSq < ClosestTruckDistanceSq)
+			{
+				ClosestTruck = Truck;
+				ClosestTruckDistanceSq = DistanceSq;
+			}
+		}
+		if (ClosestTruck)
+		{
+			ClosestTruck->PlayZombieImpactSound(HitLocation);
+		}
+
 		FVector ImpactDirection(Impulse.X, Impulse.Y, 0.0f);
 		if (ImpactDirection.IsNearlyZero())
 		{

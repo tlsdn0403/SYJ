@@ -771,6 +771,13 @@ void AFPSBaseCharacter::EnterTruckCargo(ATruck* Truck)
 	bAimInputHeld = false;
 	CurrentTruck = Truck;
 	ShowTruckFuelOnHUD(Truck);
+	if (IsLocallyControlled())
+	{
+		if (APlayerController* PlayerController = Cast<APlayerController>(GetController()))
+		{
+			PlayerController->SetAudioListenerOverride(Truck->GetRootComponent(), FVector::ZeroVector, FRotator::ZeroRotator);
+		}
+	}
 
 	SetActorLocationAndRotation(
 		Truck->GetCargoRideLocation(),
@@ -797,6 +804,13 @@ void AFPSBaseCharacter::ExitTruckCargo()
 
 	ATruck* Truck = CurrentTruck;
 	bHasSavedTruckCargoLocalLocation = false;
+	if (IsLocallyControlled())
+	{
+		if (APlayerController* PlayerController = Cast<APlayerController>(GetController()))
+		{
+			PlayerController->ClearAudioListenerOverride();
+		}
+	}
 
 	EndTruckCargoWalk();
 	SetActorLocationAndRotation(

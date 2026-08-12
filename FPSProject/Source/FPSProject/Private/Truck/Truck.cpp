@@ -800,6 +800,8 @@ void ATruck::SetLocallyDriven(bool bLocallyDriven)
 	{
 		bHasNetworkSmokeSample = false;
 		NetworkSmokeSpeed = 0.0f;
+		bHasSmoothedRemoteEngineRPM = false;
+		SmoothedRemoteEngineRPM = 0.0f;
 	}
 
 	UE_LOG(LogTemp, Verbose,
@@ -1292,7 +1294,10 @@ void ATruck::UpdateNetworkSmokeSpeedFromTransform(const FVector& TargetLocation)
 		const float DeltaTime = CurrentTime - LastNetworkSmokeSampleTime;
 		if (DeltaTime > KINDA_SMALL_NUMBER)
 		{
-			NetworkSmokeSpeed = FVector::Dist(TargetLocation, LastNetworkSmokeLocation) / DeltaTime;
+			const float MeasuredSpeed = FVector::Dist(TargetLocation, LastNetworkSmokeLocation) / DeltaTime;
+			NetworkSmokeSpeed = NetworkSmokeSpeed <= KINDA_SMALL_NUMBER
+				? MeasuredSpeed
+				: FMath::FInterpTo(NetworkSmokeSpeed, MeasuredSpeed, DeltaTime, 5.0f);
 			LastNetworkSmokeUpdateTime = CurrentTime;
 		}
 	}
@@ -1634,12 +1639,15 @@ void ATruck::CheckZombieImpactSweep()
 		return;
 	}
 
-	if (!bIsLocallyDriven && NetworkTruckId != 0)
+	const bool bLocalCargoPrediction = !bIsLocallyDriven && NetworkTruckId != 0 && HasLocalCargoPassenger();
+	if (!bIsLocallyDriven && NetworkTruckId != 0 && !bLocalCargoPrediction)
 	{
 		return;
 	}
 
-	FVector VehicleVelocity = GetVelocity();
+	const FVector VehicleVelocity = bLocalCargoPrediction
+		? GetActorForwardVector() * GetTruckSmokeEvaluationSpeed()
+		: GetVelocity();
 	const float ImpactSpeed = VehicleVelocity.Size();
 	if (ImpactSpeed < ZombieImpactMinSpeed)
 	{
@@ -2147,11 +2155,6 @@ void ATruck::OnTruckMeshHit(UPrimitiveComponent* HitComponent, AActor* OtherActo
 
 void ATruck::ProcessZombieImpact(ABaseZombie* Zombie, const FVector& ImpactPoint, const FVector& ImpactDirection, float ImpactSpeed)
 {
-	if (!bIsLocallyDriven && NetworkTruckId != 0)
-	{
-		return;
-	}
-
 	// 속도가 느리거나 좀비가 죽으면 무시
 	if (!Zombie || !Zombie->IsAlive() || ImpactSpeed < ZombieImpactMinSpeed)
 	{
@@ -2169,6 +2172,15 @@ void ATruck::ProcessZombieImpact(ABaseZombie* Zombie, const FVector& ImpactPoint
 	}
 	// LastZombieImpactTimes 맵에 좀비의 마지막 충돌 시간을 업데이트
 	LastZombieImpactTimes.Add(Zombie, CurrentTime);
+	if (!bIsLocallyDriven && NetworkTruckId != 0)
+	{
+		if (HasLocalCargoPassenger())
+		{
+			PlayZombieImpactSound(ImpactPoint, true);
+		}
+		return;
+	}
+
 	ApplyZombieImpactSpeedPenalty(ImpactSpeed);
 	PlayLocalDriverZombieImpactBloodEffect();
 
@@ -2275,12 +2287,32 @@ void ATruck::ProcessZombieImpact(ABaseZombie* Zombie, const FVector& ImpactPoint
 	}
 }
 
-void ATruck::PlayZombieImpactSound(const FVector& ImpactPoint) const
+void ATruck::PlayZombieImpactSound(const FVector& ImpactPoint, bool bLocalCargoPrediction)
 {
-	if (ZombieCrashSound)
+	UWorld* World = GetWorld();
+	if (!World || !ZombieCrashSound)
 	{
-		UGameplayStatics::PlaySoundAtLocation(this, ZombieCrashSound, ImpactPoint);
+		return;
 	}
+
+	const float CurrentTime = World->GetTimeSeconds();
+	constexpr float MinSoundInterval = 0.08f;
+	constexpr float LocalPredictionGracePeriod = 0.30f;
+	if (!bLocalCargoPrediction && CurrentTime - LastLocalCargoImpactSoundTime < LocalPredictionGracePeriod)
+	{
+		return;
+	}
+	if (CurrentTime - LastZombieImpactSoundTime < MinSoundInterval)
+	{
+		return;
+	}
+
+	LastZombieImpactSoundTime = CurrentTime;
+	if (bLocalCargoPrediction)
+	{
+		LastLocalCargoImpactSoundTime = CurrentTime;
+	}
+	UGameplayStatics::PlaySoundAtLocation(this, ZombieCrashSound, ImpactPoint);
 }
 
 void ATruck::ApplyZombieImpactSpeedPenalty(float ImpactSpeed)
@@ -2668,6 +2700,13 @@ bool ATruck::IsLocalInteractionCharacter(const AFPSBaseCharacter* Character) con
 	return DriverCharacter == Character && GetController() && GetController()->IsLocalController();
 }
 
+bool ATruck::HasLocalCargoPassenger() const
+{
+	const UFPSProjectGameInstance* GameInstance = Cast<UFPSProjectGameInstance>(GetGameInstance());
+	const AFPSBaseCharacter* LocalPlayer = GameInstance ? GameInstance->MyPlayer : nullptr;
+	return IsValid(LocalPlayer) && LocalPlayer->IsOnTruckCargo() && LocalPlayer->CurrentTruck == this;
+}
+
 void ATruck::UpdateEngineSound()
 {
 	auto* MoveComp = Cast<UChaosWheeledVehicleMovementComponent>(GetVehicleMovement());
@@ -2681,7 +2720,19 @@ void ATruck::UpdateEngineSound()
 				GetTruckSmokeEvaluationSpeed() / FMath::Max(1.0f, ZombieNoiseMaxSpeed),
 				0.0f,
 				1.0f);
-			CurrentRPM = FMath::Lerp(MaxRPM * 0.15f, MaxRPM, SpeedRatio);
+			const float TargetRPM = FMath::Lerp(MaxRPM * 0.15f, MaxRPM, SpeedRatio);
+			if (!bHasSmoothedRemoteEngineRPM)
+			{
+				SmoothedRemoteEngineRPM = TargetRPM;
+				bHasSmoothedRemoteEngineRPM = true;
+			}
+			const float DeltaTime = GetWorld() ? GetWorld()->GetDeltaSeconds() : 0.0f;
+			SmoothedRemoteEngineRPM = FMath::FInterpTo(SmoothedRemoteEngineRPM, TargetRPM, DeltaTime, 4.0f);
+			CurrentRPM = SmoothedRemoteEngineRPM;
+		}
+		else
+		{
+			bHasSmoothedRemoteEngineRPM = false;
 		}
 		EngineAudioComponent->SetFloatParameter(TEXT("RPM"), CurrentRPM);
 	}

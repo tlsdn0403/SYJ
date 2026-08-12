@@ -172,7 +172,7 @@ public:
 
 	void UpdateEngineSound();
 	void UpdateBrakeSound();
-	void PlayZombieImpactSound(const FVector& ImpactPoint) const;
+	void PlayZombieImpactSound(const FVector& ImpactPoint, bool bLocalCargoPrediction = false);
 
 	UFUNCTION(BlueprintCallable, Category = "Cargo|Ride")
 	FVector GetCargoRideLocation() const;
@@ -509,9 +509,13 @@ private:
 	float LastNetworkSmokeSampleTime = 0.0f;
 	float LastNetworkSmokeUpdateTime = 0.0f;
 	float NetworkSmokeSpeed = 0.0f;
+	float SmoothedRemoteEngineRPM = 0.0f;
 	float LastInteractPromptHiddenTime = -100000.0f;
+	float LastZombieImpactSoundTime = -100000.0f;
+	float LastLocalCargoImpactSoundTime = -100000.0f;
 	bool bHasOriginalEngineMaxTorque = false;
 	bool bHasNetworkSmokeSample = false;
+	bool bHasSmoothedRemoteEngineRPM = false;
 	bool bWhiteSmokeActive = false;
 	bool bBlackSmokeActive = false;
 	ETruckInteractType VisibleInteractPromptType = ETruckInteractType::None;
@@ -528,6 +532,7 @@ private:
 	void UpdateFuelConsumption(float DeltaTime);
 	void ClearDrivingInput(bool bHoldBrake);
 	bool CanRecoverTruckUpright() const;
+	bool HasLocalCargoPassenger() const;
 	bool TryGetUprightRecoveryLocation(FVector& OutRecoveryLocation) const;
 	void TeleportOccupantsAfterUprightRecovery();
 	void ConfigureVehiclePawnCollision();

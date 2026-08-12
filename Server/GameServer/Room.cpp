@@ -1017,6 +1017,11 @@ namespace
 		return static_cast<float>(MixStage2ZombieSeed(seed, index) % 360);
 	}
 
+	constexpr float PickStage2ZombieUnitFloat(uint32 seed, int32 index)
+	{
+		return static_cast<float>(MixStage2ZombieSeed(seed, index) & 0x00FFFFFFu) / 16777215.0f;
+	}
+
 	struct ZombieSpawnGroupInfo
 	{
 		float centerX;
@@ -1279,8 +1284,20 @@ void Room::SpawnStage2Zombies()
 				for (int32 column = 0; column < spawnColumns; ++column)
 				{
 					const int32 spawnIndex = occurrenceIndex * spawnRows * spawnColumns + row * spawnColumns + column;
-					const float localX = (static_cast<float>(column) - static_cast<float>(spawnColumns - 1) * 0.5f) * groupInfo.spacingX;
-					const float localY = (static_cast<float>(row) - static_cast<float>(spawnRows - 1) * 0.5f) * groupInfo.spacingY;
+					float localX = (static_cast<float>(column) - static_cast<float>(spawnColumns - 1) * 0.5f) * groupInfo.spacingX;
+					float localY = (static_cast<float>(row) - static_cast<float>(spawnRows - 1) * 0.5f) * groupInfo.spacingY;
+					if (!_bHasStage2TileTypeSequence)
+					{
+						// Scatter static-map groups across a disk instead of exposing the source 2x5 grid.
+						const uint32 scatterSeed = groupInfo.yawSeed ^ MixStage2ZombieSeed(groupInfo.typeSeed, groupIndex + 1);
+						const float scatterAngle = PickStage2ZombieUnitFloat(scatterSeed, spawnIndex * 2) * 2.0f * 3.14159265358979323846f;
+						const float scatterRadiusLimit = 0.5f * (std::max)(
+							groupInfo.spacingX * static_cast<float>(spawnColumns),
+							groupInfo.spacingY * static_cast<float>(spawnRows));
+						const float scatterRadius = sqrtf(PickStage2ZombieUnitFloat(scatterSeed, spawnIndex * 2 + 1)) * scatterRadiusLimit;
+						localX = cosf(scatterAngle) * scatterRadius;
+						localY = sinf(scatterAngle) * scatterRadius;
+					}
 					const float worldX = groupInfo.centerX + localX * formationCos - localY * formationSin;
 					const float worldY = groupInfo.centerY + localX * formationSin + localY * formationCos;
 					QueueStage2ZombieSpawn(

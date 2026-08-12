@@ -92,7 +92,7 @@ private:
 	TObjectPtr<USoundBase> ZombieGroupAwarenessSound = nullptr;
 
 	UPROPERTY(EditAnywhere, Category = "AI|Awareness|Sound", meta = (ClampMin = "1"))
-	int32 MaxZombieGroupAwarenessSoundPlays = 2;
+	int32 MaxZombieGroupAwarenessSoundPlays = 1;
 
 	UPROPERTY(EditAnywhere, Category = "AI|Awareness|Sound", meta = (ClampMin = "0.0"))
 	float ZombieGroupAwarenessSoundCooldown = 2.0f;

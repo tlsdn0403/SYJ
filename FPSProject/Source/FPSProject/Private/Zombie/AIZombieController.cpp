@@ -22,21 +22,6 @@ const FName AAIZombieController::PlayerLocationKey = FName("PlayerLocation");
 
 namespace
 {
-	struct FZombieGroupAwarenessSoundState
-	{
-		int32 PlayCount = 0;
-		float LastPlayTime = -100000.0f;
-	};
-
-	TMap<uint64, FZombieGroupAwarenessSoundState> GZombieGroupAwarenessSoundStates;
-
-	uint64 BuildZombieGroupSoundStateKey(const UWorld* World, int32 GroupKey)
-	{
-		const uint64 WorldHash = static_cast<uint64>(PointerHash(World));
-		const uint64 GroupHash = static_cast<uint32>(GroupKey);
-		return (WorldHash << 32) | GroupHash;
-	}
-
 	AActor* ResolveTargetActorFromPawn(APawn* PlayerPawn)
 	{
 		AFPSBaseCharacter* PlayerCharacter = Cast<AFPSBaseCharacter>(PlayerPawn);
@@ -334,40 +319,19 @@ int32 AAIZombieController::ResolveZombieGroupSoundKey() const
 
 void AAIZombieController::TryPlayZombieGroupAwarenessSound(AActor* TargetActor, const FVector& KnownLocation)
 {
-	UWorld* World = GetWorld();
-	APawn* ZombiePawn = GetPawn();
-	if (!World || !ZombiePawn || !TargetActor || !ZombieGroupAwarenessSound || MaxZombieGroupAwarenessSoundPlays <= 0)
+	ABaseZombie* Zombie = Cast<ABaseZombie>(GetPawn());
+	if (!Zombie || !TargetActor)
 	{
 		return;
 	}
 
-	const int32 GroupKey = ResolveZombieGroupSoundKey();
-	if (GroupKey == 0)
-	{
-		return;
-	}
-
-	FZombieGroupAwarenessSoundState& SoundState =
-		GZombieGroupAwarenessSoundStates.FindOrAdd(BuildZombieGroupSoundStateKey(World, GroupKey));
-
-	const float CurrentTime = World->GetTimeSeconds();
-	if (SoundState.PlayCount >= MaxZombieGroupAwarenessSoundPlays ||
-		(CurrentTime - SoundState.LastPlayTime) < ZombieGroupAwarenessSoundCooldown)
-	{
-		return;
-	}
-
-	const FVector SoundLocation = ZombiePawn->GetActorLocation().IsNearlyZero()
+	const FVector SoundLocation = Zombie->GetActorLocation().IsNearlyZero()
 		? KnownLocation
-		: ZombiePawn->GetActorLocation();
-	UGameplayStatics::PlaySoundAtLocation(
-		this,
-		ZombieGroupAwarenessSound,
-		SoundLocation,
-		FRotator::ZeroRotator,
-		0.4f);
-	++SoundState.PlayCount;
-	SoundState.LastPlayTime = CurrentTime;
+		: Zombie->GetActorLocation();
+
+	// Network packets and AI perception must share one limiter; otherwise each
+	// path can play the same group's growl independently.
+	Zombie->PlayZombieGroupAwarenessSound(SoundLocation);
 }
 
 void AAIZombieController::RememberTarget(AActor* TargetActor, const FVector& KnownLocation)

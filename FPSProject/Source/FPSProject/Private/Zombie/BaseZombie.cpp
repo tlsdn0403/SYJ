@@ -30,6 +30,7 @@ struct FZombieGroupSoundState
 };
 
 TMap<uint64, FZombieGroupSoundState> GZombieNetworkGroupSoundStates;
+TMap<TWeakObjectPtr<UWorld>, float> GZombieWorldLastGroupSoundPlayTimes;
 
 uint64 BuildZombieNetworkGroupSoundStateKey(const UWorld* World, int32 GroupKey)
 {
@@ -453,7 +454,7 @@ void ABaseZombie::PlayBloodHitEffect(const FVector& HitLocation, const FVector& 
 void ABaseZombie::PlayZombieGroupAwarenessSound(const FVector& SoundLocation)
 {
 	UWorld* World = GetWorld();
-	if (!World || !ZombieGroupAwarenessSound || MaxZombieGroupAwarenessSoundPlays <= 0)
+	if (!World || !ZombieGroupAwarenessSound)
 	{
 		return;
 	}
@@ -468,10 +469,31 @@ void ABaseZombie::PlayZombieGroupAwarenessSound(const FVector& SoundLocation)
 	FZombieGroupSoundState& SoundState =
 		GZombieNetworkGroupSoundStates.FindOrAdd(BuildZombieNetworkGroupSoundStateKey(World, GroupKey));
 	const float CurrentTime = World->GetTimeSeconds();
-	if (SoundState.PlayCount >= MaxZombieGroupAwarenessSoundPlays ||
-		(CurrentTime - SoundState.LastPlayTime) < ZombieGroupAwarenessSoundCooldown)
+
+	// A spawn group is allowed to announce itself exactly once. This also makes
+	// repeated network move/attack packets harmless, regardless of Blueprint defaults.
+	if (SoundState.PlayCount > 0)
 	{
 		return;
+	}
+
+	// Different groups can become active on the same frame. Keep a world-level
+	// cooldown so several batches do not stack the same growl on top of each other.
+	for (auto It = GZombieWorldLastGroupSoundPlayTimes.CreateIterator(); It; ++It)
+	{
+		if (!It.Key().IsValid())
+		{
+			It.RemoveCurrent();
+		}
+	}
+
+	const TWeakObjectPtr<UWorld> WorldKey(World);
+	if (const float* LastWorldPlayTime = GZombieWorldLastGroupSoundPlayTimes.Find(WorldKey))
+	{
+		if ((CurrentTime - *LastWorldPlayTime) < ZombieGroupAwarenessSoundCooldown)
+		{
+			return;
+		}
 	}
 
 	const FVector PlayLocation = SoundLocation.IsNearlyZero() ? GetActorLocation() : SoundLocation;
@@ -483,6 +505,7 @@ void ABaseZombie::PlayZombieGroupAwarenessSound(const FVector& SoundLocation)
 		0.4f);
 	++SoundState.PlayCount;
 	SoundState.LastPlayTime = CurrentTime;
+	GZombieWorldLastGroupSoundPlayTimes.FindOrAdd(WorldKey) = CurrentTime;
 }
 
 void ABaseZombie::SetNetworkMoveTarget(const FVector& TargetLocation, const FRotator& TargetRotation, bool bInIsMoving)

@@ -85,6 +85,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "FPS|State")
 	bool IsDead() const { return bIsDead; }
 
+	UFUNCTION(BlueprintCallable, Category = "FPS|Cinematic")
+	void SetCinematicViewMode(bool bEnable);
+
 	void Die(bool bBroadcastDeath = true);
 
 	UFUNCTION(BlueprintCallable, Category = "FPS|Inventory")
@@ -402,4 +405,7 @@ protected:
 
 	UPROPERTY(Transient)
 	bool bFirstPersonIronSightViewActive = false;
+
+	UPROPERTY(Transient)
+	bool bCinematicViewMode = false;
 };

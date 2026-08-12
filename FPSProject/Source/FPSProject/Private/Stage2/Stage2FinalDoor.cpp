@@ -658,13 +658,19 @@ void AStage2FinalDoor::OnGameClearExitClicked()
 
 void AStage2FinalDoor::SetEndingCinematicMode(bool bEnable)
 {
-	if (!bUseCinematicMode)
+	APlayerController* PlayerController = UGameplayStatics::GetPlayerController(this, 0);
+	if (PlayerController == nullptr)
 	{
 		return;
 	}
 
-	if (APlayerController* PlayerController = UGameplayStatics::GetPlayerController(this, 0))
+	if (AFPSBaseCharacter* Character = Cast<AFPSBaseCharacter>(PlayerController->GetPawn()))
 	{
-		PlayerController->SetCinematicMode(bEnable, true, true, true, true);
+		Character->SetCinematicViewMode(bEnable);
+	}
+
+	if (bUseCinematicMode)
+	{
+		PlayerController->SetCinematicMode(bEnable, false, true, true, true);
 	}
 }

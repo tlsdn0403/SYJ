@@ -183,6 +183,36 @@ void AFPSBaseCharacter::BeginPlay()
 	}
 }
 
+void AFPSBaseCharacter::SetCinematicViewMode(bool bEnable)
+{
+	bCinematicViewMode = bEnable;
+
+	if (bEnable)
+	{
+		bAimInputHeld = false;
+		bIsHoldAiming = false;
+		bIsIronSightAiming = false;
+		bIsAiming = false;
+	}
+
+	UpdateIronSightFirstPersonView(false);
+	SetActorHiddenInGame(false);
+
+	if (USkeletalMeshComponent* CharacterMesh = GetMesh())
+	{
+		CharacterMesh->SetHiddenInGame(false, true);
+		CharacterMesh->SetVisibility(true, true);
+		CharacterMesh->SetOwnerNoSee(false);
+		CharacterMesh->SetOnlyOwnerSee(false);
+	}
+
+	if (IsValid(CurrentWeapon))
+	{
+		CurrentWeapon->SetFirstPersonViewEnabled(false, nullptr);
+		CurrentWeapon->SetWeaponHidden(false);
+	}
+}
+
 void AFPSBaseCharacter::ConfigureNavigationRuntimeCost()
 {
 	if (UCapsuleComponent* Capsule = GetCapsuleComponent())
@@ -266,6 +296,7 @@ void AFPSBaseCharacter::Tick(float DeltaTime)
 
 	// 줌 했을 떄 FOV 확대
 	const bool bUseIronSightCamera =
+		!bCinematicViewMode &&
 		IsLocallyControlled() &&
 		bIsIronSightAiming &&
 		!bIsHoldAiming &&
